@@ -1,6 +1,6 @@
 #ifndef LR_SPRITE_H
 #define LR_SPRITE_H
-#include "Stack/Drawable.h"
+#include "Graphics/Drawable.h"
 #include "Common/Meta/metadata.h"
 
 namespace lr {
