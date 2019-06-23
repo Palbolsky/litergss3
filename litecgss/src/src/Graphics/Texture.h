@@ -31,11 +31,14 @@ namespace lr {
 		std::vector<unsigned char> toRawDataPng();
 		int toFile(const std::string& filename);
 
+		bool isLoaded() const { return m_loaded; }
+
 	private:
 		static bool loadPng(sf::Texture& output, const char* rawDataOrFilename, long fromMemorySize);
 
 		bool hasImage() const { return m_image.getSize().x != 0; };
 
+		bool m_loaded = false;
 		sf::Texture m_texture;
 		sf::Image m_image;
 	};

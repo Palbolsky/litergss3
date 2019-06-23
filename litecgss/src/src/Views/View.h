@@ -29,7 +29,8 @@ namespace lr {
 	};
 
 	class View : 
-		public ViewAdder {
+		public ViewAdder,
+		public GraphicsStackItem {
 		friend class ViewAdder;
 	public:
 		View() = default;
@@ -37,6 +38,8 @@ namespace lr {
 
 		auto getSize() { return m_drawables.getSize(); }
 		void draw(sf::View& view, sf::RenderTarget& target) const { m_drawables.draw(view, target); }
+		void draw(sf::RenderTarget& target) const { m_drawables.drawFast(target); }
+		void updateContentsOpacity(std::uint8_t opacity) { m_drawables.updateContentsOpacity(opacity); }
 
 	private:
 		DrawableStack m_drawables;

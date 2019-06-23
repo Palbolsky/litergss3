@@ -7,7 +7,9 @@
 namespace lr {
 	class Viewport : 
 		public View {
-
+	public:
+		void draw(sf::RenderTarget& target) const override {}
+		void drawFast(sf::RenderTarget& target) const override {}
 	};
 
 	class Sprite;

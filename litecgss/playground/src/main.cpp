@@ -108,33 +108,18 @@ void CheckDrawableStack() {
 }
 
 void CheckDrawableStackWithDrawing() {
-	auto view = sf::View{};
 	auto renderTarget = sf::RenderWindow{};
 
 	auto stack = lr::Viewport{};
-	auto stack2 = lr::Viewport{};
 
 	auto& sprite2 = lr::Sprite::create(stack);
-	{
-		auto& sprite = lr::Sprite::create(stack);
-		
 
-		std::cout << stack.getSize() << std::endl;
+	sprite2.detach();
 
-		sprite2.detach();
+	std::cout << stack.getSize() << std::endl;
+	sprite2.setVisible(false);
 
-		std::cout << stack.getSize() << std::endl;
-
-		sprite2.setVisible(false);
-
-		auto& sprite3 = lr::Sprite::create(stack2);
-
-		std::cout << stack.getSize() << " / " << stack2.getSize() << std::endl;
-	}
-
-	std::cout << stack2.getSize() << std::endl;
-
-	stack.draw(view, renderTarget);
+	stack.draw(renderTarget);
 	//Here sprite2 can not be used anymore
 
 	std::cout << stack.getSize() << std::endl;
