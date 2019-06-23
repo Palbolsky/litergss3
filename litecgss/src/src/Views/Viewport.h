@@ -6,7 +6,8 @@
 
 namespace lr {
 	class Viewport : 
-		public View {
+		public View,
+		public GraphicsStackItem {
 	public:
 		void draw(sf::RenderTarget& target) const override {}
 		void drawFast(sf::RenderTarget& target) const override {}

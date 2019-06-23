@@ -33,6 +33,10 @@ namespace lr {
 
 		bool isLoaded() const { return m_loaded; }
 
+		void setShaderUniform(sf::Shader&, const std::string& attribute) const;
+		void update(const sf::Window& window, unsigned int x, unsigned int y) { m_texture.update(window, x, y); }
+		bool create(int sw, int sh) { return m_texture.create(sw, sh); }
+		std::unique_ptr<sf::Sprite> createSprite();
 	private:
 		static bool loadPng(sf::Texture& output, const char* rawDataOrFilename, long fromMemorySize);
 

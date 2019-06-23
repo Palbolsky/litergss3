@@ -81,6 +81,9 @@ int main(int argc, char* argv[]) {
 #include "Graphics/Sprite.h"
 #include "Graphics/Texture.h"
 
+#include "Views/DisplayWindow.h"
+#include "Configuration/DisplayWindowConfiguration.h"
+
 void CheckDrawableStack() {
 	auto stack = lr::Viewport{};
 	auto stack2 = lr::Viewport{};
@@ -134,6 +137,13 @@ void CheckTextureLoading(const std::string& filename) {
 	texture.toFile(LITE_CGSS_PLAYGROUND_DIR "/resources/copy.png");
 }
 
+void CheckCreateWindow() {
+	auto window = lr::DisplayWindow{};
+	auto config = lr::DisplayWindowConfig{};
+	window.load(config);
+	window.draw();
+}
+
 int main(int argc, char* argv[]) {
 <<<<<<< 69f86d862365e6a252939bad2943010ca2a09b06
 	auto viewport = lr::Viewport {};
@@ -146,7 +156,11 @@ int main(int argc, char* argv[]) {
 	CheckDrawableStack();
 	CheckDrawableStackWithDrawing();
 	CheckTextureLoading(LITE_CGSS_PLAYGROUND_DIR "/resources/test.png");
+<<<<<<< 69f86d862365e6a252939bad2943010ca2a09b06
 >>>>>>> tests : revert unintended modifications
+=======
+	CheckCreateWindow();
+>>>>>>> feature : port of ex-CGraphics, CGraphicsDraw, CGraphicsSnapshot
 
 	return 0;
 }

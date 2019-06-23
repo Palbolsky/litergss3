@@ -114,3 +114,10 @@ int lr::Texture::toFile(const std::string& filename) {
 	return lodepng_encode32_file(filename.c_str(), img.getPixelsPtr(), img.getSize().x, img.getSize().y);
 }
 
+void lr::Texture::setShaderUniform(sf::Shader& shader, const std::string& attribute) const {
+	shader.setUniform(attribute, m_texture);
+}
+
+std::unique_ptr<sf::Sprite> lr::Texture::createSprite() {
+	return std::make_unique<sf::Sprite>(m_texture);
+}

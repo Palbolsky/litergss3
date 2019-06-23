@@ -1,0 +1,32 @@
+#ifndef LR_DISPLAY_WINDOW_SNAPSHOT_H
+#define LR_DISPLAY_WINDOW_SNAPSHOT_H
+
+#include <memory>
+#include <SFML/Graphics.hpp>
+#include "Graphics/Texture.h"
+
+namespace lr {
+	class DisplayWindow;
+	class DisplayWindowSnapshot {
+	public:
+		DisplayWindowSnapshot(DisplayWindow& window);
+		std::unique_ptr<lr::Texture> takeSnapshot(sf::RenderWindow& window);
+		void freeze(sf::RenderWindow& window);
+		void transition(long time, Texture* texture = nullptr);
+		void stop();
+		void draw(sf::RenderWindow& window);
+		void init();
+	private:
+		void takeSnapshotOn(sf::RenderWindow& window, Texture& text) const;
+		void transitionBasic(long time);
+		void transitionRGSS(long time, const Texture& bitmap);
+
+		DisplayWindow& m_window;
+		std::unique_ptr<Texture> m_freezeTexture = nullptr;
+		std::unique_ptr<sf::Sprite> m_freezeSprite = nullptr;
+		std::unique_ptr<sf::Shader> m_freezeShader = nullptr;
+
+		bool m_rgssTransition = false;
+	};
+}
+#endif

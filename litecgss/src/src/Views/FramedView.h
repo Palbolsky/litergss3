@@ -7,7 +7,8 @@
 
 namespace lr {
 	class FramedView :
-		public View {
+		public View,
+		public GraphicsStackItem {
 	private:
 		std::vector<sf::VertexArray> m_vertices;
 		sf::Texture* m_texture = nullptr;

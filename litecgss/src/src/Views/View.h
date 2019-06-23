@@ -29,18 +29,19 @@ namespace lr {
 	};
 
 	class View : 
-		public ViewAdder,
-		public GraphicsStackItem {
+		public ViewAdder {
 		friend class ViewAdder;
 	public:
 		View() = default;
 		virtual ~View() = default;
 
 		auto getSize() { return m_drawables.getSize(); }
+	protected:
 		void draw(sf::View& view, sf::RenderTarget& target) const { m_drawables.draw(view, target); }
 		void draw(sf::RenderTarget& target) const { m_drawables.drawFast(target); }
-		void updateContentsOpacity(std::uint8_t opacity) { m_drawables.updateContentsOpacity(opacity); }
 
+		void updateContentsOpacity(std::uint8_t opacity) { m_drawables.updateContentsOpacity(opacity); }
+		void syncFromRawData(GraphicsContainer data, bool forceDetachAll = true) { m_drawables.syncFromRawData(std::move(data), forceDetachAll); }
 	private:
 		DrawableStack m_drawables;
 	};
