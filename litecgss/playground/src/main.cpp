@@ -82,6 +82,7 @@ int main(int argc, char* argv[]) {
 #include "Graphics/Texture.h"
 
 #include "Views/DisplayWindow.h"
+#include "Views/FramedView.h"
 #include "Configuration/DisplayWindowConfiguration.h"
 
 void CheckDrawableStack() {
@@ -144,6 +145,11 @@ void CheckCreateWindow() {
 	window.draw();
 }
 
+void CheckCreateFramedView() {
+	auto window = lr::FramedView{};
+	window.bindRectangle(nullptr);
+}
+
 int main(int argc, char* argv[]) {
 <<<<<<< 69f86d862365e6a252939bad2943010ca2a09b06
 	auto viewport = lr::Viewport {};
@@ -160,7 +166,7 @@ int main(int argc, char* argv[]) {
 >>>>>>> tests : revert unintended modifications
 =======
 	CheckCreateWindow();
->>>>>>> feature : port of ex-CGraphics, CGraphicsDraw, CGraphicsSnapshot
+	CheckCreateFramedView();
 
 	return 0;
 }

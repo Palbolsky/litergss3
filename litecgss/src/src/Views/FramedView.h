@@ -4,11 +4,12 @@
 #include "View.h"
 #include "ViewAuthorizations.h"
 #include "Graphics/Texture.h"
+#include "Graphics/Drawable.h"
 
 namespace lr {
 	class FramedView :
 		public View,
-		public GraphicsStackItem {
+		public Drawable<FramedView> {
 	private:
 		std::vector<sf::VertexArray> m_vertices;
 		sf::Texture* m_texture = nullptr;
