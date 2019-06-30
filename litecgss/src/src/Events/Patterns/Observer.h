@@ -1,10 +1,10 @@
-#ifndef LR_OBSERVER_H
-#define LR_OBSERVER_H
+#ifndef CGSS_OBSERVER_H
+#define CGSS_OBSERVER_H
 
 #include <functional>
 #include <cassert>
 
-namespace lr {
+namespace cgss {
 
 	template <class T>
 	class Observer {

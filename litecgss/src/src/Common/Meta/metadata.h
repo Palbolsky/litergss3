@@ -1,7 +1,7 @@
 #ifndef L_METADATA_HEADER
 #define L_METADATA_HEADER
 
-namespace lr {
+namespace cgss {
 	namespace meta {
 		template <class T>
 		struct Log {

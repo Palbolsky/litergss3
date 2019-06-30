@@ -1,9 +1,9 @@
-#ifndef LR_TEXT_H
-#define LR_TEXT_H
+#ifndef CGSS_TEXT_H
+#define CGSS_TEXT_H
 #include "Graphics/Drawable.h"
 #include "Common/Meta/metadata.h"
 
-namespace lr {
+namespace cgss {
 	class Text :
 		public Drawable<Text> {
 	private:

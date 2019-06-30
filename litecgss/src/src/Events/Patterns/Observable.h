@@ -1,11 +1,11 @@
-#ifndef LR_OBSERVABLE_H
-#define LR_OBSERVABLE_H
+#ifndef CGSS_OBSERVABLE_H
+#define CGSS_OBSERVABLE_H
 
 #include <vector>
 #include <algorithm>
 #include "Observer.h"
 
-namespace lr {
+namespace cgss {
 	namespace detail::observable {
 		template<typename C, typename T>
 		inline auto insert_in_container(C& c, T&& t) ->

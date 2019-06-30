@@ -1,11 +1,11 @@
-#ifndef LR_DRAWABLE_STACK_H
-#define LR_DRAWABLE_STACK_H
+#ifndef CGSS_DRAWABLE_STACK_H
+#define CGSS_DRAWABLE_STACK_H
 
 #include <cstdint>
 #include <SFML/Graphics.hpp>
 #include "GraphicsStack.h"
 
-namespace lr {
+namespace cgss {
 	class DrawableStack :
 		public GraphicsStack {
 	public:

@@ -3,8 +3,8 @@
 #include "Views/FramedView.h"
 
 struct FramedViewDataTest {
-	lr::DisplayWindowSettings settings{};
-	lr::MainEventDispatcher eventDispatcher{};
+	cgss::DisplayWindowSettings settings{};
+	cgss::MainEventDispatcher eventDispatcher{};
 };
 
 static inline FramedViewDataTest& PrepareTest() {
@@ -12,8 +12,8 @@ static inline FramedViewDataTest& PrepareTest() {
 	return data;
 }
 
-static inline lr::FramedView CreateFramedView(FramedViewDataTest& data = PrepareTest()) {
-	return lr::FramedView{ data.eventDispatcher, data.settings };
+static inline cgss::FramedView CreateFramedView(FramedViewDataTest& data = PrepareTest()) {
+	return cgss::FramedView{ data.eventDispatcher, data.settings };
 }
 
 TEST_CASE("[FramedView] Creation") {

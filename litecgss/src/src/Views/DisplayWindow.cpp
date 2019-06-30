@@ -2,17 +2,17 @@
 #include "Configuration/DisplayWindowSettings.h"
 #include "DisplayWindow.h"
 
-lr::DisplayWindow::DisplayWindow(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& settings) :
+cgss::DisplayWindow::DisplayWindow(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& settings) :
 	SubObserver<WindowSettingsChangeEvent>(std::bind(&DisplayWindow::onWindowSettingsChange, this, std::placeholders::_1), eventDispatcher),
 	m_snapshot{ *this } {
 	reload(settings);
 }
 
-lr::DisplayWindow::~DisplayWindow() {
+cgss::DisplayWindow::~DisplayWindow() {
 	if (m_gameWindow != nullptr) { stop(); }
 }
 
-void lr::DisplayWindow::reload(const DisplayWindowSettings& settings) {
+void cgss::DisplayWindow::reload(const DisplayWindowSettings& settings) {
 	sf::Uint32 style = sf::Style::Close | sf::Style::Titlebar; // sf::Style::Resize = text issues !
 	if (settings.fullscreen) {
 		style = sf::Style::Fullscreen;
@@ -40,7 +40,7 @@ void lr::DisplayWindow::reload(const DisplayWindowSettings& settings) {
 	m_snapshot.init();
 }
 
-sf::RenderTarget& lr::DisplayWindow::configureAndGetRenderTarget(sf::View& defview) {
+sf::RenderTarget& cgss::DisplayWindow::configureAndGetRenderTarget(sf::View& defview) {
 	// Setting the default view parameters
 	defview.setSize(m_draw.screenWidth, m_draw.screenHeight);
 	defview.setCenter(round(m_draw.screenWidth / 2.0f), round(m_draw.screenHeight / 2.0f));
@@ -57,11 +57,11 @@ sf::RenderTarget& lr::DisplayWindow::configureAndGetRenderTarget(sf::View& defvi
 	return *m_gameWindow;
 }
 
-bool lr::DisplayWindow::isOpen() const {
+bool cgss::DisplayWindow::isOpen() const {
 	return m_gameWindow != nullptr && m_gameWindow->isOpen();
 }
 
-void lr::DisplayWindow::stop() {
+void cgss::DisplayWindow::stop() {
 	m_snapshot.stop();
 
 	/* Close the window */
@@ -69,7 +69,7 @@ void lr::DisplayWindow::stop() {
 	m_gameWindow = nullptr;
 }
 
-void lr::DisplayWindow::draw() {
+void cgss::DisplayWindow::draw() {
 	//TODO Respect Liskov, poor guy...
 	if (!isOpen()) {
 		return;
@@ -87,14 +87,14 @@ void lr::DisplayWindow::draw() {
 	m_gameWindow->display();
 }
 
-void lr::DisplayWindow::initRender() {
+void cgss::DisplayWindow::initRender() {
 	if (m_draw.renderTexture == nullptr && m_draw.renderState != nullptr) {
 		m_draw.renderTexture = std::make_unique<sf::RenderTexture>();
 		m_draw.renderTexture->create(m_draw.screenWidth, m_draw.screenHeight);
 	}
 }
 
-void lr::DisplayWindow::drawBrightness() {
+void cgss::DisplayWindow::drawBrightness() {
 	sf::Vertex	vertices[4];
 	sf::Vector2u size = m_gameWindow->getSize();
 	vertices[0].position = sf::Vector2f(0, 0);
@@ -105,7 +105,7 @@ void lr::DisplayWindow::drawBrightness() {
 	m_gameWindow->draw(vertices, 4, sf::PrimitiveType::TriangleStrip);
 }
 
-void lr::DisplayWindow::postProcessing() {
+void cgss::DisplayWindow::postProcessing() {
 	// Drawing render to window if finished
 	if (m_draw.renderTexture) {
 		m_draw.renderTexture->display();
@@ -125,31 +125,31 @@ void lr::DisplayWindow::postProcessing() {
 	}
 }
 
-void lr::DisplayWindow::resizeScreen(int width, int height) {
+void cgss::DisplayWindow::resizeScreen(int width, int height) {
 	//TODO : use an event ?
 }
 
-void lr::DisplayWindow::setShader(sf::RenderStates* shader) {
+void cgss::DisplayWindow::setShader(sf::RenderStates* shader) {
 	m_draw.renderState = shader;
 	if (shader != nullptr) {
 		initRender();
 	}
 }
 
-std::unique_ptr<lr::Texture> lr::DisplayWindow::takeSnapshot() {
+std::unique_ptr<cgss::Texture> cgss::DisplayWindow::takeSnapshot() {
 	return m_snapshot.takeSnapshot(*m_gameWindow);
 }
 
-void lr::DisplayWindow::transition(long time, Texture* texture) {
+void cgss::DisplayWindow::transition(long time, Texture* texture) {
 	m_snapshot.transition(time, texture);
 }
 
-bool lr::DisplayWindow::onWindowSettingsChange(WindowSettingsChangeEvent& event) {
+bool cgss::DisplayWindow::onWindowSettingsChange(WindowSettingsChangeEvent& event) {
 	reload(event.settings);
 	return true;
 }
 
-void lr::DisplayWindow::freeze() {
+void cgss::DisplayWindow::freeze() {
 	m_snapshot.freeze(*m_gameWindow);
 }
 

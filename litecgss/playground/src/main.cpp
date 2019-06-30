@@ -4,16 +4,16 @@
 #include "Configuration/DisplayWindowSettings.h"
 
 int main(int argc, char* argv[]) {
-	auto settings = lr::DisplayWindowSettings{};
-	auto eventDispatcher = lr::MainEventDispatcher{};
+	auto settings = cgss::DisplayWindowSettings{};
+	auto eventDispatcher = cgss::MainEventDispatcher{};
 
-	auto window = lr::DisplayWindow{ eventDispatcher, settings };
+	auto window = cgss::DisplayWindow{ eventDispatcher, settings };
 	window.draw();
 
-	auto event = lr::WindowSettingsChangeEvent{};
+	auto event = cgss::WindowSettingsChangeEvent{};
 	event.settings = settings;
 	event.settings.video.scale = 4.0;
-	eventDispatcher.lr::Observable<lr::WindowSettingsChangeEvent>::notifyObservers(event);
+	eventDispatcher.cgss::Observable<cgss::WindowSettingsChangeEvent>::notifyObservers(event);
 
 
 

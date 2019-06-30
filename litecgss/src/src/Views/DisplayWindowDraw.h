@@ -1,10 +1,10 @@
-#ifndef LR_DISPLAY_WINDOW_DRAW_H
-#define LR_DISPLAY_WINDOW_DRAW_H
+#ifndef CGSS_DISPLAY_WINDOW_DRAW_H
+#define CGSS_DISPLAY_WINDOW_DRAW_H
 #include <memory>
 
 #include <SFML/Graphics.hpp>
 
-namespace lr {
+namespace cgss {
 	struct DisplayWindowDrawData {
 		sf::RenderStates* renderState = nullptr;
 		std::unique_ptr<sf::RenderTexture> renderTexture = nullptr;

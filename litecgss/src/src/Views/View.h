@@ -1,5 +1,5 @@
-#ifndef LR_VIEW_H
-#define LR_VIEW_H
+#ifndef CGSS_VIEW_H
+#define CGSS_VIEW_H
 #include <cassert>
 #include <memory>
 #include <vector>
@@ -8,7 +8,7 @@
 #include "Views/Stack/DrawableStack.h"
 #include "ViewAuthorizations.h"
 
-namespace lr {
+namespace cgss {
 
 	//We only expose the "add" method to the internal of Drawable class
 	class View;

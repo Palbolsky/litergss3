@@ -1,9 +1,9 @@
-#ifndef LR_SHAPE_H
-#define LR_SHAPE_H
+#ifndef CGSS_SHAPE_H
+#define CGSS_SHAPE_H
 #include "Graphics/Drawable.h"
 #include "Common/Meta/metadata.h"
 
-namespace lr {
+namespace cgss {
 	class Shape : 
 		public Drawable<Shape> {
 	public:

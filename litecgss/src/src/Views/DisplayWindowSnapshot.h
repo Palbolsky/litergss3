@@ -1,16 +1,16 @@
-#ifndef LR_DISPLAY_WINDOW_SNAPSHOT_H
-#define LR_DISPLAY_WINDOW_SNAPSHOT_H
+#ifndef CGSS_DISPLAY_WINDOW_SNAPSHOT_H
+#define CGSS_DISPLAY_WINDOW_SNAPSHOT_H
 
 #include <memory>
 #include <SFML/Graphics.hpp>
 #include "Graphics/Texture.h"
 
-namespace lr {
+namespace cgss {
 	class DisplayWindow;
 	class DisplayWindowSnapshot {
 	public:
 		DisplayWindowSnapshot(DisplayWindow& window);
-		std::unique_ptr<lr::Texture> takeSnapshot(sf::RenderWindow& window);
+		std::unique_ptr<cgss::Texture> takeSnapshot(sf::RenderWindow& window);
 		void freeze(sf::RenderWindow& window);
 		void transition(long time, Texture* texture = nullptr);
 		void stop();

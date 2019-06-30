@@ -1,10 +1,10 @@
-#ifndef LR_RECTANGLE_H
-#define LR_RECTANGLE_H
+#ifndef CGSS_RECTANGLE_H
+#define CGSS_RECTANGLE_H
 #include <SFML/Graphics.hpp>
 #include "Graphics/Stack/GraphicsStackItem.h"
 #include "Meta/metadata.h"
 
-namespace lr {
+namespace cgss {
 	class Rectangle {
 	private:
 		sf::IntRect m_rect;

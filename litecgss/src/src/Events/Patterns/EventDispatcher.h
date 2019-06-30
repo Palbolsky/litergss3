@@ -1,11 +1,10 @@
-#ifndef LR_EVENT_DISPATCHER_H
-#define LR_EVENT_DISPATCHER_H
+#ifndef CGSS_EVENT_DISPATCHER_H
+#define CGSS_EVENT_DISPATCHER_H
 
 
 #include "Observable.h"
 
-namespace lr {
-
+namespace cgss {
 	template <class ...ET>
 	class EventDispatcher : public Observable<ET>... {
 	public:

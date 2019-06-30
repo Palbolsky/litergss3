@@ -1,10 +1,10 @@
-#ifndef LR_VECTOR_TRACKER_H
-#define LR_VECTOR_TRACKER_H
+#ifndef CGSS_VECTOR_TRACKER_H
+#define CGSS_VECTOR_TRACKER_H
 #include <algorithm>
 #include <optional>
 #include <vector>
 
-namespace lr {
+namespace cgss {
 	template <class T>
 	class vector_tracker {
 	public:

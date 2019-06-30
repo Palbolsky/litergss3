@@ -2,7 +2,7 @@
 #include "Graphics/Text.h"
 #include "Graphics/Sprite.h"
 
-void lr::DrawableStack::draw(sf::View& defview, sf::RenderTarget& target) const  {
+void cgss::DrawableStack::draw(sf::View& defview, sf::RenderTarget& target) const  {
 	//bool was_viewport = false;
 	for(auto& element: *this) {
 		//if(was_viewport && !element->isViewport()) {
@@ -14,14 +14,14 @@ void lr::DrawableStack::draw(sf::View& defview, sf::RenderTarget& target) const 
 	freeDetached();
 }
 
-void lr::DrawableStack::drawFast(sf::RenderTarget& target) const {
+void cgss::DrawableStack::drawFast(sf::RenderTarget& target) const {
 	for(auto& element: *this) {
 		element->drawFast(target);
 	}
 	freeDetached();
 }
 
-void lr::DrawableStack::updateContentsOpacity(std::uint8_t opacity) {
+void cgss::DrawableStack::updateContentsOpacity(std::uint8_t opacity) {
 	for (auto& sp : *this) {
 		//TODO polymorphism
 

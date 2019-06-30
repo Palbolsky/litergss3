@@ -2,7 +2,7 @@
 #include "Texture.h"
 #include "Common/Rectangle.h"
 
-bool lr::Texture::loadPng(sf::Texture& text, const char* rawDataOrFilename, long from_memory_size) {
+bool cgss::Texture::loadPng(sf::Texture& text, const char* rawDataOrFilename, long from_memory_size) {
 	unsigned char* out = nullptr;
 	unsigned w = 0;
 	unsigned h = 0;
@@ -22,7 +22,7 @@ bool lr::Texture::loadPng(sf::Texture& text, const char* rawDataOrFilename, long
 	return result;
 }
 
-bool lr::Texture::load(const std::string& data, unsigned int width, unsigned int height, TextureLoadMethod loadMethod) {
+bool cgss::Texture::load(const std::string& data, unsigned int width, unsigned int height, TextureLoadMethod loadMethod) {
 	//TODO externalize in several texture loaders + polymorphism
 	bool result = false;
 
@@ -57,19 +57,19 @@ bool lr::Texture::load(const std::string& data, unsigned int width, unsigned int
 	return m_loaded;
 }
 
-void lr::Texture::update() {
+void cgss::Texture::update() {
 	if(hasImage()) {
 		m_texture.update(m_image);
 	}
 }
 
-void lr::Texture::blit(unsigned long x, unsigned long y, const Texture& srcTexture, const Rectangle& rect) {
+void cgss::Texture::blit(unsigned long x, unsigned long y, const Texture& srcTexture, const Rectangle& rect) {
 	if(hasImage()) {
 		m_image.copy(srcTexture.m_image, x, y, rect.getRect());
 	}
 }
 
-void lr::Texture::fillRect(long x, long y, unsigned int width, unsigned int height, sf::Color color) {
+void cgss::Texture::fillRect(long x, long y, unsigned int width, unsigned int height, sf::Color color) {
 	const long xStart = x < 0 ? 0 : x;
 	const long xEnd = x + width;
 
@@ -83,13 +83,13 @@ void lr::Texture::fillRect(long x, long y, unsigned int width, unsigned int heig
 	}
 }
 
-void lr::Texture::clearRect(long x, long y, unsigned int width, unsigned int height) {
+void cgss::Texture::clearRect(long x, long y, unsigned int width, unsigned int height) {
 	static const auto BLACK_COLOR = sf::Color{0, 0, 0, 0};
 	fillRect(x, y, width, height, BLACK_COLOR);
 }
 
 
-std::vector<unsigned char> lr::Texture::toRawDataPng() {
+std::vector<unsigned char> cgss::Texture::toRawDataPng() {
 	sf::Image img = m_texture.copyToImage();
 
 	unsigned char* out = nullptr;
@@ -109,15 +109,15 @@ std::vector<unsigned char> lr::Texture::toRawDataPng() {
 	return result;
 }
 
-int lr::Texture::toFile(const std::string& filename) {
+int cgss::Texture::toFile(const std::string& filename) {
 	sf::Image img = m_texture.copyToImage();
 	return lodepng_encode32_file(filename.c_str(), img.getPixelsPtr(), img.getSize().x, img.getSize().y);
 }
 
-void lr::Texture::setShaderUniform(sf::Shader& shader, const std::string& attribute) const {
+void cgss::Texture::setShaderUniform(sf::Shader& shader, const std::string& attribute) const {
 	shader.setUniform(attribute, m_texture);
 }
 
-std::unique_ptr<sf::Sprite> lr::Texture::createSprite() {
+std::unique_ptr<sf::Sprite> cgss::Texture::createSprite() {
 	return std::make_unique<sf::Sprite>(m_texture);
 }
