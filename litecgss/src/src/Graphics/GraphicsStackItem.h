@@ -31,7 +31,7 @@ namespace cgss {
 		void detach();
 
 		void bindRectangle(Rectangle* rect);
-		Rectangle* getRectangle() const { return m_rect; };
+		Rectangle* getBoundRectangle() const { return m_rect; };
 
 		unsigned long getDrawPriority() const { return m_drawPriority; }
 

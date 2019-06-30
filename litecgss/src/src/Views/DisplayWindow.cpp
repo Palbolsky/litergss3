@@ -2,8 +2,7 @@
 #include "Configuration/DisplayWindowSettings.h"
 #include "DisplayWindow.h"
 
-cgss::DisplayWindow::DisplayWindow(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& settings) :
-	SubObserver<WindowSettingsChangeEvent>(std::bind(&DisplayWindow::onWindowSettingsChange, this, std::placeholders::_1), eventDispatcher),
+cgss::DisplayWindow::DisplayWindow(const DisplayWindowSettings& settings) :
 	m_snapshot{ *this } {
 	reload(settings);
 }
@@ -13,7 +12,8 @@ cgss::DisplayWindow::~DisplayWindow() {
 }
 
 void cgss::DisplayWindow::reload(const DisplayWindowSettings& settings) {
-	sf::Uint32 style = sf::Style::Close | sf::Style::Titlebar; // sf::Style::Resize = text issues !
+	m_settings = settings;
+	sf::Uint32 style = sf::Style::Close | sf::Style::Titlebar;
 	if (settings.fullscreen) {
 		style = sf::Style::Fullscreen;
 	}
@@ -38,16 +38,22 @@ void cgss::DisplayWindow::reload(const DisplayWindowSettings& settings) {
 	}
 
 	m_snapshot.init();
+
+	auto we = WindowSettingsChangeEvent{};
+	we.settings = settings;
+	m_eventDispatcher.Observable<WindowSettingsChangeEvent>::notifyObservers(we);
 }
 
 sf::RenderTarget& cgss::DisplayWindow::configureAndGetRenderTarget(sf::View& defview) {
 	// Setting the default view parameters
 	defview.setSize(m_draw.screenWidth, m_draw.screenHeight);
 	defview.setCenter(round(m_draw.screenWidth / 2.0f), round(m_draw.screenHeight / 2.0f));
+	
 	// Appying the default view to the Window (used in postProcessing())
 	m_gameWindow->setView(defview);
+	
 	// If the m_renderTexture is defined, we use it instead of the m_gameWindow (shader processing)
-	if (m_draw.renderTexture) {
+	if (m_draw.renderTexture != nullptr) {
 		// Set the default view
 		m_draw.renderTexture->setView(defview);
 		// It's not cleard so we perform the clear operation
@@ -116,6 +122,7 @@ void cgss::DisplayWindow::postProcessing() {
 			m_gameWindow->draw(sp, *m_draw.renderState);
 		}
 	}
+
 	//Draw the "freeze" texture, if visible
 	m_snapshot.draw(*m_gameWindow);
 
@@ -142,11 +149,6 @@ std::unique_ptr<cgss::Texture> cgss::DisplayWindow::takeSnapshot() {
 
 void cgss::DisplayWindow::transition(long time, Texture* texture) {
 	m_snapshot.transition(time, texture);
-}
-
-bool cgss::DisplayWindow::onWindowSettingsChange(WindowSettingsChangeEvent& event) {
-	reload(event.settings);
-	return true;
 }
 
 void cgss::DisplayWindow::freeze() {

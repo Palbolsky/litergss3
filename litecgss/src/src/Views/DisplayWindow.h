@@ -1,6 +1,8 @@
 #ifndef CGSS_DISPLAY_WINDOW_H
 #define CGSS_DISPLAY_WINDOW_H
 
+#include <memory>
+
 #include "View.h"
 #include "ViewAuthorizations.h"
 #include "DisplayWindowDraw.h"
@@ -10,13 +12,13 @@
 #include "Events/Patterns/SubObserver.h"
 
 namespace cgss {
+
 	struct DisplayWindowSettings;
 	class DisplayWindow :
-		public View,
-		public SubObserver<WindowSettingsChangeEvent> {
+		public View {
 
 	public:
-		DisplayWindow(MainEventDispatcher& ed, const DisplayWindowSettings& settings);
+		DisplayWindow(const DisplayWindowSettings& settings);
 		virtual ~DisplayWindow();
 
 		void setBrightness(unsigned char brightness) { m_draw.brightness = brightness; }
@@ -37,16 +39,30 @@ namespace cgss {
 		void resizeScreen(int width, int height);
 		void setShader(sf::RenderStates* shader);
 
-	private:
 		void reload(const DisplayWindowSettings& settings);
-		bool onWindowSettingsChange(WindowSettingsChangeEvent& event);
+	
+		template <class View, class ... Args>
+		View& addView(Args&& ... args) {
+			auto v = std::unique_ptr<View>(new View(m_eventDispatcher, m_settings, std::forward<Args>(args)...));
+			auto& result = *v.get();
+			m_views.push_back(std::move(v));
+			return result;
+		}
 
+		void clearViews() {
+			m_views.clear();
+		}
+
+	private:
 		void initRender();
 		void drawBrightness();
 		sf::RenderTarget& configureAndGetRenderTarget(sf::View& defview);
 		void postProcessing();
 
+		DisplayWindowSettings m_settings;
+		MainEventDispatcher m_eventDispatcher;
 		std::unique_ptr<sf::RenderWindow> m_gameWindow = nullptr;
+		std::vector<std::unique_ptr<View>> m_views;
 		DisplayWindowSnapshot m_snapshot;
 		DisplayWindowDrawData m_draw;
 	};

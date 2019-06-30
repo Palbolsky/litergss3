@@ -3,8 +3,7 @@
 #include "Common/Rectangle.h"
 
 cgss::FramedView::FramedView(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
-	SubObserver<WindowSettingsChangeEvent>(std::bind(&FramedView::onWindowSettingsChange, this, std::placeholders::_1), eventDispatcher) {
-
+	ViewBox(eventDispatcher, windowSettings) {
 }
 
 void cgss::FramedView::draw(sf::RenderTarget& target) const {
@@ -89,16 +88,13 @@ void cgss::FramedView::updateVertices() {
 
 	if (m_stretch) {
 		updateVerticesStretch(m_width, m_height);
-	}
-	else {
+	} else {
 		updateVerticesBlt(m_width, m_height);
 	}
 
 	updateBackOpacity();
 	resetPausePosition();
-	if (m_cursorRect != nullptr) {
-		resetCursorPosition(m_cursorRect.get());
-	}
+	updateContents();
 }
 
 void cgss::FramedView::update() {
@@ -484,7 +480,11 @@ void cgss::FramedView::allocateVerticesStretch() {
 	allocateVerticesBlt(0, 1, 0, 1);
 }
 
-void cgss::FramedView::updateContents() {
+void cgss::FramedView::updateContents(std::unique_ptr<sf::IntRect> cursorRect) {
+	if (cursorRect != nullptr) {
+		m_cursorRect = std::move(cursorRect);
+	}
+
 	if (m_cursorRect != nullptr) {
 		resetCursorPosition(m_cursorRect.get());
 	}
@@ -513,24 +513,16 @@ void cgss::FramedView::updateView() {
 	long y = m_y + offset_y;
 	long width = m_width - 2 * offset_x;
 	long height = m_height - 2 * offset_y;
+	
 	// Update rect
 	sf::IntRect& rect = m_rect;
 	rect.left = x;
 	rect.top = y;
 	rect.width = width;
 	rect.height = height;
-	// Update Window view
-	if (width & 1)
-		width++;
-	if (height & 1)
-		height++;
-	m_view.setCenter(static_cast<float>(m_OX + width / 2),
-		static_cast<float>(m_OY + height / 2));
-	m_view.setSize(static_cast<float>(width), static_cast<float>(height));
-	float sw = static_cast<float>(m_screenWidth);
-	float sh = static_cast<float>(m_screenHeight);
-	sf::FloatRect frect(x / sw, y / sh, width / sw, height / sh);
-	m_view.setViewport(frect);
+	
+	move(x, y);
+	resize(width, height);	
 }
 
 void cgss::FramedView::lock() {
@@ -576,13 +568,7 @@ void cgss::FramedView::resetCursorPosition(sf::IntRect* rect) {
 }
 
 void cgss::FramedView::updateContentsOpacity() {
-	long opacity = m_opacity * m_contentOpacity / 255;
+	const long opacity = m_opacity * m_contentOpacity / 255l;
 
 	View::updateContentsOpacity(opacity);
-}
-
-bool cgss::FramedView::onWindowSettingsChange(WindowSettingsChangeEvent& event) {
-	m_screenWidth = event.settings.video.width;
-	m_screenHeight = event.settings.video.height;
-	return true;
 }

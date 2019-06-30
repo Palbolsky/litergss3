@@ -13,7 +13,7 @@ static inline WindowDataTest& PrepareTest() {
 }
 
 static inline cgss::DisplayWindow CreateWindow(WindowDataTest& data = PrepareTest()) {
-	return cgss::DisplayWindow{ data.eventDispatcher, data.settings };
+	return cgss::DisplayWindow{ data.settings };
 }
 
 TEST_CASE("[DisplayWindow] Creation") {
