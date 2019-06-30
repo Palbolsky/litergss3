@@ -83,11 +83,12 @@ int main(int argc, char* argv[]) {
 
 #include "Views/DisplayWindow.h"
 #include "Views/FramedView.h"
-#include "Configuration/DisplayWindowConfiguration.h"
+#include "Configuration/DisplayWindowSettings.h"
 
-void CheckDrawableStack() {
-	auto stack = lr::Viewport{};
-	auto stack2 = lr::Viewport{};
+void CheckDrawableStack(lr::MainEventDispatcher& eventDispatcher, const lr::DisplayWindowSettings& settings) {
+	
+	auto stack = lr::Viewport{ eventDispatcher, settings };
+	auto stack2 = lr::Viewport{ eventDispatcher, settings };
 
 	{
 		auto& sprite = lr::Sprite::create(stack);
@@ -111,10 +112,9 @@ void CheckDrawableStack() {
 	std::cout << stack.getSize() << std::endl;
 }
 
-void CheckDrawableStackWithDrawing() {
+void CheckDrawableStackWithDrawing(lr::MainEventDispatcher& eventDispatcher, const lr::DisplayWindowSettings& settings) {
 	auto renderTarget = sf::RenderWindow{};
-
-	auto stack = lr::Viewport{};
+	auto stack = lr::Viewport{ eventDispatcher, settings };
 
 	auto& sprite2 = lr::Sprite::create(stack);
 
@@ -138,35 +138,36 @@ void CheckTextureLoading(const std::string& filename) {
 	texture.toFile(LITE_CGSS_PLAYGROUND_DIR "/resources/copy.png");
 }
 
-void CheckCreateWindow() {
-	auto window = lr::DisplayWindow{};
-	auto config = lr::DisplayWindowConfig{};
-	window.load(config);
+void CheckCreateWindow(lr::MainEventDispatcher& eventDispatcher, const lr::DisplayWindowSettings& settings) {
+	auto window = lr::DisplayWindow{ eventDispatcher, settings };
 	window.draw();
 }
 
-void CheckCreateFramedView() {
-	auto window = lr::FramedView{};
+void CheckWindowEventEmitted(lr::MainEventDispatcher& eventDispatcher, const lr::DisplayWindowSettings& settings) {
+	auto window = lr::DisplayWindow{ eventDispatcher, settings };
+	window.draw();
+
+	auto event = lr::WindowSettingsChangeEvent{};
+	event.settings = settings;
+	event.settings.video.scale = 4.0;
+	eventDispatcher.lr::Observable<lr::WindowSettingsChangeEvent>::notifyObservers(event);
+}
+
+void CheckCreateFramedView(lr::MainEventDispatcher& eventDispatcher, const lr::DisplayWindowSettings& settings) {
+	auto window = lr::FramedView{ eventDispatcher, settings };
 	window.bindRectangle(nullptr);
 }
 
 int main(int argc, char* argv[]) {
-<<<<<<< 69f86d862365e6a252939bad2943010ca2a09b06
-	auto viewport = lr::Viewport {};
-	auto window = lr::DisplayWindow {};
-	
-	auto& sh1 = lr::Shape::create(viewport);
-	auto& sh2 = lr::Shape::create(window);
->>>>>>> feature : EXV01 compile-time implementation
-=======
-	CheckDrawableStack();
-	CheckDrawableStackWithDrawing();
+	auto settings = lr::DisplayWindowSettings{};
+	auto eventDispatcher = lr::MainEventDispatcher{};
+
+	CheckDrawableStack(eventDispatcher, settings);
+	CheckDrawableStackWithDrawing(eventDispatcher, settings);
 	CheckTextureLoading(LITE_CGSS_PLAYGROUND_DIR "/resources/test.png");
-<<<<<<< 69f86d862365e6a252939bad2943010ca2a09b06
->>>>>>> tests : revert unintended modifications
-=======
-	CheckCreateWindow();
-	CheckCreateFramedView();
+	CheckCreateWindow(eventDispatcher, settings);
+	CheckCreateFramedView(eventDispatcher, settings);
+	CheckWindowEventEmitted(eventDispatcher, settings);
 
 	return 0;
 }

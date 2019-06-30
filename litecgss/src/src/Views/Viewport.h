@@ -3,13 +3,19 @@
 
 #include "View.h"
 #include "ViewAuthorizations.h"
+#include "Events/MainEventDispatcher.h"
+#include "Events/Patterns/SubObserver.h"
 
 namespace lr {
 	
+	struct DisplayWindowSettings;
 	class Viewport : 
 		public View,
-		public Drawable<Viewport> {
+		public Drawable<Viewport>,
+		public SubObserver<WindowSettingsChangeEvent> {
 	public:
+		Viewport(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings);
+
 		void drawFast(sf::RenderTarget& target) const override { draw(target); }
 		void draw(sf::RenderTarget& target) const override;
 
@@ -19,10 +25,14 @@ namespace lr {
 		sf::Shader* getRenderStateShader() const;
 		sf::Color* checkUpColor() const;
 		void createRender();
-		void adjustZoomAngle(const sf::IntRect& rect);
+		void adjustDimensions(const sf::IntRect& rect);
+
+		void adjustZoom(float zoom);
+		void adjustAngle(float angle);
 
 	private:
-		void adjustZoomAngle(long x, long y, long width, long height);
+		void adjustDimensions(long x, long y, long width, long height);
+		bool onWindowSettingsChange(WindowSettingsChangeEvent& event);
 
 		long m_ox = 0;
 		long m_oy = 0;
@@ -37,12 +47,9 @@ namespace lr {
 		mutable sf::Shader* m_renderStatesShader = nullptr;
 		mutable std::unique_ptr<sf::Shader> m_defaultRenderStatesShader;
 
-		//to update with events
 		long m_screenWidth = 640;
 		long m_screenHeight = 320;
 		bool m_smooth = false;
-		double m_angle = 0.0;
-		double m_zoom = 1.0;
 	};
 
 	class Sprite;

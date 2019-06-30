@@ -1,5 +1,13 @@
 #include "Viewport.h"
 #include "Common/Rectangle.h"
+#include "Configuration/DisplayWindowSettings.h"
+
+lr::Viewport::Viewport(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
+	SubObserver<WindowSettingsChangeEvent>(std::bind(&Viewport::onWindowSettingsChange, this, std::placeholders::_1), eventDispatcher),
+	m_screenWidth(windowSettings.video.width),
+	m_screenHeight(windowSettings.video.height),
+	m_smooth(windowSettings.smoothScreen) {
+}
 
 void lr::Viewport::draw(sf::RenderTarget& target) const {
 	auto* render_states = getRenderState();
@@ -121,7 +129,7 @@ void lr::Viewport::createRender() {
 
 	// Creation of the render states
 	m_defaultRenderStatesShader =
-		//TODO
+		//TODO use shaders
 		//CGraphics::Get().createUniqueShader();
 		nullptr;
 	if (m_defaultRenderStatesShader != nullptr) {
@@ -138,16 +146,30 @@ void lr::Viewport::createRender() {
 	m_colorCopy = std::make_unique<sf::Color>(0, 0, 0, 0);
 }
 
-void lr::Viewport::adjustZoomAngle(const sf::IntRect& rect) {
+void lr::Viewport::adjustDimensions(const sf::IntRect& rect) {
 	auto x = rect.left;
 	auto y = rect.top;
 	auto width = rect.width;
 	auto height = rect.height;
-	adjustZoomAngle(x, y, width, height);
+	adjustDimensions(x, y, width, height);
 }
 
-void lr::Viewport::adjustZoomAngle(long x, long y, long width, long height) {
-	auto& view = m_view;
+void lr::Viewport::adjustZoom(float zoom) {
+	m_view.zoom(zoom);
+}
+
+void lr::Viewport::adjustAngle(float angle) {
+	m_view.setRotation(-angle);
+}
+
+bool lr::Viewport::onWindowSettingsChange(WindowSettingsChangeEvent& event) {
+	m_screenWidth = event.settings.video.width;
+	m_screenHeight = event.settings.video.height;
+	m_smooth = event.settings.smoothScreen;
+	return true;
+}
+
+void lr::Viewport::adjustDimensions(long x, long y, long width, long height) {
 	/* Adjustment for text */
 	if (width & 1) {
 		width++;
@@ -155,12 +177,10 @@ void lr::Viewport::adjustZoomAngle(long x, long y, long width, long height) {
 	if (height & 1) {
 		height++;
 	}
-	view.setCenter(static_cast<float>(m_ox + width / 2), static_cast<float>(m_oy + height / 2));
-	view.setSize(static_cast<float>(width), static_cast<float>(height));
-	view.setRotation(-m_angle);
-	view.zoom(m_zoom);
+	m_view.setCenter(static_cast<float>(m_ox + width / 2), static_cast<float>(m_oy + height / 2));
+	m_view.setSize(static_cast<float>(width), static_cast<float>(height));
 	float sw = static_cast<float>(m_screenWidth);
 	float sh = static_cast<float>(m_screenHeight);
 	sf::FloatRect frect(x / sw, y / sh, width / sw, height / sh);
-	view.setViewport(frect);
+	m_view.setViewport(frect);
 }

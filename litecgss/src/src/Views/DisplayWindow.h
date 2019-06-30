@@ -6,13 +6,17 @@
 #include "DisplayWindowDraw.h"
 #include "DisplayWindowSnapshot.h"
 
+#include "Events/MainEventDispatcher.h"
+#include "Events/Patterns/SubObserver.h"
+
 namespace lr {
-	struct DisplayWindowConfig;
+	struct DisplayWindowSettings;
 	class DisplayWindow :
-		public View {
+		public View,
+		public SubObserver<WindowSettingsChangeEvent> {
 
 	public:
-		DisplayWindow();
+		DisplayWindow(MainEventDispatcher& ed, const DisplayWindowSettings& settings);
 		virtual ~DisplayWindow();
 
 		void setBrightness(unsigned char brightness) { m_draw.brightness = brightness; }
@@ -23,7 +27,6 @@ namespace lr {
 		double scale() const { return m_draw.scale; }
 		auto frameRate() const { return m_draw.frameRate; }
 
-		void load(const DisplayWindowConfig& config);
 		void stop();
 		bool isOpen() const;
 		void draw();
@@ -35,6 +38,9 @@ namespace lr {
 		void setShader(sf::RenderStates* shader);
 
 	private:
+		void reload(const DisplayWindowSettings& settings);
+		bool onWindowSettingsChange(WindowSettingsChangeEvent& event);
+
 		void initRender();
 		void drawBrightness();
 		sf::RenderTarget& configureAndGetRenderTarget(sf::View& defview);

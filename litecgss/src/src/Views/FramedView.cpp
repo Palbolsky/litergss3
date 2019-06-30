@@ -2,6 +2,11 @@
 #include "Viewport.h"
 #include "Common/Rectangle.h"
 
+lr::FramedView::FramedView(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
+	SubObserver<WindowSettingsChangeEvent>(std::bind(&FramedView::onWindowSettingsChange, this, std::placeholders::_1), eventDispatcher) {
+
+}
+
 void lr::FramedView::draw(sf::RenderTarget& target) const {
 	drawFast(target);
 }
@@ -574,4 +579,10 @@ void lr::FramedView::updateContentsOpacity() {
 	long opacity = m_opacity * m_contentOpacity / 255;
 
 	View::updateContentsOpacity(opacity);
+}
+
+bool lr::FramedView::onWindowSettingsChange(WindowSettingsChangeEvent& event) {
+	m_screenWidth = event.settings.video.width;
+	m_screenHeight = event.settings.video.height;
+	return true;
 }

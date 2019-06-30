@@ -3,7 +3,6 @@
 #include <memory>
 
 #include <SFML/Graphics.hpp>
-//#include "Configuration/DisplayWindowConfiguration.h"
 
 namespace lr {
 	struct DisplayWindowDrawData {

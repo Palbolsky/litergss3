@@ -6,11 +6,41 @@
 #include "Graphics/Texture.h"
 #include "Graphics/Drawable.h"
 
+#include "Events/MainEventDispatcher.h"
+#include "Events/Patterns/SubObserver.h"
+
 namespace lr {
 	class FramedView :
 		public View,
-		public Drawable<FramedView> {
+		public Drawable<FramedView>,
+		public SubObserver<WindowSettingsChangeEvent> {
+	public:
+		FramedView(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings);
+		virtual ~FramedView() = default;
+
+		void draw(sf::RenderTarget& target) const override;
+		void drawFast(sf::RenderTarget& target) const override;
+		void drawCalculateView(sf::RenderTarget& target, sf::View& targetView) const;
+
+		void update();
+		void updatePauseSprite();
+		void updateCursorSprite();
+		void updateVertices();
+		void updateContents();
+		void updateBackOpacity();
+		void updateContentsOpacity();
+		void updateView();
+		void lock();
+		void unlock();
+		bool is_locked();
+		sf::Sprite& getPauseSprite();
+		sf::Sprite& getCursorSprite();
+		void resetPausePosition();
+		void resetCursorPosition(sf::IntRect* rect);
+
 	private:
+		bool onWindowSettingsChange(WindowSettingsChangeEvent& event);
+
 		std::vector<sf::VertexArray> m_vertices;
 		sf::Texture* m_texture = nullptr;
 		sf::View m_view;
@@ -36,12 +66,13 @@ namespace lr {
 		std::uint8_t m_contentOpacity = 255;
 		bool m_active = false;
 		sf::IntRect m_rect;
-		long m_screenWidth = 600;
-		long m_screenHeight = 240;
 		long m_OX = 0;
 		long m_OY = 0;
 		std::optional<long> m_pauseX;
 		std::optional<long> m_pauseY;
+
+		long m_screenWidth = 600;
+		long m_screenHeight = 240;
 
 		void updateVerticesBlt(long wt, long ht);
 		void updateVerticesStretch(long wt, long ht);
@@ -50,30 +81,6 @@ namespace lr {
 		void rectSet(sf::IntRect& rect, long x, long y, long width, long height);
 		void allocateVerticesStretch();
 		void calculateVerticesStretch(long x, long y, long line, long cell, sf::Vector2i& s, sf::Vector2i& a, sf::IntRect& rect);
-
-	public:
-		FramedView() = default;
-		virtual ~FramedView() = default;
-
-		void draw(sf::RenderTarget& target) const override;
-		void drawFast(sf::RenderTarget& target) const override;
-		void drawCalculateView(sf::RenderTarget& target, sf::View& targetView) const;
-
-		void update();
-		void updatePauseSprite();
-		void updateCursorSprite();
-		void updateVertices();
-		void updateContents();
-		void updateBackOpacity();
-		void updateContentsOpacity();
-		void updateView();
-		void lock();
-		void unlock();
-		bool is_locked();
-		sf::Sprite& getPauseSprite();
-		sf::Sprite& getCursorSprite();
-		void resetPausePosition();
-		void resetCursorPosition(sf::IntRect* rect);
 	};
 
 	class Sprite;

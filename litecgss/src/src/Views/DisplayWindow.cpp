@@ -1,34 +1,36 @@
 #include <cassert>
-#include "Configuration/DisplayWindowConfiguration.h"
+#include "Configuration/DisplayWindowSettings.h"
 #include "DisplayWindow.h"
 
-lr::DisplayWindow::DisplayWindow() : 
+lr::DisplayWindow::DisplayWindow(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& settings) :
+	SubObserver<WindowSettingsChangeEvent>(std::bind(&DisplayWindow::onWindowSettingsChange, this, std::placeholders::_1), eventDispatcher),
 	m_snapshot{ *this } {
+	reload(settings);
 }
 
 lr::DisplayWindow::~DisplayWindow() {
 	if (m_gameWindow != nullptr) { stop(); }
 }
 
-void lr::DisplayWindow::load(const DisplayWindowConfig& config) {
+void lr::DisplayWindow::reload(const DisplayWindowSettings& settings) {
 	sf::Uint32 style = sf::Style::Close | sf::Style::Titlebar; // sf::Style::Resize = text issues !
-	if (config.fullscreen) {
+	if (settings.fullscreen) {
 		style = sf::Style::Fullscreen;
 	}
-	m_gameWindow = std::make_unique<sf::RenderWindow>(config.video.vmode, std::move(config.title), style);
+	m_gameWindow = std::make_unique<sf::RenderWindow>(settings.video.vmode, std::move(settings.title), style);
 	m_gameWindow->setMouseCursorVisible(false);
 	
 	/* VSYNC choice */
-	m_gameWindow->setVerticalSyncEnabled(config.vSync);
-	if (!config.vSync) {
-		m_gameWindow->setFramerateLimit(config.frameRate);
+	m_gameWindow->setVerticalSyncEnabled(settings.vSync);
+	if (!settings.vSync) {
+		m_gameWindow->setFramerateLimit(settings.frameRate);
 	}
 
-	m_draw.screenWidth = config.video.width;
-	m_draw.screenHeight = config.video.height;
-	m_draw.smoothScreen = config.smoothScreen;
-	m_draw.scale = config.video.scale;
-	m_draw.frameRate = config.frameRate;
+	m_draw.screenWidth = settings.video.width;
+	m_draw.screenHeight = settings.video.height;
+	m_draw.smoothScreen = settings.smoothScreen;
+	m_draw.scale = settings.video.scale;
+	m_draw.frameRate = settings.frameRate;
 
 	/* Render resize */
 	if (m_draw.renderTexture != nullptr) {
@@ -140,6 +142,11 @@ std::unique_ptr<lr::Texture> lr::DisplayWindow::takeSnapshot() {
 
 void lr::DisplayWindow::transition(long time, Texture* texture) {
 	m_snapshot.transition(time, texture);
+}
+
+bool lr::DisplayWindow::onWindowSettingsChange(WindowSettingsChangeEvent& event) {
+	reload(event.settings);
+	return true;
 }
 
 void lr::DisplayWindow::freeze() {

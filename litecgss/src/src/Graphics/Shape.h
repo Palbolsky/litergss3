@@ -12,9 +12,18 @@ namespace lr {
 
 		void draw(sf::RenderTarget& target) const override;
 		void drawFast(sf::RenderTarget& target) const override;
-	
+
+		sf::Shape* getShape() { return m_shape.get(); }
+		template <class ShapeC, class ... Args>
+		void setShape(Args&& ... args) {
+			m_shape = std::make_unique<ShapeC>(std::forward<Args>(args)...);
+		}
+
+		void setRenderState(sf::RenderStates* states);
+
 	private:
 		std::unique_ptr<sf::Shape> m_shape;
+		sf::RenderStates* m_renderStates = nullptr;
 	};
 
 	namespace meta {
