@@ -6,7 +6,7 @@ cgss::ViewBox::ViewBox(MainEventDispatcher& ed, const DisplayWindowSettings& win
 	m_screenHeight(windowSettings.video.height) {
 }
 
-void cgss::ViewBox::move(long ox, long oy) {
+void cgss::ViewBox::moveOrigin(long ox, long oy) {
 	m_ox = ox;
 	m_oy = oy;
 
@@ -14,6 +14,7 @@ void cgss::ViewBox::move(long ox, long oy) {
 		std::roundf(static_cast<float>(m_oy + m_view.getSize().y) / 2.0f));
 
 	udpateDimensions();
+	onMove();
 }
 
 void cgss::ViewBox::resize(long width, long height) {
@@ -27,6 +28,7 @@ void cgss::ViewBox::resize(long width, long height) {
 	m_view.setSize(static_cast<float>(width), static_cast<float>(height));
 
 	udpateDimensions();
+	onResize();
 }
 
 void cgss::ViewBox::onRenderTarget(sf::RenderTarget& renderTarget, bool copy) const {
@@ -36,7 +38,6 @@ void cgss::ViewBox::onRenderTarget(sf::RenderTarget& renderTarget, bool copy) co
 	} else {
 		renderTarget.setView(m_view);
 	}
-	
 }
 
 void cgss::ViewBox::udpateDimensions() {
@@ -62,10 +63,10 @@ long cgss::ViewBox::getOy() const {
 	return m_oy;
 }
 
-void cgss::ViewBox::adjustZoom(float zoom) {
+void cgss::ViewBox::setScale(float zoom) {
 	m_view.zoom(zoom);
 }
 
-void cgss::ViewBox::adjustAngle(float angle) {
+void cgss::ViewBox::setAngle(float angle) {
 	m_view.setRotation(-angle);
 }

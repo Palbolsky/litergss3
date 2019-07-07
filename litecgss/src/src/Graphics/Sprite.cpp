@@ -9,9 +9,7 @@ void cgss::Sprite::draw(sf::RenderTarget& target) const {
 }
 
 void cgss::Sprite::drawFast(sf::RenderTarget& target) const {
-	if(m_visible) {
-		target.draw(m_sprite, m_renderStates);
-	}
+	target.draw(m_sprite, m_renderStates);
 }
 
 void cgss::Sprite::setRenderStates(sf::RenderStates renderStates) {

@@ -46,7 +46,7 @@ void cgss::DisplayWindow::reload(const DisplayWindowSettings& settings) {
 
 sf::RenderTarget& cgss::DisplayWindow::configureAndGetRenderTarget(sf::View& defview) {
 	// Setting the default view parameters
-	defview.setSize(m_draw.screenWidth, m_draw.screenHeight);
+	defview.setSize(static_cast<float>(m_draw.screenWidth), static_cast<float>(m_draw.screenHeight));
 	defview.setCenter(round(m_draw.screenWidth / 2.0f), round(m_draw.screenHeight / 2.0f));
 	
 	// Appying the default view to the Window (used in postProcessing())
@@ -104,9 +104,9 @@ void cgss::DisplayWindow::drawBrightness() {
 	sf::Vertex	vertices[4];
 	sf::Vector2u size = m_gameWindow->getSize();
 	vertices[0].position = sf::Vector2f(0, 0);
-	vertices[1].position = sf::Vector2f(0, size.y);
-	vertices[2].position = sf::Vector2f(size.x, 0);
-	vertices[3].position = sf::Vector2f(size.x, size.y);
+	vertices[1].position = sf::Vector2f(0, static_cast<float>(size.y));
+	vertices[2].position = sf::Vector2f(static_cast<float>(size.x), 0);
+	vertices[3].position = sf::Vector2f(static_cast<float>(size.x), static_cast<float>(size.y));
 	vertices[0].color = vertices[1].color = vertices[2].color = vertices[3].color = sf::Color(0, 0, 0, 255 - m_draw.brightness);
 	m_gameWindow->draw(vertices, 4, sf::PrimitiveType::TriangleStrip);
 }

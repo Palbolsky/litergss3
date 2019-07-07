@@ -13,7 +13,6 @@ namespace cgss {
 		void horizontalFlip();
 
 		sf::Sprite m_sprite;
-		bool m_visible = true;
 		bool m_mirror = false;
 
 		sf::RenderStates m_renderStates = sf::RenderStates::Default;
@@ -28,9 +27,6 @@ namespace cgss {
 
 		void draw(sf::RenderTarget& target) const override;
 		void drawFast(sf::RenderTarget& target) const override;
-
-		void setVisible(bool value) { m_visible = value;};
-		bool isVisible() const { return m_visible; };
 
 		sf::Color getColor() const;
 		void setColor(sf::Color color);

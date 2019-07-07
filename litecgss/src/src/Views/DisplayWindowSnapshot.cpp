@@ -41,7 +41,7 @@ void cgss::DisplayWindowSnapshot::freeze(sf::RenderWindow& window) {
 	m_freezeTexture = std::make_unique<Texture>();
 	takeSnapshotOn(window, *m_freezeTexture);
 	m_freezeSprite = m_freezeTexture->createSprite();
-	m_freezeSprite->setScale(1.0f / m_window.scale(), 1.0f / m_window.scale());
+	m_freezeSprite->setScale(1.0f / static_cast<float>(m_window.scale()), 1.0f / static_cast<float>(m_window.scale()));
 }
 
 void cgss::DisplayWindowSnapshot::takeSnapshotOn(sf::RenderWindow& window, Texture& text) const {
@@ -50,20 +50,20 @@ void cgss::DisplayWindowSnapshot::takeSnapshotOn(sf::RenderWindow& window, Textu
 	int y = 0;
 	const auto screenWidth = m_window.screenWidth();
 	const auto screenHeight = m_window.screenHeight();
-	int sw = screenWidth * m_window.scale();
-	int sh = screenHeight * m_window.scale();
+	double sw = screenWidth * m_window.scale();
+	double sh = screenHeight * m_window.scale();
 	if(sc_sz.x < sw) {
-		x = sw - sc_sz.x;
+		x = static_cast<int>(sw - sc_sz.x);
 	} else {
-		sw = sc_sz.x;
+		sw = static_cast<double>(sc_sz.x);
 	}
 
 	if(sc_sz.y < sh) {
-		y = sh - sc_sz.y;
+		y = static_cast<int>(sh - sc_sz.y);
 	} else {
-		sh = sc_sz.y;
+		sh = static_cast<double>(sc_sz.y);
 	}
-	text.create(sw, sh);
+	text.create(static_cast<int>(sw), static_cast<int>(sh));
 	text.update(window, x, y);
 }
 
@@ -71,7 +71,7 @@ void cgss::DisplayWindowSnapshot::transitionBasic(long time) {
 	m_rgssTransition = false;
 	sf::Color freeze_color(255, 255, 225, 255);
 	for (long i = 1; i <= time; i++) {
-		freeze_color.a = 255 * (time - i) / time;
+		freeze_color.a = static_cast<sf::Uint8>(255 * (time - i) / time);
 		m_freezeSprite->setColor(freeze_color);
 		m_window.draw();
 	}

@@ -23,7 +23,16 @@ TEST_CASE("[FramedView] Creation") {
 	CreateFramedView();
 }
 
-TEST_CASE("[FramedView] Bind rectangle") {
+TEST_CASE("[FramedView] Lock") {
 	auto& framedView = CreateFramedView();
-	framedView.bindRectangle(nullptr);
+	CHECK(!framedView.isLocked());
+	framedView.lock();
+	CHECK(framedView.isLocked());
+}
+
+TEST_CASE("[FramedView] Unlock") {
+	auto& framedView = CreateFramedView();
+	framedView.lock();
+	framedView.unlock();
+	CHECK(!framedView.isLocked());
 }

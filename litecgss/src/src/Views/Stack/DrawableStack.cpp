@@ -3,20 +3,16 @@
 #include "Graphics/Sprite.h"
 
 void cgss::DrawableStack::draw(sf::View& defview, sf::RenderTarget& target) const  {
-	//bool was_viewport = false;
-	for(auto& element: *this) {
-		//if(was_viewport && !element->isViewport()) {
-			target.setView(defview);
-		//}
-		//was_viewport = element->isViewport();
-		element->draw(target);
+	for(auto& element: *this) {		
+		target.setView(defview);
+		element->tryDraw(target);
 	}
 	freeDetached();
 }
 
 void cgss::DrawableStack::drawFast(sf::RenderTarget& target) const {
 	for(auto& element: *this) {
-		element->drawFast(target);
+		element->tryDrawFast(target);
 	}
 	freeDetached();
 }

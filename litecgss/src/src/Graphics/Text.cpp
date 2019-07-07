@@ -5,7 +5,5 @@ void cgss::Text::draw(sf::RenderTarget& target) const {
 }
 
 void cgss::Text::drawFast(sf::RenderTarget& target) const {
-	if(m_visible) {
-		target.draw(m_text);
-	}
+	target.draw(m_text);
 }
