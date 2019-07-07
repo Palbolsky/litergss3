@@ -40,6 +40,10 @@ namespace cgss {
 		mutable std::unique_ptr<sf::Shader> m_defaultRenderStatesShader;
 
 		bool m_smooth = false;
+
+		float rZ = 0.F;
+		float rAngle = 0.F;
+		float rZoom = 0.F;
 	};
 
 	class Sprite;

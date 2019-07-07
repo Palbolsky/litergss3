@@ -144,6 +144,7 @@ void cgss::Viewport::createRender() {
 	}
 
 	m_defaultRenderStates = std::make_unique<sf::RenderStates>(m_defaultRenderStatesShader.get());
+	m_color = std::make_unique<sf::Color>(0, 0, 0, 0);
 	m_colorCopy = std::make_unique<sf::Color>(0, 0, 0, 0);
 }
 

@@ -1,17 +1,25 @@
 #ifndef CGSS_SPRITE_H
 #define CGSS_SPRITE_H
 #include "Graphics/Drawable.h"
+#include "Graphics/Transformable.h"
 #include "Common/Meta/metadata.h"
 
 namespace cgss {
+	class Texture;
 	class Sprite :
-		public Drawable<Sprite> {
+		public Drawable<Sprite>,
+		public Transformable {
 	private:
+		void horizontalFlip();
+
 		sf::Sprite m_sprite;
-		bool m_drawable = false;
 		bool m_visible = true;
+		bool m_mirror = false;
+
+		sf::RenderStates m_renderStates = sf::RenderStates::Default;
+		
 	public:
-		Sprite() = default;
+		Sprite();
 		Sprite(Sprite&&) = default;
 		Sprite(const Sprite&) = delete;
 		Sprite& operator=(const Sprite&) = delete;
@@ -21,11 +29,12 @@ namespace cgss {
 		void draw(sf::RenderTarget& target) const override;
 		void drawFast(sf::RenderTarget& target) const override;
 
-		sf::Sprite& getSprite() { return m_sprite;};
-		void setDrawable(bool value) { m_drawable = value;};
-		bool getDrawable() { return m_drawable; };
 		void setVisible(bool value) { m_visible = value;};
-		bool getVisible() { return m_visible; };
+		bool isVisible() const { return m_visible; };
+
+		void setRenderStates(sf::RenderStates renderStates);
+
+		void setMirror(bool mirror);
 	};
 
 	namespace meta {

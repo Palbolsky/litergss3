@@ -6,7 +6,7 @@ cgss::ViewBox::ViewBox(MainEventDispatcher& ed, const DisplayWindowSettings& win
 	m_screenHeight(windowSettings.video.height) {
 }
 
-void cgss::ViewBox::move(long x, long y) {
+void cgss::ViewBox::move(long ox, long oy) {
 	m_ox = x;
 	m_oy = y;
 

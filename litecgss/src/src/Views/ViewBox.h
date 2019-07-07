@@ -14,7 +14,7 @@ namespace cgss {
 	public:
 		virtual ~ViewBox() = default;
 
-		void move(long x, long y);
+		void move(long ox, long oy);
 		void resize(long width, long height);
 
 		ViewBox(MainEventDispatcher& ed, const DisplayWindowSettings& windowSettings);

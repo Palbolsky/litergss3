@@ -17,7 +17,7 @@ namespace cgss {
 			}
 		}
 
-		sf::IntRect& getRect() { return m_rect; }
+		void setRect(sf::IntRect rect) { m_rect = std::move(rect); }
 		const sf::IntRect& getRect() const { return m_rect; }
 
 		void bindElement(GraphicsStackItem* target) {

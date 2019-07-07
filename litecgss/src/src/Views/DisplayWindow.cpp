@@ -133,7 +133,7 @@ void cgss::DisplayWindow::postProcessing() {
 }
 
 void cgss::DisplayWindow::resizeScreen(int width, int height) {
-	//TODO : use an event ?
+	//TODO : use an event
 }
 
 void cgss::DisplayWindow::setShader(sf::RenderStates* shader) {
