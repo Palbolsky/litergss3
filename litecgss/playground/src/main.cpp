@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "Views/DisplayWindow.h"
+#include "Views/Viewport.h"
 #include "Configuration/DisplayWindowSettings.h"
 
 int main(int argc, char* argv[]) {
@@ -9,7 +10,7 @@ int main(int argc, char* argv[]) {
 	auto window = cgss::DisplayWindow{ settings };
 	window.draw();
 
-	window.addView<cgss::Viewport>(settings);
+	window.addView<cgss::Viewport>();
 
 	auto event = cgss::WindowSettingsChangeEvent{};
 	event.settings = settings;

@@ -31,3 +31,11 @@ void cgss::Sprite::horizontalFlip() {
 	rect.width = -rect.width;
 	m_sprite.setTextureRect(rect);
 }
+
+sf::Color cgss::Sprite::getColor() const {
+	return m_sprite.getColor();
+}
+
+void cgss::Sprite::setColor(sf::Color color) {
+	m_sprite.setColor(color);
+}

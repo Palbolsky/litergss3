@@ -32,6 +32,9 @@ namespace cgss {
 		void setVisible(bool value) { m_visible = value;};
 		bool isVisible() const { return m_visible; };
 
+		sf::Color getColor() const;
+		void setColor(sf::Color color);
+
 		void setRenderStates(sf::RenderStates renderStates);
 
 		void setMirror(bool mirror);

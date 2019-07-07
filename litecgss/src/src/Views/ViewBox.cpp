@@ -7,8 +7,8 @@ cgss::ViewBox::ViewBox(MainEventDispatcher& ed, const DisplayWindowSettings& win
 }
 
 void cgss::ViewBox::move(long ox, long oy) {
-	m_ox = x;
-	m_oy = y;
+	m_ox = ox;
+	m_oy = oy;
 
 	m_view.setCenter(std::roundf(static_cast<float>(m_ox + m_view.getSize().x) / 2.0f),
 		std::roundf(static_cast<float>(m_oy + m_view.getSize().y) / 2.0f));
@@ -50,6 +50,7 @@ bool cgss::ViewBox::onWindowSettingsChange(WindowSettingsChangeEvent& event) {
 	m_screenHeight = event.settings.video.height;
 
 	udpateDimensions();
+	onPostWindowSettingsChange(event);
 	return true;
 }
 

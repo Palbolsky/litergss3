@@ -7,7 +7,7 @@
 
 namespace cgss {
 
-	class DisplayWindowSettings;
+	struct DisplayWindowSettings;
 	class ViewBox :
 		private SubObserver<WindowSettingsChangeEvent> {
 
@@ -29,6 +29,8 @@ namespace cgss {
 		long getScreenHeight() const { return m_screenHeight; }
 
 		void onRenderTarget(sf::RenderTarget& renderTarget, bool copy = false) const;
+
+		virtual void onPostWindowSettingsChange(WindowSettingsChangeEvent& event) {}
 
 	private:
 		bool onWindowSettingsChange(WindowSettingsChangeEvent& event);

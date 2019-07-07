@@ -11,8 +11,7 @@ namespace cgss {
 	class Viewport : 
 		public View,
 		public ViewBox,
-		public Drawable<Viewport>,
-		private SubObserver<WindowSettingsChangeEvent> {
+		public Drawable<Viewport> {
 
 	public:
 		Viewport(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings);
@@ -27,7 +26,7 @@ namespace cgss {
 		void createRender();
 
 	private:
-		bool onWindowSettingsChange(WindowSettingsChangeEvent& event);
+		void onPostWindowSettingsChange(WindowSettingsChangeEvent& event);
 
 		std::unique_ptr<sf::Color> m_colorCopy;
 		std::unique_ptr<sf::Color> m_color;

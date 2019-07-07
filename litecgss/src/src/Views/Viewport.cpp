@@ -3,7 +3,6 @@
 #include "Configuration/DisplayWindowSettings.h"
 
 cgss::Viewport::Viewport(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
-	SubObserver<WindowSettingsChangeEvent>(std::bind(&Viewport::onWindowSettingsChange, this, std::placeholders::_1), eventDispatcher),
 	ViewBox(eventDispatcher, windowSettings),
 	m_smooth(windowSettings.smoothScreen) {
 }
@@ -148,7 +147,6 @@ void cgss::Viewport::createRender() {
 	m_colorCopy = std::make_unique<sf::Color>(0, 0, 0, 0);
 }
 
-bool cgss::Viewport::onWindowSettingsChange(WindowSettingsChangeEvent& event) {
+void cgss::Viewport::onPostWindowSettingsChange(WindowSettingsChangeEvent& event) {
 	m_smooth = event.settings.smoothScreen;
-	return true;
 }
