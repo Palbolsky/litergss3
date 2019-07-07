@@ -1,12 +1,26 @@
 # LiteCGSS
 ## Description
-Le `LiteCGSS` est l'implémentation C++ sur laquelle le `LiteRGSS2` va se baser. Le but de ce projet est de fournir une version C++ du `LiteRGSS` affin de simplifier le Binding du `LiteRGSS2` et surtout de complètement isoler la partie logique C++ de la partie logique Ruby.
+Le `LiteCGSS` est l'implémentation C++ sur laquelle le `LiteRGSS2` va se baser.
+
+Le but de ce projet est de fournir une version C++ du `LiteRGSS` affin de simplifier le Binding du `LiteRGSS2` et surtout de complètement isoler la partie logique C++ de la partie logique Ruby.
+
+Si vous ne savez pas à quoi correspond le `LiteRGSS`, alors n'hésitez pas à regarder la documentation présente sur le [GitHub LiteRGSS](https://github.com/NuriYuri/LiteRGSS)
+
+Dans les grandes lignes, le `LiteRGSS` est une surcouche SFML qui offre un binding Ruby conforme à ce que propose le RGSS officiel de RPG Maker XP.
 
 ## Les principes du LiteRGSS
 
-Contrairement à un binding classique de SFML ou SDL, le LiteRGSS offre une certaine abstraction du processus de dessin à l'écran. Avec SFML et SDL on dit explicitement quel sprite/texture est dessiné à quel moment, avec le LiteRGSS on définit juste le sprite et `Graphics.update` se chargera du reste.
+Qu'est-ce que le `LiteRGSS` possède, que le RGSS officiel n'a pas ?
+*  De meilleures performances, à l'aide notamment d'algorithmes compilés directement en C++ et de l'utilisation de SFML
+*  Quelques fonctionnalités que le RGSS officiel n'a pas : TODO exemples
 
-Exemple :
+Qu'est-ce que le `LiteRGSS` possède, que SFML n'a pas ?
+*  Un système de View qui permet de gérer l'appartenance des ressources graphiques à une partie de l'écran
+*  Offre une certaine abstraction du processus de dessin à l'écran : avec SFML et SDL on dit explicitement quel sprite/texture est dessiné à quel moment, avec le LiteRGSS on définit juste le sprite et `Graphics.update` se chargera du reste.
+*  Certaines classes utilitaires ne sont pas offertes par la SFML, TODO exemples 
+*  Un binding Ruby, bien sûr
+
+Exemple d'utilisation des ressources graphiques :
 <div style="display: grid;grid-template-columns: 1fr 1fr;grid-gap: 0.25rem;">
 <div>
 Sous SFML :
@@ -47,21 +61,22 @@ end
 </div>
 </div>
 
-## Fonctionnement attendu du LiteCGSS
+# Pourquoi avoir voulu une refonte : l'architecture
 
-* Une fenêtre (DisplayWindow) permet d'afficher les sprites, textes et viewport qui lui sont lié.
-* Un Viewport permet d'afficher les sprites, textes, shape et window qui lui sont lié.
-* Une Window (FramedView) permet d'afficher les sprites, textes et shape qui lui sont lié.
-* Un élément graphique ne peut pas changer de parent (window / viewport / fenêtre). Il est donc initialisé avec pour premier paramètre le parent auquel il sera lié.
-* Un élément graphique est responsable de se délier de son parent **si et seulement si** il y est toujours lié.
-* Un élément de type View libère tous les éléments graphiques s'il est libéré **et avant** de libérer les éléments graphiques il les délie.  
-    Délier les éléments graphiques avant de les libérer a pour but d'optimiser l'opération (car on ne dira que à l'élément graphique qu'il n'est plus lié, on ne dira pas à l'élément view qu'il n'est plus lié car cette opération ne sert à rien).
-* Tous les éléments de type View sont responsable de remettre la View à l'état dans lequel elle était avant de la changer. (Viewport, FramedView)
-* Une fenêtre possède du z-ordering
-* Les view ne possèdent pas de z-ordering sauf si c'est demandé
-* Les évènements sont traités à l'aide de "callbacks".
-* Le LiteCGSS n'est pas responsable de la détection des inputs (SFML le fait très bien, il suffit de bind le bon callback pour récupérer les inputs désirés dans la boucle d'évènement).
-* Le LiteCGSS n'est pas responsable des Audios (l'utilisateur doit choisir lui même s'il préfère FMOD ou ce qui est embarqué dans SFML).
+Avant, le binding Ruby et la logique s'entremêlaient dans le même projet, principalement dans le même fichier, mais parfois dans la même fonction.
+
+Nous ne voulons pas reproduire ce schéma dans cette nouvelle version du `LiteRGSS` :
+*  La lisibilité était compliquée, en mixant l'API C pour bind le Ruby, la SFML et la logique en elle-même
+*  Déterminer l'origine précise d'un bug : l'algorithme, le binding ou encore notre utilisation de la SFML ?
+*  Philosophie : le code du LiteRGSS doit être plus simple. C'est parce que le but initial de LiteRGSS est simple que ce code doit être rédigeable / lisible sans aucune difficulté.
+
+Donc, l'idée principale qui a émergé était de séparer le projet `LiteRGSS` en deux parties distinctes, même si cela implique une refonte.
+
+De cette façon, nous tirons des bénéfices :
+*  Modularité : le code du `LiteCGSS` pourrait être utilisé en dehors du `LiteRGSS`. Par exemple, on pourrait réaliser un binding Python (mais ce n'est pas actuellement prévu ;)). Ou utiliser uniquement C++.
+*  Lisibilité : soit on lit le code du binding (`LiteRGSS`), soit le code du moteur (`LiteCGSS`). Pas de code de binding Ruby au milieu du C++. Pas de code C++ au milieu du binding Ruby.
+*  Testabilité : il est plus simple d'isoler les parties de code qui ne dépendent pas du binding Ruby. On peut maintenant avoir une batterie de tests unitaires côté C++ uniquement, ce qui était difficilement possible avec le binding Ruby entremêlé.
+*  Traquer les bugs : plus simple, c'est impliqué par la lisibilité et la testabilité.
 
 ## Exemples de code en LiteCGSS
 
@@ -128,89 +143,9 @@ L'utilisateur est responsable des `DisplayWindow` puis-ce que c'est les entités
 Question : Pourquoi doit-on définir une fenêtre comme entité à un `Sprite` ou un `Viewport`.
 Réponse : Le `LiteCGSS` et `LiteRGSS2` prévoient la possibilité d'afficher plusieurs fenêtre en cas de besoin. Pour le cas des textures, lorsqu'une fenêtre est précisée les settings de la fenêtre sont utilisés pour configurer la texture (smooth).
 
-## Les différentes classes du LiteCGSS
-### `LiteCGSS::DisplayWindowSettings`
+# Spécifications techniques
 
-Définit les configuration de la DisplayWindow qui sera instancié avec.  
-Origine : [sf::VideoMode](https://www.sfml-dev.org/documentation/2.5.1/classsf_1_1VideoMode.php#ac1be160a4342e6eafb2cb0e8c9b18d44)
+Système de build : `CMake`
+Framework de test : `doctestcpp`
 
-Propriétés :
-```cpp
-uint32_t width; // Largeur de la fenêtre (avant scale)
-uint32_t height; // Hauteur de la fenêtre (avant scale)
-uint32_t bitsPerPixel; // Nombre de bit par pixel
-float scale; // Opération de scale des dimensions de la fenêtre
-bool fullScreen; // Si la fenêtre sera en fullscreen
-bool vsync; // Si la fenêtre utilisa la synchronisation verticale
-bool resizable; // Si la fenêtre peut être redimensionné (impossible avec le fullscreen)
-bool waitFocusToDraw; // Si la fonction update s'arrête tant que la fenêtre n'a pas le focus
-uint32_t fpsBalancingRate; // Framerate cible du jeu s'il est basé sur les frames. 0 = non géré. Si le jeu fini par mettre plus de 100ms à traiter une frame, le fps balancing s'arrête (équivalent à 0).
-std::string icon; // Chemin ou contenu du fichier utilisé en icone. Le contenu est détecté si la chaine commence par "\x89PNG"
-```
 
-Fonction publique :
-```cpp
-bool isValid()
-```
-
-Fonctions Statiques :
-```cpp
-sf::VideoMode getDesktopMode();
-const std::vector<sf::VideoMode>& getFullscreenModes();
-```
-
----
-TODO : Définir les autres classes
-
----
-
-## Procédure de z-ordering
-
-Lorsque la propriété z d'un élément graphique est affecté (uniquement à ce moment, lors de la création de l'élément on met l'élément à la fin du stack même si z = 0 par défaut) :
-* Vérifier si la propriété z a été modifiée ou vaut 0
-    * Si oui, Vérifier si le Z-Ordering est autorisé sur l'objet parent
-        * Si oui, déclencher le z-ordering de l'élément
-
-Lorsque l'on traite le tri, les étapes sont les suivantes :
-* Itérer jusqu'à trouver un élément de z >= et d'index >
-    * Pendant cette procédure lever un flag détecté si le élément dont le z change a été trouvé
-* Si le flag est levé :
-    * Insérer l'élément à la position précédent (swap) et déplacer tous les éléments jusqu'à la position retrouver l'élément
-* Sinon :
-    * Insérer l'élément à la position actuelle et déplacer les éléments jusqu'à trouver l'élément.
-
-Exemple :
-```ruby
-# stack (* = notre sprite, nombre = coordonnée z.index)
-stack = [0.0, 0.15, 1.1, 1.2, 2.33, 3.55, *, 4.66, 5.3, 6.4, 0.5, 0.6, 0.7]
-
-# Changement 1
-sprite.z = 2 # index = 22
-swap_el = sprite
-# itération
-sp_trouve = 2.33
-flag = false
-
-# Déplacements
-swap_el = 2.33 # 33 > 22
-stack = [0.0, 0.15, 1.1, 1.2, *, 3.55, *, 4.66, 5.3, 6.4, 0.5, 0.6, 0.7]
-swap_el = 3.55
-stack = [0.0, 0.15, 1.1, 1.2, *, 2.33, *, 4.66, 5.3, 6.4, 0.5, 0.6, 0.7]
-swap_el = * # /!\
-stack = [0.0, 0.15, 1.1, 1.2, *, 2.33, 3.55, 4.66, 5.3, 6.4, 0.5, 0.6, 0.7]
-
-# Changement 2
-sprite.z = 3
-swap_el = sprite
-# itérations
-sp_trouve = 3.55 # 55 > 22
-flag = true
-
-# Déplacements
-swap_el = 2.33
-stack = [0.0, 0.15, 1.1, 1.2, *, *, 3.55, 4.66, 5.3, 6.4, 0.5, 0.6, 0.7]
-swap_el = * # /!\
-stack = [0.0, 0.15, 1.1, 1.2, 2.33, *, 3.55, 4.66, 5.3, 6.4, 0.5, 0.6, 0.7]
-```
-
-D'autres implémentations peuvent être faites (exemple stocker l'index réel de l'élément du sprite et réaliser les déplacements dans la bonne direction tant que les conditions ne sont pas respectées).

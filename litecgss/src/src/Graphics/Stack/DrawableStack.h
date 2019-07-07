@@ -1,0 +1,17 @@
+#ifndef LR_DRAWABLE_STACK_H
+#define LR_DRAWABLE_STACK_H
+
+#include <SFML/Graphics.hpp>
+#include "GraphicsStack.h"
+
+namespace lr {
+	class DrawableStack :
+		public GraphicsStack {
+	public:
+		using GraphicsStack::GraphicsStack;
+		void draw(sf::View& defview, sf::RenderTarget& target) const;
+		void drawFast(sf::RenderTarget& target) const;
+		void updateContentsOpacity(long opacity);
+	};
+}
+#endif
