@@ -16,5 +16,5 @@ project(LiteCGSS_engine)
 find_package(SFML 2 REQUIRED COMPONENTS network audio graphics window system)
 
 add_subdirectory(src)
-#add_subdirectory(test)
+add_subdirectory(test)
 add_subdirectory(playground)
