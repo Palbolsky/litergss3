@@ -8,12 +8,13 @@
 
 #include "Events/MainEventDispatcher.h"
 #include "Events/Patterns/SubObserver.h"
+#include "ViewBox.h"
 
 namespace cgss {
 	class FramedView :
 		public View,
-		public Drawable<FramedView>,
-		public SubObserver<WindowSettingsChangeEvent> {
+		public ViewBox,
+		public Drawable<FramedView> {
 	public:
 		FramedView(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings);
 		virtual ~FramedView() = default;
@@ -26,7 +27,7 @@ namespace cgss {
 		void updatePauseSprite();
 		void updateCursorSprite();
 		void updateVertices();
-		void updateContents();
+		void updateContents(std::unique_ptr<sf::IntRect> cursorRect = nullptr);
 		void updateBackOpacity();
 		void updateContentsOpacity();
 		void updateView();
@@ -39,8 +40,6 @@ namespace cgss {
 		void resetCursorPosition(sf::IntRect* rect);
 
 	private:
-		bool onWindowSettingsChange(WindowSettingsChangeEvent& event);
-
 		std::vector<sf::VertexArray> m_vertices;
 		sf::Texture* m_texture = nullptr;
 		sf::View m_view;
@@ -53,26 +52,22 @@ namespace cgss {
 		bool m_locked = false;
 
 		//Added since LiteRGSS split (those were Ruby variables before)
-		float m_zoom = 1.F;
+		long m_x = 0;
+		long m_y = 0;
 		long m_width = -1L;
 		long m_height = -1L;
 		bool m_stretch = false;
+		float m_zoom = 1.F;
+
 		std::unique_ptr<sf::IntRect> m_cursorRect;
-		long m_x = 0;
-		long m_y = 0;
 		long m_windowBuilder[6] = {};
 		std::uint8_t m_opacity = 255;
 		std::uint8_t m_backOpacity = 255;
 		std::uint8_t m_contentOpacity = 255;
 		bool m_active = false;
 		sf::IntRect m_rect;
-		long m_OX = 0;
-		long m_OY = 0;
 		std::optional<long> m_pauseX;
 		std::optional<long> m_pauseY;
-
-		long m_screenWidth = 600;
-		long m_screenHeight = 240;
 
 		void updateVerticesBlt(long wt, long ht);
 		void updateVerticesStretch(long wt, long ht);

@@ -14,6 +14,8 @@ namespace cgss {
 	};
 
 	class Rectangle;
+	class Shape;
+
 	class Texture {
 	public:
 		Texture() = default;
@@ -26,10 +28,12 @@ namespace cgss {
 		void fillRect(long x, long y, unsigned int width, unsigned int height, sf::Color color);
 		void clearRect(long x, long y, unsigned int width, unsigned int height);
 
+		void sync();
+
 		//Conversions (could be externalized)
 		bool load(const std::string& rawDataOrFilename, unsigned int width, unsigned int height, TextureLoadMethod loadMethod);
-		std::vector<unsigned char> toRawDataPng();
-		int toFile(const std::string& filename);
+		std::vector<unsigned char> toRawDataPng() const;
+		int toFile(const std::string& filename) const;
 
 		bool isLoaded() const { return m_loaded; }
 
@@ -37,6 +41,8 @@ namespace cgss {
 		void update(const sf::Window& window, unsigned int x, unsigned int y) { m_texture.update(window, x, y); }
 		bool create(int sw, int sh) { return m_texture.create(sw, sh); }
 		std::unique_ptr<sf::Sprite> createSprite();
+		void linkShape(sf::Shape& shape);
+
 	private:
 		static bool loadPng(sf::Texture& output, const char* rawDataOrFilename, long fromMemorySize);
 

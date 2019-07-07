@@ -1,21 +1,21 @@
 #include <iostream>
 
 #include "Views/DisplayWindow.h"
+#include "Views/Viewport.h"
 #include "Configuration/DisplayWindowSettings.h"
 
 int main(int argc, char* argv[]) {
 	auto settings = cgss::DisplayWindowSettings{};
-	auto eventDispatcher = cgss::MainEventDispatcher{};
 
-	auto window = cgss::DisplayWindow{ eventDispatcher, settings };
+	auto window = cgss::DisplayWindow{ settings };
 	window.draw();
+
+	window.addView<cgss::Viewport>();
 
 	auto event = cgss::WindowSettingsChangeEvent{};
 	event.settings = settings;
 	event.settings.video.scale = 4.0;
-	eventDispatcher.cgss::Observable<cgss::WindowSettingsChangeEvent>::notifyObservers(event);
-
-
+	window.reload(event.settings);
 
 	return 0;
 }

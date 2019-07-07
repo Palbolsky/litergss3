@@ -88,8 +88,13 @@ void cgss::Texture::clearRect(long x, long y, unsigned int width, unsigned int h
 	fillRect(x, y, width, height, BLACK_COLOR);
 }
 
+void cgss::Texture::sync() {
+	if (hasImage()) {
+		m_texture.update(m_image);
+	}
+}
 
-std::vector<unsigned char> cgss::Texture::toRawDataPng() {
+std::vector<unsigned char> cgss::Texture::toRawDataPng() const {
 	sf::Image img = m_texture.copyToImage();
 
 	unsigned char* out = nullptr;
@@ -109,7 +114,7 @@ std::vector<unsigned char> cgss::Texture::toRawDataPng() {
 	return result;
 }
 
-int cgss::Texture::toFile(const std::string& filename) {
+int cgss::Texture::toFile(const std::string& filename) const {
 	sf::Image img = m_texture.copyToImage();
 	return lodepng_encode32_file(filename.c_str(), img.getPixelsPtr(), img.getSize().x, img.getSize().y);
 }
@@ -120,4 +125,8 @@ void cgss::Texture::setShaderUniform(sf::Shader& shader, const std::string& attr
 
 std::unique_ptr<sf::Sprite> cgss::Texture::createSprite() {
 	return std::make_unique<sf::Sprite>(m_texture);
+}
+
+void cgss::Texture::linkShape(sf::Shape& shape) {
+	shape.setTexture(&m_texture);
 }

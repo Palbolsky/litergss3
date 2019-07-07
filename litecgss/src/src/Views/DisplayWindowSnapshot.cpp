@@ -48,8 +48,8 @@ void cgss::DisplayWindowSnapshot::takeSnapshotOn(sf::RenderWindow& window, Textu
 	sf::Vector2u sc_sz = window.getSize();
 	int x = 0;
 	int y = 0;
-	auto screenWidth = m_window.screenWidth();
-	auto screenHeight = m_window.screenHeight();
+	const auto screenWidth = m_window.screenWidth();
+	const auto screenHeight = m_window.screenHeight();
 	int sw = screenWidth * m_window.scale();
 	int sh = screenHeight * m_window.scale();
 	if(sc_sz.x < sw) {
@@ -105,11 +105,7 @@ void cgss::DisplayWindowSnapshot::transition(long time, Texture* texture) {
 }
 
 std::unique_ptr<cgss::Texture> cgss::DisplayWindowSnapshot::takeSnapshot(sf::RenderWindow& window) {
-
-	//Allocates memory ruby-side to take a snapshot
 	auto texture = std::make_unique<Texture>();
-
-	//Then uses it in C++ code
 	takeSnapshotOn(window, *texture);
 	return texture;
 }

@@ -1,7 +1,7 @@
 #ifndef CGSS_RECTANGLE_H
 #define CGSS_RECTANGLE_H
 #include <SFML/Graphics.hpp>
-#include "Graphics/Stack/GraphicsStackItem.h"
+#include "Graphics/GraphicsStackItem.h"
 #include "Meta/metadata.h"
 
 namespace cgss {
@@ -17,7 +17,7 @@ namespace cgss {
 			}
 		}
 
-		sf::IntRect& getRect() { return m_rect; }
+		void setRect(sf::IntRect rect) { m_rect = std::move(rect); }
 		const sf::IntRect& getRect() const { return m_rect; }
 
 		void bindElement(GraphicsStackItem* target) {
