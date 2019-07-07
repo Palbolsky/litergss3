@@ -1,9 +1,9 @@
-#ifndef LR_WINDOW_SETTINGS_CHANGE_EVENT_H
-#define LR_WINDOW_SETTINGS_CHANGE_EVENT_H
+#ifndef CGSS_WINDOW_SETTINGS_CHANGE_EVENT_H
+#define CGSS_WINDOW_SETTINGS_CHANGE_EVENT_H
 
 #include "Configuration/DisplayWindowSettings.h"
 
-namespace lr {
+namespace cgss {
 	struct WindowSettingsChangeEvent {
 		DisplayWindowSettings settings;
 	};

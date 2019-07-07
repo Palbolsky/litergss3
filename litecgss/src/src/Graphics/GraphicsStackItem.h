@@ -1,9 +1,9 @@
-#ifndef LR_GRAPHICS_STACK_ITEM_H
-#define LR_GRAPHICS_STACK_ITEM_H
+#ifndef CGSS_GRAPHICS_STACK_ITEM_H
+#define CGSS_GRAPHICS_STACK_ITEM_H
 #include <memory>
 #include <SFML/Graphics.hpp>
 
-namespace lr {
+namespace cgss {
 	class GraphicsStack;
 	class Rectangle;
 

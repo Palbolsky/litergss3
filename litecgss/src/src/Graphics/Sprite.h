@@ -1,9 +1,9 @@
-#ifndef LR_SPRITE_H
-#define LR_SPRITE_H
+#ifndef CGSS_SPRITE_H
+#define CGSS_SPRITE_H
 #include "Graphics/Drawable.h"
 #include "Common/Meta/metadata.h"
 
-namespace lr {
+namespace cgss {
 	class Sprite :
 		public Drawable<Sprite> {
 	private:

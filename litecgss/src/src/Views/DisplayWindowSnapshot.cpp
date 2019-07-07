@@ -2,11 +2,11 @@
 #include "DisplayWindow.h"
 #include "DisplayWindowSnapshot.h"
 
-lr::DisplayWindowSnapshot::DisplayWindowSnapshot(DisplayWindow& window) :
+cgss::DisplayWindowSnapshot::DisplayWindowSnapshot(DisplayWindow& window) :
 	m_window(window) {
 }
 
-void lr::DisplayWindowSnapshot::init() {
+void cgss::DisplayWindowSnapshot::init() {
 	static constexpr const char* GraphicsTransitionFragmentShader = \
 		"uniform float param;" \
 		"uniform sampler2D texture;" \
@@ -33,7 +33,7 @@ void lr::DisplayWindowSnapshot::init() {
 	}
 }
 
-void lr::DisplayWindowSnapshot::freeze(sf::RenderWindow& window) {
+void cgss::DisplayWindowSnapshot::freeze(sf::RenderWindow& window) {
 	if(m_freezeTexture != nullptr) {
 		return;
 	}
@@ -44,7 +44,7 @@ void lr::DisplayWindowSnapshot::freeze(sf::RenderWindow& window) {
 	m_freezeSprite->setScale(1.0f / m_window.scale(), 1.0f / m_window.scale());
 }
 
-void lr::DisplayWindowSnapshot::takeSnapshotOn(sf::RenderWindow& window, Texture& text) const {
+void cgss::DisplayWindowSnapshot::takeSnapshotOn(sf::RenderWindow& window, Texture& text) const {
 	sf::Vector2u sc_sz = window.getSize();
 	int x = 0;
 	int y = 0;
@@ -67,7 +67,7 @@ void lr::DisplayWindowSnapshot::takeSnapshotOn(sf::RenderWindow& window, Texture
 	text.update(window, x, y);
 }
 
-void lr::DisplayWindowSnapshot::transitionBasic(long time) {
+void cgss::DisplayWindowSnapshot::transitionBasic(long time) {
 	m_rgssTransition = false;
 	sf::Color freeze_color(255, 255, 225, 255);
 	for (long i = 1; i <= time; i++) {
@@ -77,7 +77,7 @@ void lr::DisplayWindowSnapshot::transitionBasic(long time) {
 	}
 }
 
-void lr::DisplayWindowSnapshot::transitionRGSS(long time, const Texture& bitmap) {
+void cgss::DisplayWindowSnapshot::transitionRGSS(long time, const Texture& bitmap) {
 	m_freezeSprite->setColor(sf::Color(255, 255, 255, 255));
 	m_rgssTransition = true;
 	if(m_freezeShader != nullptr) {
@@ -88,7 +88,7 @@ void lr::DisplayWindowSnapshot::transitionRGSS(long time, const Texture& bitmap)
 	}
 }
 
-void lr::DisplayWindowSnapshot::transition(long time, Texture* texture) {
+void cgss::DisplayWindowSnapshot::transition(long time, Texture* texture) {
 	if(m_freezeSprite == nullptr) {
 		return;
 	}
@@ -104,7 +104,7 @@ void lr::DisplayWindowSnapshot::transition(long time, Texture* texture) {
 	m_freezeTexture = nullptr;
 }
 
-std::unique_ptr<lr::Texture> lr::DisplayWindowSnapshot::takeSnapshot(sf::RenderWindow& window) {
+std::unique_ptr<cgss::Texture> cgss::DisplayWindowSnapshot::takeSnapshot(sf::RenderWindow& window) {
 
 	//Allocates memory ruby-side to take a snapshot
 	auto texture = std::make_unique<Texture>();
@@ -114,14 +114,14 @@ std::unique_ptr<lr::Texture> lr::DisplayWindowSnapshot::takeSnapshot(sf::RenderW
 	return texture;
 }
 
-void lr::DisplayWindowSnapshot::stop() {
+void cgss::DisplayWindowSnapshot::stop() {
 	/* Unfreezing Graphics */
 	m_freezeSprite = nullptr;
 	m_freezeTexture = nullptr;
 	m_freezeShader = nullptr;
 }
 
-void lr::DisplayWindowSnapshot::draw(sf::RenderWindow& window) {
+void cgss::DisplayWindowSnapshot::draw(sf::RenderWindow& window) {
 	// Display transition sprite
 	if (m_freezeSprite != nullptr) {
 		if (m_rgssTransition) {

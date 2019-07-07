@@ -1,11 +1,11 @@
-#ifndef LR_TEXTURE_H
-#define LR_TEXTURE_H
+#ifndef CGSS_TEXTURE_H
+#define CGSS_TEXTURE_H
 
 #include <vector>
 #include <SFML/Graphics.hpp>
 #include "Common/Meta/metadata.h"
 
-namespace lr {
+namespace cgss {
 
 	enum class TextureLoadMethod {
 		Memory,

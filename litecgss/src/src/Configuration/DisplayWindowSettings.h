@@ -1,9 +1,9 @@
-#ifndef LR_DISPLAY_WINDOW_SETTINGS_H
-#define LR_DISPLAY_WINDOW_SETTINGS_H
+#ifndef CGSS_DISPLAY_WINDOW_SETTINGS_H
+#define CGSS_DISPLAY_WINDOW_SETTINGS_H
 
 #include <SFML/Graphics.hpp>
 
-namespace lr {
+namespace cgss {
 	struct DisplayWindowVideoSettings {
 		sf::VideoMode vmode;
 		unsigned int width = 320;

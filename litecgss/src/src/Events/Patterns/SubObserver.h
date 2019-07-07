@@ -1,8 +1,8 @@
-#ifndef LR_SUBOBSERVER_H
-#define LR_SUBOBSERVER_H
+#ifndef CGSS_SUBOBSERVER_H
+#define CGSS_SUBOBSERVER_H
 #include "Observer.h"
 
-namespace lr {
+namespace cgss {
 	template <class T, template<typename T1, typename...> class Container, template <typename T1> class ObserverT>
 	class Observable;
 

@@ -1,5 +1,5 @@
-#ifndef LR_DISPLAY_WINDOW_H
-#define LR_DISPLAY_WINDOW_H
+#ifndef CGSS_DISPLAY_WINDOW_H
+#define CGSS_DISPLAY_WINDOW_H
 
 #include "View.h"
 #include "ViewAuthorizations.h"
@@ -9,7 +9,7 @@
 #include "Events/MainEventDispatcher.h"
 #include "Events/Patterns/SubObserver.h"
 
-namespace lr {
+namespace cgss {
 	struct DisplayWindowSettings;
 	class DisplayWindow :
 		public View,
@@ -31,7 +31,7 @@ namespace lr {
 		bool isOpen() const;
 		void draw();
 
-		std::unique_ptr<lr::Texture> takeSnapshot();
+		std::unique_ptr<cgss::Texture> takeSnapshot();
 		void freeze();
 		void transition(long time, Texture* texture = nullptr);
 		void resizeScreen(int width, int height);

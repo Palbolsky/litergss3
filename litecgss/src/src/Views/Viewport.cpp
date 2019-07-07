@@ -2,14 +2,14 @@
 #include "Common/Rectangle.h"
 #include "Configuration/DisplayWindowSettings.h"
 
-lr::Viewport::Viewport(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
+cgss::Viewport::Viewport(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
 	SubObserver<WindowSettingsChangeEvent>(std::bind(&Viewport::onWindowSettingsChange, this, std::placeholders::_1), eventDispatcher),
 	m_screenWidth(windowSettings.video.width),
 	m_screenHeight(windowSettings.video.height),
 	m_smooth(windowSettings.smoothScreen) {
 }
 
-void lr::Viewport::draw(sf::RenderTarget& target) const {
+void cgss::Viewport::draw(sf::RenderTarget& target) const {
 	auto* render_states = getRenderState();
 	if (!m_visible) {
 		return;
@@ -28,7 +28,7 @@ void lr::Viewport::draw(sf::RenderTarget& target) const {
 		
 		m_render->clear(*col);
 		// Drawing sprites
-		lr::View::draw(*m_render);
+		cgss::View::draw(*m_render);
 		m_render->display();
 		// Update internal texture & draw result to Window
 		m_renderSprite->setTexture(m_render->getTexture());
@@ -42,11 +42,11 @@ void lr::Viewport::draw(sf::RenderTarget& target) const {
 		target.draw(*m_renderSprite, *render_states);
 	} else {
 		target.setView(m_view);
-		lr::View::draw(target);
+		cgss::View::draw(target);
 	}
 }
 
-void lr::Viewport::setupView(sf::RenderTarget& target) const {
+void cgss::Viewport::setupView(sf::RenderTarget& target) const {
 	long height = m_screenHeight;
 	long width = m_screenWidth;
 	sf::View defview = target.getDefaultView();
@@ -55,7 +55,7 @@ void lr::Viewport::setupView(sf::RenderTarget& target) const {
 	target.setView(defview);
 }
 
-void lr::Viewport::setRenderStates(sf::RenderStates* states) {
+void cgss::Viewport::setRenderStates(sf::RenderStates* states) {
 	m_renderStates = states;
 	if (states == nullptr) {
 		m_renderStatesShader = nullptr;
@@ -67,21 +67,21 @@ void lr::Viewport::setRenderStates(sf::RenderStates* states) {
 	}
 }
 
-sf::RenderStates* lr::Viewport::getRenderState() const {
+sf::RenderStates* cgss::Viewport::getRenderState() const {
 	if (m_renderStates == nullptr) {
 		return m_defaultRenderStates.get();
 	}
 	return m_renderStates;
 }
 
-sf::Shader* lr::Viewport::getRenderStateShader() const {
+sf::Shader* cgss::Viewport::getRenderStateShader() const {
 	if (m_renderStatesShader == nullptr) {
 		return m_defaultRenderStatesShader.get();
 	}
 	return m_renderStatesShader;
 }
 
-sf::Color* lr::Viewport::checkUpColor() const {
+sf::Color* cgss::Viewport::checkUpColor() const {
 	if (*m_color != *m_colorCopy) {
 		sf::Glsl::Vec4 color(m_color->r / 255.0f, m_color->g / 255.0f, m_color->b / 255.0f, m_color->a / 255.0f);
 		getRenderStateShader()->setUniform("color", color);
@@ -113,7 +113,7 @@ static const std::string ViewportGlobalFragmentShader = \
 "}";
 
 
-void lr::Viewport::createRender() {
+void cgss::Viewport::createRender() {
 	// If the global viewport render doesn't exist, we create it
 	if (!m_render) {
 		m_render = std::make_unique<sf::RenderTexture>();
@@ -146,7 +146,7 @@ void lr::Viewport::createRender() {
 	m_colorCopy = std::make_unique<sf::Color>(0, 0, 0, 0);
 }
 
-void lr::Viewport::adjustDimensions(const sf::IntRect& rect) {
+void cgss::Viewport::adjustDimensions(const sf::IntRect& rect) {
 	auto x = rect.left;
 	auto y = rect.top;
 	auto width = rect.width;
@@ -154,22 +154,22 @@ void lr::Viewport::adjustDimensions(const sf::IntRect& rect) {
 	adjustDimensions(x, y, width, height);
 }
 
-void lr::Viewport::adjustZoom(float zoom) {
+void cgss::Viewport::adjustZoom(float zoom) {
 	m_view.zoom(zoom);
 }
 
-void lr::Viewport::adjustAngle(float angle) {
+void cgss::Viewport::adjustAngle(float angle) {
 	m_view.setRotation(-angle);
 }
 
-bool lr::Viewport::onWindowSettingsChange(WindowSettingsChangeEvent& event) {
+bool cgss::Viewport::onWindowSettingsChange(WindowSettingsChangeEvent& event) {
 	m_screenWidth = event.settings.video.width;
 	m_screenHeight = event.settings.video.height;
 	m_smooth = event.settings.smoothScreen;
 	return true;
 }
 
-void lr::Viewport::adjustDimensions(long x, long y, long width, long height) {
+void cgss::Viewport::adjustDimensions(long x, long y, long width, long height) {
 	/* Adjustment for text */
 	if (width & 1) {
 		width++;

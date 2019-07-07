@@ -2,16 +2,16 @@
 #include "Viewport.h"
 #include "Common/Rectangle.h"
 
-lr::FramedView::FramedView(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
+cgss::FramedView::FramedView(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
 	SubObserver<WindowSettingsChangeEvent>(std::bind(&FramedView::onWindowSettingsChange, this, std::placeholders::_1), eventDispatcher) {
 
 }
 
-void lr::FramedView::draw(sf::RenderTarget& target) const {
+void cgss::FramedView::draw(sf::RenderTarget& target) const {
 	drawFast(target);
 }
 
-void lr::FramedView::drawFast(sf::RenderTarget& target) const {
+void cgss::FramedView::drawFast(sf::RenderTarget& target) const {
 	//TODO common "visible" boolean to each drawable ?
 	if (!m_visible) {
 		return;
@@ -38,7 +38,7 @@ void lr::FramedView::drawFast(sf::RenderTarget& target) const {
 	target.draw(m_pause);
 }
 
-void lr::FramedView::drawCalculateView(sf::RenderTarget& target, sf::View& targetView) const {
+void cgss::FramedView::drawCalculateView(sf::RenderTarget& target, sf::View& targetView) const {
 	const sf::FloatRect originViewport = target.getView().getViewport();
 	sf::FloatRect targetViewport = sf::FloatRect(targetView.getViewport());
 	sf::Vector2f targetCenter = sf::Vector2f(targetView.getCenter());
@@ -81,7 +81,7 @@ void lr::FramedView::drawCalculateView(sf::RenderTarget& target, sf::View& targe
 	targetView.setViewport(targetViewport);
 }
 
-void lr::FramedView::updateVertices() {
+void cgss::FramedView::updateVertices() {
 	// Checkup part
 	if (m_locked || m_texture == nullptr || m_width <= 0 || m_height <= 0) {
 		return;
@@ -101,7 +101,7 @@ void lr::FramedView::updateVertices() {
 	}
 }
 
-void lr::FramedView::update() {
+void cgss::FramedView::update() {
 	updatePauseSprite();
 	updateCursorSprite();
 	m_counter += 1;
@@ -110,7 +110,7 @@ void lr::FramedView::update() {
 	}
 }
 
-void lr::FramedView::updateVerticesBlt(long wt, long ht) {
+void cgss::FramedView::updateVerticesBlt(long wt, long ht) {
 	sf::Vector2i a(0, 0);
 	sf::IntRect rect;
 
@@ -268,7 +268,7 @@ void lr::FramedView::updateVerticesBlt(long wt, long ht) {
 	}
 }
 
-void lr::FramedView::updateVerticesStretch(long wt, long ht) {
+void cgss::FramedView::updateVerticesStretch(long wt, long ht) {
 	sf::Vector2i a(0, 0);
 	sf::Vector2i s(0, 0);
 	sf::IntRect rect;
@@ -361,14 +361,14 @@ void lr::FramedView::updateVerticesStretch(long wt, long ht) {
 	calculateVerticesStretch(x, y, 1, 1, s, a, rect);
 }
 
-void lr::FramedView::rectSet(sf::IntRect& rect, long x, long y, long width, long height) {
+void cgss::FramedView::rectSet(sf::IntRect& rect, long x, long y, long width, long height) {
 	rect.left = x;
 	rect.top = y;
 	rect.width = width;
 	rect.height = height;
 }
 
-void lr::FramedView::calculateVertices(long x, long y, long line, long cell, sf::Vector2i& a, sf::IntRect& rect) {
+void cgss::FramedView::calculateVertices(long x, long y, long line, long cell, sf::Vector2i& a, sf::IntRect& rect) {
 	auto& vertArr = m_vertices[line];
 	int i = cell * 6;
 	if (cell < 0) {
@@ -388,7 +388,7 @@ void lr::FramedView::calculateVertices(long x, long y, long line, long cell, sf:
 	vertArr[i + 5].position = sf::Vector2f(x + rect.width, y + rect.height);
 }
 
-void lr::FramedView::calculateVerticesStretch(long x, long y, long line, long cell, sf::Vector2i& s, sf::Vector2i& a, sf::IntRect& rect) {
+void cgss::FramedView::calculateVerticesStretch(long x, long y, long line, long cell, sf::Vector2i& s, sf::Vector2i& a, sf::IntRect& rect) {
 	auto& vertArr = m_vertices[line];
 	int i = cell * 6;
 	if (cell < 0) {
@@ -408,7 +408,7 @@ void lr::FramedView::calculateVerticesStretch(long x, long y, long line, long ce
 	vertArr[i + 5].position = sf::Vector2f(x + s.x, y + s.y);
 }
 
-void lr::FramedView::updatePauseSprite() {
+void cgss::FramedView::updatePauseSprite() {
 	if (m_pause.getTexture() == nullptr) {
 		return;
 	}
@@ -428,7 +428,7 @@ void lr::FramedView::updatePauseSprite() {
 	m_pause.setColor(col);
 }
 
-void lr::FramedView::updateCursorSprite() {
+void cgss::FramedView::updateCursorSprite() {
 	if (m_cursor.getTexture() == nullptr) {
 		return;
 	}
@@ -446,7 +446,7 @@ void lr::FramedView::updateCursorSprite() {
 	m_cursor.setColor(col);
 }
 
-void lr::FramedView::allocateVerticesBlt(long delta_w, long nb2, long delta_h, long nb4) {
+void cgss::FramedView::allocateVerticesBlt(long delta_w, long nb2, long delta_h, long nb4) {
 	// Ajustment of the real amount of cell in x
 	if (delta_w > 0) {
 		nb2 += 3;
@@ -480,17 +480,17 @@ void lr::FramedView::allocateVerticesBlt(long delta_w, long nb2, long delta_h, l
 	}
 }
 
-void lr::FramedView::allocateVerticesStretch() {
+void cgss::FramedView::allocateVerticesStretch() {
 	allocateVerticesBlt(0, 1, 0, 1);
 }
 
-void lr::FramedView::updateContents() {
+void cgss::FramedView::updateContents() {
 	if (m_cursorRect != nullptr) {
 		resetCursorPosition(m_cursorRect.get());
 	}
 }
 
-void lr::FramedView::updateBackOpacity() {
+void cgss::FramedView::updateBackOpacity() {
 	sf::Color col = sf::Color::White;
 	col.a = m_opacity * m_backOpacity / 255;
 	if (!m_vertices.empty()) {
@@ -506,7 +506,7 @@ void lr::FramedView::updateBackOpacity() {
 	updateCursorSprite();
 }
 
-void lr::FramedView::updateView() {
+void cgss::FramedView::updateView() {
 	long offset_x = m_windowBuilder[4];
 	long offset_y = m_windowBuilder[5];
 	long x = m_x + offset_x;
@@ -533,28 +533,28 @@ void lr::FramedView::updateView() {
 	m_view.setViewport(frect);
 }
 
-void lr::FramedView::lock() {
+void cgss::FramedView::lock() {
 	m_locked = true;
 }
 
-void lr::FramedView::unlock() {
+void cgss::FramedView::unlock() {
 	m_locked = false;
 	updateVertices();
 }
 
-bool lr::FramedView::is_locked() {
+bool cgss::FramedView::is_locked() {
 	return m_locked;
 }
 
-sf::Sprite& lr::FramedView::getPauseSprite() {
+sf::Sprite& cgss::FramedView::getPauseSprite() {
 	return m_pause;
 }
 
-sf::Sprite& lr::FramedView::getCursorSprite() {
+sf::Sprite& cgss::FramedView::getCursorSprite() {
 	return m_cursor;
 }
 
-void lr::FramedView::resetPausePosition() {
+void cgss::FramedView::resetPausePosition() {
 	if (!m_pauseSkin.isLoaded()) {
 		return;
 	}
@@ -566,7 +566,7 @@ void lr::FramedView::resetPausePosition() {
 	m_pause.setPosition(sf::Vector2f(pause_x, pause_y));
 }
 
-void lr::FramedView::resetCursorPosition(sf::IntRect* rect) {
+void cgss::FramedView::resetCursorPosition(sf::IntRect* rect) {
 	if (m_cursor.getTexture() == nullptr) {
 		return;
 	}
@@ -575,13 +575,13 @@ void lr::FramedView::resetCursorPosition(sf::IntRect* rect) {
 	m_cursor.setPosition(sf::Vector2f(rect->left, rect->top));
 }
 
-void lr::FramedView::updateContentsOpacity() {
+void cgss::FramedView::updateContentsOpacity() {
 	long opacity = m_opacity * m_contentOpacity / 255;
 
 	View::updateContentsOpacity(opacity);
 }
 
-bool lr::FramedView::onWindowSettingsChange(WindowSettingsChangeEvent& event) {
+bool cgss::FramedView::onWindowSettingsChange(WindowSettingsChangeEvent& event) {
 	m_screenWidth = event.settings.video.width;
 	m_screenHeight = event.settings.video.height;
 	return true;

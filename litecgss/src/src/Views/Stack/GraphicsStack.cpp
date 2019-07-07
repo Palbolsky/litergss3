@@ -1,16 +1,16 @@
 #include "GraphicsStack.h"
 #include "Graphics/GraphicsStackItem.h"
 
-lr::GraphicsStack::~GraphicsStack() {
+cgss::GraphicsStack::~GraphicsStack() {
 	clear();
 }
 
-void lr::GraphicsStack::clear() {
+void cgss::GraphicsStack::clear() {
 	syncFromRawData({});
 }
 
 /*
-void lr::GraphicsStack::syncStackCppFromRuby() {
+void cgss::GraphicsStack::syncStackCppFromRuby() {
 	//MUST BE MOVED TO BINDING PART
 
 	const long sz = RARRAY_LEN(rubyStack.self());
@@ -34,7 +34,7 @@ void lr::GraphicsStack::syncStackCppFromRuby() {
 }
 */
 
-void lr::GraphicsStack::syncFromRawData(GraphicsContainer data, bool forceDetachAll) {
+void cgss::GraphicsStack::syncFromRawData(GraphicsContainer data, bool forceDetachAll) {
 	if(forceDetachAll) {
 		for(auto& it : m_stack) {
 			it->forceDetach();
@@ -44,7 +44,7 @@ void lr::GraphicsStack::syncFromRawData(GraphicsContainer data, bool forceDetach
 	freeDetached();
 }
 
-bool lr::GraphicsStack::transferToDetached(GraphicsStackItem* item) {
+bool cgss::GraphicsStack::transferToDetached(GraphicsStackItem* item) {
 	auto removed = m_stack.remove_if([&](const auto& drawablePtr) {
 		return drawablePtr.get() == item;
 	});
@@ -57,12 +57,12 @@ bool lr::GraphicsStack::transferToDetached(GraphicsStackItem* item) {
 	return false;
 }
 
-void lr::GraphicsStack::freeDetached() const {
+void cgss::GraphicsStack::freeDetached() const {
 	auto lock = std::scoped_lock{ m_mutexDetached };
 	m_detached = {};
 }
 
-void lr::GraphicsStack::add(GraphicsStackItemPtr item) {
+void cgss::GraphicsStack::add(GraphicsStackItemPtr item) {
 	item->forceAttach(*this);
 	m_stack.push_back(std::move(item));
 }

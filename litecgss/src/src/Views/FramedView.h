@@ -1,5 +1,5 @@
-#ifndef LR_FRAMED_VIEW_H
-#define LR_FRAMED_VIEW_H
+#ifndef CGSS_FRAMED_VIEW_H
+#define CGSS_FRAMED_VIEW_H
 
 #include "View.h"
 #include "ViewAuthorizations.h"
@@ -9,7 +9,7 @@
 #include "Events/MainEventDispatcher.h"
 #include "Events/Patterns/SubObserver.h"
 
-namespace lr {
+namespace cgss {
 	class FramedView :
 		public View,
 		public Drawable<FramedView>,

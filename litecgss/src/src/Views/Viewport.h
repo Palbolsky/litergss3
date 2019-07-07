@@ -1,12 +1,12 @@
-#ifndef LR_VIEWPORT_H
-#define LR_VIEWPORT_H
+#ifndef CGSS_VIEWPORT_H
+#define CGSS_VIEWPORT_H
 
 #include "View.h"
 #include "ViewAuthorizations.h"
 #include "Events/MainEventDispatcher.h"
 #include "Events/Patterns/SubObserver.h"
 
-namespace lr {
+namespace cgss {
 	
 	struct DisplayWindowSettings;
 	class Viewport : 

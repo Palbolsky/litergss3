@@ -3,8 +3,8 @@
 #include "Views/DisplayWindow.h"
 
 struct WindowDataTest {
-	lr::DisplayWindowSettings settings{};
-	lr::MainEventDispatcher eventDispatcher{};
+	cgss::DisplayWindowSettings settings{};
+	cgss::MainEventDispatcher eventDispatcher{};
 };
 
 static inline WindowDataTest& PrepareTest() {
@@ -12,8 +12,8 @@ static inline WindowDataTest& PrepareTest() {
 	return data;
 }
 
-static inline lr::DisplayWindow CreateWindow(WindowDataTest& data = PrepareTest()) {
-	return lr::DisplayWindow{ data.eventDispatcher, data.settings };
+static inline cgss::DisplayWindow CreateWindow(WindowDataTest& data = PrepareTest()) {
+	return cgss::DisplayWindow{ data.eventDispatcher, data.settings };
 }
 
 TEST_CASE("[DisplayWindow] Creation") {
@@ -28,8 +28,8 @@ TEST_CASE("[DisplayWindow] Window settings change event emitted") {
 	auto& data = PrepareTest();
 	auto window = CreateWindow(data);
 	
-	auto event = lr::WindowSettingsChangeEvent{};
+	auto event = cgss::WindowSettingsChangeEvent{};
 	event.settings = data.settings;
 	event.settings.video.scale = 4.0;
-	data.eventDispatcher.lr::Observable<lr::WindowSettingsChangeEvent>::notifyObservers(event);
+	data.eventDispatcher.cgss::Observable<cgss::WindowSettingsChangeEvent>::notifyObservers(event);
 }

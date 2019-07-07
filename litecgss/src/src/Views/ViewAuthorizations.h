@@ -1,8 +1,8 @@
-#ifndef LR_VIEW_AUTHORIZATIONS_H
-#define LR_VIEW_AUTHORIZATIONS_H
+#ifndef CGSS_VIEW_AUTHORIZATIONS_H
+#define CGSS_VIEW_AUTHORIZATIONS_H
 #include <type_traits>
 
-namespace lr {
+namespace cgss {
 	template <class Drawable>
 	struct AuthorizedDrawableBox {};
 
