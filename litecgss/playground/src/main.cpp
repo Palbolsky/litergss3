@@ -1,31 +1,65 @@
 #include <iostream>
-#include "Graphics/Stack/DrawableStack.h"
+#include "Graphics/Stack/View.h"
 #include "Graphics/Sprite.h"
 #include "Graphics/Texture.h"
 
 void CheckDrawableStack() {
-	auto stack = lr::DrawableStack{};
-	auto stack2 = lr::DrawableStack{};
+	auto stack = lr::View{};
+	auto stack2 = lr::View{};
 
 	{
-		auto sprite = std::make_unique<lr::Sprite>();
-		auto sprite2 = std::make_unique<lr::Sprite>();
-		stack.add(*sprite);
-		stack.add(*sprite2);
+		auto& sprite = lr::Sprite::create(stack);
+		auto& sprite2 = lr::Sprite::create(stack);
 
+		std::cout << stack.getSize() << std::endl;
 
-		std::cout << stack.size() << std::endl;
+		sprite2.detach();
 
-		stack.remove(*sprite2);
+		std::cout << stack.getSize() << std::endl;
 
-		std::cout << stack.size() << std::endl;
+		sprite2.setVisible(false);
 
-		stack2.add(*sprite);
+		auto& sprite3 = lr::Sprite::create(stack2);
 
-		std::cout << stack.size() << " / " << stack2.size() << std::endl;
+		std::cout << stack.getSize() << " / " << stack2.getSize() << std::endl;
 	}
 
-	std::cout << stack2.size() << std::endl;
+	std::cout << stack2.getSize() << std::endl;
+
+	std::cout << stack.getSize() << std::endl;
+}
+
+void CheckDrawableStackWithDrawing() {
+	auto view = sf::View{};
+	auto renderTarget = sf::RenderWindow{};
+
+	auto stack = lr::View{};
+	auto stack2 = lr::View{};
+
+	auto& sprite2 = lr::Sprite::create(stack);
+	{
+		auto& sprite = lr::Sprite::create(stack);
+		
+
+		std::cout << stack.getSize() << std::endl;
+
+		sprite2.detach();
+
+		std::cout << stack.getSize() << std::endl;
+
+		sprite2.setVisible(false);
+
+		auto& sprite3 = lr::Sprite::create(stack2);
+
+		std::cout << stack.getSize() << " / " << stack2.getSize() << std::endl;
+	}
+
+	std::cout << stack2.getSize() << std::endl;
+
+	stack.draw(view, renderTarget);
+	//Here sprite2 can not be used anymore
+
+	std::cout << stack.getSize() << std::endl;
 }
 
 void CheckTextureLoading(const std::string& filename) {
@@ -39,6 +73,7 @@ void CheckTextureLoading(const std::string& filename) {
 
 int main(int argc, char* argv[]) {
 	CheckDrawableStack();
+	CheckDrawableStackWithDrawing();
 	CheckTextureLoading(LITE_CGSS_PLAYGROUND_DIR "/resources/test.png");
 
 	return 0;

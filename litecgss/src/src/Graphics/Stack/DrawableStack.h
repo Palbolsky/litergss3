@@ -1,6 +1,7 @@
 #ifndef LR_DRAWABLE_STACK_H
 #define LR_DRAWABLE_STACK_H
 
+#include <cstdint>
 #include <SFML/Graphics.hpp>
 #include "GraphicsStack.h"
 
@@ -11,7 +12,7 @@ namespace lr {
 		using GraphicsStack::GraphicsStack;
 		void draw(sf::View& defview, sf::RenderTarget& target) const;
 		void drawFast(sf::RenderTarget& target) const;
-		void updateContentsOpacity(long opacity);
+		void updateContentsOpacity(std::uint8_t opacity);
 	};
 }
 #endif

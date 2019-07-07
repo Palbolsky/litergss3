@@ -1,6 +1,7 @@
 #ifndef LR_VECTOR_TRACKER_H
 #define LR_VECTOR_TRACKER_H
 #include <algorithm>
+#include <optional>
 #include <vector>
 
 namespace lr {
@@ -25,21 +26,15 @@ namespace lr {
 			}
 		}
 
-		bool remove(const T& el) {
-			auto lastValidElementIterator = firstAvailableBeforeDeletedIterators();
-			if(lastValidElementIterator != m_container.end()) {
-				auto elementToDeleteIterator = std::find(m_container.begin(), m_container.end(), el);
-				if(elementToDeleteIterator != m_container.end()) {
-					/*
-					const auto positioningPercents = static_cast<std::size_t>(((elementToDeleteIterator - m_container.begin())*100.f)/size());
-					std::cout << (elementToDeleteIterator - m_container.begin()) << " on " << size() << " (" << positioningPercents << "%) with " << m_invalids << " more invalid items" << std::endl;
-					*/
-					std::iter_swap(elementToDeleteIterator, lastValidElementIterator);
-					m_invalids++;
-					return true;
-				}
-			}
-			return false;
+		std::optional<T> remove(const T& el) {
+			auto elementToDeleteIterator = std::find(m_container.begin(), m_container.end(), el);
+			return remove(elementToDeleteIterator);			
+		}
+
+		template <class UnaryPredicate>
+		std::optional<T> remove_if(UnaryPredicate&& predicate) {
+			auto elementToDeleteIterator = std::find_if(m_container.begin(), m_container.end(), std::forward<UnaryPredicate>(predicate));
+			return remove(elementToDeleteIterator);
 		}
 
 		std::size_t size() const { return m_container.size() - m_invalids; }
@@ -52,6 +47,24 @@ namespace lr {
 		auto end() { return m_container.empty() ? m_container.end() : (m_container.end() - m_invalids); }
 
 	private:
+		std::optional<T> remove(const typename std::vector<T>::iterator& elementToDeleteIterator) {
+			if (elementToDeleteIterator == m_container.end()) {
+				return {};
+			}
+
+			auto lastValidElementIterator = firstAvailableBeforeDeletedIterators();
+			if (lastValidElementIterator != m_container.end()) {
+				/*
+				const auto positioningPercents = static_cast<std::size_t>(((elementToDeleteIterator - m_container.begin())*100.f)/size());
+				std::cout << (elementToDeleteIterator - m_container.begin()) << " on " << size() << " (" << positioningPercents << "%) with " << m_invalids << " more invalid items" << std::endl;
+				*/
+				std::iter_swap(elementToDeleteIterator, lastValidElementIterator);
+				m_invalids++;
+				return std::move(*lastValidElementIterator);
+			}
+			return {};
+		}
+
 		auto firstAvailableBeforeDeletedIterators() {
 			return m_container.empty() ? m_container.end() : (m_container.end() - m_invalids - 1);
 		}

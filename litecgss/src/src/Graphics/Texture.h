@@ -19,7 +19,6 @@ namespace lr {
 		Texture() = default;
 		~Texture() = default;
 
-		void blit();
 		void update();
 		auto getSize() const { return m_texture.getSize(); }
 

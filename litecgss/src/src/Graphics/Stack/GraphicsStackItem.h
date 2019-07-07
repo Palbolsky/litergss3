@@ -1,33 +1,43 @@
 #ifndef LR_GRAPHICS_STACK_ITEM_H
 #define LR_GRAPHICS_STACK_ITEM_H
-
+#include <memory>
 #include <SFML/Graphics.hpp>
-#include "GraphicsContainer.h"
 
 namespace lr {
 	class GraphicsStack;
-	class GraphicsStackItem {
-	private:
-		//Access to overrideOriginStack
+	class Rectangle;
+
+	template <class Item>
+	class GraphicsStackBinder {
+		//"sudo forceAttach / forceDetach" :)
 		friend class GraphicsStack;
+	private:
+		void forceDetach() { static_cast<Item&>(*this).m_originStack = nullptr; }
+		void forceAttach(GraphicsStack& originStack) { static_cast<Item&>(*this).m_originStack = &originStack; }
+	};
 
-		void setOriginStack(GraphicsContainer *o);
-
-		GraphicsContainer* m_originStack = nullptr;
+	class GraphicsStackItem : 
+		public GraphicsStackBinder<GraphicsStackItem> {
+		friend class GraphicsStackBinder<GraphicsStackItem>;
+	private:
+		GraphicsStack* m_originStack = nullptr;
 		unsigned long m_drawPriority = 0;
-
-	protected:
-		GraphicsStackItem() = default;
-		void setOriginStack(GraphicsContainer& o) { setOriginStack(&o); }
-		void resetOriginStack() { setOriginStack(nullptr); }
-		void overrideOriginStack(GraphicsContainer* stack = nullptr) { m_originStack = stack; }
-
+		Rectangle* m_rect = nullptr;
+					
 	public:
-		virtual ~GraphicsStackItem() { resetOriginStack(); }
+		GraphicsStackItem() = default;
+		virtual ~GraphicsStackItem();
+		
+		void detach();
+
+		void bindRectangle(Rectangle* rect);
+		Rectangle* getRectangle() const { return m_rect; };
+
 		unsigned long getDrawPriority() const { return m_drawPriority; }
 
 		virtual void draw(sf::RenderTarget& target) const = 0;
 		virtual void drawFast(sf::RenderTarget& target) const = 0;
 	};
+
 }
 #endif
