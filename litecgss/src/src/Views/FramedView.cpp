@@ -11,14 +11,9 @@ void cgss::FramedView::draw(sf::RenderTarget& target) const {
 }
 
 void cgss::FramedView::drawFast(sf::RenderTarget& target) const {
-	//TODO common "visible" boolean to each drawable ?
-	if (!m_visible) {
-		return;
-	}
-
 	/* Draw window */
 	for (unsigned long i = 0; i < m_numVerticesLine; i++) {
-		target.draw(m_vertices[i], m_texture);
+		target.draw(m_vertices[i], m_texture == nullptr ? sf::RenderStates::Default : sf::RenderStates{ m_texture });
 	}
 
 	/* draw internal */
@@ -82,7 +77,7 @@ void cgss::FramedView::drawCalculateView(sf::RenderTarget& target, sf::View& tar
 
 void cgss::FramedView::updateVertices() {
 	// Checkup part
-	if (m_locked || m_texture == nullptr || m_width <= 0 || m_height <= 0) {
+	if (m_locked || m_width <= 0 || m_height <= 0) {
 		return;
 	}
 
@@ -109,6 +104,10 @@ void cgss::FramedView::update() {
 void cgss::FramedView::updateVerticesBlt(long wt, long ht) {
 	sf::Vector2i a(0, 0);
 	sf::IntRect rect;
+
+	if (m_texture == nullptr) {
+		return;
+	}
 
 	long x = m_x;
 	long y = m_y;
@@ -268,6 +267,11 @@ void cgss::FramedView::updateVerticesStretch(long wt, long ht) {
 	sf::Vector2i a(0, 0);
 	sf::Vector2i s(0, 0);
 	sf::IntRect rect;
+	
+	if (m_texture == nullptr) {
+		return;
+	}
+	
 	long x = m_x;
 	long y = m_y;
 	long xm = m_windowBuilder[0];
@@ -373,15 +377,15 @@ void cgss::FramedView::calculateVertices(long x, long y, long line, long cell, s
 	x += a.x;
 	y += a.y;
 	// Texture coords
-	vertArr[i].texCoords = sf::Vector2f(rect.left, rect.top);
-	vertArr[i + 1].texCoords = vertArr[i + 3].texCoords = sf::Vector2f(rect.left, rect.height + rect.top);
-	vertArr[i + 2].texCoords = vertArr[i + 4].texCoords = sf::Vector2f(rect.width + rect.left, rect.top);
-	vertArr[i + 5].texCoords = sf::Vector2f(rect.width + rect.left, rect.height + rect.top);
+	vertArr[i].texCoords = sf::Vector2f(static_cast<float>(rect.left), static_cast<float>(rect.top));
+	vertArr[i + 1].texCoords = vertArr[i + 3].texCoords = sf::Vector2f(static_cast<float>(rect.left), static_cast<float>(rect.height + rect.top));
+	vertArr[i + 2].texCoords = vertArr[i + 4].texCoords = sf::Vector2f(static_cast<float>(rect.width + rect.left), static_cast<float>(rect.top));
+	vertArr[i + 5].texCoords = sf::Vector2f(static_cast<float>(rect.width + rect.left), static_cast<float>(rect.height + rect.top));
 	// Coordinates
-	vertArr[i].position = sf::Vector2f(x, y);
-	vertArr[i + 1].position = vertArr[i + 3].position = sf::Vector2f(x, y + rect.height);
-	vertArr[i + 2].position = vertArr[i + 4].position = sf::Vector2f(x + rect.width, y);
-	vertArr[i + 5].position = sf::Vector2f(x + rect.width, y + rect.height);
+	vertArr[i].position = sf::Vector2f(static_cast<float>(x), static_cast<float>(y));
+	vertArr[i + 1].position = vertArr[i + 3].position = sf::Vector2f(static_cast<float>(x), static_cast<float>(y + rect.height));
+	vertArr[i + 2].position = vertArr[i + 4].position = sf::Vector2f(static_cast<float>(x + rect.width), static_cast<float>(y));
+	vertArr[i + 5].position = sf::Vector2f(static_cast<float>(x + rect.width), static_cast<float>(y + rect.height));
 }
 
 void cgss::FramedView::calculateVerticesStretch(long x, long y, long line, long cell, sf::Vector2i& s, sf::Vector2i& a, sf::IntRect& rect) {
@@ -393,15 +397,15 @@ void cgss::FramedView::calculateVerticesStretch(long x, long y, long line, long 
 	x += a.x;
 	y += a.y;
 	// Texture coords
-	vertArr[i].texCoords = sf::Vector2f(rect.left, rect.top);
-	vertArr[i + 1].texCoords = vertArr[i + 3].texCoords = sf::Vector2f(rect.left, rect.height + rect.top);
-	vertArr[i + 2].texCoords = vertArr[i + 4].texCoords = sf::Vector2f(rect.width + rect.left, rect.top);
-	vertArr[i + 5].texCoords = sf::Vector2f(rect.width + rect.left, rect.height + rect.top);
+	vertArr[i].texCoords = sf::Vector2f(static_cast<float>(rect.left), static_cast<float>(rect.top));
+	vertArr[i + 1].texCoords = vertArr[i + 3].texCoords = sf::Vector2f(static_cast<float>(rect.left), static_cast<float>(rect.height + rect.top));
+	vertArr[i + 2].texCoords = vertArr[i + 4].texCoords = sf::Vector2f(static_cast<float>(rect.width + rect.left), static_cast<float>(rect.top));
+	vertArr[i + 5].texCoords = sf::Vector2f(static_cast<float>(rect.width + rect.left), static_cast<float>(rect.height + rect.top));
 	// Coordinates
-	vertArr[i].position = sf::Vector2f(x, y);
-	vertArr[i + 1].position = vertArr[i + 3].position = sf::Vector2f(x, y + s.y);
-	vertArr[i + 2].position = vertArr[i + 4].position = sf::Vector2f(x + s.x, y);
-	vertArr[i + 5].position = sf::Vector2f(x + s.x, y + s.y);
+	vertArr[i].position = sf::Vector2f(static_cast<float>(x), static_cast<float>(y));
+	vertArr[i + 1].position = vertArr[i + 3].position = sf::Vector2f(static_cast<float>(x), static_cast<float>(y + s.y));
+	vertArr[i + 2].position = vertArr[i + 4].position = sf::Vector2f(static_cast<float>(x + s.x), static_cast<float>(y));
+	vertArr[i + 5].position = sf::Vector2f(static_cast<float>(x + s.x), static_cast<float>(y + s.y));
 }
 
 void cgss::FramedView::updatePauseSprite() {
@@ -434,10 +438,9 @@ void cgss::FramedView::updateCursorSprite() {
 	col.a = m_opacity;
 	if (v > 64) {
 		v -= 64;
-		col.a = (m_active ? 128 + 2 * v : 128) * col.a / 255;
-	}
-	else {
-		col.a = (m_active ? 255 - 2 * v : 128) * col.a / 255;
+		col.a = static_cast<sf::Uint8>((m_active ? 128 + 2 * v : 128) * col.a / 255);
+	} else {
+		col.a = static_cast<sf::Uint8>((m_active ? 255 - 2 * v : 128) * col.a / 255);
 	}
 	m_cursor.setColor(col);
 }
@@ -486,7 +489,7 @@ void cgss::FramedView::updateContents(std::unique_ptr<sf::IntRect> cursorRect) {
 	}
 
 	if (m_cursorRect != nullptr) {
-		resetCursorPosition(m_cursorRect.get());
+		setCursorPosition(*m_cursorRect);
 	}
 }
 
@@ -494,10 +497,10 @@ void cgss::FramedView::updateBackOpacity() {
 	sf::Color col = sf::Color::White;
 	col.a = m_opacity * m_backOpacity / 255;
 	if (!m_vertices.empty()) {
-		long num_vertices = m_vertices[0].getVertexCount();
-		for (int i = 0; i < m_numVerticesLine; i++) {
+		std::size_t num_vertices = m_vertices[0].getVertexCount();
+		for (std::size_t i = 0; i < m_numVerticesLine; i++) {
 			auto& vertArr = m_vertices[i];
-			for (int j = 0; j < num_vertices; j++) {
+			for (std::size_t j = 0; j < num_vertices; j++) {
 				vertArr[j].color = col;
 			}
 		}
@@ -534,7 +537,7 @@ void cgss::FramedView::unlock() {
 	updateVertices();
 }
 
-bool cgss::FramedView::is_locked() {
+bool cgss::FramedView::isLocked() const {
 	return m_locked;
 }
 
@@ -551,24 +554,109 @@ void cgss::FramedView::resetPausePosition() {
 		return;
 	}
 
-	auto pause_x = m_pauseX.has_value() ? m_pauseX.value() : (m_width - m_pauseSkin.getSize().x) / 2;
-	auto pause_y = m_pauseY.has_value() ? m_pauseY.value() : (m_height - m_pauseSkin.getSize().y) / 2;
+	float pause_x = m_pauseX.has_value() ? static_cast<float>(m_pauseX.value()) : (m_width - m_pauseSkin.getSize().x) / 2.F;
+	float pause_y = m_pauseY.has_value() ? static_cast<float>(m_pauseY.value()) : (m_height - m_pauseSkin.getSize().y) / 2.F;
 	pause_x += m_x;
 	pause_y += m_y;
 	m_pause.setPosition(sf::Vector2f(pause_x, pause_y));
 }
 
-void cgss::FramedView::resetCursorPosition(sf::IntRect* rect) {
+void cgss::FramedView::setCursorPosition(sf::IntRect rect) {
 	if (m_cursor.getTexture() == nullptr) {
 		return;
 	}
 	sf::Vector2f size = static_cast<sf::Vector2f>(m_cursor.getTexture()->getSize());
-	m_cursor.setScale(sf::Vector2f(rect->width / size.x, rect->height / size.y));
-	m_cursor.setPosition(sf::Vector2f(rect->left, rect->top));
+	m_cursor.setScale(sf::Vector2f(rect.width / size.x, rect.height / size.y));
+	m_cursor.setPosition(sf::Vector2f(static_cast<float>(rect.left), static_cast<float>(rect.top)));
 }
 
 void cgss::FramedView::updateContentsOpacity() {
-	const long opacity = m_opacity * m_contentOpacity / 255l;
+	const auto opacity = static_cast<uint8_t>(m_opacity * (m_contentOpacity / 255.F));
 
 	View::updateContentsOpacity(opacity);
+}
+
+void cgss::FramedView::setPauseSkin(sf::Texture& texture) {
+	m_pause.setTexture(texture);
+	resetPausePosition();
+	updatePauseSprite();
+}
+
+void cgss::FramedView::pause(bool pause) {
+	m_paused = pause;
+	updatePauseSprite();
+}
+
+void cgss::FramedView::setPausePosition(float x, float y) {
+	m_pauseX = x;
+	m_pauseY = y;
+	resetPausePosition();
+}
+
+bool cgss::FramedView::isPaused() const {
+	return m_paused;
+}
+
+void cgss::FramedView::setCursorSkin(sf::Texture& texture) {
+	m_cursor.setTexture(texture);
+	updateCursorSprite();
+}
+
+void cgss::FramedView::active(bool active) {
+	m_active = active;
+	if (m_cursorRect != nullptr) {
+		setCursorPosition(*m_cursorRect);
+	}
+	updateCursorSprite();
+}
+
+bool cgss::FramedView::isActive() const {
+	return m_active;
+}
+
+void cgss::FramedView::onMove() {
+	updateVertices();
+	updateView();
+}
+
+void cgss::FramedView::stretch(bool stretch) {
+	m_stretch = stretch;
+	updateVertices();
+}
+
+bool cgss::FramedView::isStretched() const {
+	return m_stretch;
+}
+
+void cgss::FramedView::onResize() {
+	updateVertices();
+	updateView();
+}
+
+void cgss::FramedView::setOpacity(uint8_t opacity) {
+	m_opacity = opacity;
+	updateBackOpacity();
+	updateContentsOpacity();
+}
+
+uint8_t cgss::FramedView::getOpacity() const {
+	return m_opacity;
+}
+
+void cgss::FramedView::setContentsOpacity(uint8_t opacity) {
+	m_contentOpacity = opacity;
+	updateContentsOpacity();
+}
+
+uint8_t cgss::FramedView::getContentsOpacity() const {
+	return m_contentOpacity;
+}
+
+void cgss::FramedView::setSkin(sf::Texture* skin) {
+	m_texture = skin;
+	updateVertices();
+}
+
+sf::Texture* cgss::FramedView::getSkin() const {
+	return m_texture;
 }

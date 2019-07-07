@@ -8,7 +8,6 @@ namespace cgss {
 		public Drawable<Text> {
 	private:
 		sf::Text m_text;
-		bool m_visible = true;
 	public:
 		Text() = default;
 		virtual ~Text() = default;
@@ -16,8 +15,6 @@ namespace cgss {
 		void drawFast(sf::RenderTarget& target) const override;
 
 		sf::Text& getText() { return m_text;}
-		void setVisible(bool value) { m_visible = value; }
-		bool getVisible() { return m_visible; };
 	};
 	namespace meta {
 		template<>

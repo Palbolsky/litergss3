@@ -22,19 +22,23 @@ namespace cgss {
 	private:
 		GraphicsStack* m_originStack = nullptr;
 		unsigned long m_drawPriority = 0;
-		Rectangle* m_rect = nullptr;
-					
+		bool m_visible = true;
+
 	public:
 		GraphicsStackItem() = default;
 		virtual ~GraphicsStackItem();
 		
 		void detach();
 
-		void bindRectangle(Rectangle* rect);
-		Rectangle* getBoundRectangle() const { return m_rect; };
-
 		unsigned long getDrawPriority() const { return m_drawPriority; }
 
+		void tryDraw(sf::RenderTarget& target) const { if (m_visible) { draw(target); } }
+		void tryDrawFast(sf::RenderTarget& target) const { if (m_visible) { drawFast(target); } }
+
+		void setVisible(bool value) { m_visible = value; };
+		bool isVisible() const { return m_visible; };
+
+	protected:
 		virtual void draw(sf::RenderTarget& target) const = 0;
 		virtual void drawFast(sf::RenderTarget& target) const = 0;
 	};

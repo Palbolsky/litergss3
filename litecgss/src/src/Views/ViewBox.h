@@ -14,15 +14,15 @@ namespace cgss {
 	public:
 		virtual ~ViewBox() = default;
 
-		void move(long ox, long oy);
+		void moveOrigin(long ox, long oy);
 		void resize(long width, long height);
 
 		ViewBox(MainEventDispatcher& ed, const DisplayWindowSettings& windowSettings);
 
 		long getOx() const;
 		long getOy() const;
-		void adjustZoom(float zoom);
-		void adjustAngle(float angle);
+		void setScale(float zoom);
+		void setAngle(float angle);
 
 	protected:
 		long getScreenWidth() const { return m_screenWidth; }
@@ -31,6 +31,8 @@ namespace cgss {
 		void onRenderTarget(sf::RenderTarget& renderTarget, bool copy = false) const;
 
 		virtual void onPostWindowSettingsChange(WindowSettingsChangeEvent& event) {}
+		virtual void onMove() {}
+		virtual void onResize() {}
 
 	private:
 		bool onWindowSettingsChange(WindowSettingsChangeEvent& event);

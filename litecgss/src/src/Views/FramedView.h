@@ -24,39 +24,71 @@ namespace cgss {
 		void drawCalculateView(sf::RenderTarget& target, sf::View& targetView) const;
 
 		void update();
-		void updatePauseSprite();
-		void updateCursorSprite();
+		
+		void setOpacity(uint8_t opacity);
+		uint8_t getOpacity() const;
+
+		void setContentsOpacity(uint8_t opacity);
+		uint8_t getContentsOpacity() const;
+		
+		void lock();
+		void unlock();
+		bool isLocked() const;
+
+		void pause(bool pause);
+		bool isPaused() const;
+
+		void active(bool active);
+		bool isActive() const;
+
+		void setSkin(sf::Texture* skin);
+		sf::Texture* getSkin() const;
+
+		void setPauseSkin(sf::Texture& texture);
+		void setPausePosition(float x, float y);
+		
+		void setCursorSkin(sf::Texture& texture);
+		void setCursorPosition(sf::IntRect position);
+		
+		void stretch(bool stretch);
+		bool isStretched() const;
+	
+	protected:
 		void updateVertices();
+		void updateView();
+
+	private:
+		void onMove() override final;
+		void onResize() override final;
+
+		void updateCursorSprite();
+
+		void updatePauseSprite();
+		void resetPausePosition();
+
 		void updateContents(std::unique_ptr<sf::IntRect> cursorRect = nullptr);
 		void updateBackOpacity();
 		void updateContentsOpacity();
-		void updateView();
-		void lock();
-		void unlock();
-		bool is_locked();
-		sf::Sprite& getPauseSprite();
-		sf::Sprite& getCursorSprite();
-		void resetPausePosition();
-		void resetCursorPosition(sf::IntRect* rect);
 
-	private:
 		std::vector<sf::VertexArray> m_vertices;
 		sf::Texture* m_texture = nullptr;
 		sf::View m_view;
-		bool m_visible = true;
-		unsigned long m_numVerticesLine = 0;
-		long m_counter = 0;
 		sf::Sprite m_pause;
 		Texture m_pauseSkin;
 		sf::Sprite m_cursor;
+
+		unsigned long m_numVerticesLine = 0;
+		long m_counter = 0;
+
 		bool m_locked = false;
+		bool m_paused = false;
+		bool m_stretch = false;
 
 		//Added since LiteRGSS split (those were Ruby variables before)
 		long m_x = 0;
 		long m_y = 0;
 		long m_width = -1L;
 		long m_height = -1L;
-		bool m_stretch = false;
 		float m_zoom = 1.F;
 
 		std::unique_ptr<sf::IntRect> m_cursorRect;
