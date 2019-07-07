@@ -5,17 +5,10 @@ lr::GraphicsStack::~GraphicsStack() {
 	clear();
 }
 
-void lr::GraphicsStack::add(GraphicsStackItem& el) {
-	el.setOriginStack(&m_stack);
-}
-
-void lr::GraphicsStack::remove(GraphicsStackItem& el) {
-	el.setOriginStack(nullptr);
-}
-
 void lr::GraphicsStack::clear() {
 	syncFromRawData({});
 }
+
 /*
 void lr::GraphicsStack::syncStackCppFromRuby() {
 	//MUST BE MOVED TO BINDING PART
@@ -41,11 +34,35 @@ void lr::GraphicsStack::syncStackCppFromRuby() {
 }
 */
 
-void lr::GraphicsStack::syncFromRawData(std::vector<GraphicsStackItem*> data, bool overrideOriginStack) {
-	if(overrideOriginStack) {
+void lr::GraphicsStack::syncFromRawData(GraphicsContainer data, bool forceDetachAll) {
+	if(forceDetachAll) {
 		for(auto& it : m_stack) {
-			it->overrideOriginStack();
+			it->forceDetach();
 		}
 	}
 	m_stack = std::move(data);
+	freeDetached();
+}
+
+bool lr::GraphicsStack::transferToDetached(GraphicsStackItem* item) {
+	auto removed = m_stack.remove_if([&](const auto& drawablePtr) {
+		return drawablePtr.get() == item;
+	});
+
+	if (removed.has_value()) {
+		auto lock = std::scoped_lock{ m_mutexDetached };
+		m_detached.push_back(std::move(removed.value()));
+		return true;
+	}
+	return false;
+}
+
+void lr::GraphicsStack::freeDetached() const {
+	auto lock = std::scoped_lock{ m_mutexDetached };
+	m_detached = {};
+}
+
+void lr::GraphicsStack::add(GraphicsStackItemPtr item) {
+	item->forceAttach(*this);
+	m_stack.push_back(std::move(item));
 }

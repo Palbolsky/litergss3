@@ -5,7 +5,7 @@
 
 namespace lr {
 	class Text :
-		public Drawable {
+		public Drawable<Text> {
 	private:
 		sf::Text m_text;
 		bool m_visible = true;

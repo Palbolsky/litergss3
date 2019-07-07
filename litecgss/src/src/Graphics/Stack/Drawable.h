@@ -1,22 +1,26 @@
 #ifndef LR_DRAWABLE_H
 #define LR_DRAWABLE_H
-#include <algorithm>
+#include <memory>
 #include "GraphicsStackItem.h"
 
 namespace lr {
 	class Rectangle;
 	class Tone;
-	class Drawable :
+	using DrawablePtr = std::unique_ptr<GraphicsStackItem>;
+
+	template <class DrawableChild>
+	class Drawable : 
 		public GraphicsStackItem {
-	private:
-		Rectangle* m_rect = nullptr;
-
+	protected:
+		using GraphicsStackItem::GraphicsStackItem;
+	
 	public:
-		Drawable() = default;
-		virtual ~Drawable();
-
-		void bindRectangle(Rectangle* rect);
-		Rectangle* getRectangle() const { return m_rect; };
+		virtual ~Drawable() = default;
+		template <class View, class ... Args>
+		static DrawableChild& create(View& view, Args&& ... args) {
+			return view.add(std::unique_ptr<DrawableChild>{ new DrawableChild(std::forward<Args>(args)...) });
+		}
 	};
+	
 }
 #endif

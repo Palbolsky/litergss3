@@ -5,7 +5,7 @@
 
 namespace lr {
 	class Sprite :
-		public Drawable {
+		public Drawable<Sprite> {
 	private:
 		sf::Sprite m_sprite;
 		bool m_drawable = false;

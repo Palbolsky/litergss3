@@ -1,14 +1,14 @@
 #ifndef LR_RECTANGLE_H
 #define LR_RECTANGLE_H
 #include <SFML/Graphics.hpp>
-#include "Graphics/Stack/Drawable.h"
+#include "Graphics/Stack/GraphicsStackItem.h"
 #include "Meta/metadata.h"
 
 namespace lr {
 	class Rectangle {
 	private:
 		sf::IntRect m_rect;
-		Drawable* m_target = nullptr;
+		GraphicsStackItem* m_target = nullptr;
 	public:
 		Rectangle() = default;
 		~Rectangle() {
@@ -20,7 +20,7 @@ namespace lr {
 		sf::IntRect& getRect() { return m_rect; }
 		const sf::IntRect& getRect() const { return m_rect; }
 
-		void bindElement(Drawable* target) {
+		void bindElement(GraphicsStackItem* target) {
 			if(target != m_target) {
 				auto lastLinkedElement = m_target;
 				m_target = nullptr;
@@ -33,7 +33,7 @@ namespace lr {
 				}
 			}
 		}
-		Drawable* getElement() { return m_target; }
+		GraphicsStackItem* getElement() { return m_target; }
 	};
 
 	namespace meta {
