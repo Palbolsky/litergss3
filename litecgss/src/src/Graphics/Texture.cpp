@@ -24,29 +24,37 @@ bool lr::Texture::loadPng(sf::Texture& text, const char* rawDataOrFilename, long
 
 bool lr::Texture::load(const std::string& data, unsigned int width, unsigned int height, TextureLoadMethod loadMethod) {
 	//TODO externalize in several texture loaders + polymorphism
+	bool result = false;
 
 	switch(loadMethod) {
 	case TextureLoadMethod::File:
 		if(!loadPng(m_texture, data.c_str(), 0)) {
-			return m_texture.loadFromFile(data.c_str());
+			result = m_texture.loadFromFile(data.c_str());
+		} else {
+			result = true;
 		}
-		return true;
+		break;
 
 	case TextureLoadMethod::Memory:
 		if(!loadPng(m_texture, data.c_str(), data.size())) {
-			return m_texture.loadFromMemory(data.c_str(), data.size());
+			result = m_texture.loadFromMemory(data.c_str(), data.size());
+		} else {
+			result = true;
 		}
-		return true;
+		break;
 
 	case TextureLoadMethod::New:
 		m_image.create(width, height, sf::Color(0, 0, 0, 0));
-		return m_texture.loadFromImage(m_image);
+		result = m_texture.loadFromImage(m_image);
+		break;
 
 	default:
-		return false;
+		break;
 	}
 
+	m_loaded = result;
 	//TODO texture.setSmooth from global config ?
+	return m_loaded;
 }
 
 void lr::Texture::update() {
@@ -93,7 +101,7 @@ std::vector<unsigned char> lr::Texture::toRawDataPng() {
 		//Involves a memory allocation, so could throw, meaning that we have to handle exceptions if we want to correctly free "out"
 		try {
 			result = std::vector<unsigned char>(out, out + size);
-		} catch (std::exception& e) {
+		} catch (std::exception&) {
 			//Nothing special here (it could be logging maybe ?)
 		}
 	}
@@ -106,3 +114,10 @@ int lr::Texture::toFile(const std::string& filename) {
 	return lodepng_encode32_file(filename.c_str(), img.getPixelsPtr(), img.getSize().x, img.getSize().y);
 }
 
+void lr::Texture::setShaderUniform(sf::Shader& shader, const std::string& attribute) const {
+	shader.setUniform(attribute, m_texture);
+}
+
+std::unique_ptr<sf::Sprite> lr::Texture::createSprite() {
+	return std::make_unique<sf::Sprite>(m_texture);
+}

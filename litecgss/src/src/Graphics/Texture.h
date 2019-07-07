@@ -31,11 +31,18 @@ namespace lr {
 		std::vector<unsigned char> toRawDataPng();
 		int toFile(const std::string& filename);
 
+		bool isLoaded() const { return m_loaded; }
+
+		void setShaderUniform(sf::Shader&, const std::string& attribute) const;
+		void update(const sf::Window& window, unsigned int x, unsigned int y) { m_texture.update(window, x, y); }
+		bool create(int sw, int sh) { return m_texture.create(sw, sh); }
+		std::unique_ptr<sf::Sprite> createSprite();
 	private:
 		static bool loadPng(sf::Texture& output, const char* rawDataOrFilename, long fromMemorySize);
 
 		bool hasImage() const { return m_image.getSize().x != 0; };
 
+		bool m_loaded = false;
 		sf::Texture m_texture;
 		sf::Image m_image;
 	};
@@ -48,20 +55,4 @@ namespace lr {
 	}
 }
 
-
-/*
-VALUE rb_Bitmap_Initialize(int argc, VALUE *argv, VALUE self);
-VALUE rb_Bitmap_Initialize_Copy(VALUE self, VALUE other);
-VALUE rb_Bitmap_Dispose(VALUE self);
-VALUE rb_Bitmap_Width(VALUE self);
-VALUE rb_Bitmap_Height(VALUE self);
-VALUE rb_Bitmap_Rect(VALUE self);
-VALUE rb_Bitmap_Update(VALUE self);
-VALUE rb_Bitmap_blt(VALUE self, VALUE x, VALUE y, VALUE src_bitmap, VALUE rect);
-VALUE rb_Bitmap_clear_rect(VALUE self, VALUE x, VALUE y, VALUE width, VALUE height);
-VALUE rb_Bitmap_fill_rect(VALUE self, VALUE x, VALUE y, VALUE width, VALUE height, VALUE color);
-VALUE rb_Bitmap_toPNG(VALUE self);
-VALUE rb_Bitmap_toPNG_file(VALUE self, VALUE filename);
-sf::Texture& rb_Bitmap_getTexture(VALUE self);
-*/
 #endif

@@ -1,6 +1,6 @@
 #ifndef LR_TEXT_H
 #define LR_TEXT_H
-#include "Graphics/Stack/Drawable.h"
+#include "Graphics/Drawable.h"
 #include "Common/Meta/metadata.h"
 
 namespace lr {

@@ -1,5 +1,5 @@
 #include "GraphicsStack.h"
-#include "GraphicsStackItem.h"
+#include "Graphics/GraphicsStackItem.h"
 
 lr::GraphicsStack::~GraphicsStack() {
 	clear();
