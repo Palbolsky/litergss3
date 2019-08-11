@@ -11,8 +11,7 @@
 namespace cgss {
 
 	//We only expose the "add" method to the internal of Drawable class
-	class View;
-
+	template <class View>
 	class ViewAdder {
 		template <class T>
 		friend class Drawable;
@@ -30,8 +29,8 @@ namespace cgss {
 
 	class DisplayWindow;
 	class View : 
-		public ViewAdder {
-		friend class ViewAdder;
+		public ViewAdder<View> {
+		friend class ViewAdder<View>;
 
 	public:
 		virtual ~View() = default;

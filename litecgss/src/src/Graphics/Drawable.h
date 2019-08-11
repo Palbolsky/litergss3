@@ -18,7 +18,7 @@ namespace cgss {
 		virtual ~Drawable() = default;
 		template <class View, class ... Args>
 		static DrawableChild& create(View& view, Args&& ... args) {
-			return view.add<View>(std::unique_ptr<DrawableChild>{ new DrawableChild(std::forward<Args>(args)...) });
+			return view.template add<View>(std::unique_ptr<DrawableChild>{ new DrawableChild(std::forward<Args>(args)...) });
 		}
 	};
 	

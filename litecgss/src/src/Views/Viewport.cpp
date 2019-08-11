@@ -1,3 +1,4 @@
+#include <cmath>
 #include "Viewport.h"
 #include "Common/Rectangle.h"
 #include "Configuration/DisplayWindowSettings.h"

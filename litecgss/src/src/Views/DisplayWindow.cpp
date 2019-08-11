@@ -1,3 +1,4 @@
+#include <cmath>
 #include <cassert>
 #include "Configuration/DisplayWindowSettings.h"
 #include "DisplayWindow.h"
