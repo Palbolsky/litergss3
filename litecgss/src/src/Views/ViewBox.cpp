@@ -1,3 +1,4 @@
+#include <cmath>
 #include "ViewBox.h"
 
 cgss::ViewBox::ViewBox(MainEventDispatcher& ed, const DisplayWindowSettings& windowSettings) : 

@@ -524,7 +524,7 @@ void cgss::FramedView::updateView() {
 	rect.width = width;
 	rect.height = height;
 	
-	move(x, y);
+	ViewBox::moveOrigin(x, y);
 	resize(width, height);	
 }
 
@@ -539,14 +539,6 @@ void cgss::FramedView::unlock() {
 
 bool cgss::FramedView::isLocked() const {
 	return m_locked;
-}
-
-sf::Sprite& cgss::FramedView::getPauseSprite() {
-	return m_pause;
-}
-
-sf::Sprite& cgss::FramedView::getCursorSprite() {
-	return m_cursor;
 }
 
 void cgss::FramedView::resetPausePosition() {
