@@ -1,0 +1,14 @@
+version: '3'
+services:
+    litecgss:
+        build: .
+        stdin_open: true
+        tty: true
+        container_name: litecgss
+        entrypoint: /entrypoint.sh
+        environment: 
+            - DISPLAY=:1
+        ports:
+            - "127.0.0.1:5901:5900"
+        volumes:
+            - ..:/litecgss
