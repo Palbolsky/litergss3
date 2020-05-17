@@ -13,7 +13,7 @@ cgss::DisplayWindow::~DisplayWindow() {
 	if (m_gameWindow != nullptr) { stop(); }
 }
 
-void cgss::DisplayWindow::reload(const DisplayWindowSettings& settings) {
+void cgss::DisplayWindow::reload(DisplayWindowSettings settings) {
 	m_settings = settings;
 	sf::Uint32 style = sf::Style::Close | sf::Style::Titlebar;
 	if (settings.fullscreen) {
