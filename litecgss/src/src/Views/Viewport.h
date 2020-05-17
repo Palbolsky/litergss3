@@ -7,42 +7,59 @@
 
 namespace cgss {
 	
-	struct DisplayWindowSettings;
-	class Viewport : 
-		public View,
-		public ViewBox,
-		public Drawable<Viewport> {
-
-	public:
-		Viewport(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings);
-		void drawFast(sf::RenderTarget& target) const override { draw(target); }
-		void draw(sf::RenderTarget& target) const override;
-
-		void setupView(sf::RenderTarget& target) const;
-		void setRenderStates(sf::RenderStates states);
-		sf::Color* checkUpColor() const;
-		void createRender();
-
+	class Viewport;
+	class ViewportItem : 
+		public GraphicsStackItem,
+		public ViewBox {
+		friend class Viewport;
 	private:
-		void onPostWindowSettingsChange(WindowSettingsChangeEvent& event);
-
 		const sf::RenderStates& getRenderState() const;
-		sf::Shader& getRenderStateShader() const;
+		void setupView(sf::RenderTarget& target) const;
+		void onPostWindowSettingsChange(WindowSettingsChangeEvent& event) override;
 
-		std::unique_ptr<sf::Color> m_colorCopy;
-		std::unique_ptr<sf::Color> m_color;
-		std::unique_ptr<sf::RenderTexture> m_render;
-		std::unique_ptr<sf::Sprite> m_renderSprite;
+		const DrawableStack* m_drawables;
+		sf::Color m_color;
+		sf::Sprite m_renderSprite;
 		std::optional<sf::RenderStates> m_renderStates;
 		sf::RenderStates m_defaultRenderStates = sf::RenderStates::Default;
+
 		mutable sf::Shader* m_renderStatesShader = nullptr;
 		mutable sf::Shader m_defaultRenderStatesShader;
+		mutable sf::RenderTexture m_render;
 
 		bool m_smooth = false;
 
 		float rZ = 0.F;
 		float rAngle = 0.F;
 		float rZoom = 0.F;
+	public:
+		void createRender();
+		ViewportItem(Viewport* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings);
+		void drawFast(sf::RenderTarget& target) const override { draw(target); }
+		void draw(sf::RenderTarget& target) const override;
+	private:
+		sf::Shader& getRenderStateShader() const;
+	};
+
+	struct DisplayWindowSettings;
+	class Viewport : 
+		public View,
+		public Drawable<Viewport, ViewportItem>,
+		public GraphicItem {
+
+	public:
+		Viewport();
+		Viewport(Viewport&&) noexcept = default;
+		Viewport& operator=(Viewport&&) noexcept = default;
+		Viewport(const Viewport&) = delete;
+		Viewport& operator=(const Viewport&) = delete;
+
+		void setRenderStates(sf::RenderStates states);
+		void drawFast(sf::RenderTarget& target) const override;
+		void draw(sf::RenderTarget& target) const override;
+
+		void moveOrigin(long ox, long oy);
+		void resize(long width, long height);
 	};
 
 	class Sprite;

@@ -3,8 +3,9 @@
 #include "Configuration/DisplayWindowSettings.h"
 #include "DisplayWindow.h"
 
-cgss::DisplayWindow::DisplayWindow(const DisplayWindowSettings& settings) :
-	m_snapshot{ *this } {
+cgss::DisplayWindow::DisplayWindow(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& settings) :
+	m_snapshot{ *this },
+	m_eventDispatcher(eventDispatcher) {
 	reload(settings);
 }
 
@@ -18,8 +19,9 @@ void cgss::DisplayWindow::reload(const DisplayWindowSettings& settings) {
 	if (settings.fullscreen) {
 		style = sf::Style::Fullscreen;
 	}
-	m_gameWindow = std::make_unique<sf::RenderWindow>(settings.video.vmode, std::move(settings.title), style);
-	m_gameWindow->setMouseCursorVisible(false);
+	m_gameWindow = settings.headless ? std::make_unique<sf::RenderWindow>() : 
+		std::make_unique<sf::RenderWindow>(sf::VideoMode{ settings.video.width, settings.video.height, settings.video.bitsPerPixel }, settings.title, style);
+	m_gameWindow->setMouseCursorVisible(settings.visibleMouse);
 	
 	/* VSYNC choice */
 	m_gameWindow->setVerticalSyncEnabled(settings.vSync);
@@ -41,7 +43,7 @@ void cgss::DisplayWindow::reload(const DisplayWindowSettings& settings) {
 	m_snapshot.init();
 
 	auto we = WindowSettingsChangeEvent{};
-	we.settings = settings;
+	we.settings = std::move(settings);
 	m_eventDispatcher.Observable<WindowSettingsChangeEvent>::notifyObservers(we);
 }
 
@@ -77,7 +79,6 @@ void cgss::DisplayWindow::stop() {
 }
 
 void cgss::DisplayWindow::draw() {
-	//TODO Respect Liskov, poor guy...
 	if (!isOpen()) {
 		return;
 	}
@@ -87,11 +88,24 @@ void cgss::DisplayWindow::draw() {
 	auto& render_target = configureAndGetRenderTarget(defview);
 	
 	// Rendering C++ sprite stack
-	View::draw(defview, render_target);
+	drawables().draw(defview, render_target);
 
 	postProcessing();
 
 	m_gameWindow->display();
+}
+
+void cgss::DisplayWindow::update() {
+	if (!isOpen()) {
+		return;
+	}
+
+	sf::Event event;
+	while (m_gameWindow->pollEvent(event)) {
+		if (event.type == sf::Event::Closed) {
+			m_gameWindow->close();
+		}
+	}
 }
 
 void cgss::DisplayWindow::initRender() {

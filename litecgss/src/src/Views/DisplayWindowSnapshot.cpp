@@ -40,7 +40,7 @@ void cgss::DisplayWindowSnapshot::freeze(sf::RenderWindow& window) {
 	m_window.draw();
 	m_freezeTexture = std::make_unique<Texture>();
 	takeSnapshotOn(window, *m_freezeTexture);
-	m_freezeSprite = m_freezeTexture->createSprite();
+	m_freezeSprite = std::make_unique<sf::Sprite>(m_freezeTexture->getTexture());
 	m_freezeSprite->setScale(1.0f / static_cast<float>(m_window.scale()), 1.0f / static_cast<float>(m_window.scale()));
 }
 

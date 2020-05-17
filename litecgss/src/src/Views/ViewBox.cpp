@@ -5,6 +5,7 @@ cgss::ViewBox::ViewBox(MainEventDispatcher& ed, const DisplayWindowSettings& win
 	SubObserver<WindowSettingsChangeEvent>(std::bind(&ViewBox::onWindowSettingsChange, this, std::placeholders::_1), ed),
 	m_screenWidth(windowSettings.video.width),
 	m_screenHeight(windowSettings.video.height) {
+	resize(m_screenWidth, m_screenHeight);
 }
 
 void cgss::ViewBox::moveOrigin(long ox, long oy) {
@@ -27,6 +28,8 @@ void cgss::ViewBox::resize(long width, long height) {
 		height++;
 	}
 	m_view.setSize(static_cast<float>(width), static_cast<float>(height));
+	m_view.setCenter(std::roundf(static_cast<float>(m_ox + m_view.getSize().x) / 2.0f),
+		std::roundf(static_cast<float>(m_oy + m_view.getSize().y) / 2.0f));
 
 	udpateDimensions();
 	onResize();

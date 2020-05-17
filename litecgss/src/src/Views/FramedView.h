@@ -11,51 +11,12 @@
 #include "ViewBox.h"
 
 namespace cgss {
-	class FramedView :
-		public View,
-		public ViewBox,
-		public Drawable<FramedView> {
-	public:
-		FramedView(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings);
-		virtual ~FramedView() = default;
-
-		void draw(sf::RenderTarget& target) const override;
-		void drawFast(sf::RenderTarget& target) const override;
-		void drawCalculateView(sf::RenderTarget& target, sf::View& targetView) const;
-
-		void update();
-		
-		void setOpacity(uint8_t opacity);
-		uint8_t getOpacity() const;
-
-		void setContentsOpacity(uint8_t opacity);
-		uint8_t getContentsOpacity() const;
-		
-		void lock();
-		void unlock();
-		bool isLocked() const;
-
-		void pause(bool pause);
-		bool isPaused() const;
-
-		void active(bool active);
-		bool isActive() const;
-
-		void setSkin(sf::Texture* skin);
-		sf::Texture* getSkin() const;
-
-		void setPauseSkin(sf::Texture& texture);
-		void setPausePosition(float x, float y);
-		
-		void setCursorSkin(sf::Texture& texture);
-		void setCursorPosition(sf::IntRect position);
-		
-		void stretch(bool stretch);
-		bool isStretched() const;
 	
-	protected:
-		void updateVertices();
-		void updateView();
+	class FramedView;
+	class FramedViewItem : 
+		public GraphicsStackItem,
+		public ViewBox {
+		friend class FramedView;
 
 	private:
 		void onMove() override final;
@@ -69,6 +30,8 @@ namespace cgss {
 		void updateContents(std::unique_ptr<sf::IntRect> cursorRect = nullptr);
 		void updateBackOpacity();
 		void updateContentsOpacity();
+
+		DrawableStack* m_drawables;
 
 		std::vector<sf::VertexArray> m_vertices;
 		sf::Texture* m_texture = nullptr;
@@ -108,6 +71,71 @@ namespace cgss {
 		void rectSet(sf::IntRect& rect, long x, long y, long width, long height);
 		void allocateVerticesStretch();
 		void calculateVerticesStretch(long x, long y, long line, long cell, sf::Vector2i& s, sf::Vector2i& a, sf::IntRect& rect);
+
+	public:
+		FramedViewItem(View* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings);
+		FramedViewItem(FramedViewItem&&) noexcept = default;
+		FramedViewItem& operator=(FramedViewItem&&) noexcept = default;
+		FramedViewItem(const FramedViewItem&) = delete;
+		FramedViewItem& operator=(const FramedViewItem&) = delete;
+
+		void draw(sf::RenderTarget& target) const override;
+		void drawFast(sf::RenderTarget& target) const override;
+		void drawCalculateView(sf::RenderTarget& target, sf::View& targetView) const;
+		void update();
+
+		void setOpacity(uint8_t opacity);
+		uint8_t getOpacity() const;
+
+		void setContentsOpacity(uint8_t opacity);
+		uint8_t getContentsOpacity() const;
+
+		void lock();
+		void unlock();
+		bool isLocked() const;
+
+		void pause(bool pause);
+		bool isPaused() const;
+
+		void active(bool active);
+		bool isActive() const;
+
+		void setSkin(sf::Texture* skin);
+		sf::Texture* getSkin() const;
+
+		void setPauseSkin(sf::Texture& texture);
+		void setPausePosition(float x, float y);
+
+		void setCursorSkin(sf::Texture& texture);
+		void setCursorPosition(sf::IntRect position);
+
+		void stretch(bool stretch);
+		bool isStretched() const;
+
+	protected:
+		void updateVertices();
+		void updateView();
+	};
+
+	class FramedView :
+		public View,
+		public Drawable<FramedView, FramedViewItem>,
+		public GraphicItem {
+	public:
+		FramedView() = default;
+		virtual ~FramedView() = default;
+
+		FramedView(FramedView&&) noexcept = default;
+		FramedView& operator=(FramedView&&) noexcept = default;
+		FramedView(const FramedView&) = delete;
+		FramedView& operator=(const FramedView&) = delete;
+
+		void draw(sf::RenderTarget& target) const override;
+		void drawFast(sf::RenderTarget& target) const override;
+
+		void lock();
+		void unlock();
+		bool isLocked() const;
 	};
 
 	class Sprite;

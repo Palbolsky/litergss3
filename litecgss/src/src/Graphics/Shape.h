@@ -6,6 +6,7 @@
 
 namespace cgss {
 	class Texture;
+	class View;
 
 	enum class ShapeType {
 		Rectangle,
@@ -15,15 +16,26 @@ namespace cgss {
 	
 	using ShapeData = std::pair<ShapeType, std::unique_ptr<sf::Shape>>;
 	
-	class Shape : 
-		public Drawable<Shape>,
-		public Transformable {
+	class ShapeItem : 
+		public GraphicsStackItem {
+		friend class Shape;
+	private:
+		std::unique_ptr<sf::Shape> m_shape;
+		Texture* m_linkedTexture = nullptr;
+		ShapeType m_type = ShapeType::Rectangle;
+		sf::RectangleShape m_defaultShape;
+		sf::RenderStates m_renderStates = sf::RenderStates::Default;
 	public:
-		Shape(ShapeData shape);
-		virtual ~Shape() = default;
-
+		ShapeItem(Shape* owner, ShapeData shape);
 		void draw(sf::RenderTarget& target) const override;
 		void drawFast(sf::RenderTarget& target) const override;
+	};
+
+	class Shape : 
+		public Drawable<Shape, ShapeItem>,
+		public Transformable {
+	public:
+		virtual ~Shape() = default;
 
 		void setRenderState(sf::RenderStates states);
 		void linkTexture(Texture* texture);
@@ -49,12 +61,8 @@ namespace cgss {
 		float getOutlineThickness() const;
 		void setOutlineThickness(float thickness) const;
 
-	private:
-		std::unique_ptr<sf::Shape> m_shape;
-		Texture* m_linkedTexture = nullptr;
-		ShapeType m_type = ShapeType::Rectangle;
-		sf::RectangleShape m_defaultShape;
-		sf::RenderStates m_renderStates = sf::RenderStates::Default;
+	protected:
+		Shape() = default;
 	};
 
 	namespace meta {

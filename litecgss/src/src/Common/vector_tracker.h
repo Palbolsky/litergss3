@@ -54,10 +54,6 @@ namespace cgss {
 
 			auto lastValidElementIterator = firstAvailableBeforeDeletedIterators();
 			if (lastValidElementIterator != m_container.end()) {
-				/*
-				const auto positioningPercents = static_cast<std::size_t>(((elementToDeleteIterator - m_container.begin())*100.f)/size());
-				std::cout << (elementToDeleteIterator - m_container.begin()) << " on " << size() << " (" << positioningPercents << "%) with " << m_invalids << " more invalid items" << std::endl;
-				*/
 				std::iter_swap(elementToDeleteIterator, lastValidElementIterator);
 				m_invalids++;
 				return std::move(*lastValidElementIterator);
@@ -66,7 +62,7 @@ namespace cgss {
 		}
 
 		auto firstAvailableBeforeDeletedIterators() {
-			return m_container.empty() ? m_container.end() : (m_container.end() - m_invalids - 1);
+			return (m_container.size() < m_invalids + 1) ? m_container.end() : (m_container.end() - m_invalids - 1);
 		}
 
 		std::vector<T> m_container;

@@ -51,7 +51,7 @@ bool cgss::GraphicsStack::transferToDetached(GraphicsStackItem* item) {
 
 	if (removed.has_value()) {
 		auto lock = std::scoped_lock{ m_mutexDetached };
-		m_detached.push_back(std::move(removed.value()));
+		m_detached.push_back(removed.value());
 		return true;
 	}
 	return false;

@@ -1,6 +1,20 @@
 #include "lodepng.h"
 #include "Texture.h"
 #include "Common/Rectangle.h"
+#include "Views/DisplayWindow.h"
+
+cgss::Texture cgss::Texture::create(const DisplayWindow& window, const std::string& filename) {
+	auto result = Texture{};
+	result.m_texture.setSmooth(window.smoothScreen());
+	result.load(filename, 0, 0, TextureLoadMethod::File);
+	return result;
+}
+
+cgss::Texture cgss::Texture::create(const std::string& filename) {
+	auto result = Texture{};
+	result.load(filename, 0, 0, TextureLoadMethod::File);
+	return result;
+}
 
 bool cgss::Texture::loadPng(sf::Texture& text, const char* rawDataOrFilename, long from_memory_size) {
 	unsigned char* out = nullptr;
@@ -121,10 +135,6 @@ int cgss::Texture::toFile(const std::string& filename) const {
 
 void cgss::Texture::setShaderUniform(sf::Shader& shader, const std::string& attribute) const {
 	shader.setUniform(attribute, m_texture);
-}
-
-std::unique_ptr<sf::Sprite> cgss::Texture::createSprite() {
-	return std::make_unique<sf::Sprite>(m_texture);
 }
 
 void cgss::Texture::linkShape(sf::Shape& shape) {

@@ -1,39 +1,45 @@
+#include <cassert>
 #include "Sprite.h"
+#include "Texture.h"
 
-cgss::Sprite::Sprite() : 
-	Transformable(m_sprite) {
+cgss::SpriteItem::SpriteItem(Sprite* owner) {
+	owner->setInstance(m_sprite);
 }
 
-void cgss::Sprite::draw(sf::RenderTarget& target) const {
-	Sprite::drawFast(target);
+void cgss::SpriteItem::draw(sf::RenderTarget& target) const {
+	SpriteItem::drawFast(target);
 }
 
-void cgss::Sprite::drawFast(sf::RenderTarget& target) const {
+void cgss::SpriteItem::drawFast(sf::RenderTarget& target) const {
 	target.draw(m_sprite, m_renderStates);
 }
 
 void cgss::Sprite::setRenderStates(sf::RenderStates renderStates) {
-	m_renderStates = std::move(renderStates);
+	m_proxy->m_renderStates = std::move(renderStates);
 }
 
 void cgss::Sprite::setMirror(bool mirror) {
-	if (m_mirror ^ mirror) {
+	if (m_proxy->m_mirror ^ mirror) {
 		horizontalFlip();
-		m_mirror = mirror;
+		m_proxy->m_mirror = mirror;
 	}
 }
 
 void cgss::Sprite::horizontalFlip() {
-	auto rect = m_sprite.getTextureRect();
+	auto rect = m_proxy->m_sprite.getTextureRect();
 	rect.left += rect.width;
 	rect.width = -rect.width;
-	m_sprite.setTextureRect(rect);
+	m_proxy->m_sprite.setTextureRect(rect);
 }
 
 sf::Color cgss::Sprite::getColor() const {
-	return m_sprite.getColor();
+	return m_proxy->m_sprite.getColor();
 }
 
 void cgss::Sprite::setColor(sf::Color color) {
-	m_sprite.setColor(color);
+	m_proxy->m_sprite.setColor(color);
+}
+
+void cgss::Sprite::setTexture(Texture& texture) {
+	m_proxy->m_sprite.setTexture(texture.getTexture());
 }

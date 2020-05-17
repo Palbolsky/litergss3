@@ -6,33 +6,42 @@
 
 namespace cgss {
 	class Texture;
-	class Sprite :
-		public Drawable<Sprite>,
-		public Transformable {
-	private:
-		void horizontalFlip();
+	class Sprite;
+	class View;
 
+	class SpriteItem : public GraphicsStackItem {
+		friend class Sprite;
+	private:
 		sf::Sprite m_sprite;
 		bool m_mirror = false;
 
 		sf::RenderStates m_renderStates = sf::RenderStates::Default;
-		
 	public:
-		Sprite();
+		SpriteItem(Sprite* owner);
+		void draw(sf::RenderTarget& target) const override;
+		void drawFast(sf::RenderTarget& target) const override;
+	};
+	
+
+	class Sprite :
+		public Drawable<Sprite, SpriteItem>,
+		public Transformable {
+	private:
+		void horizontalFlip();
+
+	public:
+		Sprite() = default;
 		Sprite(Sprite&&) = default;
 		Sprite(const Sprite&) = delete;
 		Sprite& operator=(const Sprite&) = delete;
 		Sprite& operator=(Sprite&&) = default;
 		virtual ~Sprite() = default;
 
-		void draw(sf::RenderTarget& target) const override;
-		void drawFast(sf::RenderTarget& target) const override;
-
 		sf::Color getColor() const;
 		void setColor(sf::Color color);
 
 		void setRenderStates(sf::RenderStates renderStates);
-
+		void setTexture(Texture& texture);
 		void setMirror(bool mirror);
 	};
 

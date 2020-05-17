@@ -4,6 +4,6 @@
 
 namespace cgss {
 	class GraphicsStackItem;
-	using GraphicsStackItemPtr = std::unique_ptr<GraphicsStackItem>;
+	using GraphicsStackItemPtr = std::shared_ptr<GraphicsStackItem>;
 }
 #endif

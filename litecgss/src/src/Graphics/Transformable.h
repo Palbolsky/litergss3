@@ -26,10 +26,13 @@ namespace cgss {
 		void setAngle(float angle);
 
 		void scale(float xScale, float yScale);
-	protected:
+		
+		void setInstance(sf::Transformable& instance);
 		Transformable(sf::Transformable& instance);
+	protected:
+		Transformable() = default;
 	private:
-		sf::Transformable& m_instance;
+		sf::Transformable* m_instance = nullptr;
 	};
 
 }

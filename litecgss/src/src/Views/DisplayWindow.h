@@ -7,6 +7,7 @@
 #include "ViewAuthorizations.h"
 #include "DisplayWindowDraw.h"
 #include "DisplayWindowSnapshot.h"
+#include "FramedView.h"
 
 #include "Events/MainEventDispatcher.h"
 #include "Events/Patterns/SubObserver.h"
@@ -18,7 +19,7 @@ namespace cgss {
 		public View {
 
 	public:
-		DisplayWindow(const DisplayWindowSettings& settings);
+		DisplayWindow(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& settings);
 		virtual ~DisplayWindow();
 
 		void setBrightness(unsigned char brightness) { m_draw.brightness = brightness; }
@@ -32,6 +33,7 @@ namespace cgss {
 		void stop();
 		bool isOpen() const;
 		void draw();
+		void update();
 
 		std::unique_ptr<cgss::Texture> takeSnapshot();
 		void freeze();
@@ -42,15 +44,8 @@ namespace cgss {
 		void reload(const DisplayWindowSettings& settings);
 	
 		template <class View, class ... Args>
-		View& addView(Args&& ... args) {
-			auto v = std::unique_ptr<View>(new View(m_eventDispatcher, m_settings, std::forward<Args>(args)...));
-			auto& result = *v.get();
-			m_views.push_back(std::move(v));
-			return result;
-		}
-
-		void clearViews() {
-			m_views.clear();
+		View addView(Args&& ... args) {
+			return View::create(*this, m_eventDispatcher, m_settings, std::forward<Args>(args)...);
 		}
 
 	private:
@@ -60,9 +55,8 @@ namespace cgss {
 		void postProcessing();
 
 		DisplayWindowSettings m_settings;
-		MainEventDispatcher m_eventDispatcher;
+		MainEventDispatcher& m_eventDispatcher;
 		std::unique_ptr<sf::RenderWindow> m_gameWindow = nullptr;
-		std::vector<std::unique_ptr<View>> m_views;
 		DisplayWindowSnapshot m_snapshot;
 		DisplayWindowDrawData m_draw;
 	};
@@ -72,7 +66,7 @@ namespace cgss {
 	class Viewport;
 
 	template <>
-	struct ViewAuthorizations<DisplayWindow> : public AuthorizedDrawableSet<Sprite, Text, Viewport> {};
+	struct ViewAuthorizations<DisplayWindow> : public AuthorizedDrawableSet<Sprite, Text, Viewport, FramedView> {};
 }
 
 #endif
