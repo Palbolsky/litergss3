@@ -9,30 +9,72 @@ void cgss::GraphicsStack::clear() {
 	syncFromRawData({});
 }
 
-/*
-void cgss::GraphicsStack::syncStackCppFromRuby() {
-	//MUST BE MOVED TO BINDING PART
-
-	const long sz = RARRAY_LEN(rubyStack.self());
-	VALUE* ori = RARRAY_PTR(rubyStack.self());
-	auto data = std::vector<CGraphicsStackItem*>{};
-	if(sz > 0) {
-		data.reserve(sz);
-	}
-	for(long  i = 0; i < sz; i++) {
-		const auto it = ori[i];
-		if(rb_obj_is_kind_of(it, rb_cDrawable) == Qtrue && RDATA(it)->data != nullptr) {
-			auto& element = *reinterpret_cast<CGraphicsStackItem*>(RDATA(it)->data);
-			element.overrideOriginCppStack(&cppStack);
-			data.push_back(&element);
-		}
-	}
-	//END MOVE TO BINDING PART
-
-	syncFromRawData(std::move(data), false);
-
+// What this function does :
+// RightCircleShift(1, 3, [A, B, C, D, E]) => [A, D, B, C, E]
+// RightCircleShift(0, 5, [A, B, C, D, E]) => [E, A, B, C, D]
+// Obviously we suppose there is not any out of bounds array access when calling this
+void cgss::GraphicsStack::rightCircleShift(std::size_t begin, std::size_t end) {
+    auto last = std::move(m_stack[end]);
+    for(auto index = end; index > begin; index--) {
+        m_stack[index] = std::move(m_stack[index - 1]);
+    }
+    m_stack[begin] = std::move(last);
 }
-*/
+
+// The opposite of RightCircleShift
+void cgss::GraphicsStack::leftCircleShift(std::size_t begin, std::size_t end) {
+    auto first = std::move(m_stack[begin]);
+    for(auto index = begin; index < end; index++) {
+        m_stack[index] = std::move(m_stack[index + 1]);
+    }
+    m_stack[end] = std::move(first);
+}
+
+std::size_t cgss::GraphicsStack::dichotomicFindFirstGreater(const ZIndex& value) const {
+  if (m_stack.empty()) {
+    return std::numeric_limits<std::size_t>::max();
+  }
+
+  auto min = 0;
+  auto max = m_stack.size() - 1;
+  while (max - min > 1) {
+    const auto index = (max + min) >> 1;
+    const auto diff = (value - m_stack[index]->getZ()).sign();
+    switch (diff) {
+      case 0:
+      return index;
+      case 1:
+      min = index;
+      break;
+      case -1:
+      max = index;
+      break;
+    }
+  }
+  return max;
+}
+
+void cgss::GraphicsStack::zSwap(const ZIndex& previous, const ZIndex& next) {
+    if (previous == next) {
+      return;
+    }
+    
+    std::size_t range[2];
+    range[0] = dichotomicFindFirstGreater(previous);
+    range[1] = dichotomicFindFirstGreater(next);
+    
+    const auto diff = static_cast<long>(range[1] - range[0]);
+    if (diff == 0) {
+      return;
+    }
+
+    if (diff > 0) {
+        range[1]--;
+        leftCircleShift(range[0], range[1]);
+    } else {
+        rightCircleShift(range[1], range[0]);
+    }
+}
 
 void cgss::GraphicsStack::syncFromRawData(GraphicsContainer data, bool forceDetachAll) {
 	if(forceDetachAll) {
@@ -63,6 +105,7 @@ void cgss::GraphicsStack::freeDetached() const {
 }
 
 void cgss::GraphicsStack::add(GraphicsStackItemPtr item) {
-	item->forceAttach(*this);
+  item->forceAttach(*this);
+  m_zIndexCounter++;
 	m_stack.push_back(std::move(item));
 }

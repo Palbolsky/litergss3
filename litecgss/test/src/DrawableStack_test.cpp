@@ -14,7 +14,6 @@ protected:
 
 struct DrawableTest : 
 	public cgss::Drawable<DrawableTest, DrawableStackItemTest> {
-
 	bool hasProxy() const { return cgss::Drawable<DrawableTest, DrawableStackItemTest>::hasProxy(); }
 };
 
@@ -106,7 +105,7 @@ TEST_CASE("[DrawableStack] DrawableStack : complex mix") {
 
 }
 
-TEST_CASE("[DrawableStack] DrawableStack width drawing") {
+TEST_CASE("[DrawableStack] DrawableStack with drawing") {
 	auto stack = cgss::DrawableStack{};
 
 	auto renderTarget = sf::RenderWindow{};
@@ -124,4 +123,39 @@ TEST_CASE("[DrawableStack] DrawableStack width drawing") {
 	stack.draw(view, renderTarget);
 
 	CHECK(sprite2.hasProxy());
+}
+
+
+TEST_CASE("[DrawableStack] Default z index") {
+	auto stack = cgss::DrawableStack{};
+	auto sprite = DrawableTest::create(stack);
+	CHECK(sprite.getZ().z == std::numeric_limits<long>::max());
+	CHECK(sprite.getZ().index == 0);
+	
+	auto sprite2 = DrawableTest::create(stack);
+	CHECK(sprite2.getZ().z == std::numeric_limits<long>::max());
+	CHECK(sprite2.getZ().index == 1);
+}
+
+TEST_CASE("[DrawableStack] z sorting") {
+	constexpr const auto MaxStackNum = std::numeric_limits<long>::max();
+
+	auto stack = cgss::DrawableStack{};
+	auto zindexStack = std::vector<cgss::ZIndex> { {0, 0}, {0, 15}, {1, 1}, {1, 2}, {2, 33}, {3, 22}, {3, 55}, {4, 66}, {5, 3}, {6, 4}, {MaxStackNum, 5}, {MaxStackNum, 6}, {MaxStackNum, 7} };
+	auto container = std::vector<DrawableTest>{};
+	std::size_t index = 0;
+	for (const auto& zindex : zindexStack) {
+		auto drawable = DrawableTest::create(stack);
+		drawable.setZ(zindexStack[index]);
+		container.push_back(std::move(drawable));
+		index++;
+	}
+
+	container[6].setZ(2);
+	container[6].setZ(3);
+	container[6].setZ(7);
+	container[6].setZ(12);
+	container[6].setZ(0);
+
+	//TODO checks...
 }

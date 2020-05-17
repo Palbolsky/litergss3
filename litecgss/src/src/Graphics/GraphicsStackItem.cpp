@@ -13,6 +13,16 @@ void cgss::GraphicsStackItem::detach() {
 	}
 }
 
+void cgss::GraphicsStackItem::setZ(ZIndex z) {
+	m_originStack->zSwap(m_priority, z);
+	m_priority = std::move(z);
+}
+
+void cgss::GraphicsStackItem::setZ(long z) {
+	m_originStack->zSwap(m_priority, {z, m_priority.index});
+	m_priority.z = z;
+}
+
 cgss::GraphicsStackItem::~GraphicsStackItem() {
 	detach();
 }
