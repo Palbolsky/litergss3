@@ -12,6 +12,8 @@ file(GLOB_RECURSE SOURCES
 
 string(REGEX REPLACE "[^;]*CMakeFiles/[^;]+;?" "" SOURCES "${SOURCES}")
 
+generate_source_groups("${SOURCES}" "${LITECGSS_ROOT_DIR}")
+
 add_library(LiteCGSS_engine ${SOURCES})
 
 set(TARGET_LIBS sfml-graphics sfml-window sfml-system)
