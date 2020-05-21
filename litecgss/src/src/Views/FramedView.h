@@ -15,6 +15,7 @@ namespace cgss {
 	class FramedView;
 	class FramedViewItem : 
 		public GraphicsStackItem,
+		public View,
 		public ViewBox {
 		friend class FramedView;
 
@@ -30,8 +31,6 @@ namespace cgss {
 		void updateContents(std::unique_ptr<sf::IntRect> cursorRect = nullptr);
 		void updateBackOpacity();
 		void updateContentsOpacity();
-
-		DrawableStack* m_drawables;
 
 		std::vector<sf::VertexArray> m_vertices;
 		sf::Texture* m_texture = nullptr;
@@ -73,7 +72,7 @@ namespace cgss {
 		void calculateVerticesStretch(long x, long y, long line, long cell, sf::Vector2i& s, sf::Vector2i& a, sf::IntRect& rect);
 
 	public:
-		FramedViewItem(View* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings);
+		FramedViewItem(FramedView* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings);
 		FramedViewItem(FramedViewItem&&) noexcept = default;
 		FramedViewItem& operator=(FramedViewItem&&) noexcept = default;
 		FramedViewItem(const FramedViewItem&) = delete;
@@ -118,7 +117,6 @@ namespace cgss {
 	};
 
 	class FramedView :
-		public View,
 		public Drawable<FramedView, FramedViewItem>,
 		public GraphicItem {
 	public:

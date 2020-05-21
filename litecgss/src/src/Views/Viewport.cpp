@@ -5,8 +5,7 @@
 
 cgss::ViewportItem::ViewportItem(Viewport* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
 	ViewBox(eventDispatcher, windowSettings),
-	m_color(0, 0, 0, 0),
-	m_drawables(&owner->drawables()) {
+	m_color(0, 0, 0, 0) {
 	m_smooth = windowSettings.smoothScreen;
 	createRender();
 }
@@ -31,7 +30,7 @@ void cgss::ViewportItem::draw(sf::RenderTarget& target) const {
 	m_render.clear(color);
 
 	// Drawing sprites
-	m_drawables->drawFast(m_render);
+	drawables().drawFast(m_render);
 	m_render.display();
 
 	// Reset the target view

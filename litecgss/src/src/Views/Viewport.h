@@ -10,6 +10,7 @@ namespace cgss {
 	class Viewport;
 	class ViewportItem : 
 		public GraphicsStackItem,
+		public View,
 		public ViewBox {
 		friend class Viewport;
 	private:
@@ -17,7 +18,6 @@ namespace cgss {
 		void setupView(sf::RenderTarget& target) const;
 		void onPostWindowSettingsChange(WindowSettingsChangeEvent& event) override;
 
-		const DrawableStack* m_drawables;
 		sf::Color m_color;
 		sf::Sprite m_renderSprite;
 		std::optional<sf::RenderStates> m_renderStates;
@@ -43,7 +43,6 @@ namespace cgss {
 
 	struct DisplayWindowSettings;
 	class Viewport : 
-		public View,
 		public Drawable<Viewport, ViewportItem>,
 		public GraphicItem {
 

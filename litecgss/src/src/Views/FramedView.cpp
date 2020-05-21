@@ -2,9 +2,8 @@
 #include "Viewport.h"
 #include "Common/Rectangle.h"
 
-cgss::FramedViewItem::FramedViewItem(View* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
-	ViewBox(eventDispatcher, windowSettings),
-	m_drawables(&owner->drawables()) {
+cgss::FramedViewItem::FramedViewItem(FramedView* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
+	ViewBox(eventDispatcher, windowSettings) {
 }
 
 void cgss::FramedViewItem::draw(sf::RenderTarget& target) const {
@@ -23,7 +22,7 @@ void cgss::FramedViewItem::drawFast(sf::RenderTarget& target) const {
 	drawCalculateView(target, targetView);
 	target.setView(targetView);
 
-	m_drawables->drawFast(target);
+	drawables().drawFast(target);
 
 	/* Draw cursor & reset view */
 	target.draw(m_cursor);
@@ -574,7 +573,7 @@ void cgss::FramedViewItem::setCursorPosition(sf::IntRect rect) {
 void cgss::FramedViewItem::updateContentsOpacity() {
 	const auto opacity = static_cast<uint8_t>(m_opacity * (m_contentOpacity / 255.F));
 
-	m_drawables->updateContentsOpacity(opacity);
+	drawables().updateContentsOpacity(opacity);
 }
 
 void cgss::FramedViewItem::setPauseSkin(sf::Texture& texture) {
