@@ -42,12 +42,12 @@ namespace cgss {
 
 		auto getStackSize() const { return m_drawables->getSize(); }
 		
-		const DrawableStack& drawables() const { return *m_drawables;  }
-		DrawableStack& drawables() { return *m_drawables; }
-
 		void updateContentsOpacity(std::uint8_t opacity) { m_drawables->updateContentsOpacity(opacity); }
 
 	protected:
+		const DrawableStack& drawables() const { return *m_drawables; }
+		DrawableStack& drawables() { return *m_drawables; }
+
 		View() : m_drawables(std::make_unique<DrawableStack>()) {}
 		void syncFromRawData(GraphicsContainer data, bool forceDetachAll = true) { m_drawables->syncFromRawData(std::move(data), forceDetachAll); }
 

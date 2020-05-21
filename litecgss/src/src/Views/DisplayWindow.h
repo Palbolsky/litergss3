@@ -41,7 +41,7 @@ namespace cgss {
 		void resizeScreen(int width, int height);
 		void setShader(sf::RenderStates* shader);
 
-		void reload(const DisplayWindowSettings& settings);
+		void reload(DisplayWindowSettings settings);
 	
 		template <class View, class ... Args>
 		View addView(Args&& ... args) {
