@@ -7,15 +7,11 @@
 
 namespace cgss {
 
-	enum class TextureLoadMethod {
-		Memory,
-		File,
-		New
-	};
-
 	class Rectangle;
 	class Shape;
 	class DisplayWindow;
+	class TextureLoader;
+	class TextureSaver;
 
 	class Texture {
 	public:
@@ -34,10 +30,11 @@ namespace cgss {
 
 		void sync();
 
-		//Conversions (could be externalized)
-		bool load(const std::string& rawDataOrFilename, unsigned int width, unsigned int height, TextureLoadMethod loadMethod);
-		std::vector<unsigned char> toRawDataPng() const;
-		int toFile(const std::string& filename) const;
+		bool load(const TextureLoader& loader);
+		void write(TextureSaver& saver) const;
+
+		std::string toRawDataPng() const;
+		unsigned int toFile(const std::string& filename) const;
 
 		bool isLoaded() const { return m_loaded; }
 
@@ -49,8 +46,6 @@ namespace cgss {
 		sf::Texture& getTexture() { return m_texture; }
 
 	private:
-		static bool loadPng(sf::Texture& output, const char* rawDataOrFilename, long fromMemorySize);
-
 		bool hasImage() const { return m_image.getSize().x != 0; };
 
 		bool m_loaded = false;

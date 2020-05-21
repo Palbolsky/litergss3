@@ -1,0 +1,103 @@
+#include <iostream>
+#include "lodepng.h"
+#include "TextureLoader.h"
+
+bool cgss::TextureLoader::lodePngDecode(sf::Texture& texture, const char* rawDataOrFilename, long from_memory_size) {
+	unsigned char* out = nullptr;
+	unsigned w = 0;
+	unsigned h = 0;
+	bool result = true;
+
+	if (from_memory_size > 0) {
+		result = lodepng_decode32(&out, &w, &h, reinterpret_cast<const unsigned char*>(rawDataOrFilename), from_memory_size) == 0;
+	}
+	else {
+		result = lodepng_decode32_file(&out, &w, &h, rawDataOrFilename) == 0;
+	}
+
+	if (result) {
+		texture.create(w, h);
+		texture.update(reinterpret_cast<sf::Uint8*>(out), w, h, 0, 0);
+	}
+	free(out);
+	return result;
+}
+
+
+cgss::TextureFileLoader::TextureFileLoader(std::string filename) :
+	m_filename(std::move(filename)) {
+}
+
+cgss::TextureEmptyLoader::TextureEmptyLoader(unsigned int width, unsigned int height) :
+	m_width(width),
+	m_height(height) {
+}
+
+cgss::TextureMemoryLoader::TextureMemoryLoader(std::string rawData) :
+	m_memory(std::move(rawData)) {
+}
+
+bool cgss::TextureMemoryLoader::load(sf::Texture& texture, sf::Image& image) const {
+	return instantLoad(m_memory, texture, image);
+}
+
+bool cgss::TextureMemoryLoader::instantLoad(const std::string& rawData, sf::Texture& texture, sf::Image& image) {
+	const unsigned int error = lodePngDecode(texture, rawData.c_str(), rawData.size());
+	if (!error) {
+		return texture.loadFromMemory(rawData.c_str(), rawData.size());
+	} 
+	std::cerr << lodepng_error_text(error) << std::endl;
+	return false;
+}
+
+bool cgss::TextureFileLoader::load(sf::Texture& texture, sf::Image& image) const {
+	return instantLoad(m_filename, texture, image);
+}
+
+void cgss::TextureFileLoader::save(const sf::Texture& texture) {
+	m_writtenStatus = instantSave(m_filename, texture);
+}
+
+std::string cgss::TextureMemoryLoader::instantSave(const sf::Texture& texture) {
+	std::string memory;
+	sf::Image img = texture.copyToImage();
+
+	unsigned char* out = nullptr;
+	std::size_t size;
+	const unsigned int error = lodepng_encode32(&out, &size, img.getPixelsPtr(), img.getSize().x, img.getSize().y) != 0;
+
+	if (!error) {
+		//Involves a memory allocation, so could throw, meaning that we have to handle exceptions if we want to correctly free "out"
+		try {
+			memory = std::string{ out, out + size };
+		} catch (std::exception&) {
+			//Nothing special here (it could be logging maybe ?)
+		}
+	} else {
+		std::cerr << lodepng_error_text(error) << std::endl;
+	}
+	
+	free(out);
+	return memory;
+}
+
+void cgss::TextureMemoryLoader::save(const sf::Texture& texture) {
+	m_memory = std::move(instantSave(texture));
+}
+
+bool cgss::TextureFileLoader::instantLoad(const std::string& filename, sf::Texture& texture, sf::Image& image) {
+	if (!lodePngDecode(texture, filename.c_str(), 0)) {
+		return texture.loadFromFile(filename.c_str());
+	}
+	return true;
+}
+
+bool cgss::TextureEmptyLoader::load(sf::Texture& texture, sf::Image& image) const {
+	image.create(m_width, m_height, sf::Color(0, 0, 0, 0));
+	return texture.loadFromImage(image);
+}
+
+unsigned int cgss::TextureFileLoader::instantSave(const std::string& filename, const sf::Texture& texture) {
+	sf::Image img = texture.copyToImage();
+	return lodepng_encode32_file(filename.c_str(), img.getPixelsPtr(), img.getSize().x, img.getSize().y);
+}
