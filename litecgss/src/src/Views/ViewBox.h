@@ -12,6 +12,11 @@ namespace cgss {
 		private SubObserver<WindowSettingsChangeEvent> {
 
 	public:
+		ViewBox(ViewBox&&) noexcept = default;
+		ViewBox& operator=(ViewBox&&) noexcept = default;
+		ViewBox(const ViewBox&) = delete;
+		ViewBox& operator=(const ViewBox&) = delete;
+		
 		virtual ~ViewBox() = default;
 
 		void moveOrigin(long ox, long oy);

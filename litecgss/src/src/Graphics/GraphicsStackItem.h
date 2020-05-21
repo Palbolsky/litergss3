@@ -1,7 +1,7 @@
 #ifndef CGSS_GRAPHICS_STACK_ITEM_H
 #define CGSS_GRAPHICS_STACK_ITEM_H
 #include <memory>
-#include <SFML/Graphics.hpp>
+#include "GraphicItem.h"
 
 namespace cgss {
 	class GraphicsStack;
@@ -17,7 +17,8 @@ namespace cgss {
 	};
 
 	class GraphicsStackItem : 
-		public GraphicsStackBinder<GraphicsStackItem> {
+		public GraphicsStackBinder<GraphicsStackItem>,
+		protected GraphicItem {
 		friend class GraphicsStackBinder<GraphicsStackItem>;
 	private:
 		GraphicsStack* m_originStack = nullptr;
@@ -37,10 +38,6 @@ namespace cgss {
 
 		void setVisible(bool value) { m_visible = value; };
 		bool isVisible() const { return m_visible; };
-
-	protected:
-		virtual void draw(sf::RenderTarget& target) const = 0;
-		virtual void drawFast(sf::RenderTarget& target) const = 0;
 	};
 
 }

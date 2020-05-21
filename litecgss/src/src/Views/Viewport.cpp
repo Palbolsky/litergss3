@@ -3,40 +3,45 @@
 #include "Common/Rectangle.h"
 #include "Configuration/DisplayWindowSettings.h"
 
-cgss::Viewport::Viewport(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
+cgss::ViewportItem::ViewportItem(Viewport* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
 	ViewBox(eventDispatcher, windowSettings),
-	m_smooth(windowSettings.smoothScreen) {
+	m_color(0, 0, 0, 0),
+	m_drawables(&owner->drawables()) {
+	m_smooth = windowSettings.smoothScreen;
+	createRender();
 }
 
-void cgss::Viewport::draw(sf::RenderTarget& target) const {
-	auto& renderStates = getRenderState();
-	if (!m_render) {
-		return;
-	}
+const sf::RenderStates& cgss::ViewportItem::getRenderState() const {
+	return m_renderStates.has_value() ? m_renderStates.value() : m_defaultRenderStates;
+}
 
-	const sf::Color* col;
+void cgss::ViewportItem::onPostWindowSettingsChange(WindowSettingsChangeEvent& event) {
+	m_smooth = event.settings.smoothScreen;
+	m_render.setSmooth(m_smooth);
+}
+
+void cgss::ViewportItem::draw(sf::RenderTarget& target) const {
+	auto& renderStates = getRenderState();
 
 	// Loading Target view
-	ViewBox::onRenderTarget(*m_render, true);
+	ViewBox::onRenderTarget(m_render, true);
 		
 	// Clearing render
-	col = renderStates.shader ? checkUpColor() : col = &sf::Color::Transparent;
-		
-	m_render->clear(*col);
+	const auto& color = renderStates.shader ? m_color : sf::Color::Transparent;
+	m_render.clear(color);
 
 	// Drawing sprites
-	View::draw(*m_render);
-	m_render->display();
-	m_renderSprite->setTexture(m_render->getTexture());
+	m_drawables->drawFast(m_render);
+	m_render.display();
 
 	// Reset the target view
 	setupView(target);
 
 	// Draw the result
-	target.draw(*m_renderSprite, renderStates);
+	target.draw(m_renderSprite, renderStates);
 }
 
-void cgss::Viewport::setupView(sf::RenderTarget& target) const {
+void cgss::ViewportItem::setupView(sf::RenderTarget& target) const {
 	long height = getScreenHeight();
 	long width = getScreenWidth();
 	sf::View defview = target.getDefaultView();
@@ -45,29 +50,32 @@ void cgss::Viewport::setupView(sf::RenderTarget& target) const {
 	target.setView(defview);
 }
 
+cgss::Viewport::Viewport() {
+}
+
+void cgss::Viewport::moveOrigin(long ox, long oy) {
+	m_proxy->moveOrigin(ox, oy);
+}
+
+void cgss::Viewport::resize(long width, long height) {
+	m_proxy->resize(width, height);
+}
+
+void cgss::Viewport::drawFast(sf::RenderTarget& target) const {
+	m_proxy->drawFast(target);
+}
+
+void cgss::Viewport::draw(sf::RenderTarget& target) const {
+	m_proxy->draw(target);
+}
+
 void cgss::Viewport::setRenderStates(sf::RenderStates states) {
-	m_renderStates = std::move(states);
-	m_renderStatesShader = const_cast<sf::Shader*>(m_renderStates.value().shader);	
+	m_proxy->m_renderStates = std::move(states);
+	m_proxy->m_renderStatesShader = const_cast<sf::Shader*>(m_proxy->m_renderStates.value().shader);
 }
 
-const sf::RenderStates& cgss::Viewport::getRenderState() const {
-	return m_renderStates.value_or(m_defaultRenderStates);
-}
-
-sf::Shader& cgss::Viewport::getRenderStateShader() const {
+sf::Shader& cgss::ViewportItem::getRenderStateShader() const {
 	return m_renderStatesShader == nullptr ? m_defaultRenderStatesShader : *m_renderStatesShader;
-}
-
-sf::Color* cgss::Viewport::checkUpColor() const {
-	if (*m_color != *m_colorCopy) {
-		sf::Glsl::Vec4 color(m_color->r / 255.0f, m_color->g / 255.0f, m_color->b / 255.0f, m_color->a / 255.0f);
-		getRenderStateShader().setUniform("color", color);
-		m_colorCopy->r = m_color->r;
-		m_colorCopy->g = m_color->g;
-		m_colorCopy->b = m_color->b;
-		m_colorCopy->a = m_color->a;
-	}
-	return m_color.get();
 }
 
 /* ---- Shader Part ---- */
@@ -90,30 +98,21 @@ static const std::string ViewportGlobalFragmentShader = \
 "}";
 
 
-void cgss::Viewport::createRender() {
-	// If the global viewport render doesn't exist, we create it
-	if (!m_render) {
-		m_render = std::make_unique<sf::RenderTexture>();
-		m_render->create(getScreenWidth(), getScreenHeight());
-		m_render->setSmooth(m_smooth);
-		m_renderSprite = std::make_unique<sf::Sprite>();
+void cgss::ViewportItem::createRender() {
+	m_render.create(getScreenWidth(), getScreenHeight());
+	m_render.setSmooth(m_smooth);
 
-
-		//TODO test if we can create shaders
-		// Shader initialialization
-		if (m_defaultRenderStatesShader.loadFromMemory(ViewportGlobalFragmentShader, sf::Shader::Fragment)) {
-			m_defaultRenderStatesShader.setUniform("texture", sf::Shader::CurrentTexture);
-			//shader.setUniform("tone", __Viewport_reset_tone);
-			//shader.setUniform("color", __Viewport_reset_tone);
-		}
-
-
-		m_defaultRenderStates = sf::RenderStates(&m_defaultRenderStatesShader);
-		m_color = std::make_unique<sf::Color>(0, 0, 0, 0);
-		m_colorCopy = std::make_unique<sf::Color>(0, 0, 0, 0);
+	//TODO test if we can create shaders
+	// Shader initialialization
+	if (m_defaultRenderStatesShader.loadFromMemory(ViewportGlobalFragmentShader, sf::Shader::Fragment)) {
+		m_defaultRenderStatesShader.setUniform("texture", sf::Shader::CurrentTexture);
+		//shader.setUniform("tone", __Viewport_reset_tone);
+		//shader.setUniform("color", __Viewport_reset_tone);
 	}
+
+	m_defaultRenderStates = sf::RenderStates(&m_defaultRenderStatesShader);
+	m_renderSprite.setTexture(m_render.getTexture());
+	sf::Glsl::Vec4 color(m_color.r / 255.0f, m_color.g / 255.0f, m_color.b / 255.0f, m_color.a / 255.0f);
+	getRenderStateShader().setUniform("color", color);
 }
 
-void cgss::Viewport::onPostWindowSettingsChange(WindowSettingsChangeEvent& event) {
-	m_smooth = event.settings.smoothScreen;
-}

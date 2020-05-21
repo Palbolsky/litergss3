@@ -15,11 +15,15 @@ namespace cgss {
 
 	class Rectangle;
 	class Shape;
+	class DisplayWindow;
 
 	class Texture {
 	public:
 		Texture() = default;
 		~Texture() = default;
+
+		static Texture create(const DisplayWindow& window, const std::string& filename);
+		static Texture create(const std::string& filename);
 
 		void update();
 		auto getSize() const { return m_texture.getSize(); }
@@ -40,8 +44,9 @@ namespace cgss {
 		void setShaderUniform(sf::Shader&, const std::string& attribute) const;
 		void update(const sf::Window& window, unsigned int x, unsigned int y) { m_texture.update(window, x, y); }
 		bool create(int sw, int sh) { return m_texture.create(sw, sh); }
-		std::unique_ptr<sf::Sprite> createSprite();
 		void linkShape(sf::Shape& shape);
+
+		sf::Texture& getTexture() { return m_texture; }
 
 	private:
 		static bool loadPng(sf::Texture& output, const char* rawDataOrFilename, long fromMemorySize);

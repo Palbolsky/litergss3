@@ -2,15 +2,16 @@
 #include "Viewport.h"
 #include "Common/Rectangle.h"
 
-cgss::FramedView::FramedView(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
-	ViewBox(eventDispatcher, windowSettings) {
+cgss::FramedViewItem::FramedViewItem(View* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
+	ViewBox(eventDispatcher, windowSettings),
+	m_drawables(&owner->drawables()) {
 }
 
-void cgss::FramedView::draw(sf::RenderTarget& target) const {
+void cgss::FramedViewItem::draw(sf::RenderTarget& target) const {
 	drawFast(target);
 }
 
-void cgss::FramedView::drawFast(sf::RenderTarget& target) const {
+void cgss::FramedViewItem::drawFast(sf::RenderTarget& target) const {
 	/* Draw window */
 	for (unsigned long i = 0; i < m_numVerticesLine; i++) {
 		target.draw(m_vertices[i], m_texture == nullptr ? sf::RenderStates::Default : sf::RenderStates{ m_texture });
@@ -22,7 +23,7 @@ void cgss::FramedView::drawFast(sf::RenderTarget& target) const {
 	drawCalculateView(target, targetView);
 	target.setView(targetView);
 
-	View::draw(target);
+	m_drawables->drawFast(target);
 
 	/* Draw cursor & reset view */
 	target.draw(m_cursor);
@@ -32,7 +33,15 @@ void cgss::FramedView::drawFast(sf::RenderTarget& target) const {
 	target.draw(m_pause);
 }
 
-void cgss::FramedView::drawCalculateView(sf::RenderTarget& target, sf::View& targetView) const {
+void cgss::FramedView::draw(sf::RenderTarget& target) const {
+	m_proxy->drawFast(target);
+}
+
+void cgss::FramedView::drawFast(sf::RenderTarget& target) const {
+	m_proxy->draw(target);
+}
+
+void cgss::FramedViewItem::drawCalculateView(sf::RenderTarget& target, sf::View& targetView) const {
 	const sf::FloatRect originViewport = target.getView().getViewport();
 	sf::FloatRect targetViewport = sf::FloatRect(targetView.getViewport());
 	sf::Vector2f targetCenter = sf::Vector2f(targetView.getCenter());
@@ -75,7 +84,7 @@ void cgss::FramedView::drawCalculateView(sf::RenderTarget& target, sf::View& tar
 	targetView.setViewport(targetViewport);
 }
 
-void cgss::FramedView::updateVertices() {
+void cgss::FramedViewItem::updateVertices() {
 	// Checkup part
 	if (m_locked || m_width <= 0 || m_height <= 0) {
 		return;
@@ -92,7 +101,7 @@ void cgss::FramedView::updateVertices() {
 	updateContents();
 }
 
-void cgss::FramedView::update() {
+void cgss::FramedViewItem::update() {
 	updatePauseSprite();
 	updateCursorSprite();
 	m_counter += 1;
@@ -101,7 +110,7 @@ void cgss::FramedView::update() {
 	}
 }
 
-void cgss::FramedView::updateVerticesBlt(long wt, long ht) {
+void cgss::FramedViewItem::updateVerticesBlt(long wt, long ht) {
 	sf::Vector2i a(0, 0);
 	sf::IntRect rect;
 
@@ -263,7 +272,7 @@ void cgss::FramedView::updateVerticesBlt(long wt, long ht) {
 	}
 }
 
-void cgss::FramedView::updateVerticesStretch(long wt, long ht) {
+void cgss::FramedViewItem::updateVerticesStretch(long wt, long ht) {
 	sf::Vector2i a(0, 0);
 	sf::Vector2i s(0, 0);
 	sf::IntRect rect;
@@ -361,14 +370,14 @@ void cgss::FramedView::updateVerticesStretch(long wt, long ht) {
 	calculateVerticesStretch(x, y, 1, 1, s, a, rect);
 }
 
-void cgss::FramedView::rectSet(sf::IntRect& rect, long x, long y, long width, long height) {
+void cgss::FramedViewItem::rectSet(sf::IntRect& rect, long x, long y, long width, long height) {
 	rect.left = x;
 	rect.top = y;
 	rect.width = width;
 	rect.height = height;
 }
 
-void cgss::FramedView::calculateVertices(long x, long y, long line, long cell, sf::Vector2i& a, sf::IntRect& rect) {
+void cgss::FramedViewItem::calculateVertices(long x, long y, long line, long cell, sf::Vector2i& a, sf::IntRect& rect) {
 	auto& vertArr = m_vertices[line];
 	int i = cell * 6;
 	if (cell < 0) {
@@ -388,7 +397,7 @@ void cgss::FramedView::calculateVertices(long x, long y, long line, long cell, s
 	vertArr[i + 5].position = sf::Vector2f(static_cast<float>(x + rect.width), static_cast<float>(y + rect.height));
 }
 
-void cgss::FramedView::calculateVerticesStretch(long x, long y, long line, long cell, sf::Vector2i& s, sf::Vector2i& a, sf::IntRect& rect) {
+void cgss::FramedViewItem::calculateVerticesStretch(long x, long y, long line, long cell, sf::Vector2i& s, sf::Vector2i& a, sf::IntRect& rect) {
 	auto& vertArr = m_vertices[line];
 	int i = cell * 6;
 	if (cell < 0) {
@@ -408,7 +417,7 @@ void cgss::FramedView::calculateVerticesStretch(long x, long y, long line, long 
 	vertArr[i + 5].position = sf::Vector2f(static_cast<float>(x + s.x), static_cast<float>(y + s.y));
 }
 
-void cgss::FramedView::updatePauseSprite() {
+void cgss::FramedViewItem::updatePauseSprite() {
 	if (m_pause.getTexture() == nullptr) {
 		return;
 	}
@@ -428,7 +437,7 @@ void cgss::FramedView::updatePauseSprite() {
 	m_pause.setColor(col);
 }
 
-void cgss::FramedView::updateCursorSprite() {
+void cgss::FramedViewItem::updateCursorSprite() {
 	if (m_cursor.getTexture() == nullptr) {
 		return;
 	}
@@ -445,7 +454,7 @@ void cgss::FramedView::updateCursorSprite() {
 	m_cursor.setColor(col);
 }
 
-void cgss::FramedView::allocateVerticesBlt(long delta_w, long nb2, long delta_h, long nb4) {
+void cgss::FramedViewItem::allocateVerticesBlt(long delta_w, long nb2, long delta_h, long nb4) {
 	// Ajustment of the real amount of cell in x
 	if (delta_w > 0) {
 		nb2 += 3;
@@ -479,11 +488,11 @@ void cgss::FramedView::allocateVerticesBlt(long delta_w, long nb2, long delta_h,
 	}
 }
 
-void cgss::FramedView::allocateVerticesStretch() {
+void cgss::FramedViewItem::allocateVerticesStretch() {
 	allocateVerticesBlt(0, 1, 0, 1);
 }
 
-void cgss::FramedView::updateContents(std::unique_ptr<sf::IntRect> cursorRect) {
+void cgss::FramedViewItem::updateContents(std::unique_ptr<sf::IntRect> cursorRect) {
 	if (cursorRect != nullptr) {
 		m_cursorRect = std::move(cursorRect);
 	}
@@ -493,7 +502,7 @@ void cgss::FramedView::updateContents(std::unique_ptr<sf::IntRect> cursorRect) {
 	}
 }
 
-void cgss::FramedView::updateBackOpacity() {
+void cgss::FramedViewItem::updateBackOpacity() {
 	sf::Color col = sf::Color::White;
 	col.a = m_opacity * m_backOpacity / 255;
 	if (!m_vertices.empty()) {
@@ -509,7 +518,7 @@ void cgss::FramedView::updateBackOpacity() {
 	updateCursorSprite();
 }
 
-void cgss::FramedView::updateView() {
+void cgss::FramedViewItem::updateView() {
 	long offset_x = m_windowBuilder[4];
 	long offset_y = m_windowBuilder[5];
 	long x = m_x + offset_x;
@@ -528,20 +537,20 @@ void cgss::FramedView::updateView() {
 	resize(width, height);	
 }
 
-void cgss::FramedView::lock() {
+void cgss::FramedViewItem::lock() {
 	m_locked = true;
 }
 
-void cgss::FramedView::unlock() {
+void cgss::FramedViewItem::unlock() {
 	m_locked = false;
 	updateVertices();
 }
 
-bool cgss::FramedView::isLocked() const {
+bool cgss::FramedViewItem::isLocked() const {
 	return m_locked;
 }
 
-void cgss::FramedView::resetPausePosition() {
+void cgss::FramedViewItem::resetPausePosition() {
 	if (!m_pauseSkin.isLoaded()) {
 		return;
 	}
@@ -553,7 +562,7 @@ void cgss::FramedView::resetPausePosition() {
 	m_pause.setPosition(sf::Vector2f(pause_x, pause_y));
 }
 
-void cgss::FramedView::setCursorPosition(sf::IntRect rect) {
+void cgss::FramedViewItem::setCursorPosition(sf::IntRect rect) {
 	if (m_cursor.getTexture() == nullptr) {
 		return;
 	}
@@ -562,39 +571,39 @@ void cgss::FramedView::setCursorPosition(sf::IntRect rect) {
 	m_cursor.setPosition(sf::Vector2f(static_cast<float>(rect.left), static_cast<float>(rect.top)));
 }
 
-void cgss::FramedView::updateContentsOpacity() {
+void cgss::FramedViewItem::updateContentsOpacity() {
 	const auto opacity = static_cast<uint8_t>(m_opacity * (m_contentOpacity / 255.F));
 
-	View::updateContentsOpacity(opacity);
+	m_drawables->updateContentsOpacity(opacity);
 }
 
-void cgss::FramedView::setPauseSkin(sf::Texture& texture) {
+void cgss::FramedViewItem::setPauseSkin(sf::Texture& texture) {
 	m_pause.setTexture(texture);
 	resetPausePosition();
 	updatePauseSprite();
 }
 
-void cgss::FramedView::pause(bool pause) {
+void cgss::FramedViewItem::pause(bool pause) {
 	m_paused = pause;
 	updatePauseSprite();
 }
 
-void cgss::FramedView::setPausePosition(float x, float y) {
-	m_pauseX = x;
-	m_pauseY = y;
+void cgss::FramedViewItem::setPausePosition(float x, float y) {
+	m_pauseX = static_cast<long>(x);
+	m_pauseY = static_cast<long>(y);
 	resetPausePosition();
 }
 
-bool cgss::FramedView::isPaused() const {
+bool cgss::FramedViewItem::isPaused() const {
 	return m_paused;
 }
 
-void cgss::FramedView::setCursorSkin(sf::Texture& texture) {
+void cgss::FramedViewItem::setCursorSkin(sf::Texture& texture) {
 	m_cursor.setTexture(texture);
 	updateCursorSprite();
 }
 
-void cgss::FramedView::active(bool active) {
+void cgss::FramedViewItem::active(bool active) {
 	m_active = active;
 	if (m_cursorRect != nullptr) {
 		setCursorPosition(*m_cursorRect);
@@ -602,53 +611,65 @@ void cgss::FramedView::active(bool active) {
 	updateCursorSprite();
 }
 
-bool cgss::FramedView::isActive() const {
+bool cgss::FramedViewItem::isActive() const {
 	return m_active;
 }
 
-void cgss::FramedView::onMove() {
+void cgss::FramedViewItem::onMove() {
 	updateVertices();
 	updateView();
 }
 
-void cgss::FramedView::stretch(bool stretch) {
+void cgss::FramedViewItem::stretch(bool stretch) {
 	m_stretch = stretch;
 	updateVertices();
 }
 
-bool cgss::FramedView::isStretched() const {
+bool cgss::FramedViewItem::isStretched() const {
 	return m_stretch;
 }
 
-void cgss::FramedView::onResize() {
+void cgss::FramedViewItem::onResize() {
 	updateVertices();
 	updateView();
 }
 
-void cgss::FramedView::setOpacity(uint8_t opacity) {
+void cgss::FramedViewItem::setOpacity(uint8_t opacity) {
 	m_opacity = opacity;
 	updateBackOpacity();
 	updateContentsOpacity();
 }
 
-uint8_t cgss::FramedView::getOpacity() const {
+uint8_t cgss::FramedViewItem::getOpacity() const {
 	return m_opacity;
 }
 
-void cgss::FramedView::setContentsOpacity(uint8_t opacity) {
+void cgss::FramedViewItem::setContentsOpacity(uint8_t opacity) {
 	m_contentOpacity = opacity;
 	updateContentsOpacity();
 }
 
-uint8_t cgss::FramedView::getContentsOpacity() const {
+uint8_t cgss::FramedViewItem::getContentsOpacity() const {
 	return m_contentOpacity;
 }
 
-void cgss::FramedView::setSkin(sf::Texture* skin) {
+void cgss::FramedViewItem::setSkin(sf::Texture* skin) {
 	m_texture = skin;
 	updateVertices();
 }
 
-sf::Texture* cgss::FramedView::getSkin() const {
+sf::Texture* cgss::FramedViewItem::getSkin() const {
 	return m_texture;
+}
+
+void cgss::FramedView::lock() {
+	m_proxy->lock();
+}
+
+void cgss::FramedView::unlock() {
+	m_proxy->unlock();
+}
+
+bool cgss::FramedView::isLocked() const {
+	return m_proxy->isLocked();
 }
