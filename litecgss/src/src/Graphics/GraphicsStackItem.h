@@ -2,6 +2,7 @@
 #define CGSS_GRAPHICS_STACK_ITEM_H
 #include <memory>
 #include "GraphicItem.h"
+#include "ZIndex.h"
 
 namespace cgss {
 	class GraphicsStack;
@@ -12,8 +13,17 @@ namespace cgss {
 		//"sudo forceAttach / forceDetach" :)
 		friend class GraphicsStack;
 	private:
-		void forceDetach() { static_cast<Item&>(*this).m_originStack = nullptr; }
-		void forceAttach(GraphicsStack& originStack) { static_cast<Item&>(*this).m_originStack = &originStack; }
+		void forceDetach() { 
+			auto& ref = static_cast<Item&>(*this);
+			ref.m_originStack = nullptr;
+			ref.m_priority = ZIndex{};
+		}
+		
+		void forceAttach(GraphicsStack& originStack) {
+			auto& ref = static_cast<Item&>(*this);
+			ref.m_originStack = &originStack;
+			ref.m_priority = originStack.currentZIndex();
+		}
 	};
 
 	class GraphicsStackItem : 
@@ -22,7 +32,7 @@ namespace cgss {
 		friend class GraphicsStackBinder<GraphicsStackItem>;
 	private:
 		GraphicsStack* m_originStack = nullptr;
-		unsigned long m_drawPriority = 0;
+		ZIndex m_priority;
 		bool m_visible = true;
 
 	public:
@@ -31,7 +41,9 @@ namespace cgss {
 		
 		void detach();
 
-		unsigned long getDrawPriority() const { return m_drawPriority; }
+		const ZIndex& getZ() const { return m_priority; }
+		void setZ(ZIndex z);
+		void setZ(long z);
 
 		void tryDraw(sf::RenderTarget& target) const { if (m_visible) { draw(target); } }
 		void tryDrawFast(sf::RenderTarget& target) const { if (m_visible) { drawFast(target); } }

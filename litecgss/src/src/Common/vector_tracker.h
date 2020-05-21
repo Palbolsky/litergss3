@@ -37,6 +37,10 @@ namespace cgss {
 			return remove(elementToDeleteIterator);
 		}
 
+		auto& operator[](std::size_t index) { return m_container[index];}
+		const auto& operator[](std::size_t index) const { return m_container[index]; }
+
+		bool empty() const { return size() == 0;}
 		std::size_t size() const { return m_container.size() - m_invalids; }
 
 		void clear() { m_container.clear(); m_invalids = 0; }

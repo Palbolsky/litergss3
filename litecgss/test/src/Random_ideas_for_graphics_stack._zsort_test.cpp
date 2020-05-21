@@ -61,7 +61,7 @@ struct ZIndex {
 // RightCircleShift(1, 3, [A, B, C, D, E]) => [A, D, B, C, E]
 // RightCircleShift(0, 5, [A, B, C, D, E]) => [E, A, B, C, D]
 // Obviously we suppose there is not any out of bounds array access when calling this
-void RightCircleShift(std::size_t begin, std::size_t end, std::vector<ZIndex>& container) {
+static void RightCircleShift(std::size_t begin, std::size_t end, std::vector<ZIndex>& container) {
     auto last = std::move(container[end]);
     for(auto index = end; index > begin; index--) {
         container[index] = std::move(container[index - 1]);
@@ -71,7 +71,7 @@ void RightCircleShift(std::size_t begin, std::size_t end, std::vector<ZIndex>& c
 
 
 // The opposite of RightCircleShift
-void LeftCircleShift(std::size_t begin, std::size_t end, std::vector<ZIndex>& container) {
+static void LeftCircleShift(std::size_t begin, std::size_t end, std::vector<ZIndex>& container) {
     auto first = std::move(container[begin]);
     for(auto index = begin; index < end; index++) {
         container[index] = std::move(container[index + 1]);
@@ -80,7 +80,7 @@ void LeftCircleShift(std::size_t begin, std::size_t end, std::vector<ZIndex>& co
 }
 
 // 1
-std::size_t ZSort(ZIndex& editedElement, std::vector<ZIndex>& container) {
+static std::size_t ZSort(ZIndex& editedElement, std::vector<ZIndex>& container) {
     std::size_t range[2] = {std::numeric_limits<std::size_t>::max(), std::numeric_limits<std::size_t>::max()};
     std::size_t index;
     for (index = 0; index < container.size() && !(container[index] > editedElement); index++) {
@@ -110,7 +110,7 @@ std::size_t ZSort(ZIndex& editedElement, std::vector<ZIndex>& container) {
 }
 
 // 2
-std::size_t DichotomicFindFirstGreater(const ZIndex& value, std::vector<ZIndex>& container) {
+static std::size_t DichotomicFindFirstGreater(const ZIndex& value, std::vector<ZIndex>& container) {
   if (container.empty()) {
     return std::numeric_limits<std::size_t>::max();
   }
@@ -135,7 +135,7 @@ std::size_t DichotomicFindFirstGreater(const ZIndex& value, std::vector<ZIndex>&
   return max;
 }
 
-std::size_t DichotomicZSortInsert(ZIndex& previous, ZIndex next, std::vector<ZIndex>& container) {
+static std::size_t DichotomicZSortInsert(ZIndex& previous, ZIndex next, std::vector<ZIndex>& container) {
     /*
     if (previous == next) {
       //TODO : return previous index
@@ -169,7 +169,7 @@ std::size_t DichotomicZSortInsert(ZIndex& previous, ZIndex next, std::vector<ZIn
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-void ZPrint(const std::vector<ZIndex>& container) {
+static void ZPrint(const std::vector<ZIndex>& container) {
     std::cout << "[ ";
     for (const auto& element : container) {
         std::cout << element.z << "." << element.index << ", ";
@@ -177,7 +177,7 @@ void ZPrint(const std::vector<ZIndex>& container) {
     std::cout << "]" << std::endl;
 }
 
-long long BenchMicroSec(std::function<void()> toCall, std::size_t iterations = 500000) {
+static long long BenchMicroSec(std::function<void()> toCall, std::size_t iterations = 500000) {
     auto t1 = std::chrono::high_resolution_clock::now();
     for(std::size_t i = 0; i < iterations; i++) {
       toCall();
@@ -190,7 +190,7 @@ long long BenchMicroSec(std::function<void()> toCall, std::size_t iterations = 5
 }
 
 
-void Benchmarks(const std::vector<ZIndex>& chosenStack) {
+static void Benchmarks(const std::vector<ZIndex>& chosenStack) {
   auto stack = chosenStack;
   
   
@@ -257,7 +257,7 @@ void Benchmarks(const std::vector<ZIndex>& chosenStack) {
   std::cout << "std sort : " << durationClassicSort / 1000.0 << " ms" << std::endl;
 }
 
-void BenchmarksBigStackStart(const std::vector<ZIndex>& chosenStack) {
+static void BenchmarksBigStackStart(const std::vector<ZIndex>& chosenStack) {
   auto stack = chosenStack;
   auto durationZSort = BenchMicroSec([&stack]() {
     std::size_t nextIndex = 6;
@@ -320,7 +320,7 @@ void BenchmarksBigStackStart(const std::vector<ZIndex>& chosenStack) {
   std::cout << "std sort : " << durationClassicSort / 1000.0 << " ms" << std::endl;*/
 }
 
-void BenchmarksBigStackEnd(const std::vector<ZIndex>& chosenStack) {
+static void BenchmarksBigStackEnd(const std::vector<ZIndex>& chosenStack) {
   auto stack = chosenStack;
   auto durationZSort = BenchMicroSec([&stack]() {
     std::size_t nextIndex = stack.size() - 20;
@@ -364,7 +364,7 @@ void BenchmarksBigStackEnd(const std::vector<ZIndex>& chosenStack) {
   stack = chosenStack;
 }
 
-void BenchmarksBigStackRandom(const std::vector<ZIndex>& chosenStack) {
+static void BenchmarksBigStackRandom(const std::vector<ZIndex>& chosenStack) {
     static constexpr const auto Iterations = 5000;
 
   auto stack = chosenStack;
@@ -411,69 +411,8 @@ void BenchmarksBigStackRandom(const std::vector<ZIndex>& chosenStack) {
 }
 
 static const auto MaxStackNum = std::numeric_limits<long>::max();
-void Tests() {
-  auto start_stack = std::vector<ZIndex> { {0, 0}, {0, 15}, {1, 1}, {1, 2}, {2, 33}, {3, 55}, {3, 22}, {4, 66}, {5, 3}, {6, 4}, {MaxStackNum, 5}, {MaxStackNum, 6}, {MaxStackNum, 7} };
-  auto stack = start_stack;
-  
-  /*
-  std::cout << DichotomicFindFirstGreater({2, 22}, stack) << std::endl;
-  std::cout << DichotomicFindFirstGreater({5, 2}, stack) << std::endl;
-  std::cout << DichotomicFindFirstGreater({5, 42}, stack) << std::endl;
-  std::cout << DichotomicFindFirstGreater({9, 42}, stack) << std::endl;
-  std::cout << DichotomicFindFirstGreater({0, 11}, stack) << std::endl;
-  */
 
-  ZIndex prev;
-
-  ZPrint(stack);
-  std::cout << std::endl;
-
-  prev = stack[6];
-  auto dichNextIndex = DichotomicZSortInsert(prev, {2, 22}, stack);
-  ZPrint(stack);
-
-  prev = stack[dichNextIndex];
-  dichNextIndex = DichotomicZSortInsert(prev, {3, 22}, stack);
-  ZPrint(stack);
-
-  prev = stack[dichNextIndex];
-  dichNextIndex = DichotomicZSortInsert(prev, {7, 22}, stack);
-  ZPrint(stack);
-
-  prev = stack[dichNextIndex];
-  dichNextIndex = DichotomicZSortInsert(prev, {12, 22}, stack);
-  ZPrint(stack);
-
-  prev = stack[dichNextIndex];
-  DichotomicZSortInsert(prev, {0, 22}, stack);
-  ZPrint(stack);
-
-  std::cout << std::endl;
-  stack = start_stack;
-  
- 
-  stack[6].z = 2;
-  auto nextIndex = ZSort(stack[6], stack);
-  ZPrint(stack);
-
-  stack[nextIndex].z = 3;
-  nextIndex = ZSort(stack[nextIndex], stack);
-  ZPrint(stack);
-
-  stack[nextIndex].z = 7;
-  nextIndex = ZSort(stack[nextIndex], stack);
-  ZPrint(stack);
-
-  stack[nextIndex].z = 12;
-  nextIndex = ZSort(stack[nextIndex], stack);
-  ZPrint(stack);
-
-  stack[nextIndex].z = 0;
-  nextIndex = ZSort(stack[nextIndex], stack);
-  ZPrint(stack);
-}
-
-std::vector<ZIndex> BuildBigStack() {
+static std::vector<ZIndex> BuildBigStack() {
   auto result = std::vector<ZIndex>{};
 
   for (std::size_t i = 0; i < 10000; i++) {
@@ -501,6 +440,3 @@ TEST_CASE("[Graphics stack z sorting] Benchmark  big array random") {
 
 #endif
 
-TEST_CASE("[Graphics stack z sorting] Tests") {
-    Tests();
-}
