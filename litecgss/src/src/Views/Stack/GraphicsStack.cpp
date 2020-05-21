@@ -35,8 +35,8 @@ std::size_t cgss::GraphicsStack::dichotomicFindFirstGreater(const ZIndex& value)
     return std::numeric_limits<std::size_t>::max();
   }
 
-  auto min = 0;
-  auto max = m_stack.size() - 1;
+  std::size_t min = 0;
+  std::size_t max = m_stack.size() - 1;
   while (max - min > 1) {
     const auto index = (max + min) >> 1;
     const auto diff = (value - m_stack[index]->getZ()).sign();
@@ -51,7 +51,17 @@ std::size_t cgss::GraphicsStack::dichotomicFindFirstGreater(const ZIndex& value)
       break;
     }
   }
-  return max;
+
+  const auto finalIndex = (max + min) >> 1;
+  const auto diff = (value - m_stack[finalIndex]->getZ()).sign();
+  switch (diff) {
+  case 1:
+      return max;
+  default:
+  case 0:
+  case -1:
+      return finalIndex;
+  }
 }
 
 void cgss::GraphicsStack::zSwap(const ZIndex& previous, const ZIndex& next) {
@@ -69,7 +79,9 @@ void cgss::GraphicsStack::zSwap(const ZIndex& previous, const ZIndex& next) {
     }
 
     if (diff > 0) {
-        range[1]--;
+        if (range[1] != m_stack.size() - 1) {
+            range[1]--;
+        }
         leftCircleShift(range[0], range[1]);
     } else {
         rightCircleShift(range[1], range[0]);
@@ -105,7 +117,7 @@ void cgss::GraphicsStack::freeDetached() const {
 }
 
 void cgss::GraphicsStack::add(GraphicsStackItemPtr item) {
-  item->forceAttach(*this);
-  m_zIndexCounter++;
+    item->forceAttach(*this);
+    m_zIndexCounter++;
 	m_stack.push_back(std::move(item));
 }

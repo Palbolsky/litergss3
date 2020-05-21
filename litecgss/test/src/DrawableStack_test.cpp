@@ -141,7 +141,7 @@ TEST_CASE("[DrawableStack] z sorting") {
 	constexpr const auto MaxStackNum = std::numeric_limits<long>::max();
 
 	auto stack = cgss::DrawableStack{};
-	auto zindexStack = std::vector<cgss::ZIndex> { {0, 0}, {0, 15}, {1, 1}, {1, 2}, {2, 33}, {3, 22}, {3, 55}, {4, 66}, {5, 3}, {6, 4}, {MaxStackNum, 5}, {MaxStackNum, 6}, {MaxStackNum, 7} };
+	auto zindexStack = std::vector<cgss::ZIndex> { {0, 0}, {0, 15}, {1, 1}, {1, 2}, {2, 33}, {3, 22}, {3, 55}, {4, 66}, {5, 55}, {6, 4}, {MaxStackNum, 5}, {MaxStackNum, 6}, {MaxStackNum, 7} };
 	auto container = std::vector<DrawableTest>{};
 	std::size_t index = 0;
 	for (const auto& zindex : zindexStack) {
@@ -150,12 +150,36 @@ TEST_CASE("[DrawableStack] z sorting") {
 		container.push_back(std::move(drawable));
 		index++;
 	}
+	
+	SUBCASE("Internal 'random' movements") {
+		container[6].setZ(2);
+		CHECK(container[6].getZ() == stack[5].getZ());
+		container[6].setZ(3);
+		CHECK(container[6].getZ() == stack[6].getZ());
+		container[6].setZ(7);
+		CHECK(container[6].getZ() == stack[9].getZ());
+		container[6].setZ(12);
+		CHECK(container[6].getZ() == stack[9].getZ());
+		container[6].setZ(0);
+		CHECK(container[6].getZ() == stack[2].getZ());
+	}
 
-	container[6].setZ(2);
-	container[6].setZ(3);
-	container[6].setZ(7);
-	container[6].setZ(12);
-	container[6].setZ(0);
+	SUBCASE("Bound testing") {
+		container[6].setZ(-123);
+		CHECK(container[6].getZ() == stack[0].getZ());
 
-	//TODO checks...
+		container[6].setZ(MaxStackNum);
+		CHECK(container[6].getZ() == stack[12].getZ());
+	}
+
+	SUBCASE("Exact value testing") {
+		container[6].setZ(5);
+		CHECK(container[6].getZ() == stack[8].getZ());
+	}
+
+	SUBCASE("Push a new value") {
+		container[6].setZ(5);
+		auto drawable = DrawableTest::create(stack);
+		CHECK(drawable.getZ() == stack[13].getZ());
+	}
 }
