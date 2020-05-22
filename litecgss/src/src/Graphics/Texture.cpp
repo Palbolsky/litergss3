@@ -45,6 +45,7 @@ void cgss::Texture::fillRect(long x, long y, unsigned int width, unsigned int he
 			m_image.setPixel(xIt, yIt, color);
 		}
 	}
+	update();
 }
 
 void cgss::Texture::clearRect(long x, long y, unsigned int width, unsigned int height) {

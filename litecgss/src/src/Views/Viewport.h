@@ -15,7 +15,7 @@ namespace cgss {
 		friend class Viewport;
 	private:
 		const sf::RenderStates& getRenderState() const;
-		void setupView(sf::RenderTarget& target) const;
+		void setupFullWindowView(sf::RenderTarget& target) const;
 		void onPostWindowSettingsChange(WindowSettingsChangeEvent& event) override;
 
 		sf::Color m_color;
@@ -42,7 +42,7 @@ namespace cgss {
 	};
 
 	struct DisplayWindowSettings;
-	class Viewport : 
+	class Viewport :
 		public Drawable<Viewport, ViewportItem>,
 		public GraphicItem {
 
@@ -58,7 +58,13 @@ namespace cgss {
 		void draw(sf::RenderTarget& target) const override;
 
 		void moveOrigin(long ox, long oy);
+		void move(float x, float y);
 		void resize(long width, long height);
+
+		template <class View, class StackItem, class Drawable>
+		StackItem& add(std::shared_ptr<StackItem> d) {
+			return m_proxy->View::add<Viewport, StackItem, Drawable>(std::move(d));
+		}
 	};
 
 	class Sprite;

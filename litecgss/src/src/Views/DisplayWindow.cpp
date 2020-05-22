@@ -95,17 +95,8 @@ void cgss::DisplayWindow::draw() {
 	m_gameWindow->display();
 }
 
-void cgss::DisplayWindow::update() {
-	if (!isOpen()) {
-		return;
-	}
-
-	sf::Event event;
-	while (m_gameWindow->pollEvent(event)) {
-		if (event.type == sf::Event::Closed) {
-			m_gameWindow->close();
-		}
-	}
+bool cgss::DisplayWindow::pollEvent(sf::Event& event) {
+	return m_gameWindow->pollEvent(event);
 }
 
 void cgss::DisplayWindow::initRender() {

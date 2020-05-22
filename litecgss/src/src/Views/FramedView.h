@@ -28,13 +28,12 @@ namespace cgss {
 		void updatePauseSprite();
 		void resetPausePosition();
 
-		void updateContents(std::unique_ptr<sf::IntRect> cursorRect = nullptr);
+		void updateContents();
 		void updateBackOpacity();
 		void updateContentsOpacity();
 
 		std::vector<sf::VertexArray> m_vertices;
 		sf::Texture* m_texture = nullptr;
-		sf::View m_view;
 		sf::Sprite m_pause;
 		Texture m_pauseSkin;
 		sf::Sprite m_cursor;
@@ -46,20 +45,20 @@ namespace cgss {
 		bool m_paused = false;
 		bool m_stretch = false;
 
-		//Added since LiteRGSS split (those were Ruby variables before)
-		long m_x = 0;
-		long m_y = 0;
-		long m_width = -1L;
-		long m_height = -1L;
-		float m_zoom = 1.F;
+		float m_viewportZoom = 1.F;
 
 		std::unique_ptr<sf::IntRect> m_cursorRect;
+		
+		// Array that describe how the frame is defined on the window skin (setted by the "setSkin" function member).
+		// Defined this way : [frame_mid_x, frame_mid_y, frame_mid_width, frame_mid_height, contents_ox, contents_oy]
 		long m_windowBuilder[6] = {};
+
+		float m_x = 0;
+		float m_y = 0;
 		std::uint8_t m_opacity = 255;
 		std::uint8_t m_backOpacity = 255;
 		std::uint8_t m_contentOpacity = 255;
 		bool m_active = false;
-		sf::IntRect m_rect;
 		std::optional<long> m_pauseX;
 		std::optional<long> m_pauseY;
 
@@ -70,6 +69,8 @@ namespace cgss {
 		void rectSet(sf::IntRect& rect, long x, long y, long width, long height);
 		void allocateVerticesStretch();
 		void calculateVerticesStretch(long x, long y, long line, long cell, sf::Vector2i& s, sf::Vector2i& a, sf::IntRect& rect);
+		void updateVertices();
+		void updateView();
 
 	public:
 		FramedViewItem(FramedView* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings);
@@ -106,14 +107,14 @@ namespace cgss {
 		void setPausePosition(float x, float y);
 
 		void setCursorSkin(sf::Texture& texture);
-		void setCursorPosition(sf::IntRect position);
+		void setCursorRectangle(sf::IntRect position);
 
 		void stretch(bool stretch);
 		bool isStretched() const;
 
-	protected:
-		void updateVertices();
-		void updateView();
+		void setBuilder(long windowBuilder[6]);
+
+		void move(float x, float y);
 	};
 
 	class FramedView :
@@ -134,6 +135,42 @@ namespace cgss {
 		void lock();
 		void unlock();
 		bool isLocked() const;
+
+		void move(float x, float y);
+		void setAngle(float angle);
+		void moveOrigin(long ox, long oy);
+		void resize(long width, long height);
+
+		void setOpacity(uint8_t opacity);
+		uint8_t getOpacity() const;
+
+		void setContentsOpacity(uint8_t opacity);
+		uint8_t getContentsOpacity() const;
+
+		void pause(bool pause);
+		bool isPaused() const;
+
+		void active(bool active);
+		bool isActive() const;
+
+		void setSkin(sf::Texture* skin);
+		sf::Texture* getSkin() const;
+
+		void setPauseSkin(sf::Texture& texture);
+		void setPausePosition(float x, float y);
+
+		void setCursorSkin(sf::Texture& texture);
+		void setCursorRectangle(sf::IntRect position);
+		void setBuilder(long windowBuilder[6]);
+
+		void stretch(bool stretch);
+		bool isStretched() const;
+
+		template <class View, class StackItem, class Drawable>
+		StackItem& add(std::shared_ptr<StackItem> d) {
+			return m_proxy->View::add<FramedView, StackItem, Drawable>(std::move(d));
+		}
+
 	};
 
 	class Sprite;

@@ -32,6 +32,10 @@ namespace cgss {
 	protected:
 		long getScreenWidth() const { return m_screenWidth; }
 		long getScreenHeight() const { return m_screenHeight; }
+		float getWidth() const;
+		float getHeight() const;
+		sf::View clone() const { return m_view; }
+		void updateViewport(float x, float y);
 
 		void onRenderTarget(sf::RenderTarget& renderTarget, bool copy = false) const;
 
@@ -41,10 +45,13 @@ namespace cgss {
 
 	private:
 		bool onWindowSettingsChange(WindowSettingsChangeEvent& event);
-		void udpateDimensions();
+		void updateCenter();
 
 		sf::View m_view;
 		mutable sf::View m_copy;
+
+		bool m_triggerMove = true;
+		bool m_triggerResize = true;
 
 		long m_ox = 0;
 		long m_oy = 0;

@@ -17,7 +17,7 @@ void cgss::FramedViewItem::drawFast(sf::RenderTarget& target) const {
 	}
 
 	/* draw internal */
-	auto targetView = m_view;
+	auto targetView = ViewBox::clone();
 	auto originalView = sf::View{ target.getView() };
 	drawCalculateView(target, targetView);
 	target.setView(targetView);
@@ -32,14 +32,6 @@ void cgss::FramedViewItem::drawFast(sf::RenderTarget& target) const {
 	target.draw(m_pause);
 }
 
-void cgss::FramedView::draw(sf::RenderTarget& target) const {
-	m_proxy->drawFast(target);
-}
-
-void cgss::FramedView::drawFast(sf::RenderTarget& target) const {
-	m_proxy->draw(target);
-}
-
 void cgss::FramedViewItem::drawCalculateView(sf::RenderTarget& target, sf::View& targetView) const {
 	const sf::FloatRect originViewport = target.getView().getViewport();
 	sf::FloatRect targetViewport = sf::FloatRect(targetView.getViewport());
@@ -47,7 +39,7 @@ void cgss::FramedViewItem::drawCalculateView(sf::RenderTarget& target, sf::View&
 	sf::Vector2f targetSize = sf::Vector2f(targetView.getSize());
 
 	// Zoom adjustment
-	float zoom = m_zoom;
+	float zoom = m_viewportZoom;
 	targetViewport.left /= zoom;
 	targetViewport.top /= zoom;
 	targetViewport.width /= zoom;
@@ -85,14 +77,14 @@ void cgss::FramedViewItem::drawCalculateView(sf::RenderTarget& target, sf::View&
 
 void cgss::FramedViewItem::updateVertices() {
 	// Checkup part
-	if (m_locked || m_width <= 0 || m_height <= 0) {
+	if (m_locked || ViewBox::getWidth() <= 0 || ViewBox::getHeight() <= 0) {
 		return;
 	}
 
 	if (m_stretch) {
-		updateVerticesStretch(m_width, m_height);
+		updateVerticesStretch(static_cast<long>(ViewBox::getWidth()), static_cast<long>(ViewBox::getHeight()));
 	} else {
-		updateVerticesBlt(m_width, m_height);
+		updateVerticesBlt(static_cast<long>(ViewBox::getWidth()), static_cast<long>(ViewBox::getHeight()));
 	}
 
 	updateBackOpacity();
@@ -121,7 +113,7 @@ void cgss::FramedViewItem::updateVerticesBlt(long wt, long ht) {
 	long y = m_y;
 	long xm = m_windowBuilder[0];
 	long ym = m_windowBuilder[1];
-	long wm = m_windowBuilder[2];;
+	long wm = m_windowBuilder[2];
 	long hm = m_windowBuilder[3];
 	long ws = m_texture->getSize().x;
 	long hs = m_texture->getSize().y;
@@ -271,6 +263,10 @@ void cgss::FramedViewItem::updateVerticesBlt(long wt, long ht) {
 	}
 }
 
+void cgss::FramedViewItem::setBuilder(long windowBuilder[6]) {
+	memcpy(m_windowBuilder, windowBuilder, sizeof(windowBuilder));
+}
+
 void cgss::FramedViewItem::updateVerticesStretch(long wt, long ht) {
 	sf::Vector2i a(0, 0);
 	sf::Vector2i s(0, 0);
@@ -284,7 +280,7 @@ void cgss::FramedViewItem::updateVerticesStretch(long wt, long ht) {
 	long y = m_y;
 	long xm = m_windowBuilder[0];
 	long ym = m_windowBuilder[1];
-	long wm = m_windowBuilder[2];;
+	long wm = m_windowBuilder[2];
 	long hm = m_windowBuilder[3];
 	long ws = m_texture->getSize().x;
 	long hs = m_texture->getSize().y;
@@ -491,13 +487,9 @@ void cgss::FramedViewItem::allocateVerticesStretch() {
 	allocateVerticesBlt(0, 1, 0, 1);
 }
 
-void cgss::FramedViewItem::updateContents(std::unique_ptr<sf::IntRect> cursorRect) {
-	if (cursorRect != nullptr) {
-		m_cursorRect = std::move(cursorRect);
-	}
-
+void cgss::FramedViewItem::updateContents() {
 	if (m_cursorRect != nullptr) {
-		setCursorPosition(*m_cursorRect);
+		setCursorRectangle(*m_cursorRect);
 	}
 }
 
@@ -520,20 +512,13 @@ void cgss::FramedViewItem::updateBackOpacity() {
 void cgss::FramedViewItem::updateView() {
 	long offset_x = m_windowBuilder[4];
 	long offset_y = m_windowBuilder[5];
-	long x = m_x + offset_x;
-	long y = m_y + offset_y;
-	long width = m_width - 2 * offset_x;
-	long height = m_height - 2 * offset_y;
-	
-	// Update rect
-	sf::IntRect& rect = m_rect;
-	rect.left = x;
-	rect.top = y;
-	rect.width = width;
-	rect.height = height;
-	
-	ViewBox::moveOrigin(x, y);
-	resize(width, height);	
+	long x = static_cast<long>(m_x) + offset_x;
+	long y = static_cast<long>(m_y) + offset_y;
+	long width = static_cast<long>(ViewBox::getWidth()) - 2 * offset_x;
+	long height = static_cast<long>(ViewBox::getHeight()) - 2 * offset_y;
+		
+	resize(width, height);
+	updateViewport(x, y);
 }
 
 void cgss::FramedViewItem::lock() {
@@ -554,20 +539,22 @@ void cgss::FramedViewItem::resetPausePosition() {
 		return;
 	}
 
-	float pause_x = m_pauseX.has_value() ? static_cast<float>(m_pauseX.value()) : (m_width - m_pauseSkin.getSize().x) / 2.F;
-	float pause_y = m_pauseY.has_value() ? static_cast<float>(m_pauseY.value()) : (m_height - m_pauseSkin.getSize().y) / 2.F;
+	float pause_x = m_pauseX.has_value() ? static_cast<float>(m_pauseX.value()) : (ViewBox::getWidth() - m_pauseSkin.getSize().x) / 2.F;
+	float pause_y = m_pauseY.has_value() ? static_cast<float>(m_pauseY.value()) : (ViewBox::getHeight() - m_pauseSkin.getSize().y) / 2.F;
 	pause_x += m_x;
 	pause_y += m_y;
 	m_pause.setPosition(sf::Vector2f(pause_x, pause_y));
 }
 
-void cgss::FramedViewItem::setCursorPosition(sf::IntRect rect) {
+void cgss::FramedViewItem::setCursorRectangle(sf::IntRect rect) {	
+	m_cursorRect = std::make_unique<sf::IntRect>(std::move(rect));
+	
 	if (m_cursor.getTexture() == nullptr) {
 		return;
 	}
 	sf::Vector2f size = static_cast<sf::Vector2f>(m_cursor.getTexture()->getSize());
-	m_cursor.setScale(sf::Vector2f(rect.width / size.x, rect.height / size.y));
-	m_cursor.setPosition(sf::Vector2f(static_cast<float>(rect.left), static_cast<float>(rect.top)));
+	m_cursor.setScale(sf::Vector2f(m_cursorRect->width / size.x, m_cursorRect->height / size.y));
+	m_cursor.setPosition(sf::Vector2f(static_cast<float>(m_cursorRect->left), static_cast<float>(m_cursorRect->top)));
 }
 
 void cgss::FramedViewItem::updateContentsOpacity() {
@@ -605,7 +592,7 @@ void cgss::FramedViewItem::setCursorSkin(sf::Texture& texture) {
 void cgss::FramedViewItem::active(bool active) {
 	m_active = active;
 	if (m_cursorRect != nullptr) {
-		setCursorPosition(*m_cursorRect);
+		setCursorRectangle(*m_cursorRect);
 	}
 	updateCursorSprite();
 }
@@ -661,6 +648,16 @@ sf::Texture* cgss::FramedViewItem::getSkin() const {
 	return m_texture;
 }
 
+void cgss::FramedViewItem::move(float x, float y) {
+	m_x = x;
+	m_y = y;
+	updateView();
+}
+
+void cgss::FramedView::move(float x, float y) {
+	m_proxy->move(x, y);
+}
+
 void cgss::FramedView::lock() {
 	m_proxy->lock();
 }
@@ -671,4 +668,92 @@ void cgss::FramedView::unlock() {
 
 bool cgss::FramedView::isLocked() const {
 	return m_proxy->isLocked();
+}
+
+void cgss::FramedView::setOpacity(uint8_t opacity) {
+	m_proxy->setOpacity(opacity);
+}
+
+uint8_t cgss::FramedView::getOpacity() const {
+	return m_proxy->getOpacity();
+}
+
+void cgss::FramedView::setContentsOpacity(uint8_t opacity) {
+	m_proxy->setContentsOpacity(opacity);
+}
+
+uint8_t cgss::FramedView::getContentsOpacity() const {
+	return m_proxy->getContentsOpacity();
+}
+
+void cgss::FramedView::pause(bool pause) {
+	m_proxy->pause(pause);
+}
+
+bool cgss::FramedView::isPaused() const {
+	return m_proxy->isPaused();
+}
+
+void cgss::FramedView::active(bool active) {
+	m_proxy->active(active);
+}
+
+bool cgss::FramedView::isActive() const {
+	return m_proxy->isActive();
+}
+
+void cgss::FramedView::setSkin(sf::Texture* skin) {
+	return m_proxy->setSkin(skin);
+}
+
+sf::Texture* cgss::FramedView::getSkin() const {
+	return m_proxy->getSkin();
+}
+
+void cgss::FramedView::setPauseSkin(sf::Texture& texture) {
+	m_proxy->setPauseSkin(texture);
+}
+
+void cgss::FramedView::setPausePosition(float x, float y) {
+	m_proxy->setPausePosition(x, y);
+}
+
+void cgss::FramedView::setCursorSkin(sf::Texture& texture) {
+	m_proxy->setCursorSkin(texture);
+}
+
+void cgss::FramedView::setCursorRectangle(sf::IntRect position) {
+	m_proxy->setCursorRectangle(std::move(position));
+}
+
+void cgss::FramedView::stretch(bool stretch) {
+	m_proxy->stretch(stretch);
+}
+
+bool cgss::FramedView::isStretched() const {
+	return m_proxy->isStretched();
+}
+
+void cgss::FramedView::draw(sf::RenderTarget& target) const {
+	m_proxy->drawFast(target);
+}
+
+void cgss::FramedView::drawFast(sf::RenderTarget& target) const {
+	m_proxy->draw(target);
+}
+
+void cgss::FramedView::moveOrigin(long ox, long oy) {
+	m_proxy->moveOrigin(ox, oy);
+}
+
+void cgss::FramedView::setAngle(float angle) {
+	m_proxy->setAngle(angle);
+}
+
+void cgss::FramedView::resize(long width, long height) {
+	m_proxy->resize(width, height);
+}
+
+void cgss::FramedView::setBuilder(long windowBuilder[6]) {
+	m_proxy->setBuilder(windowBuilder);
 }

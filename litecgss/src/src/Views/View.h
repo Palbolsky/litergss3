@@ -11,27 +11,10 @@
 namespace cgss {
 
 	//We only expose the "add" method to the internal of Drawable class
-	template <class View>
-	class ViewAdder {
+	class DisplayWindow;
+	class View {
 		template <class Owner, class Item>
 		friend class Drawable;
-	private:
-		template <class ViewImpl, class StackItem, class Drawable>
-		StackItem& add(std::shared_ptr<StackItem> d) {
-			static_assert(std::is_base_of<GraphicsStackItem, StackItem>::value, "Cannot add this class to a view : it's not a child class of GraphicsStackItem");
-			static_assert(DrawableIsAuthorizedOnView<Drawable, ViewImpl>::value, "Unable to add this drawable : his type is not authorized to be attached on this kind of view.");
-			assert(d != nullptr);
-			auto& ref = *d.get();
-			static_cast<View&>(*this).m_drawables->add(std::move(d));
-			return ref;
-		}
-	};
-
-	class DisplayWindow;
-	class View : 
-		public ViewAdder<View> {
-		friend class ViewAdder<View>;
-
 	public:
 		virtual ~View() = default;
 
@@ -41,8 +24,17 @@ namespace cgss {
 		View& operator=(const View&) = delete;
 
 		auto getStackSize() const { return m_drawables->getSize(); }
-		
 		void updateContentsOpacity(std::uint8_t opacity) { m_drawables->updateContentsOpacity(opacity); }
+
+		template <class ViewImpl, class StackItem, class Drawable>
+		StackItem& add(std::shared_ptr<StackItem> d) {
+			static_assert(std::is_base_of<GraphicsStackItem, StackItem>::value, "Cannot add this class to a view : it's not a child class of GraphicsStackItem");
+			static_assert(DrawableIsAuthorizedOnView<Drawable, ViewImpl>::value, "Unable to add this drawable : his type is not authorized to be attached on this kind of view.");
+			assert(d != nullptr);
+			auto& ref = *d.get();
+			static_cast<View&>(*this).m_drawables->add(std::move(d));
+			return ref;
+		}
 
 	protected:
 		const DrawableStack& drawables() const { return *m_drawables; }

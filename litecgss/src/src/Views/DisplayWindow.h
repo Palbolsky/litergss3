@@ -33,7 +33,7 @@ namespace cgss {
 		void stop();
 		bool isOpen() const;
 		void draw();
-		void update();
+		bool pollEvent(sf::Event& event);
 
 		std::unique_ptr<cgss::Texture> takeSnapshot();
 		void freeze();
@@ -43,9 +43,9 @@ namespace cgss {
 
 		void reload(DisplayWindowSettings settings);
 	
-		template <class View, class ... Args>
-		View addView(Args&& ... args) {
-			return View::create(*this, m_eventDispatcher, m_settings, std::forward<Args>(args)...);
+		template <class View, class ViewOwner, class ... Args>
+		View addView(ViewOwner& owner, Args&& ... args) {
+			return View::create(owner, m_eventDispatcher, m_settings, std::forward<Args>(args)...);
 		}
 
 	private:

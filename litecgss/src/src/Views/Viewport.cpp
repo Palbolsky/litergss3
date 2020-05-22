@@ -34,19 +34,23 @@ void cgss::ViewportItem::draw(sf::RenderTarget& target) const {
 	m_render.display();
 
 	// Reset the target view
-	setupView(target);
+	setupFullWindowView(target);
 
 	// Draw the result
 	target.draw(m_renderSprite, renderStates);
 }
 
-void cgss::ViewportItem::setupView(sf::RenderTarget& target) const {
+void cgss::ViewportItem::setupFullWindowView(sf::RenderTarget& target) const {
 	long height = getScreenHeight();
 	long width = getScreenWidth();
 	sf::View defview = target.getDefaultView();
 	defview.setSize(static_cast<float>(width), static_cast<float>(height));
 	defview.setCenter(round(width / 2.0f), round(height / 2.0f));
 	target.setView(defview);
+}
+
+void cgss::Viewport::move(float x, float y) {
+	m_proxy->updateViewport(x, y);
 }
 
 cgss::Viewport::Viewport() {

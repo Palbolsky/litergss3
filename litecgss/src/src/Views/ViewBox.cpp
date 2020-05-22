@@ -12,11 +12,18 @@ void cgss::ViewBox::moveOrigin(long ox, long oy) {
 	m_ox = ox;
 	m_oy = oy;
 
+	updateCenter();
+
+	if (m_triggerMove) {
+		m_triggerMove = false;
+		onMove();
+		m_triggerMove = true;
+	}
+}
+
+void cgss::ViewBox::updateCenter() {
 	m_view.setCenter(std::roundf(static_cast<float>(m_ox + m_view.getSize().x) / 2.0f),
 		std::roundf(static_cast<float>(m_oy + m_view.getSize().y) / 2.0f));
-
-	udpateDimensions();
-	onMove();
 }
 
 void cgss::ViewBox::resize(long width, long height) {
@@ -28,11 +35,13 @@ void cgss::ViewBox::resize(long width, long height) {
 		height++;
 	}
 	m_view.setSize(static_cast<float>(width), static_cast<float>(height));
-	m_view.setCenter(std::roundf(static_cast<float>(m_ox + m_view.getSize().x) / 2.0f),
-		std::roundf(static_cast<float>(m_oy + m_view.getSize().y) / 2.0f));
+	updateCenter();
 
-	udpateDimensions();
-	onResize();
+	if (m_triggerResize) {
+		m_triggerResize = false;
+		onResize();
+		m_triggerResize = true;
+	}
 }
 
 void cgss::ViewBox::onRenderTarget(sf::RenderTarget& renderTarget, bool copy) const {
@@ -44,17 +53,16 @@ void cgss::ViewBox::onRenderTarget(sf::RenderTarget& renderTarget, bool copy) co
 	}
 }
 
-void cgss::ViewBox::udpateDimensions() {
+void cgss::ViewBox::updateViewport(float x, float y) {
 	const auto sw = static_cast<float>(m_screenWidth);
 	const auto sh = static_cast<float>(m_screenHeight);
-	m_view.setViewport(sf::FloatRect{ m_ox / sw, m_oy / sh, m_view.getSize().x / sw, m_view.getSize().y / sh });
+	m_view.setViewport(sf::FloatRect{ x / sw, y / sh, m_view.getSize().x / sw, m_view.getSize().y / sh });
 }
 
 bool cgss::ViewBox::onWindowSettingsChange(WindowSettingsChangeEvent& event) {
 	m_screenWidth = event.settings.video.width;
 	m_screenHeight = event.settings.video.height;
 
-	udpateDimensions();
 	onPostWindowSettingsChange(event);
 	return true;
 }
@@ -65,6 +73,14 @@ long cgss::ViewBox::getOx() const {
 
 long cgss::ViewBox::getOy() const {
 	return m_oy;
+}
+
+float cgss::ViewBox::getWidth() const {
+	return m_view.getSize().x;
+}
+
+float cgss::ViewBox::getHeight() const {
+	return m_view.getSize().y;
 }
 
 void cgss::ViewBox::setScale(float zoom) {
