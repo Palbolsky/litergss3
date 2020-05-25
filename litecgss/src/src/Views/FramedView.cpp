@@ -1,3 +1,4 @@
+#include <cstring>
 #include "FramedView.h"
 #include "Viewport.h"
 #include "Common/Rectangle.h"
@@ -264,7 +265,7 @@ void cgss::FramedViewItem::updateVerticesBlt(long wt, long ht) {
 }
 
 void cgss::FramedViewItem::setBuilder(long windowBuilder[6]) {
-	memcpy(m_windowBuilder, windowBuilder, sizeof(windowBuilder));
+	memcpy(m_windowBuilder, windowBuilder, sizeof(long) * 6);
 }
 
 void cgss::FramedViewItem::updateVerticesStretch(long wt, long ht) {

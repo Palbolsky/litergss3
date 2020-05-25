@@ -7,7 +7,8 @@
 namespace cgss {
 	class Texture;
 	class View;
-
+	class Shape;
+	
 	enum class ShapeType {
 		Rectangle,
 		Circle,

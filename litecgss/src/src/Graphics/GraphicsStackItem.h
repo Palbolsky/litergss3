@@ -2,6 +2,7 @@
 #define CGSS_GRAPHICS_STACK_ITEM_H
 #include <memory>
 #include "GraphicItem.h"
+#include "Views/Stack/GraphicsStack.h"
 #include "ZIndex.h"
 
 namespace cgss {

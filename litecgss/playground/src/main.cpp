@@ -12,8 +12,8 @@ int main(int argc, char* argv[]) {
 	auto settings = cgss::DisplayWindowSettings{};
 	settings.video.scale = 1;
 	settings.visibleMouse = true;
-	settings.video.width = 800;
-	settings.video.height = 600;
+	settings.video.width = 400;
+	settings.video.height = 300;
 	settings.title = "Playground";
 	auto window = cgss::DisplayWindow{ eventDispatcher, settings };
 

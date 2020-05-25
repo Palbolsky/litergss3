@@ -43,7 +43,7 @@ TEST_CASE("[DrawableStack] DrawableStack : stack dies before (moved Drawable)") 
 }
 
 TEST_CASE("[DrawableStack] DrawableStack : drawable is disposed explicitely") {
-	auto& stack = cgss::DrawableStack{};
+	auto stack = cgss::DrawableStack{};
 
 	{
 		auto sprite = DrawableTest::create(stack);

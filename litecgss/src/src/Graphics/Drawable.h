@@ -41,7 +41,7 @@ namespace cgss {
 		template <class View, class ... Args>
 		static DrawableOwner create(View& view, Args&& ... args) {
 			auto result = buildOwner(std::forward<Args>(args)...);
-			view.add<View, StackItem, DrawableOwner>(result.m_instanceOwner);
+			view.template add<View, StackItem, DrawableOwner>(result.m_instanceOwner);
 			return std::move(result);
 		}
 
