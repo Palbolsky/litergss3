@@ -9,6 +9,11 @@ cgss::DisplayWindow::DisplayWindow(MainEventDispatcher& eventDispatcher, const D
 	reload(settings);
 }
 
+cgss::DisplayWindow::DisplayWindow(MainEventDispatcher& eventDispatcher) :
+	m_snapshot{ *this },
+	m_eventDispatcher(eventDispatcher) {
+}
+
 cgss::DisplayWindow::~DisplayWindow() {
 	if (m_gameWindow != nullptr) { stop(); }
 }

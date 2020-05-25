@@ -20,6 +20,7 @@ namespace cgss {
 
 	public:
 		DisplayWindow(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& settings);
+		DisplayWindow(MainEventDispatcher& eventDispatcher);
 		virtual ~DisplayWindow();
 
 		void setBrightness(unsigned char brightness) { m_draw.brightness = brightness; }
