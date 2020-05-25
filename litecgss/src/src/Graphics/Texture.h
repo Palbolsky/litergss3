@@ -27,6 +27,9 @@ namespace cgss {
 		void blit(unsigned long x, unsigned long y, const Texture& srcTexture, const Rectangle& rect);
 		void fillRect(long x, long y, unsigned int width, unsigned int height, sf::Color color);
 		void clearRect(long x, long y, unsigned int width, unsigned int height);
+		void setSmooth(bool smooth);
+		
+		Texture clone() const;
 
 		void sync();
 

@@ -16,9 +16,19 @@ cgss::Texture cgss::Texture::create(const std::string& filename) {
 	return result;
 }
 
+void cgss::Texture::setSmooth(bool smooth) {
+	m_texture.setSmooth(smooth);
+}
+
 bool cgss::Texture::load(const TextureLoader& loader) {
 	m_loaded = loader.load(m_texture, m_image);
 	return m_loaded;
+}
+
+cgss::Texture cgss::Texture::clone() const {
+	auto result = Texture{};
+	result.m_texture = m_texture;
+	return result;
 }
 
 void cgss::Texture::update() {
