@@ -14,6 +14,26 @@ void cgss::Rectangle::setRect(sf::IntRect rect) {
   updateLinkedElement();
 }
 
+void cgss::Rectangle::setX(long x) {
+  m_rect.left = x;
+  updateLinkedElement();
+}
+
+void cgss::Rectangle::setY(long y) {
+  m_rect.top = y;
+  updateLinkedElement();
+}
+
+void cgss::Rectangle::setWidth(long width) {
+  m_rect.width = width;
+  updateLinkedElement();
+}
+
+void cgss::Rectangle::setHeight(long height) {
+  m_rect.height = height;
+  updateLinkedElement();
+}
+
 cgss::Rectangle::~Rectangle() {
   if (m_target != nullptr) {
     m_target->bindRectangle(nullptr);

@@ -14,11 +14,14 @@ namespace cgss {
 		Rectangle() = default;
 		virtual ~Rectangle();
 
-		sf::IntRect& getRect() { return m_rect; };
 		const sf::IntRect& getRect() const { return m_rect; }
 
 		void bindElement(GraphicsStackItem* target);
 		void setRect(sf::IntRect rect);
+		void setX(long x);
+		void setY(long y);
+		void setWidth(long width);
+		void setHeight(long height);
 
 		GraphicsStackItem* getElement() { return m_target; }
 	};
