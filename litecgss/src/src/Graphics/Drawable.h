@@ -38,8 +38,12 @@ namespace cgss {
 			m_instanceOwner->setVisible(visible);
 		}
 
-		void isVisible() const {
+		bool isVisible() const {
 			return m_instanceOwner->isVisible();
+		}
+
+		void bindRectangle(Rectangle* rectangle) {
+			m_instanceOwner->bindRectangle(rectangle);
 		}
 
 		template <class View, class ... Args>

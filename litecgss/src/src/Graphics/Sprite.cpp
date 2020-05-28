@@ -1,6 +1,7 @@
 #include <cassert>
 #include "Sprite.h"
 #include "Texture.h"
+#include "Common/Rectangle.h"
 
 cgss::SpriteItem::SpriteItem(Sprite* owner) {
 	owner->setInstance(m_sprite);
@@ -40,15 +41,31 @@ void cgss::Sprite::setColor(sf::Color color) {
 	m_proxy->m_sprite.setColor(color);
 }
 
-void cgss::Sprite::setTexture(Texture& texture) {
+void cgss::Sprite::setTexture(Texture& texture, bool resetRect) {
 	m_proxy->m_sprite.setTexture(texture.getTexture());
+	if (resetRect) {
+		setTextureRect(sf::IntRect{});
+	}
 }
 
 void cgss::SpriteItem::updateFromRectangle(const sf::IntRect& rectangle) {
-		auto tmpRectangle = rectangle;
-		if (m_mirror) {
-			tmpRectangle.left += tmpRectangle.width;
-			tmpRectangle.width = -tmpRectangle.width;
-		}
-		m_sprite.setTextureRect(std::move(tmpRectangle));
+	auto tmpRectangle = rectangle;
+	if (m_mirror) {
+		tmpRectangle.left += tmpRectangle.width;
+		tmpRectangle.width = -tmpRectangle.width;
+	}
+	m_sprite.setTextureRect(std::move(tmpRectangle));
+}
+
+void cgss::Sprite::setTextureRect(sf::IntRect rectangle) {
+	auto* boundRectangle = m_proxy->getBoundRectangle();
+	if (boundRectangle != nullptr) {
+		boundRectangle->setRect(rectangle);
+	} else {
+		m_proxy->updateFromRectangle(rectangle);
+	}
+}
+
+const sf::IntRect& cgss::Sprite::getTextureRect() const {
+	return m_proxy->m_sprite.getTextureRect();
 }

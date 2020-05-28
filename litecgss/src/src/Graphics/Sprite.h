@@ -42,7 +42,9 @@ namespace cgss {
 		void setColor(sf::Color color);
 
 		void setRenderStates(sf::RenderStates renderStates);
-		void setTexture(Texture& texture);
+		void setTexture(Texture& texture, bool resetRect = false);
+		void setTextureRect(sf::IntRect rectangle);
+		const sf::IntRect& getTextureRect() const;
 		void setMirror(bool mirror);
 	};
 

@@ -23,6 +23,9 @@ namespace cgss {
 		void setWidth(long width);
 		void setHeight(long height);
 
+		bool operator==(const Rectangle& rect) const;
+		bool operator!=(const Rectangle& rect) const;
+
 		GraphicsStackItem* getElement() { return m_target; }
 	};
 

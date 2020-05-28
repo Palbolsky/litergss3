@@ -53,3 +53,11 @@ void cgss::Rectangle::bindElement(GraphicsStackItem* target) {
     }
   }
 }
+
+bool cgss::Rectangle::operator==(const Rectangle& rect) const {
+  return m_rect == rect.m_rect;
+}
+
+bool cgss::Rectangle::operator!=(const Rectangle& rect) const {
+  return m_rect != rect.m_rect;
+}
