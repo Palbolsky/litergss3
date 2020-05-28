@@ -42,9 +42,12 @@ void cgss::Sprite::setColor(sf::Color color) {
 }
 
 void cgss::Sprite::setTexture(Texture& texture, bool resetRect) {
-	m_proxy->m_sprite.setTexture(texture.getTexture());
+	m_proxy->m_sprite.setTexture(texture.getTexture(), resetRect);
 	if (resetRect) {
-		setTextureRect(sf::IntRect{});
+		auto* boundRectangle = m_proxy->getBoundRectangle();
+		if (boundRectangle != nullptr) {
+			boundRectangle->setRect(m_proxy->m_sprite.getTextureRect());
+		}
 	}
 }
 
