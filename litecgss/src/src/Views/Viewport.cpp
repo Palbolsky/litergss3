@@ -119,3 +119,7 @@ void cgss::ViewportItem::createRender() {
 	getRenderStateShader().setUniform("color", color);
 }
 
+void cgss::ViewportItem::updateFromRectangle(const sf::IntRect& rectangle) {
+    ViewBox::resize(rectangle.width, rectangle.height);
+	  ViewBox::updateViewport(rectangle.left, rectangle.top);
+}

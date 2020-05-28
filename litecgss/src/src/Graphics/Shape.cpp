@@ -112,3 +112,7 @@ float cgss::Shape::getOutlineThickness() const {
 void cgss::Shape::setOutlineThickness(float thickness) const {
 	return m_proxy->m_shape->setOutlineThickness(thickness);
 }
+
+void cgss::ShapeItem::updateFromRectangle(const sf::IntRect& rectangle) {
+	m_shape->setTextureRect(rectangle);
+}

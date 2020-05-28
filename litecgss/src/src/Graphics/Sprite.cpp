@@ -43,3 +43,12 @@ void cgss::Sprite::setColor(sf::Color color) {
 void cgss::Sprite::setTexture(Texture& texture) {
 	m_proxy->m_sprite.setTexture(texture.getTexture());
 }
+
+void cgss::SpriteItem::updateFromRectangle(const sf::IntRect& rectangle) {
+		auto tmpRectangle = rectangle;
+		if (m_mirror) {
+			tmpRectangle.left += tmpRectangle.width;
+			tmpRectangle.width = -tmpRectangle.width;
+		}
+		m_sprite.setTextureRect(std::move(tmpRectangle));
+}

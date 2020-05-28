@@ -115,6 +115,7 @@ namespace cgss {
 		void setBuilder(long windowBuilder[6]);
 
 		void move(float x, float y);
+		void updateFromRectangle(const sf::IntRect& rectangle) override;
 	};
 
 	class FramedView :

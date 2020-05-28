@@ -38,6 +38,10 @@ namespace cgss {
 			m_instanceOwner->setVisible(visible);
 		}
 
+		void isVisible() const {
+			return m_instanceOwner->isVisible();
+		}
+
 		template <class View, class ... Args>
 		static DrawableOwner create(View& view, Args&& ... args) {
 			auto result = buildOwner(std::forward<Args>(args)...);

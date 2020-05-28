@@ -33,18 +33,23 @@ namespace cgss {
 		friend class GraphicsStackBinder<GraphicsStackItem>;
 	private:
 		GraphicsStack* m_originStack = nullptr;
+		Rectangle* m_boundRectangle = nullptr;
 		ZIndex m_priority;
 		bool m_visible = true;
 
 	public:
 		GraphicsStackItem() = default;
 		virtual ~GraphicsStackItem();
-		
+		virtual void updateFromRectangle(const sf::IntRect& rectangle) {};
+
 		void detach();
 
 		const ZIndex& getZ() const { return m_priority; }
 		void setZ(ZIndex z);
 		void setZ(long z);
+
+		void bindRectangle(Rectangle* rectangle);
+		Rectangle* getBoundRectangle() { return m_boundRectangle; }
 
 		void tryDraw(sf::RenderTarget& target) const { if (m_visible) { draw(target); } }
 		void tryDrawFast(sf::RenderTarget& target) const { if (m_visible) { drawFast(target); } }

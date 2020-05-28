@@ -37,6 +37,7 @@ namespace cgss {
 		ViewportItem(Viewport* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings);
 		void drawFast(sf::RenderTarget& target) const override { draw(target); }
 		void draw(sf::RenderTarget& target) const override;
+		void updateFromRectangle(const sf::IntRect& rectangle) override;
 	private:
 		sf::Shader& getRenderStateShader() const;
 	};

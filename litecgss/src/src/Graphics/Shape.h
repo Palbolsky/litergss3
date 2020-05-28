@@ -30,6 +30,7 @@ namespace cgss {
 		ShapeItem(Shape* owner, ShapeData shape);
 		void draw(sf::RenderTarget& target) const override;
 		void drawFast(sf::RenderTarget& target) const override;
+		void updateFromRectangle(const sf::IntRect& rectangle) override;
 	};
 
 	class Shape : 

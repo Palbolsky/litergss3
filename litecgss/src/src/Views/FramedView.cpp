@@ -758,3 +758,7 @@ void cgss::FramedView::resize(long width, long height) {
 void cgss::FramedView::setBuilder(long windowBuilder[6]) {
 	m_proxy->setBuilder(windowBuilder);
 }
+
+void cgss::FramedViewItem::updateFromRectangle(const sf::IntRect& rectangle) {
+	setCursorRectangle(rectangle);
+}

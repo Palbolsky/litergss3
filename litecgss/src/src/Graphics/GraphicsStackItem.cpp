@@ -25,4 +25,19 @@ void cgss::GraphicsStackItem::setZ(long z) {
 
 cgss::GraphicsStackItem::~GraphicsStackItem() {
 	detach();
+	bindRectangle(nullptr);
+}
+
+void cgss::GraphicsStackItem::bindRectangle(Rectangle* rectangle) {
+	if (rectangle != m_boundRectangle) {
+		auto lastLinkedRect = m_boundRectangle;
+		m_boundRectangle = nullptr;
+		if (lastLinkedRect != nullptr) {
+			lastLinkedRect->bindElement(nullptr);
+		}
+		m_boundRectangle = rectangle;
+		if (m_boundRectangle != nullptr) {
+			m_boundRectangle->bindElement(this);
+		}
+	}
 }

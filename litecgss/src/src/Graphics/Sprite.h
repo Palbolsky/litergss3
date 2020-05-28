@@ -20,6 +20,7 @@ namespace cgss {
 		SpriteItem(Sprite* owner);
 		void draw(sf::RenderTarget& target) const override;
 		void drawFast(sf::RenderTarget& target) const override;
+		void updateFromRectangle(const sf::IntRect& rectangle) override;
 	};
 	
 
