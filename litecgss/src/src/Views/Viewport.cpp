@@ -129,7 +129,7 @@ void cgss::Viewport::setRectangle(sf::IntRect rectangle) {
 	if (boundRectangle != nullptr) {
 		boundRectangle->setRect(std::move(rectangle));
 	} else {
-		updateFromRectangle(rectangle);
+		m_proxy->updateFromRectangle(rectangle);
 	}
 }
 
@@ -138,7 +138,7 @@ sf::IntRect cgss::Viewport::getRectangle() const {
 	if (boundRectangle != nullptr) {
 		return boundRectangle->getRect();
 	}
-	return ViewBox::getRectangleBox();
+	return m_proxy->getRectangleBox();
 }
 
 long cgss::Viewport::getOx() const {
