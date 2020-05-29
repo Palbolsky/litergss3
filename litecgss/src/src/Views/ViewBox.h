@@ -36,6 +36,7 @@ namespace cgss {
 		float getHeight() const;
 		sf::View clone() const { return m_view; }
 		void updateViewport(float x, float y);
+		sf::IntRect getRectangleBox() const;
 
 		void onRenderTarget(sf::RenderTarget& renderTarget, bool copy = false) const;
 

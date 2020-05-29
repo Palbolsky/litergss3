@@ -90,3 +90,10 @@ void cgss::ViewBox::setScale(float zoom) {
 void cgss::ViewBox::setAngle(float angle) {
 	m_view.setRotation(-angle);
 }
+
+sf::IntRect cgss::ViewBox::getRectangleBox() const {
+	const auto& percentBox = m_view.getViewport();
+	const auto sw = static_cast<float>(m_screenWidth);
+	const auto sh = static_cast<float>(m_screenHeight);
+	return sf::IntRect { percentBox.left * sw, percentBox.top * sh, percentBox.width * sw, percentBox.height * sh };
+}

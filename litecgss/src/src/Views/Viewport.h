@@ -61,6 +61,14 @@ namespace cgss {
 		void moveOrigin(long ox, long oy);
 		void move(float x, float y);
 		void resize(long width, long height);
+		void setRectangle(sf::IntRect rectangle);
+		sf::IntRect getRectangle() const;
+
+		long getOx() const;
+		long getOy() const;
+
+		void setAngle(float angle);
+		void setScale(float zoom);
 
 		template <class View, class StackItem, class Drawable>
 		StackItem& add(std::shared_ptr<StackItem> d) {

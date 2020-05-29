@@ -121,5 +121,38 @@ void cgss::ViewportItem::createRender() {
 
 void cgss::ViewportItem::updateFromRectangle(const sf::IntRect& rectangle) {
     ViewBox::resize(rectangle.width, rectangle.height);
-	  ViewBox::updateViewport(rectangle.left, rectangle.top);
+	ViewBox::updateViewport(rectangle.left, rectangle.top);
+}
+
+void cgss::Viewport::setRectangle(sf::IntRect rectangle) {
+	auto* boundRectangle = m_proxy->getBoundRectangle();
+	if (boundRectangle != nullptr) {
+		boundRectangle->setRect(std::move(rectangle));
+	} else {
+		updateFromRectangle(rectangle);
+	}
+}
+
+sf::IntRect cgss::Viewport::getRectangle() const {
+	const auto* boundRectangle = m_proxy->getBoundRectangle();
+	if (boundRectangle != nullptr) {
+		return boundRectangle->getRect();
+	}
+	return ViewBox::getRectangleBox();
+}
+
+long cgss::Viewport::getOx() const {
+	return m_proxy->getOx();
+}
+
+long cgss::Viewport::getOy() const {
+	return m_proxy->getOy();
+}
+
+void cgss::Viewport::setAngle(float angle) {
+	m_proxy->setAngle(angle);
+}
+
+void cgss::Viewport::setScale(float zoom) {
+	m_proxy->setScale(zoom);
 }
