@@ -12,13 +12,12 @@ namespace cgss {
 	class Drawable {
 		
 	public:
-		virtual ~Drawable() {
-			dispose(false);
-		}
+		virtual ~Drawable() = default;
 	
 		void dispose(bool event = true) {
-			if (m_instanceOwner != nullptr) {
+			if (m_instanceOwner != nullptr && !m_disposed) {
 				m_instanceOwner->detach();
+				m_disposed = true;
 				if (event) {
 					onDispose();
 				}
@@ -73,9 +72,9 @@ namespace cgss {
 		}
 
 		Drawable& operator=(Drawable&& drawable) noexcept {
-			dispose();
 			m_instanceOwner = std::move(drawable.m_instanceOwner);
 			m_proxy = std::move(drawable.m_proxy);
+			m_disposed = drawable.m_disposed;
 			drawable.m_proxy = nullptr;
 			drawable.m_instanceOwner = nullptr;
 			return *this;
@@ -100,6 +99,7 @@ namespace cgss {
 		}
 
 		std::shared_ptr<StackItem> m_instanceOwner = nullptr;
+		bool m_disposed = false;
 	};
 	
 }
