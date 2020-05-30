@@ -13,12 +13,15 @@ namespace cgss {
 		
 	public:
 		virtual ~Drawable() {
-			dispose();
+			dispose(false);
 		}
 	
-		void dispose() {
+		void dispose(bool event = true) {
 			if (m_instanceOwner != nullptr) {
 				m_instanceOwner->detach();
+				if (event) {
+					onDispose();
+				}
 			}
 		}
 
@@ -84,6 +87,8 @@ namespace cgss {
 		StackItem* m_proxy = nullptr;
 	
 		bool hasProxy() const { return m_proxy != nullptr && m_instanceOwner != nullptr; }
+		
+		virtual void onDispose() {}
 
 	private:
 		template <class ... Args>

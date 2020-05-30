@@ -74,6 +74,8 @@ namespace cgss {
 		StackItem& add(std::shared_ptr<StackItem> d) {
 			return m_proxy->View::add<Viewport, StackItem, Drawable>(std::move(d));
 		}
+	private:
+		void onDispose() override { m_proxy->View::drawables().clear(); }
 	};
 
 	class Sprite;

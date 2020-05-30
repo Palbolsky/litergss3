@@ -29,7 +29,8 @@ namespace cgss {
 
 		auto begin() const { return m_stack.begin(); }
 		auto end() const { return m_stack.end(); }
-
+		void clear();
+		
 	protected:
 		void freeDetached() const;
 
@@ -40,7 +41,6 @@ namespace cgss {
 		void leftCircleShift(std::size_t begin, std::size_t end);
 		void rightCircleShift(std::size_t begin, std::size_t end);
 		std::size_t dichotomicFindFirstGreater(const ZIndex& value) const;
-		void clear();
 
 		GraphicsContainer m_stack;
 		long m_zIndexCounter = 0;
