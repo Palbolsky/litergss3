@@ -12,7 +12,11 @@ namespace cgss {
 	class Drawable {
 		
 	public:
-		virtual ~Drawable() = default;
+		virtual ~Drawable() {
+			if (m_instanceOwner != nullptr && !m_disposed) {
+				m_instanceOwner->detach();
+			}
+		}
 	
 		void dispose() {
 			if (m_instanceOwner != nullptr && !m_disposed) {
