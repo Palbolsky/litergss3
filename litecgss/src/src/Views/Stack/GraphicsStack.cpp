@@ -109,7 +109,7 @@ bool cgss::GraphicsStack::remove(GraphicsStackItem* item) {
     std::advance(it, index);
 
     m_stack.erase(it);
-	return false;
+	return true;
 }
 
 void cgss::GraphicsStack::add(GraphicsStackItemPtr item) {

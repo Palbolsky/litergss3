@@ -74,6 +74,7 @@ namespace cgss {
 		}
 
 		Drawable& operator=(Drawable&& drawable) noexcept {
+			dispose();
 			m_instanceOwner = std::move(drawable.m_instanceOwner);
 			m_proxy = m_instanceOwner.get();
 			m_disposed = drawable.m_disposed;
