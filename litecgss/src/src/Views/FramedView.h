@@ -1,6 +1,6 @@
 #ifndef CGSS_FRAMED_VIEW_H
 #define CGSS_FRAMED_VIEW_H
-
+#include <optional>
 #include "View.h"
 #include "ViewAuthorizations.h"
 #include "Graphics/Texture.h"

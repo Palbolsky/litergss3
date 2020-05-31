@@ -7,14 +7,12 @@ void cgss::DrawableStack::draw(sf::View& defview, sf::RenderTarget& target) cons
 		target.setView(defview);
 		element->tryDraw(target);
 	}
-	freeDetached();
 }
 
 void cgss::DrawableStack::drawFast(sf::RenderTarget& target) const {
 	for(auto& element: *this) {
 		element->tryDrawFast(target);
 	}
-	freeDetached();
 }
 
 void cgss::DrawableStack::updateContentsOpacity(std::uint8_t opacity) {

@@ -1,6 +1,6 @@
 #ifndef CGSS_VIEWPORT_H
 #define CGSS_VIEWPORT_H
-
+#include <optional>
 #include "View.h"
 #include "ViewAuthorizations.h"
 #include "ViewBox.h"

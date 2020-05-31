@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "GraphicsStack.h"
 #include "Graphics/GraphicsStackItem.h"
 
@@ -95,25 +96,20 @@ void cgss::GraphicsStack::syncFromRawData(GraphicsContainer data, bool forceDeta
 		}
 	}
 	m_stack = std::move(data);
-	freeDetached();
 }
 
-bool cgss::GraphicsStack::transferToDetached(GraphicsStackItem* item) {
-	auto removed = m_stack.remove_if([&](const auto& drawablePtr) {
-		return drawablePtr.get() == item;
-	});
+bool cgss::GraphicsStack::remove(GraphicsStackItem* item) {
+    const auto index = dichotomicFindFirstGreater(item->getZ());
+    const auto foundExactValue = item == m_stack[index].get();
+    if (!foundExactValue) {
+        return false;
+    }
 
-	if (removed.has_value()) {
-		auto lock = std::scoped_lock{ m_mutexDetached };
-		m_detached.push_back(removed.value());
-		return true;
-	}
+    auto it = m_stack.begin();
+    std::advance(it, index);
+
+    m_stack.erase(it);
 	return false;
-}
-
-void cgss::GraphicsStack::freeDetached() const {
-	auto lock = std::scoped_lock{ m_mutexDetached };
-	m_detached = {};
 }
 
 void cgss::GraphicsStack::add(GraphicsStackItemPtr item) {

@@ -31,11 +31,8 @@ namespace cgss {
 		auto end() const { return m_stack.end(); }
 		void clear();
 		
-	protected:
-		void freeDetached() const;
-
 	private:
-		bool transferToDetached(GraphicsStackItem* item);
+		bool remove(GraphicsStackItem* item);
 		void zSwap(const ZIndex& previous, const ZIndex& next);
 
 		void leftCircleShift(std::size_t begin, std::size_t end);
