@@ -7,7 +7,39 @@
 #include "Graphics/Texture.h"
 #include "Graphics/Loaders/TextureLoader.h"
 
-int main(int argc, char* argv[]) {
+void MemTest() {
+	auto eventDispatcher = cgss::MainEventDispatcher{};
+	auto settings = cgss::DisplayWindowSettings{};
+	settings.video.scale = 1;
+	settings.visibleMouse = true;
+	settings.video.width = 400;
+	settings.video.height = 300;
+	settings.title = "MemTest";
+	auto window = cgss::DisplayWindow{ eventDispatcher, settings };
+
+	auto viewport = window.addView<cgss::Viewport>(window);
+	auto texture = cgss::Texture::create(window, LITE_CGSS_PLAYGROUND_DIR "/resources/test.png");
+	viewport.resize(200, 200);
+	
+	std::cout << "Before mem alloc" << std::endl;
+	for (std::size_t i = 0; i < 1000000; i++) {
+		auto sprite = cgss::Sprite::create(viewport);
+		sprite.setTexture(texture);
+		if (i%10000 == 0) {
+			std::cout << (i / 10000.f) <<"%" << std::endl; 
+		}
+	}
+	std::cout << "Drawing..." << std::endl;
+	window.draw();
+	std::cout << "Before mem release" << std::endl;
+	int test;
+	std::cin >> test;
+	viewport.dispose();
+	std::cout << "After mem release" << std::endl;
+	std::cin >> test;
+}
+
+void ViewTest() {
 	auto eventDispatcher = cgss::MainEventDispatcher{};
 	auto settings = cgss::DisplayWindowSettings{};
 	settings.video.scale = 1;
@@ -78,6 +110,12 @@ int main(int argc, char* argv[]) {
 			i++;
 		}
 	}
+}
+
+int main(int argc, char* argv[]) {
+	MemTest();
+
+	
 
 	return 0;
 }

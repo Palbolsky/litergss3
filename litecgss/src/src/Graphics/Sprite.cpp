@@ -1,7 +1,9 @@
 #include <cassert>
+#include <iostream>
 #include "Sprite.h"
 #include "Texture.h"
 #include "Common/Rectangle.h"
+#include "Common/Meta/metadata.h"
 
 cgss::SpriteItem::SpriteItem(Sprite* owner) {
 	owner->setInstance(m_sprite);
@@ -71,4 +73,13 @@ void cgss::Sprite::setTextureRect(sf::IntRect rectangle) {
 
 const sf::IntRect& cgss::Sprite::getTextureRect() const {
 	return m_proxy->m_sprite.getTextureRect();
+}
+
+cgss::SpriteItem::~SpriteItem() {
+	static std::size_t counter = 0;
+	counter++;
+	if (counter % 10000 == 0) {
+		counter = 0;
+		std::cerr << "[LiteCGSS][" << cgss::meta::Log<Sprite>::classname << "] Freeing 10000 elements" << std::endl;
+	}
 }

@@ -1,4 +1,5 @@
 #include <cmath>
+#include <iostream>
 #include "Viewport.h"
 #include "Common/Rectangle.h"
 #include "Configuration/DisplayWindowSettings.h"
@@ -155,4 +156,9 @@ void cgss::Viewport::setAngle(float angle) {
 
 void cgss::Viewport::setScale(float zoom) {
 	m_proxy->setScale(zoom);
+}
+
+void cgss::Viewport::onDispose() {
+	std::cerr << "Clearing viewport" << std::endl;
+	m_proxy->View::drawables().clear();
 }

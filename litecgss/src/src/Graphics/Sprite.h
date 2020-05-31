@@ -18,6 +18,7 @@ namespace cgss {
 		sf::RenderStates m_renderStates = sf::RenderStates::Default;
 	public:
 		SpriteItem(Sprite* owner);
+		virtual ~SpriteItem();
 		void draw(sf::RenderTarget& target) const override;
 		void drawFast(sf::RenderTarget& target) const override;
 		void updateFromRectangle(const sf::IntRect& rectangle) override;

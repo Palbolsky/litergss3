@@ -4,6 +4,7 @@
 #include "View.h"
 #include "ViewAuthorizations.h"
 #include "ViewBox.h"
+#include "Common/Meta/metadata.h"
 
 namespace cgss {
 	
@@ -75,7 +76,7 @@ namespace cgss {
 			return m_proxy->View::add<Viewport, StackItem, Drawable>(std::move(d));
 		}
 	private:
-		void onDispose() override { m_proxy->View::drawables().clear(); }
+		void onDispose() override;
 	};
 
 	class Sprite;
@@ -85,6 +86,13 @@ namespace cgss {
 
 	template <>
 	struct ViewAuthorizations<Viewport> : public AuthorizedDrawableSet<Sprite, Text, Shape, FramedView> {};
+
+	namespace meta {
+		template<>
+		struct Log<Viewport> {
+			static constexpr auto classname = "Viewport";
+		};
+	}
 }
 
 #endif
