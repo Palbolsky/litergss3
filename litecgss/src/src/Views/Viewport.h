@@ -54,6 +54,7 @@ namespace cgss {
 		Viewport& operator=(Viewport&&) noexcept = default;
 		Viewport(const Viewport&) = delete;
 		Viewport& operator=(const Viewport&) = delete;
+		virtual ~Viewport();
 
 		void setRenderStates(sf::RenderStates states);
 		void drawFast(sf::RenderTarget& target) const override;

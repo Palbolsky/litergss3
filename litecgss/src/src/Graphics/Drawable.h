@@ -14,13 +14,11 @@ namespace cgss {
 	public:
 		virtual ~Drawable() = default;
 	
-		void dispose(bool event = true) {
+		void dispose() {
 			if (m_instanceOwner != nullptr && !m_disposed) {
 				m_instanceOwner->detach();
 				m_disposed = true;
-				if (event) {
-					onDispose();
-				}
+				onDispose();				
 			}
 		}
 
@@ -73,7 +71,7 @@ namespace cgss {
 
 		Drawable& operator=(Drawable&& drawable) noexcept {
 			m_instanceOwner = std::move(drawable.m_instanceOwner);
-			m_proxy = std::move(drawable.m_proxy);
+			m_proxy = m_instanceOwner.get();
 			m_disposed = drawable.m_disposed;
 			drawable.m_proxy = nullptr;
 			drawable.m_instanceOwner = nullptr;

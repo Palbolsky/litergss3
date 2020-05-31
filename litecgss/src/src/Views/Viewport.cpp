@@ -159,6 +159,13 @@ void cgss::Viewport::setScale(float zoom) {
 }
 
 void cgss::Viewport::onDispose() {
-	std::cerr << "Clearing viewport" << std::endl;
+	std::cerr << "Clearing viewport (explicit dispose)" << std::endl;
 	m_proxy->View::drawables().clear();
+}
+
+cgss::Viewport::~Viewport() {
+	std::cerr << "Clearing viewport (destructor)" << std::endl;
+	if (hasProxy()) {
+		m_proxy->View::drawables().clear();
+	}
 }
