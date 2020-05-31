@@ -95,5 +95,10 @@ sf::IntRect cgss::ViewBox::getRectangleBox() const {
 	const auto& percentBox = m_view.getViewport();
 	const auto sw = static_cast<float>(m_screenWidth);
 	const auto sh = static_cast<float>(m_screenHeight);
-	return sf::IntRect { percentBox.left * sw, percentBox.top * sh, percentBox.width * sw, percentBox.height * sh };
+	return sf::IntRect { 
+		static_cast<int>(percentBox.left * sw),
+		static_cast<int>(percentBox.top * sh),
+		static_cast<int>(percentBox.width * sw),
+		static_cast<int>(percentBox.height * sh)
+	};
 }
