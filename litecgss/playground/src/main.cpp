@@ -32,11 +32,8 @@ void MemTest() {
 	std::cout << "Drawing..." << std::endl;
 	window.draw();
 	std::cout << "Before mem release" << std::endl;
-	int test;
-	std::cin >> test;
 	viewport.dispose();
 	std::cout << "After mem release" << std::endl;
-	std::cin >> test;
 }
 
 void ViewTest() {
@@ -114,8 +111,6 @@ void ViewTest() {
 
 int main(int argc, char* argv[]) {
 	MemTest();
-
-	
 
 	return 0;
 }
