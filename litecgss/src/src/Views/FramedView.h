@@ -115,6 +115,8 @@ namespace cgss {
 		void setCursorSkin(sf::Texture& texture);
 		void setCursorRectangle(sf::IntRect position);
 
+		const sf::IntRect& getCursorRectangle() const;
+
 		void stretch(bool stretch);
 		bool isStretched() const;
 
@@ -176,8 +178,14 @@ namespace cgss {
 		void setCursorRectangle(sf::IntRect position);
 		void setBuilder(long windowBuilder[6]);
 
+		const sf::IntRect& getCursorRectangle() const;
+
 		void stretch(bool stretch);
 		bool isStretched() const;
+
+		sf::IntRect getRectangle() const;
+		long getOx() const;
+		long getOy() const;
 
 		template <class View, class StackItem, class Drawable>
 		StackItem& add(std::shared_ptr<StackItem> d) {

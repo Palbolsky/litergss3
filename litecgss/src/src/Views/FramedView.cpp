@@ -269,7 +269,7 @@ void cgss::FramedViewItem::setBuilder(long windowBuilder[6]) {
 }
 
 long cgss::FramedViewItem::getPauseX() const {
-	return m_pauseX.value_or(0)
+	return m_pauseX.value_or(0);
 }
 
 long cgss::FramedViewItem::getPauseY() const {
@@ -550,6 +550,10 @@ bool cgss::FramedViewItem::isLocked() const {
 	return m_locked;
 }
 
+const sf::IntRect& cgss::FramedViewItem::getCursorRectangle() const {
+	return m_cursorRect;
+}
+
 void cgss::FramedViewItem::resetPausePosition() {
 	if (!m_pauseSkin.isLoaded()) {
 		return;
@@ -564,7 +568,7 @@ void cgss::FramedViewItem::resetPausePosition() {
 
 void cgss::FramedViewItem::setCursorRectangle(sf::IntRect rect) {
 	auto cursorRect = getBoundRectangle();
-	if (cursorRect != nullptr && *cursorRect != rect) {
+	if (cursorRect != nullptr && cursorRect->getRect() != rect) {
 		cursorRect->setRect(rect);
 	}
 	m_cursorRect = std::move(rect);
@@ -786,4 +790,28 @@ long cgss::FramedView::getPauseX() const {
 
 long cgss::FramedView::getPauseY() const {
 	return m_proxy->getPauseY();
+}
+
+const sf::IntRect& cgss::FramedView::getCursorRectangle() const {
+	return m_proxy->getCursorRectangle();
+}
+
+sf::IntRect cgss::FramedView::getRectangle() const {
+	return m_proxy->getRectangleBox();
+}
+
+long cgss::FramedView::getOx() const {
+	return m_proxy->getOx();
+}
+
+long cgss::FramedView::getOy() const {
+	return m_proxy->getOy();
+}
+
+void cgss::FramedView::setBackOpacity(uint8_t backOpacity) {
+	m_proxy->setBackOpacity(backOpacity);
+}
+
+std::uint8_t cgss::FramedView::getBackOpacity() const {
+	return m_proxy->getBackOpacity();
 }
