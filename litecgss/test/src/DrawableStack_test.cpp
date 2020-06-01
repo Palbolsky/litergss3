@@ -18,12 +18,23 @@ struct DrawableTest :
 };
 
 
-TEST_CASE("[DrawableStack] DrawableStack : drawable dies before") {
+TEST_CASE("[DrawableStack] DrawableStack : drawable dies before : no effect") {
 	auto stack = cgss::DrawableStack{};
 
 	{
 		auto sprite = DrawableTest::create(stack);
 		CHECK(stack.getSize() == 1);
+	}
+
+	CHECK(stack.getSize() == 1);
+}
+
+TEST_CASE("[DrawableStack] DrawableStack : drawable disposed before : empty stack") {
+	auto stack = cgss::DrawableStack{};
+
+	{
+		auto sprite = DrawableTest::create(stack);
+		sprite.dispose();
 	}
 
 	CHECK(stack.getSize() == 0);
@@ -55,14 +66,14 @@ TEST_CASE("[DrawableStack] DrawableStack : drawable is disposed explicitely") {
 	CHECK(stack.getSize() == 0);
 }
 
-TEST_CASE("[DrawableStack] DrawableStack : ensure moved sprite is disposed") {
+TEST_CASE("[DrawableStack] DrawableStack : moved sprite is not disposed") {
 	auto stack = cgss::DrawableStack{};
 	
 	auto sprite = DrawableTest::create(stack);
 	auto sprite2 = DrawableTest::create(stack);
 	CHECK(stack.getSize() == 2);
 	sprite = std::move(sprite2);
-	CHECK(stack.getSize() == 1);
+	CHECK(stack.getSize() == 2);
 }
 
 TEST_CASE("[DrawableStack] DrawableStack : dispose several times") {
@@ -96,12 +107,12 @@ TEST_CASE("[DrawableStack] DrawableStack : complex mix") {
 
 		sprite = std::move(sprite3);
 
-		CHECK(stack.getSize() == 0);
+		CHECK(stack.getSize() == 1);
 		CHECK(stack2.getSize() == 1);
 	}
 
-	CHECK(stack.getSize() == 0);
-	CHECK(stack2.getSize() == 0);
+	CHECK(stack.getSize() == 1);
+	CHECK(stack2.getSize() == 1);
 
 }
 
