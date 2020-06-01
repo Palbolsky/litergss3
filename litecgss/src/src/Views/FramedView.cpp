@@ -268,6 +268,14 @@ void cgss::FramedViewItem::setBuilder(long windowBuilder[6]) {
 	memcpy(m_windowBuilder, windowBuilder, sizeof(long) * 6);
 }
 
+long cgss::FramedViewItem::getPauseX() const {
+	return m_pauseX.value_or(0)
+}
+
+long cgss::FramedViewItem::getPauseY() const {
+	return m_pauseY.value_or(0);
+}
+
 void cgss::FramedViewItem::updateVerticesStretch(long wt, long ht) {
 	sf::Vector2i a(0, 0);
 	sf::Vector2i s(0, 0);
@@ -489,9 +497,7 @@ void cgss::FramedViewItem::allocateVerticesStretch() {
 }
 
 void cgss::FramedViewItem::updateContents() {
-	if (m_cursorRect != nullptr) {
-		setCursorRectangle(*m_cursorRect);
-	}
+	setCursorRectangle(m_cursorRect);	
 }
 
 void cgss::FramedViewItem::updateBackOpacity() {
@@ -508,6 +514,15 @@ void cgss::FramedViewItem::updateBackOpacity() {
 	}
 	updatePauseSprite();
 	updateCursorSprite();
+}
+
+void cgss::FramedViewItem::setBackOpacity(uint8_t backOpacity) {
+	m_backOpacity = backOpacity;
+	updateBackOpacity();
+}
+
+std::uint8_t cgss::FramedViewItem::getBackOpacity() const {
+	return m_backOpacity;
 }
 
 void cgss::FramedViewItem::updateView() {
@@ -547,15 +562,19 @@ void cgss::FramedViewItem::resetPausePosition() {
 	m_pause.setPosition(sf::Vector2f(pause_x, pause_y));
 }
 
-void cgss::FramedViewItem::setCursorRectangle(sf::IntRect rect) {	
-	m_cursorRect = std::make_unique<sf::IntRect>(std::move(rect));
+void cgss::FramedViewItem::setCursorRectangle(sf::IntRect rect) {
+	auto cursorRect = getBoundRectangle();
+	if (cursorRect != nullptr && *cursorRect != rect) {
+		cursorRect->setRect(rect);
+	}
+	m_cursorRect = std::move(rect);
 	
 	if (m_cursor.getTexture() == nullptr) {
 		return;
 	}
 	sf::Vector2f size = static_cast<sf::Vector2f>(m_cursor.getTexture()->getSize());
-	m_cursor.setScale(sf::Vector2f(m_cursorRect->width / size.x, m_cursorRect->height / size.y));
-	m_cursor.setPosition(sf::Vector2f(static_cast<float>(m_cursorRect->left), static_cast<float>(m_cursorRect->top)));
+	m_cursor.setScale(sf::Vector2f(m_cursorRect.width / size.x, m_cursorRect.height / size.y));
+	m_cursor.setPosition(sf::Vector2f(static_cast<float>(m_cursorRect.left), static_cast<float>(m_cursorRect.top)));
 }
 
 void cgss::FramedViewItem::updateContentsOpacity() {
@@ -587,14 +606,12 @@ bool cgss::FramedViewItem::isPaused() const {
 
 void cgss::FramedViewItem::setCursorSkin(sf::Texture& texture) {
 	m_cursor.setTexture(texture);
+	setCursorRectangle(m_cursorRect);
 	updateCursorSprite();
 }
 
 void cgss::FramedViewItem::active(bool active) {
 	m_active = active;
-	if (m_cursorRect != nullptr) {
-		setCursorRectangle(*m_cursorRect);
-	}
 	updateCursorSprite();
 }
 
@@ -761,4 +778,12 @@ void cgss::FramedView::setBuilder(long windowBuilder[6]) {
 
 void cgss::FramedViewItem::updateFromRectangle(const sf::IntRect& rectangle) {
 	setCursorRectangle(rectangle);
+}
+
+long cgss::FramedView::getPauseX() const {
+	return m_proxy->getPauseX();
+}
+
+long cgss::FramedView::getPauseY() const {
+	return m_proxy->getPauseY();
 }

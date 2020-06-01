@@ -47,7 +47,7 @@ namespace cgss {
 
 		float m_viewportZoom = 1.F;
 
-		std::unique_ptr<sf::IntRect> m_cursorRect;
+		sf::IntRect m_cursorRect;
 		
 		// Array that describe how the frame is defined on the window skin (setted by the "setSkin" function member).
 		// Defined this way : [frame_mid_x, frame_mid_y, frame_mid_width, frame_mid_height, contents_ox, contents_oy]
@@ -90,6 +90,9 @@ namespace cgss {
 		void setContentsOpacity(uint8_t opacity);
 		uint8_t getContentsOpacity() const;
 
+		void setBackOpacity(uint8_t opacity);
+		uint8_t getBackOpacity() const;
+
 		void lock();
 		void unlock();
 		bool isLocked() const;
@@ -102,6 +105,9 @@ namespace cgss {
 
 		void setSkin(sf::Texture* skin);
 		sf::Texture* getSkin() const;
+
+		long getPauseX() const;
+		long getPauseY() const;
 
 		void setPauseSkin(sf::Texture& texture);
 		void setPausePosition(float x, float y);
@@ -145,6 +151,9 @@ namespace cgss {
 		void setOpacity(uint8_t opacity);
 		uint8_t getOpacity() const;
 
+		void setBackOpacity(uint8_t opacity);
+		uint8_t getBackOpacity() const;
+
 		void setContentsOpacity(uint8_t opacity);
 		uint8_t getContentsOpacity() const;
 
@@ -156,6 +165,9 @@ namespace cgss {
 
 		void setSkin(sf::Texture* skin);
 		sf::Texture* getSkin() const;
+
+		long getPauseX() const;
+		long getPauseY() const;
 
 		void setPauseSkin(sf::Texture& texture);
 		void setPausePosition(float x, float y);
