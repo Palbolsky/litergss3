@@ -21,13 +21,7 @@ void cgss::DrawableStack::updateContentsOpacity(std::uint8_t opacity) {
 
 		Text* text = dynamic_cast<Text*>(sp.get());
 		if (text != nullptr) {
-			auto& text2 = text->getText();
-			sf::Color col = sf::Color(text2.getFillColor());
-			col.a = opacity;
-			text2.setFillColor(col);
-			col = sf::Color(text2.getOutlineColor());
-			col.a = opacity;
-			text2.setOutlineColor(col);
+			text->setOpacity(opacity);
 		} else {
 			Sprite* sprite = dynamic_cast<Sprite*>(sp.get());
 			if (sprite != nullptr) {
