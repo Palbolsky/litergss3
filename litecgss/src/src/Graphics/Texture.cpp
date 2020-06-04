@@ -85,6 +85,6 @@ void cgss::Texture::setShaderUniform(sf::Shader& shader, const std::string& attr
 	shader.setUniform(attribute, m_texture);
 }
 
-void cgss::Texture::linkShape(sf::Shape& shape) {
-	shape.setTexture(&m_texture);
+void cgss::Texture::linkShape(sf::Shape& shape, bool resetRect) {
+	shape.setTexture(&m_texture, resetRect);
 }

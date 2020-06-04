@@ -25,6 +25,7 @@ namespace cgss {
 		Texture* m_linkedTexture = nullptr;
 		ShapeType m_type = ShapeType::Rectangle;
 		sf::RectangleShape m_defaultShape;
+
 		sf::RenderStates m_renderStates = sf::RenderStates::Default;
 	public:
 		ShapeItem(Shape* owner, ShapeData shape);
@@ -37,10 +38,15 @@ namespace cgss {
 		public Drawable<Shape, ShapeItem>,
 		public Transformable {
 	public:
+		Shape() = default;
+		Shape(Shape&&) = default;
+		Shape(const Shape&) = delete;
+		Shape& operator=(const Shape&) = delete;
+		Shape& operator=(Shape&&) = default;
 		virtual ~Shape() = default;
 
 		void setRenderState(sf::RenderStates states);
-		void linkTexture(Texture* texture);
+		void setTexture(Texture* texture, bool resetRect = false);
 
 		sf::IntRect getRectangle() const;
 		void setRectangle(sf::IntRect rectangle);
@@ -63,8 +69,11 @@ namespace cgss {
 		float getOutlineThickness() const;
 		void setOutlineThickness(float thickness) const;
 
-	protected:
-		Shape() = default;
+		long getWidth() const;
+		void setWidth(long width);
+
+		long getHeight() const;
+		void setHeight(long height);
 	};
 
 	namespace meta {
