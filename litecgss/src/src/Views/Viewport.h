@@ -84,9 +84,10 @@ namespace cgss {
 	class Text;
 	class Shape;
 	class FramedView;
+	class SpriteMap;
 
 	template <>
-	struct ViewAuthorizations<Viewport> : public AuthorizedDrawableSet<Sprite, Text, Shape, FramedView> {};
+	struct ViewAuthorizations<Viewport> : public AuthorizedDrawableSet<Sprite, SpriteMap, Text, Shape, FramedView> {};
 
 	namespace meta {
 		template<>
