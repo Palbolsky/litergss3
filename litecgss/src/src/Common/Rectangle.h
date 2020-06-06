@@ -1,6 +1,6 @@
 #ifndef CGSS_RECTANGLE_H
 #define CGSS_RECTANGLE_H
-#include <SFML/Graphics.hpp>
+#include <SFML/Graphics/Rect.hpp>
 #include "Meta/metadata.h"
 
 namespace cgss {
@@ -25,8 +25,6 @@ namespace cgss {
 
 		bool operator==(const Rectangle& rect) const;
 		bool operator!=(const Rectangle& rect) const;
-
-		GraphicsStackItem* getElement() { return m_target; }
 	};
 
 	namespace meta {
