@@ -4,6 +4,7 @@
 #include <memory>
 #include <SFML/Graphics.hpp>
 #include "Graphics/Texture.h"
+#include "Graphics/RenderStates.h"
 
 namespace cgss {
 	class DisplayWindow;
@@ -24,7 +25,7 @@ namespace cgss {
 		DisplayWindow& m_window;
 		std::unique_ptr<Texture> m_freezeTexture = nullptr;
 		std::unique_ptr<sf::Sprite> m_freezeSprite = nullptr;
-		std::unique_ptr<sf::Shader> m_freezeShader = nullptr;
+		RenderStates m_freezeShader;
 
 		bool m_rgssTransition = false;
 	};

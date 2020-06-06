@@ -1,10 +1,12 @@
 #ifndef CGSS_VIEWPORT_H
 #define CGSS_VIEWPORT_H
 #include <optional>
+#include "Graphics/ShaderRenderable.h"
 #include "View.h"
 #include "ViewAuthorizations.h"
 #include "ViewBox.h"
 #include "Common/Meta/metadata.h"
+#include "Graphics/RenderStates.h"
 
 namespace cgss {
 	
@@ -12,7 +14,8 @@ namespace cgss {
 	class ViewportItem : 
 		public GraphicsStackItem,
 		public View,
-		public ViewBox {
+		public ViewBox,
+		public ShaderRenderable {
 		friend class Viewport;
 	private:
 		const sf::RenderStates& getRenderState() const;
@@ -22,17 +25,11 @@ namespace cgss {
 		sf::Color m_color;
 		sf::Sprite m_renderSprite;
 		std::optional<sf::RenderStates> m_renderStates;
-		sf::RenderStates m_defaultRenderStates = sf::RenderStates::Default;
+		RenderStates m_defaultRenderStates;
 
-		mutable sf::Shader* m_renderStatesShader = nullptr;
-		mutable sf::Shader m_defaultRenderStatesShader;
 		mutable sf::RenderTexture m_render;
 
 		bool m_smooth = false;
-
-		float rZ = 0.F;
-		float rAngle = 0.F;
-		float rZoom = 0.F;
 	public:
 		void createRender();
 		ViewportItem(Viewport* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings);
@@ -56,7 +53,7 @@ namespace cgss {
 		Viewport& operator=(const Viewport&) = delete;
 		virtual ~Viewport();
 
-		void setRenderStates(sf::RenderStates states);
+		void bindRenderStates(RenderStates* states);
 		void drawFast(sf::RenderTarget& target) const override;
 		void draw(sf::RenderTarget& target) const override;
 

@@ -1,6 +1,6 @@
 #include <cassert>
-#include <iostream>
 #include "Sprite.h"
+#include "RenderStates.h"
 #include "Texture.h"
 #include "Common/Rectangle.h"
 #include "Common/Meta/metadata.h"
@@ -14,11 +14,11 @@ void cgss::SpriteItem::draw(sf::RenderTarget& target) const {
 }
 
 void cgss::SpriteItem::drawFast(sf::RenderTarget& target) const {
-	target.draw(m_sprite, m_renderStates);
+	target.draw(m_sprite, getBoundRenderStates() == nullptr ? sf::RenderStates::Default : getBoundRenderStates()->getRenderStates());	
 }
 
-void cgss::Sprite::setRenderStates(sf::RenderStates renderStates) {
-	m_proxy->m_renderStates = std::move(renderStates);
+void cgss::Sprite::bindRenderStates(RenderStates* renderStates) {
+	m_proxy->bindRenderStates(renderStates);
 }
 
 void cgss::Sprite::setMirror(bool mirror) {
@@ -76,10 +76,12 @@ const sf::IntRect& cgss::Sprite::getTextureRect() const {
 }
 
 cgss::SpriteItem::~SpriteItem() {
+	/*
 	static std::size_t counter = 0;
 	counter++;
 	if (counter % 10000 == 0) {
 		counter = 0;
 		std::cerr << "[LiteCGSS][" << cgss::meta::Log<Sprite>::classname << "] Freeing 10000 elements" << std::endl;
 	}
+	*/
 }

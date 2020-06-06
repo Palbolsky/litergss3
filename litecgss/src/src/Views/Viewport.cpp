@@ -1,5 +1,4 @@
 #include <cmath>
-#include <iostream>
 #include "Viewport.h"
 #include "Common/Rectangle.h"
 #include "Configuration/DisplayWindowSettings.h"
@@ -12,7 +11,7 @@ cgss::ViewportItem::ViewportItem(Viewport* owner, MainEventDispatcher& eventDisp
 }
 
 const sf::RenderStates& cgss::ViewportItem::getRenderState() const {
-	return m_renderStates.has_value() ? m_renderStates.value() : m_defaultRenderStates;
+	return getBoundRenderStates() != nullptr ? getBoundRenderStates()->getRenderStates() : m_defaultRenderStates.getRenderStates();
 }
 
 void cgss::ViewportItem::onPostWindowSettingsChange(WindowSettingsChangeEvent& event) {
@@ -73,13 +72,8 @@ void cgss::Viewport::draw(sf::RenderTarget& target) const {
 	m_proxy->draw(target);
 }
 
-void cgss::Viewport::setRenderStates(sf::RenderStates states) {
-	m_proxy->m_renderStates = std::move(states);
-	m_proxy->m_renderStatesShader = const_cast<sf::Shader*>(m_proxy->m_renderStates.value().shader);
-}
-
-sf::Shader& cgss::ViewportItem::getRenderStateShader() const {
-	return m_renderStatesShader == nullptr ? m_defaultRenderStatesShader : *m_renderStatesShader;
+void cgss::Viewport::bindRenderStates(RenderStates* states) {
+	m_proxy->bindRenderStates(states);
 }
 
 /* ---- Shader Part ---- */
@@ -105,19 +99,15 @@ static const std::string ViewportGlobalFragmentShader = \
 void cgss::ViewportItem::createRender() {
 	m_render.create(getScreenWidth(), getScreenHeight());
 	m_render.setSmooth(m_smooth);
+	m_renderSprite.setTexture(m_render.getTexture());
 
-	//TODO test if we can create shaders
-	// Shader initialialization
-	if (m_defaultRenderStatesShader.loadFromMemory(ViewportGlobalFragmentShader, sf::Shader::Fragment)) {
-		m_defaultRenderStatesShader.setUniform("texture", sf::Shader::CurrentTexture);
-		//shader.setUniform("tone", __Viewport_reset_tone);
-		//shader.setUniform("color", __Viewport_reset_tone);
+	if (m_defaultRenderStates.loadShaderFromMemory(ViewportGlobalFragmentShader, sf::Shader::Fragment)) {
+		m_defaultRenderStates.setShaderUniform("texture", sf::Shader::CurrentTexture);
+		m_defaultRenderStates.setShaderUniform("tone", sf::Glsl::Vec4 {});
 	}
 
-	m_defaultRenderStates = sf::RenderStates(&m_defaultRenderStatesShader);
-	m_renderSprite.setTexture(m_render.getTexture());
 	sf::Glsl::Vec4 color(m_color.r / 255.0f, m_color.g / 255.0f, m_color.b / 255.0f, m_color.a / 255.0f);
-	getRenderStateShader().setUniform("color", color);
+	m_defaultRenderStates.setShaderUniform("color", color);
 }
 
 void cgss::ViewportItem::updateFromRectangle(const sf::IntRect& rectangle) {
@@ -159,12 +149,12 @@ void cgss::Viewport::setScale(float zoom) {
 }
 
 void cgss::Viewport::onDispose() {
-	std::cerr << "Clearing viewport (explicit dispose)" << std::endl;
+	//std::cerr << "Clearing viewport (explicit dispose)" << std::endl;
 	m_proxy->View::drawables().clear();
 }
 
 cgss::Viewport::~Viewport() {
-	std::cerr << "Clearing viewport (destructor)" << std::endl;
+	//std::cerr << "Clearing viewport (destructor)" << std::endl;
 	if (hasProxy()) {
 		m_proxy->View::drawables().clear();
 	}

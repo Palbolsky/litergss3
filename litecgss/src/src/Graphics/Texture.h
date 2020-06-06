@@ -41,12 +41,11 @@ namespace cgss {
 
 		bool isLoaded() const { return m_loaded; }
 
-		void setShaderUniform(sf::Shader&, const std::string& attribute) const;
 		void update(const sf::Window& window, unsigned int x, unsigned int y) { m_texture.update(window, x, y); }
 		bool create(int sw, int sh) { return m_texture.create(sw, sh); }
-		void linkShape(sf::Shape& shape, bool resetRect = false);
 
 		sf::Texture& getTexture() { return m_texture; }
+		const sf::Texture& getTexture() const { return m_texture; }
 
 	private:
 		bool hasImage() const { return m_image.getSize().x != 0; };

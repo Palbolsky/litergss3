@@ -2,20 +2,22 @@
 #define CGSS_SPRITE_H
 #include "Graphics/Drawable.h"
 #include "Graphics/Transformable.h"
+#include "Graphics/ShaderRenderable.h"
 #include "Common/Meta/metadata.h"
 
 namespace cgss {
 	class Texture;
 	class Sprite;
 	class View;
+	class RenderStates;
 
-	class SpriteItem : public GraphicsStackItem {
+	class SpriteItem : 
+		public GraphicsStackItem,
+		public ShaderRenderable {
 		friend class Sprite;
 	private:
 		sf::Sprite m_sprite;
 		bool m_mirror = false;
-
-		sf::RenderStates m_renderStates = sf::RenderStates::Default;
 	public:
 		SpriteItem(Sprite* owner);
 		virtual ~SpriteItem();
@@ -24,7 +26,6 @@ namespace cgss {
 		void updateFromRectangle(const sf::IntRect& rectangle) override;
 	};
 	
-
 	class Sprite :
 		public Drawable<Sprite, SpriteItem>,
 		public Transformable {
@@ -42,7 +43,7 @@ namespace cgss {
 		sf::Color getColor() const;
 		void setColor(sf::Color color);
 
-		void setRenderStates(sf::RenderStates renderStates);
+		void bindRenderStates(RenderStates* renderStates);
 		void setTexture(Texture& texture, bool resetRect = false);
 		void setTextureRect(sf::IntRect rectangle);
 		const sf::IntRect& getTextureRect() const;

@@ -80,11 +80,3 @@ std::string cgss::Texture::toRawDataPng() const {
 unsigned int cgss::Texture::toFile(const std::string& filename) const {
 	return TextureFileLoader::instantSave(filename, m_texture);
 }
-
-void cgss::Texture::setShaderUniform(sf::Shader& shader, const std::string& attribute) const {
-	shader.setUniform(attribute, m_texture);
-}
-
-void cgss::Texture::linkShape(sf::Shape& shape, bool resetRect) {
-	shape.setTexture(&m_texture, resetRect);
-}

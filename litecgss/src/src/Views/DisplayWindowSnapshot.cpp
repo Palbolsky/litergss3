@@ -1,4 +1,5 @@
 #include "Graphics/Texture.h"
+#include "Graphics/RenderStates.h"
 #include "DisplayWindow.h"
 #include "DisplayWindowSnapshot.h"
 
@@ -26,15 +27,11 @@ void cgss::DisplayWindowSnapshot::init() {
 		"  gl_FragColor = frag;" \
 		"}";
 
-	//TODO
-	//Graphics_freeze_shader = CGraphics::Get().createUniqueShader();
-	if (m_freezeShader != nullptr) {
-		m_freezeShader->loadFromMemory(GraphicsTransitionFragmentShader, sf::Shader::Type::Fragment);
-	}
+	m_freezeShader.loadShaderFromMemory(GraphicsTransitionFragmentShader, sf::Shader::Type::Fragment);	
 }
 
 void cgss::DisplayWindowSnapshot::freeze(sf::RenderWindow& window) {
-	if(m_freezeTexture != nullptr) {
+	if (m_freezeTexture != nullptr) {
 		return;
 	}
 	m_window.draw();
@@ -80,11 +77,9 @@ void cgss::DisplayWindowSnapshot::transitionBasic(long time) {
 void cgss::DisplayWindowSnapshot::transitionRGSS(long time, const Texture& bitmap) {
 	m_freezeSprite->setColor(sf::Color(255, 255, 255, 255));
 	m_rgssTransition = true;
-	if(m_freezeShader != nullptr) {
-		bitmap.setShaderUniform(*m_freezeShader, "transition");
-		for (long i = 1; i <= time; i++) {
-			m_freezeShader->setUniform("param", static_cast<float>(i) / time);
-		}
+	m_freezeShader.setShaderUniform("transition", bitmap.getTexture());
+	for (long i = 1; i <= time; i++) {
+		m_freezeShader.setShaderUniform("param", static_cast<float>(i) / time);
 	}
 }
 
@@ -114,14 +109,14 @@ void cgss::DisplayWindowSnapshot::stop() {
 	/* Unfreezing Graphics */
 	m_freezeSprite = nullptr;
 	m_freezeTexture = nullptr;
-	m_freezeShader = nullptr;
+	m_freezeShader = {};
 }
 
 void cgss::DisplayWindowSnapshot::draw(sf::RenderWindow& window) {
 	// Display transition sprite
 	if (m_freezeSprite != nullptr) {
 		if (m_rgssTransition) {
-			window.draw(*m_freezeSprite, m_freezeShader.get());
+			window.draw(*m_freezeSprite, m_freezeShader.getRenderStates());
 		} else {
 			window.draw(*m_freezeSprite);
 		}
