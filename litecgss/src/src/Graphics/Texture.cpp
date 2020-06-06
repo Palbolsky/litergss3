@@ -73,7 +73,7 @@ void cgss::Texture::write(TextureSaver& saver) const {
 	saver.save(m_texture);
 }
 
-std::string cgss::Texture::toRawDataPng() const {
+std::vector<unsigned char> cgss::Texture::toRawDataPng() const {
 	return TextureMemoryLoader::instantSave(m_texture);
 }
 

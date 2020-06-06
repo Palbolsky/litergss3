@@ -6,21 +6,20 @@ bool cgss::TextureLoader::lodePngDecode(sf::Texture& texture, const char* rawDat
 	unsigned char* out = nullptr;
 	unsigned w = 0;
 	unsigned h = 0;
-	bool result = true;
+	unsigned int result = 0;
 
 	if (from_memory_size > 0) {
-		result = lodepng_decode32(&out, &w, &h, reinterpret_cast<const unsigned char*>(rawDataOrFilename), from_memory_size) == 0;
-	}
-	else {
-		result = lodepng_decode32_file(&out, &w, &h, rawDataOrFilename) == 0;
+		result = lodepng_decode32(&out, &w, &h, reinterpret_cast<const unsigned char*>(rawDataOrFilename), from_memory_size);
+	} else {
+		result = lodepng_decode32_file(&out, &w, &h, rawDataOrFilename);
 	}
 
-	if (result) {
+	if (!result) {
 		texture.create(w, h);
 		texture.update(reinterpret_cast<sf::Uint8*>(out), w, h, 0, 0);
 	}
 	free(out);
-	return result;
+	return result == 0;
 }
 
 
@@ -33,7 +32,7 @@ cgss::TextureEmptyLoader::TextureEmptyLoader(unsigned int width, unsigned int he
 	m_height(height) {
 }
 
-cgss::TextureMemoryLoader::TextureMemoryLoader(std::string rawData) :
+cgss::TextureMemoryLoader::TextureMemoryLoader(std::vector<unsigned char> rawData) :
 	m_memory(std::move(rawData)) {
 }
 
@@ -41,11 +40,11 @@ bool cgss::TextureMemoryLoader::load(sf::Texture& texture, sf::Image& image) con
 	return instantLoad(m_memory, texture, image);
 }
 
-bool cgss::TextureMemoryLoader::instantLoad(const std::string& rawData, sf::Texture& texture, sf::Image& image) {
-	const unsigned int error = lodePngDecode(texture, rawData.c_str(), rawData.size());
+bool cgss::TextureMemoryLoader::instantLoad(const std::vector<unsigned char>& rawData, sf::Texture& texture, sf::Image& image) {
+	const unsigned int error = lodePngDecode(texture, reinterpret_cast<const char*>(&rawData[0]), rawData.size());
 	if (!error) {
-		return texture.loadFromMemory(rawData.c_str(), rawData.size());
-	} 
+		return texture.loadFromMemory(&rawData[0], rawData.size());
+	}
 	std::cerr << lodepng_error_text(error) << std::endl;
 	return false;
 }
@@ -58,8 +57,8 @@ void cgss::TextureFileLoader::save(const sf::Texture& texture) {
 	m_writtenStatus = instantSave(m_filename, texture);
 }
 
-std::string cgss::TextureMemoryLoader::instantSave(const sf::Texture& texture) {
-	std::string memory;
+std::vector<unsigned char> cgss::TextureMemoryLoader::instantSave(const sf::Texture& texture) {
+	std::vector<unsigned char> memory;
 	sf::Image img = texture.copyToImage();
 
 	unsigned char* out = nullptr;
@@ -69,7 +68,7 @@ std::string cgss::TextureMemoryLoader::instantSave(const sf::Texture& texture) {
 	if (!error) {
 		//Involves a memory allocation, so could throw, meaning that we have to handle exceptions if we want to correctly free "out"
 		try {
-			memory = std::string{ out, out + size };
+			memory = std::vector<unsigned char>{ out, out + size };
 		} catch (std::exception&) {
 			//Nothing special here (it could be logging maybe ?)
 		}

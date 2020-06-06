@@ -36,7 +36,7 @@ namespace cgss {
 		bool load(const TextureLoader& loader);
 		void write(TextureSaver& saver) const;
 
-		std::string toRawDataPng() const;
+		std::vector<unsigned char> toRawDataPng() const;
 		unsigned int toFile(const std::string& filename) const;
 
 		bool isLoaded() const { return m_loaded; }
