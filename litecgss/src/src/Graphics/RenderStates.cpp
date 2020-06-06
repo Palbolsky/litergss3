@@ -204,6 +204,12 @@ void cgss::RenderStates::setShaderUniform(const std::string& name, const sf::Tex
     }
 }
 
+void cgss::RenderStates::setShaderUniformArray(const std::string& name, const float* scalarArray, std::size_t length) {
+    if (m_shader != nullptr) {
+        m_shader->setUniformArray(name, scalarArray, length);
+    }
+}
+
 bool cgss::RenderStates::enabled() const {
     return m_shadersEnabled;
 }

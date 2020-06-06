@@ -73,6 +73,8 @@ namespace cgss {
 		void setShaderUniform(const std::string& name, const sf::Texture& texture);
 		void setShaderUniform(const std::string& name, sf::Shader::CurrentTextureType);
 
+		void setShaderUniformArray(const std::string& name, const float* scalarArray, std::size_t length);
+
 		const sf::RenderStates& getRenderStates() const { return m_renderStates; }
 
 		void bindElement(ShaderRenderable* target);
