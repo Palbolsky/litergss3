@@ -20,6 +20,8 @@ namespace cgss {
 		uint8_t m_align = 0;
 		long m_width = 1;
 		long m_height = 1;
+		float m_wantedX = 0.f;
+		float m_wantedY = 0.f;
 	};
 
 	class Text :
@@ -51,8 +53,9 @@ namespace cgss {
 		void setString(const sf::String& text);
 		void setFont(sf::Font& font);
 
-		using Transformable::getX;
-		using Transformable::getY;
+		float getX() const;
+		float getY() const;
+
 		using Transformable::getOx;
 		using Transformable::getOy;
 		using Transformable::getScaleX;

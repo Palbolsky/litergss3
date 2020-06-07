@@ -8,22 +8,18 @@
 
 namespace cgss {
     template <ska::LogLevel BaseLogLevel>
-    using LoggerBaseType = ska::MultiLogger<
-        ska::Logger<BaseLogLevel, ska::LogLevel::Error, ska::LogAsync>,
-        ska::Logger<BaseLogLevel, ska::LogLevel::Error, ska::LogSync>
-    >;
+    using LoggerBaseType = ska::Logger<BaseLogLevel, ska::LogLevel::Error, ska::LogSync>;
 
     template <ska::LogLevel BaseLogLevel>
     struct Logger : 
         public LoggerBaseType<BaseLogLevel> {
         Logger(const char* filename) {
+            updatePatterns(*this);
+            LoggerBaseType<BaseLogLevel>::addOutputTarget(std::cout);
             if (filename != nullptr) {
                 m_fileOutput.open(filename);
-                updatePatterns(LoggerBaseType<BaseLogLevel>::template get<0>());
-                LoggerBaseType<BaseLogLevel>::template get<0>().addOutputTarget(m_fileOutput);
+                LoggerBaseType<BaseLogLevel>::addOutputTarget(m_fileOutput);
             }
-            LoggerBaseType<BaseLogLevel>::template get<1>().addOutputTarget(std::cout);
-            updatePatterns(LoggerBaseType<BaseLogLevel>::template get<1>());
         }
 
         virtual ~Logger() {

@@ -1,5 +1,12 @@
 #include <cmath>
+#include "LoggerDrawables.h"
 #include "Text.h"
+
+SKA_LOGC_CONFIG(ska::LogLevel::Debug, cgss::TextItem);
+
+#define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Debug, cgss::TextItem)
+#define LOG_INFO SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Info, cgss::TextItem)
+#define LOG_WARN SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Warn, cgss::TextItem)
 
 cgss::TextItem::TextItem(Text* owner) {
 	owner->setInstance(m_text);
@@ -20,12 +27,21 @@ std::uint8_t cgss::Text::getOpacity() const {
 void cgss::Text::setOpacity(std::uint8_t opacity) {
 	auto color = m_proxy->m_text.getFillColor();
 	color.a = opacity;
+	LOG_INFO << "Set opacity (" << static_cast<int>(opacity) << ")";
 	m_proxy->m_text.setFillColor(color);
 	if (m_proxy->m_text.getOutlineThickness() < 1.0f && opacity != 255) {
 		color = m_proxy->m_text.getOutlineColor();
 		color.a = opacity / 3;
 		m_proxy->m_text.setOutlineColor(std::move(color));
 	}
+}
+
+float cgss::Text::getX() const {
+	return m_proxy->m_wantedX;
+}
+
+float cgss::Text::getY() const {
+	return m_proxy->m_wantedY;
 }
 
 float cgss::Text::getRealWidth() const {
@@ -37,6 +53,7 @@ const sf::Color& cgss::Text::getFillColor() const {
 }
 
 void cgss::Text::setFillColor(sf::Color color) {
+	LOG_INFO << "Set fill color (r = " << static_cast<int>(color.r) << " g =" << static_cast<int>(color.g) << " b = " << static_cast<int>(color.b) << " a = " << static_cast<int>(color.a) << ")";
 	m_proxy->m_text.setFillColor(std::move(color));
 }
 
@@ -61,26 +78,32 @@ sf::Uint32 cgss::Text::getStyle() const {
 }
 
 void cgss::Text::setStyle(sf::Uint32 style) {
+	LOG_INFO << "Set style (" << style << ")";
 	m_proxy->m_text.setStyle(style);
 }
 
 void cgss::TextItem::updateAlign() {
-	auto box = sf::FloatRect { m_text.getPosition().x, m_text.getPosition().y, static_cast<float>(m_width), static_cast<float>(m_height) };
+	auto box = sf::FloatRect { m_wantedX, m_wantedY, static_cast<float>(m_width), static_cast<float>(m_height) };
 	auto bounds = m_text.getLocalBounds();
 	float ox = 0.f;
 	switch (m_align) {
 		case 1: /* Center */
+			LOG_DEBUG << "Update align center";
 			ox = std::round(bounds.width / 2.f);
 			box.left = std::round(box.left + box.width / 2.f);
 			break;
 		case 2: /* Right */
+			LOG_DEBUG << "Update align right";
 			ox = std::round(bounds.width);
 			box.left = std::round(box.left + box.width);
 			break;
 		default: /* Left */
+			LOG_DEBUG << "Update align left";
 			break;
 	}
 	box.top = std::round(box.top + box.height / 2);
+	LOG_INFO << "Text position updated to x = " << box.left << " y = " << box.top;
+
 	/* Position update */
 	m_text.setPosition(box.left, box.top);
 	m_text.setOrigin(ox, std::round(m_text.getCharacterSize() / 2.0f));
@@ -92,6 +115,9 @@ void cgss::Text::setAlign(uint8_t align) {
 }
 
 void cgss::Text::move(float x, float y) {
+	m_proxy->m_wantedX = x;
+	m_proxy->m_wantedY = y;
+	LOG_INFO << "Text moved explicitely to x = " << x << " y = " << y;
 	Transformable::move(x, y);
 	m_proxy->updateAlign();
 }
@@ -99,6 +125,7 @@ void cgss::Text::move(float x, float y) {
 void cgss::Text::resize(long width, long height) {
 	m_proxy->m_width = width;
 	m_proxy->m_height = height;
+	LOG_INFO << "Text resized explicitely to width = " << width << " height = " << height;
 	m_proxy->updateAlign();
 }
 
@@ -119,10 +146,12 @@ void cgss::Text::setCharacterSize(long characterSize) {
 }
 
 void cgss::Text::setString(const sf::String& text) {
+	LOG_INFO << "Set text string " << text.toAnsiString();
 	m_proxy->m_text.setString(text);
 	m_proxy->updateAlign();
 }
 
 void cgss::Text::setFont(sf::Font& font) {
+	LOG_INFO << "Set font (family = " << font.getInfo().family << ")";
 	m_proxy->m_text.setFont(font);
 }

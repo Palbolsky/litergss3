@@ -1,5 +1,12 @@
 #include <cmath>
 #include "ViewBox.h"
+#include "LoggerViews.h"
+
+SKA_LOGC_CONFIG(ska::LogLevel::Disabled, cgss::ViewBox);
+
+#define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Debug, cgss::ViewBox)
+#define LOG_INFO SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info, cgss::ViewBox)
+#define LOG_WARN SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Warn, cgss::ViewBox)
 
 cgss::ViewBox::ViewBox(MainEventDispatcher& ed, const DisplayWindowSettings& windowSettings) : 
 	SubObserver<WindowSettingsChangeEvent>(std::bind(&ViewBox::onWindowSettingsChange, this, std::placeholders::_1), ed),
@@ -13,6 +20,8 @@ void cgss::ViewBox::moveOrigin(long ox, long oy) {
 	m_oy = oy;
 
 	updateCenter();
+
+	LOG_INFO << "Center updated to ox = " << ox << " oy = " << oy;
 
 	if (m_triggerMove) {
 		m_triggerMove = false;
@@ -36,6 +45,8 @@ void cgss::ViewBox::resize(long width, long height) {
 	}
 	m_view.setSize(static_cast<float>(width), static_cast<float>(height));
 	updateCenter();
+
+	LOG_INFO << "Resizing to width = " << width << " height = " << height;
 
 	if (m_triggerResize) {
 		m_triggerResize = false;
@@ -62,6 +73,8 @@ void cgss::ViewBox::updateViewport(float x, float y) {
 bool cgss::ViewBox::onWindowSettingsChange(WindowSettingsChangeEvent& event) {
 	m_screenWidth = event.settings.video.width;
 	m_screenHeight = event.settings.video.height;
+
+	LOG_INFO << "Window settings have changed to screenwidth = " << m_screenWidth << " screenheight = " << m_screenHeight;
 
 	onPostWindowSettingsChange(event);
 	return true;

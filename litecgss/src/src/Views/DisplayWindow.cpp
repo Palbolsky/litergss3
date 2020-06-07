@@ -2,6 +2,12 @@
 #include <cassert>
 #include "Configuration/DisplayWindowSettings.h"
 #include "DisplayWindow.h"
+#include "LoggerViews.h"
+SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::DisplayWindow);
+
+#define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Debug, cgss::DisplayWindow)
+#define LOG_INFO SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info, cgss::DisplayWindow)
+#define LOG_WARN SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Warn, cgss::DisplayWindow)
 
 cgss::DisplayWindow::DisplayWindow(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& settings) :
 	m_snapshot{ *this },
@@ -42,6 +48,9 @@ void cgss::DisplayWindow::reload(DisplayWindowSettings settings) {
 	m_draw.smoothScreen = settings.smoothScreen;
 	m_draw.scale = settings.video.scale;
 	m_draw.frameRate = settings.frameRate;
+
+	LOG_WARN << "Reloading window with parameters screenwidth = " << m_draw.screenWidth << " screenheight = " << m_draw.screenHeight
+		<< " smoothScreen = " << m_draw.smoothScreen << " scale = " << m_draw.scale << " framerate = " << m_draw.frameRate;
 
 	/* Render resize */
 	if (m_draw.renderTexture != nullptr) {
