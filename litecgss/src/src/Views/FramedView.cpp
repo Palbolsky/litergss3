@@ -574,8 +574,8 @@ void cgss::FramedViewItem::updateView() {
 	long offset_y = m_windowBuilder[5];
 	long x = static_cast<long>(m_x) + offset_x;
 	long y = static_cast<long>(m_y) + offset_y;
-	long width = static_cast<long>(ViewBox::getWidth()) - 2 * offset_x;
-	long height = static_cast<long>(ViewBox::getHeight()) - 2 * offset_y;
+	long width = static_cast<long>(m_wantedWidth) - 2 * offset_x;
+	long height = static_cast<long>(m_wantedHeight) - 2 * offset_y;
 	LOG_INFO << "View updated to x = " << x << " y = " << y << " width = " << width << " height = " << height;
 	resize(width, height);
 	updateViewport(x, y);
@@ -817,6 +817,8 @@ void cgss::FramedView::setAngle(float angle) {
 }
 
 void cgss::FramedView::resize(long width, long height) {
+	m_proxy->m_wantedWidth = width;
+	m_proxy->m_wantedHeight = height;
 	m_proxy->resize(width, height);
 }
 

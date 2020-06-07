@@ -53,6 +53,9 @@ namespace cgss {
 		// Defined this way : [frame_mid_x, frame_mid_y, frame_mid_width, frame_mid_height, contents_ox, contents_oy]
 		long m_windowBuilder[6] = {};
 
+		long m_wantedWidth = 1;
+		long m_wantedHeight = 1;
+
 		float m_x = 0;
 		float m_y = 0;
 		std::uint8_t m_opacity = 255;
