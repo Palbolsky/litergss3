@@ -62,6 +62,10 @@ namespace cgss {
 			return std::move(result);
 		}
 
+		std::weak_ptr<StackItem> weak() {
+			return m_instanceOwner;
+		}
+
 	protected:
 		Drawable() {
 			static_assert(std::is_base_of<GraphicsStackItem, StackItem>::value, "StackItem must inherit GraphicStackItem");

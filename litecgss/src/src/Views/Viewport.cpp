@@ -124,12 +124,16 @@ void cgss::Viewport::setRectangle(sf::IntRect rectangle) {
 	}
 }
 
-sf::IntRect cgss::Viewport::getRectangle() const {
-	const auto* boundRectangle = m_proxy->getBoundRectangle();
+sf::IntRect cgss::ViewportItem::getRectangle() const {
+	const auto* boundRectangle = getBoundRectangle();
 	if (boundRectangle != nullptr) {
 		return boundRectangle->getRect();
 	}
-	return m_proxy->getRectangleBox();
+	return getRectangleBox();
+}
+
+sf::IntRect cgss::Viewport::getRectangle() const {
+	return m_proxy->getRectangle();
 }
 
 long cgss::Viewport::getOx() const {

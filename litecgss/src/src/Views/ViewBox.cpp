@@ -84,7 +84,12 @@ float cgss::ViewBox::getHeight() const {
 }
 
 void cgss::ViewBox::setScale(float zoom) {
+	m_zoom = zoom;
 	m_view.zoom(zoom);
+}
+
+float cgss::ViewBox::getScale() const {
+	return m_zoom;
 }
 
 void cgss::ViewBox::setAngle(float angle) {

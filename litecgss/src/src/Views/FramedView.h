@@ -9,6 +9,7 @@
 #include "Events/MainEventDispatcher.h"
 #include "Events/Patterns/SubObserver.h"
 #include "ViewBox.h"
+#include "Viewport.h"
 
 namespace cgss {
 	
@@ -35,10 +36,8 @@ namespace cgss {
 		std::vector<sf::VertexArray> m_vertices;
 		sf::Texture* m_texture = nullptr;
 		sf::Sprite m_pause;
-		Texture m_pauseSkin;
 		sf::Sprite m_cursor;
 
-		unsigned long m_numVerticesLine = 0;
 		long m_counter = 0;
 
 		bool m_locked = false;
@@ -46,6 +45,7 @@ namespace cgss {
 		bool m_stretch = false;
 
 		float m_viewportZoom = 1.F;
+		std::weak_ptr<ViewportItem> m_parent;
 
 		sf::IntRect m_cursorRect;
 		
@@ -73,7 +73,7 @@ namespace cgss {
 		void updateView();
 
 	public:
-		FramedViewItem(FramedView* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings);
+		FramedViewItem(FramedView* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings, std::weak_ptr<ViewportItem> parent = {});
 		FramedViewItem(FramedViewItem&&) noexcept = default;
 		FramedViewItem& operator=(FramedViewItem&&) noexcept = default;
 		FramedViewItem(const FramedViewItem&) = delete;
@@ -81,7 +81,7 @@ namespace cgss {
 
 		void draw(sf::RenderTarget& target) const override;
 		void drawFast(sf::RenderTarget& target) const override;
-		void drawCalculateView(sf::RenderTarget& target, sf::View& targetView) const;
+		void drawCalculateView(ViewportItem& parent, sf::RenderTarget& target, sf::View& targetView) const;
 		void update();
 
 		void setOpacity(uint8_t opacity);

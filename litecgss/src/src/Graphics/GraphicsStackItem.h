@@ -50,6 +50,7 @@ namespace cgss {
 
 		void bindRectangle(Rectangle* rectangle);
 		Rectangle* getBoundRectangle() { return m_boundRectangle; }
+		const Rectangle* getBoundRectangle() const { return m_boundRectangle; }
 
 		void tryDraw(sf::RenderTarget& target) const { if (m_visible) { draw(target); } }
 		void tryDrawFast(sf::RenderTarget& target) const { if (m_visible) { drawFast(target); } }

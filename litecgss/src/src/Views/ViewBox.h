@@ -28,7 +28,7 @@ namespace cgss {
 		long getOy() const;
 		void setScale(float zoom);
 		void setAngle(float angle);
-
+		float getScale() const;
 	protected:
 		long getScreenWidth() const { return m_screenWidth; }
 		long getScreenHeight() const { return m_screenHeight; }
@@ -58,6 +58,7 @@ namespace cgss {
 		long m_oy = 0;
 		long m_screenWidth = 640;
 		long m_screenHeight = 320;
+		float m_zoom = 1.f;
 	};
 }
 #endif

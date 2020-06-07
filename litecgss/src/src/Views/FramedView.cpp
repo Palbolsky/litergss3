@@ -3,8 +3,9 @@
 #include "Viewport.h"
 #include "Common/Rectangle.h"
 
-cgss::FramedViewItem::FramedViewItem(FramedView* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
-	ViewBox(eventDispatcher, windowSettings) {
+cgss::FramedViewItem::FramedViewItem(FramedView* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings, std::weak_ptr<ViewportItem> parent) :
+	ViewBox(eventDispatcher, windowSettings),
+	m_parent(std::move(parent)) {
 }
 
 void cgss::FramedViewItem::draw(sf::RenderTarget& target) const {
@@ -13,14 +14,17 @@ void cgss::FramedViewItem::draw(sf::RenderTarget& target) const {
 
 void cgss::FramedViewItem::drawFast(sf::RenderTarget& target) const {
 	/* Draw window */
-	for (unsigned long i = 0; i < m_numVerticesLine; i++) {
-		target.draw(m_vertices[i], m_texture == nullptr ? sf::RenderStates::Default : sf::RenderStates{ m_texture });
+	for (auto& vertice : m_vertices) {
+		target.draw(vertice, m_texture == nullptr ? sf::RenderStates::Default : sf::RenderStates{ m_texture });
 	}
 
 	/* draw internal */
 	auto targetView = ViewBox::clone();
 	auto originalView = sf::View{ target.getView() };
-	drawCalculateView(target, targetView);
+	auto parentView = m_parent.lock();
+	if (parentView != nullptr) {
+		drawCalculateView(*parentView, target, targetView);
+	}
 	target.setView(targetView);
 
 	drawables().drawFast(target);
@@ -33,47 +37,77 @@ void cgss::FramedViewItem::drawFast(sf::RenderTarget& target) const {
 	target.draw(m_pause);
 }
 
-void cgss::FramedViewItem::drawCalculateView(sf::RenderTarget& target, sf::View& targetView) const {
-	const sf::FloatRect originViewport = target.getView().getViewport();
-	sf::FloatRect targetViewport = sf::FloatRect(targetView.getViewport());
+void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, sf::RenderTarget& target, sf::View& targetView) const {
+	const sf::IntRect parentViewport = parent.getRectangle();
+	float zoom = parent.getScale();
+
+	const auto vx0 = parentViewport.width / 2.f - (parentViewport.width / 2.f) / zoom; // <- When vp.zoom = 0.5, zoom = 2
+	const auto vy0 = parentViewport.height / 2.f - (parentViewport.height / 2.f) / zoom;
+
 	sf::Vector2f targetCenter = sf::Vector2f(targetView.getCenter());
 	sf::Vector2f targetSize = sf::Vector2f(targetView.getSize());
+	sf::FloatRect targetViewport = sf::FloatRect(targetView.getViewport());
+
+	const auto sw = ViewBox::getScreenWidth();
+	const auto sh = ViewBox::getScreenHeight();
+
+	// Get the real view coordinate in pixel
+	targetViewport.left *= sw;
+	targetViewport.top *= sh;
+	targetViewport.width *= sw;
+	targetViewport.height *= sh;
+
+	// Translate the window rect in the correct space according to the viewport properties
+	targetViewport.left -= parent.getOx();
+	targetViewport.top -= parent.getOy();
 
 	// Zoom adjustment
-	float zoom = m_viewportZoom;
 	targetViewport.left /= zoom;
 	targetViewport.top /= zoom;
 	targetViewport.width /= zoom;
 	targetViewport.height /= zoom;
 
-	// ---
-	targetViewport.left += originViewport.left;
-	targetViewport.top += originViewport.top;
-	float dx = targetViewport.left + targetViewport.width - (originViewport.left + originViewport.width);
-	if (dx > 0) {
-		targetCenter.x -= targetSize.x / 2;
-		targetSize.x *= ((targetViewport.width - dx) / targetViewport.width);
-		targetViewport.width -= dx;
-		targetCenter.x += targetSize.x / 2;
-	}
-	dx = originViewport.left - targetViewport.left;
-	if (dx > 0) {
-		targetViewport.left += dx;
-	}
-	float dy = targetViewport.top + targetViewport.height - (originViewport.top + originViewport.height);
-	if (dy > 0) {
-		targetCenter.y -= targetSize.y / 2;
-		targetSize.y *= ((targetViewport.height - dy) / targetViewport.height);
-		targetViewport.height -= dy;
-		targetCenter.y += targetSize.y / 2;
-	}
-	dy = originViewport.top - targetViewport.top;
+	// attempt to fix viewport coordinate
+	targetViewport.left += parentViewport.left;
+	targetViewport.top += parentViewport.top;
+	
+	// <-
+	// Fix the top/left coordinate of the view in order to make it stay in the viewport
+	float dy = parentViewport.top - targetViewport.top;
+	// If dy > 0 then the window top is outside of the viewport, we need to remove dy from the height & add dy to the y
 	if (dy > 0) {
 		targetViewport.top += dy;
+		targetSize.y -= dy * zoom;
+		targetViewport.height -= dy;
+		targetCenter.y = dy * zoom + targetViewport.height * zoom / 2;
 	}
-	targetView.setSize(targetSize);
+	float dx = parentViewport.left - targetViewport.left;
+	if (dx > 0) {
+		targetViewport.left += dx;
+		targetSize.x -= dx * zoom;
+		targetViewport.width -= dx;
+		targetCenter.x = dx * zoom + targetViewport.width * zoom / 2;
+	}
+
+	// Fix the bottom/right coordinate of the view in order to make it stay in the viewport
+	dy = (targetViewport.top + targetViewport.height) - (parentViewport.top + parentViewport.height);
+	// If dy > 0 then the window bottom is outside of the viewport, we need to remove dy from the height and adjust the center
+	if (dy > 0) {
+		targetViewport.height -= dy;
+		targetSize.y -= dy * zoom;
+		targetCenter.y -= dy * zoom / 2;
+	}
+	dx = (targetViewport.left + targetViewport.width) - (parentViewport.left + parentViewport.width);
+	if (dx > 0) {
+		targetViewport.width -= dx;
+		targetSize.x -= dx * zoom;
+		targetCenter.x -= dx * zoom / 2;
+	}
+
+	// Set the view
 	targetView.setCenter(targetCenter);
-	targetView.setViewport(targetViewport);
+	targetView.setSize(targetSize);
+	targetView.setViewport(sf::FloatRect(targetViewport.left / sw, targetViewport.top / sh, targetViewport.width / sw, targetViewport.height / sh));
 }
 
 void cgss::FramedViewItem::updateVertices() {
@@ -166,11 +200,11 @@ void cgss::FramedViewItem::updateVerticesBlt(long wt, long ht) {
 	// [ ..., ..., ...] / [ ..., ..., ...] / [ ..., ..., 9]
 	a.y = ht - h7;
 	rectSet(rect, ws - w3, hs - h7, w3, h7);
-	calculateVertices(x, y, m_numVerticesLine - 1, -1, a, rect);
+	calculateVertices(x, y, m_vertices.size() - 1, -1, a, rect);
 	// [ ..., ..., ...] / [ ..., ..., ...] / [ 7, ..., ...]
 	a.x = 0;
 	rectSet(rect, 0, hs - h7, w1, h7);
-	calculateVertices(x, y, m_numVerticesLine - 1, 0, a, rect);
+	calculateVertices(x, y, m_vertices.size() - 1, 0, a, rect);
 	// Side vertice calculation
 	int count;
 	// [ ..., 2, ...] / [ ..., ..., ...] / [ ..., ..., ...]
@@ -215,12 +249,12 @@ void cgss::FramedViewItem::updateVerticesBlt(long wt, long ht) {
 	rectSet(rect, xm, hs - h7, wm, h7);
 	for (count = nb2; count > 0; count--)
 	{
-		calculateVertices(x, y, m_numVerticesLine - 1, count, a, rect);
+		calculateVertices(x, y, m_vertices.size() - 1, count, a, rect);
 		a.x += wm;
 	}
 	if (delta_w > 0) {
 		rect.width = delta_w;
-		calculateVertices(x, y, m_numVerticesLine - 1, -2, a, rect);
+		calculateVertices(x, y, m_vertices.size() - 1, -2, a, rect);
 	}
 
 	// Inside vertices calculation
@@ -241,14 +275,14 @@ void cgss::FramedViewItem::updateVerticesBlt(long wt, long ht) {
 
 	if (delta_h > 0 && delta_w > 0) {
 		rectSet(rect, xm, ym, delta_w, delta_h);
-		calculateVertices(x, y, m_numVerticesLine - 2, -2, a, rect);
+		calculateVertices(x, y, m_vertices.size() - 2, -2, a, rect);
 	}
 
 	if (delta_h > 0) {
 		a.x = w1;
 		rectSet(rect, xm, ym, wm, delta_h);
 		for (count = nb2; count > 0; count--) {
-			calculateVertices(x, y, m_numVerticesLine - 2, count, a, rect);
+			calculateVertices(x, y, m_vertices.size() - 2, count, a, rect);
 			a.x += wm;
 		}
 	}
@@ -332,11 +366,11 @@ void cgss::FramedViewItem::updateVerticesStretch(long wt, long ht) {
 	// [ ..., ..., ...] / [ ..., ..., ...] / [ ..., ..., 9]
 	a.y = ht - h7;
 	rectSet(rect, ws - w3, hs - h7, w3, h7);
-	calculateVertices(x, y, m_numVerticesLine - 1, -1, a, rect);
+	calculateVertices(x, y, m_vertices.size() - 1, -1, a, rect);
 	// [ ..., ..., ...] / [ ..., ..., ...] / [ 7, ..., ...]
 	a.x = 0;
 	rectSet(rect, 0, hs - h7, w1, h7);
-	calculateVertices(x, y, m_numVerticesLine - 1, 0, a, rect);
+	calculateVertices(x, y, m_vertices.size() - 1, 0, a, rect);
 
 	// 4 Side vertice calculation
 	// [ ..., 2, ...] / [ ..., ..., ...] / [ ..., ..., ...]
@@ -351,7 +385,7 @@ void cgss::FramedViewItem::updateVerticesStretch(long wt, long ht) {
 	a.x = w1;
 	a.y = ht - h7;
 	rectSet(rect, xm, hs - h7, wm, h7);
-	calculateVerticesStretch(x, y, m_numVerticesLine - 1, 1, s, a, rect);
+	calculateVerticesStretch(x, y, m_vertices.size() - 1, 1, s, a, rect);
 	// [ ..., ..., ...] / [ 4, ..., ...] / [ ..., ..., ...]
 	s.x = w1;
 	s.y = delta_h;
@@ -462,8 +496,7 @@ void cgss::FramedViewItem::allocateVerticesBlt(long delta_w, long nb2, long delt
 	// Ajustment of the real amount of cell in x
 	if (delta_w > 0) {
 		nb2 += 3;
-	}
-	else {
+	} else {
 		nb2 += 2;
 	}
 
@@ -473,21 +506,19 @@ void cgss::FramedViewItem::allocateVerticesBlt(long delta_w, long nb2, long delt
 	// Ajustment of the real amount of cell in y
 	if (delta_h > 0) {
 		nb4 += 3;
-	}
-	else {
+	} else {
 		nb4 += 2;
 	}
 	// Delete the vertices if the number of line is different
 	// Alloction of the vertex Arrays (if no vertices or different lines)
-	if (m_vertices.empty() || nb4 != m_numVerticesLine) {
-		m_vertices = std::vector<sf::VertexArray>(nb4);
+	if (m_vertices.empty() || nb4 != m_vertices.size()) {
+		m_vertices = nb4 == 0 ? std::vector<sf::VertexArray>{} : std::vector<sf::VertexArray>(nb4);
 	}
-	// Update the number of lines
-	m_numVerticesLine = nb4;
-	for (long i = 0; i < nb4; i++) {
-		m_vertices[i].setPrimitiveType(sf::Triangles);
-		if (nb2 != m_vertices[i].getVertexCount()) {
-			m_vertices[i].resize(nb2);
+
+	for (auto& vertice : m_vertices) {
+		vertice.setPrimitiveType(sf::Triangles);
+		if (nb2 != vertice.getVertexCount()) {
+			vertice.resize(nb2);
 		}
 	}
 }
@@ -505,8 +536,7 @@ void cgss::FramedViewItem::updateBackOpacity() {
 	col.a = m_opacity * m_backOpacity / 255;
 	if (!m_vertices.empty()) {
 		std::size_t num_vertices = m_vertices[0].getVertexCount();
-		for (std::size_t i = 0; i < m_numVerticesLine; i++) {
-			auto& vertArr = m_vertices[i];
+		for (auto& vertArr : m_vertices) {
 			for (std::size_t j = 0; j < num_vertices; j++) {
 				vertArr[j].color = col;
 			}
@@ -555,12 +585,9 @@ const sf::IntRect& cgss::FramedViewItem::getCursorRectangle() const {
 }
 
 void cgss::FramedViewItem::resetPausePosition() {
-	if (!m_pauseSkin.isLoaded()) {
-		return;
-	}
-
-	float pause_x = m_pauseX.has_value() ? static_cast<float>(m_pauseX.value()) : (ViewBox::getWidth() - m_pauseSkin.getSize().x) / 2.F;
-	float pause_y = m_pauseY.has_value() ? static_cast<float>(m_pauseY.value()) : (ViewBox::getHeight() - m_pauseSkin.getSize().y) / 2.F;
+	auto size = m_pause.getTexture() == nullptr ? sf::Vector2u{} : m_pause.getTexture()->getSize();
+	float pause_x = m_pauseX.has_value() ? static_cast<float>(m_pauseX.value()) : (ViewBox::getWidth() - size.x) / 2.F;
+	float pause_y = m_pauseY.has_value() ? static_cast<float>(m_pauseY.value()) : (ViewBox::getHeight() - size.y) / 2.F;
 	pause_x += m_x;
 	pause_y += m_y;
 	m_pause.setPosition(sf::Vector2f(pause_x, pause_y));
