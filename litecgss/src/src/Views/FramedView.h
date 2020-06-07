@@ -186,9 +186,14 @@ namespace cgss {
 		void stretch(bool stretch);
 		bool isStretched() const;
 
-		sf::IntRect getRectangle() const;
+		sf::IntRect getViewportBox() const;
 		long getOx() const;
 		long getOy() const;
+
+		float getWidth() const;
+		float getHeight() const;
+		float getX() const;
+		float getY() const;
 
 		template <class View, class StackItem, class Drawable>
 		StackItem& add(std::shared_ptr<StackItem> d) {

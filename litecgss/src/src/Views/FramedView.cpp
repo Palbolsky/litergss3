@@ -842,9 +842,24 @@ const sf::IntRect& cgss::FramedView::getCursorRectangle() const {
 	return m_proxy->getCursorRectangle();
 }
 
-sf::IntRect cgss::FramedView::getRectangle() const {
-	auto box = m_proxy->getRectangleBox();
-	return { box.left, box.top, static_cast<int>(m_proxy->m_wantedWidth), static_cast<int>(m_proxy->m_wantedHeight) };
+sf::IntRect cgss::FramedView::getViewportBox() const {
+	return m_proxy->getRectangleBox();
+}
+
+float cgss::FramedView::getX() const {
+	return m_proxy->m_x;
+}
+
+float cgss::FramedView::getY() const {
+	return m_proxy->m_y;
+}
+
+float cgss::FramedView::getWidth() const {
+	return m_proxy->m_wantedWidth;
+}
+
+float cgss::FramedView::getHeight() const {
+	return m_proxy->m_wantedHeight;
 }
 
 long cgss::FramedView::getOx() const {
