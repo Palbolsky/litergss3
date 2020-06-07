@@ -24,6 +24,11 @@ function(generate_source_groups src_files src_dir)
     endforeach()
 endfunction()
 
+set(OLD_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
+set(BUILD_SHARED_LIBS False)
+add_subdirectory(external/skalog)
+set(BUILD_SHARED_LIBS ${OLD_BUILD_SHARED_LIBS})
+
 add_subdirectory(src)
 add_subdirectory(test)
 add_subdirectory(playground)
