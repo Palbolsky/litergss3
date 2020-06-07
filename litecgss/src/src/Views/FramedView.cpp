@@ -122,16 +122,16 @@ void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, sf::RenderTar
 
 void cgss::FramedViewItem::updateVertices() {
 	// Checkup part
-	if (m_locked || ViewBox::getWidth() <= 0 || ViewBox::getHeight() <= 0) {
+	if (m_locked || m_wantedWidth <= 0 || m_wantedHeight <= 0) {
 		LOG_DEBUG << "Invalid FramedViewItem state in updateVertices (" << 
-			"lock = " << (m_locked ? "true" : "false") << " width = " << ViewBox::getWidth() <<  " height = " << ViewBox::getHeight() << ")" ;
+			"lock = " << (m_locked ? "true" : "false") << " width = " << m_wantedWidth <<  " height = " << m_wantedHeight << ")" ;
 		return;
 	}
 
 	if (m_stretch) {
-		updateVerticesStretch(static_cast<long>(ViewBox::getWidth()), static_cast<long>(ViewBox::getHeight()));
+		updateVerticesStretch(static_cast<long>(m_wantedWidth), static_cast<long>(m_wantedHeight));
 	} else {
-		updateVerticesBlt(static_cast<long>(ViewBox::getWidth()), static_cast<long>(ViewBox::getHeight()));
+		updateVerticesBlt(static_cast<long>(m_wantedWidth), static_cast<long>(m_wantedHeight));
 	}
 
 	updateBackOpacity();
@@ -602,8 +602,8 @@ const sf::IntRect& cgss::FramedViewItem::getCursorRectangle() const {
 
 void cgss::FramedViewItem::resetPausePosition() {
 	auto size = m_pause.getTexture() == nullptr ? sf::Vector2u{} : m_pause.getTexture()->getSize();
-	float pause_x = m_pauseX.has_value() ? static_cast<float>(m_pauseX.value()) : (ViewBox::getWidth() - size.x) / 2.F;
-	float pause_y = m_pauseY.has_value() ? static_cast<float>(m_pauseY.value()) : (ViewBox::getHeight() - size.y) / 2.F;
+	float pause_x = m_pauseX.has_value() ? static_cast<float>(m_pauseX.value()) : (m_wantedWidth - size.x) / 2.F;
+	float pause_y = m_pauseY.has_value() ? static_cast<float>(m_pauseY.value()) : (m_wantedHeight - size.y) / 2.F;
 	pause_x += m_x;
 	pause_y += m_y;
 	m_pause.setPosition(sf::Vector2f(pause_x, pause_y));
