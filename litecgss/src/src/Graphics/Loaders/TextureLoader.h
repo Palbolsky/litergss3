@@ -12,7 +12,7 @@ namespace cgss {
 		virtual ~TextureLoader() = default;
 		virtual bool load(sf::Texture& texture, sf::Image& image) const = 0;
 	protected:
-		static bool lodePngDecode(sf::Texture& texture, const char* rawDataOrFilename, long from_memory_size);
+		static unsigned int lodePngDecode(sf::Texture& texture, const char* rawDataOrFilename, long from_memory_size);
 	};
 
 	class TextureSaver {

@@ -2,7 +2,7 @@
 #include "lodepng.h"
 #include "TextureLoader.h"
 
-bool cgss::TextureLoader::lodePngDecode(sf::Texture& texture, const char* rawDataOrFilename, long from_memory_size) {
+unsigned int cgss::TextureLoader::lodePngDecode(sf::Texture& texture, const char* rawDataOrFilename, long from_memory_size) {
 	unsigned char* out = nullptr;
 	unsigned w = 0;
 	unsigned h = 0;
@@ -19,7 +19,7 @@ bool cgss::TextureLoader::lodePngDecode(sf::Texture& texture, const char* rawDat
 		texture.update(reinterpret_cast<sf::Uint8*>(out), w, h, 0, 0);
 	}
 	free(out);
-	return result == 0;
+	return result;
 }
 
 
@@ -41,11 +41,11 @@ bool cgss::TextureMemoryLoader::load(sf::Texture& texture, sf::Image& image) con
 }
 
 bool cgss::TextureMemoryLoader::instantLoad(const std::vector<unsigned char>& rawData, sf::Texture& texture, sf::Image& image) {
-	const unsigned int error = lodePngDecode(texture, reinterpret_cast<const char*>(&rawData[0]), rawData.size());
-	if (!error) {
+	const bool errorCode = lodePngDecode(texture, reinterpret_cast<const char*>(&rawData[0]), rawData.size());
+	if (errorCode == 0) {
 		return texture.loadFromMemory(&rawData[0], rawData.size());
 	}
-	std::cerr << lodepng_error_text(error) << std::endl;
+	std::cerr << "LodePNG error : " << lodepng_error_text(errorCode) << std::endl;
 	return false;
 }
 
@@ -63,9 +63,9 @@ std::vector<unsigned char> cgss::TextureMemoryLoader::instantSave(const sf::Text
 
 	unsigned char* out = nullptr;
 	std::size_t size;
-	const unsigned int error = lodepng_encode32(&out, &size, img.getPixelsPtr(), img.getSize().x, img.getSize().y) != 0;
+	const unsigned int errorCode = lodepng_encode32(&out, &size, img.getPixelsPtr(), img.getSize().x, img.getSize().y) != 0;
 
-	if (!error) {
+	if (errorCode == 0) {
 		//Involves a memory allocation, so could throw, meaning that we have to handle exceptions if we want to correctly free "out"
 		try {
 			memory = std::vector<unsigned char>{ out, out + size };
@@ -73,7 +73,7 @@ std::vector<unsigned char> cgss::TextureMemoryLoader::instantSave(const sf::Text
 			//Nothing special here (it could be logging maybe ?)
 		}
 	} else {
-		std::cerr << lodepng_error_text(error) << std::endl;
+		std::cerr << "LodePNG error : " <<  lodepng_error_text(errorCode) << std::endl;
 	}
 	
 	free(out);
@@ -85,9 +85,11 @@ void cgss::TextureMemoryLoader::save(const sf::Texture& texture) {
 }
 
 bool cgss::TextureFileLoader::instantLoad(const std::string& filename, sf::Texture& texture, sf::Image& image) {
-	if (!lodePngDecode(texture, filename.c_str(), 0)) {
+	const auto errorCode = lodePngDecode(texture, filename.c_str(), 0);
+	if (errorCode == 0) {
 		return texture.loadFromFile(filename.c_str());
 	}
+	std::cerr << "LodePNG error : " <<  lodepng_error_text(errorCode) << std::endl;
 	return true;
 }
 
