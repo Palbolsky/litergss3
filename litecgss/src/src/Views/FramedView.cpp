@@ -1,7 +1,14 @@
 #include <cstring>
+#include "LoggerViews.h"
 #include "FramedView.h"
 #include "Viewport.h"
 #include "Common/Rectangle.h"
+
+SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::FramedViewItem);
+
+#define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Debug, cgss::FramedViewItem)
+#define LOG_INFO SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info, cgss::FramedViewItem)
+#define LOG_WARN SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Warn, cgss::FramedViewItem)
 
 cgss::FramedViewItem::FramedViewItem(FramedView* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings, std::weak_ptr<ViewportItem> parent) :
 	ViewBox(eventDispatcher, windowSettings),
@@ -38,6 +45,9 @@ void cgss::FramedViewItem::drawFast(sf::RenderTarget& target) const {
 }
 
 void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, sf::RenderTarget& target, sf::View& targetView) const {
+	// TODO : can be based on event system ? when parent viewport is moved / resized.
+	LOG_DEBUG << "Draw calculate view";
+
 	const sf::IntRect parentViewport = parent.getRectangle();
 	float zoom = parent.getScale();
 
@@ -113,6 +123,8 @@ void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, sf::RenderTar
 void cgss::FramedViewItem::updateVertices() {
 	// Checkup part
 	if (m_locked || ViewBox::getWidth() <= 0 || ViewBox::getHeight() <= 0) {
+		LOG_DEBUG << "Invalid FramedViewItem state in updateVertices (" << 
+			"lock = " << (m_locked ? "true" : "false") << " width = " << ViewBox::getWidth() <<  " height = " << ViewBox::getHeight() << ")" ;
 		return;
 	}
 
@@ -141,6 +153,7 @@ void cgss::FramedViewItem::updateVerticesBlt(long wt, long ht) {
 	sf::IntRect rect;
 
 	if (m_texture == nullptr) {
+		LOG_WARN << "No texture provided in updateVerticesBlt";
 		return;
 	}
 
@@ -316,6 +329,7 @@ void cgss::FramedViewItem::updateVerticesStretch(long wt, long ht) {
 	sf::IntRect rect;
 	
 	if (m_texture == nullptr) {
+		LOG_WARN << "No texture provided in updateVerticesStretch";
 		return;
 	}
 	
@@ -562,17 +576,19 @@ void cgss::FramedViewItem::updateView() {
 	long y = static_cast<long>(m_y) + offset_y;
 	long width = static_cast<long>(ViewBox::getWidth()) - 2 * offset_x;
 	long height = static_cast<long>(ViewBox::getHeight()) - 2 * offset_y;
-		
+	LOG_INFO << "View updated to x = " << x << " y = " << y << " width = " << width << " height = " << height;
 	resize(width, height);
 	updateViewport(x, y);
 }
 
 void cgss::FramedViewItem::lock() {
 	m_locked = true;
+	LOG_INFO << "Locked";
 }
 
 void cgss::FramedViewItem::unlock() {
 	m_locked = false;
+	LOG_INFO << "Unlocked, updating vertices";
 	updateVertices();
 }
 
@@ -690,6 +706,7 @@ uint8_t cgss::FramedViewItem::getContentsOpacity() const {
 
 void cgss::FramedViewItem::setSkin(sf::Texture* skin) {
 	m_texture = skin;
+	LOG_INFO << "Skin set";
 	updateVertices();
 }
 
