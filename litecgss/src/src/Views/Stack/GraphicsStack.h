@@ -14,10 +14,13 @@ namespace cgss {
 		GraphicsStack() = default;
 		virtual ~GraphicsStack();
 
+		static auto MaxZ() { return std::numeric_limits<int32_t>::max(); }
+		static int32_t MinZ() { return 0; }
+
 		void add(GraphicsStackItemPtr item);
 		void syncFromRawData(GraphicsContainer data, bool forceDetachAll = true);
 		std::size_t getSize() const { return m_stack.size(); }
-		ZIndex currentZIndex() const { return {std::numeric_limits<long>::max(), m_zIndexCounter}; }
+		ZIndex currentZIndex() const { return { MaxZ(), m_zIndexCounter }; }
 
 		const auto& operator[](std::size_t index) const {
 			return *m_stack[index];
@@ -40,7 +43,7 @@ namespace cgss {
 		std::size_t dichotomicFindFirstGreater(const ZIndex& value) const;
 
 		GraphicsContainer m_stack;
-		long m_zIndexCounter = 0;
+		int32_t m_zIndexCounter = 0;
 		mutable std::mutex m_mutexDetached;
 		mutable GraphicsContainer m_detached;
 	};

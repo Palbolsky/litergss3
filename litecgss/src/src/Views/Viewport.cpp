@@ -57,6 +57,8 @@ cgss::Viewport::Viewport() {
 }
 
 void cgss::Viewport::moveOrigin(long ox, long oy) {
+	m_proxy->m_wantedOx = ox;
+	m_proxy->m_wantedOy = oy;
 	m_proxy->moveOrigin(ox, oy);
 }
 
@@ -124,7 +126,7 @@ void cgss::Viewport::setRectangle(sf::IntRect rectangle) {
 	}
 }
 
-sf::IntRect cgss::ViewportItem::getRectangle() const {
+sf::IntRect cgss::ViewportItem::getViewportBox() const {
 	const auto* boundRectangle = getBoundRectangle();
 	if (boundRectangle != nullptr) {
 		return boundRectangle->getRect();
@@ -132,16 +134,16 @@ sf::IntRect cgss::ViewportItem::getRectangle() const {
 	return getRectangleBox();
 }
 
-sf::IntRect cgss::Viewport::getRectangle() const {
-	return m_proxy->getRectangle();
+sf::IntRect cgss::Viewport::getViewportBox() const {
+	return m_proxy->getViewportBox();
 }
 
 long cgss::Viewport::getOx() const {
-	return m_proxy->getOx();
+	return m_proxy->m_wantedOx;
 }
 
 long cgss::Viewport::getOy() const {
-	return m_proxy->getOy();
+	return m_proxy->m_wantedOy;
 }
 
 void cgss::Viewport::setAngle(float angle) {

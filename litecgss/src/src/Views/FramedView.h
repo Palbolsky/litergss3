@@ -58,6 +58,9 @@ namespace cgss {
 
 		float m_x = 0;
 		float m_y = 0;
+		float m_wantedOx = 0;
+		float m_wantedOy = 0;
+
 		std::uint8_t m_opacity = 255;
 		std::uint8_t m_backOpacity = 255;
 		std::uint8_t m_contentOpacity = 255;

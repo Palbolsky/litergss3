@@ -1,13 +1,22 @@
 #include <algorithm>
 #include "GraphicsStack.h"
 #include "Graphics/GraphicsStackItem.h"
+#include "LoggerStack.h"
+
+SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::GraphicsStack);
+
+#define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerStack(), ska::LogLevel::Debug, cgss::GraphicsStack)
+#define LOG_INFO SKA_LOGC_STATIC(GetLoggerStack(), ska::LogLevel::Info, cgss::GraphicsStack)
+#define LOG_WARN SKA_LOGC_STATIC(GetLoggerStack(), ska::LogLevel::Warn, cgss::GraphicsStack)
 
 cgss::GraphicsStack::~GraphicsStack() {
 	clear();
+    LOG_INFO << "Stack destructed";
 }
 
 void cgss::GraphicsStack::clear() {
 	syncFromRawData({});
+    LOG_INFO << "Stack cleared";
 }
 
 // What this function does :
@@ -66,6 +75,8 @@ std::size_t cgss::GraphicsStack::dichotomicFindFirstGreater(const ZIndex& value)
 }
 
 void cgss::GraphicsStack::zSwap(const ZIndex& previous, const ZIndex& next) {
+    LOG_DEBUG << "Stack item zswaping, previous = " << previous.z << ", " << previous.index << " next = " << next.z << ", " << next.index;
+    
     if (previous == next) {
       return;
     }
@@ -102,8 +113,11 @@ bool cgss::GraphicsStack::remove(GraphicsStackItem* item) {
     const auto index = dichotomicFindFirstGreater(item->getZ());
     const auto foundExactValue = item == m_stack[index].get();
     if (!foundExactValue) {
+        LOG_WARN << "Trying to remove an element from stack but unable to find it";
         return false;
     }
+
+    LOG_INFO << "Element removed from stack at index " << index << " for z-index = " << item->getZ().z << ", " << item->getZ().index;
 
     auto it = m_stack.begin();
     std::advance(it, index);
@@ -115,5 +129,7 @@ bool cgss::GraphicsStack::remove(GraphicsStackItem* item) {
 void cgss::GraphicsStack::add(GraphicsStackItemPtr item) {
     item->forceAttach(*this);
     m_zIndexCounter++;
+
+    LOG_INFO << "Adding element to stack with z-index = " << item->getZ().z << ", " << item->getZ().index;
 	m_stack.push_back(std::move(item));
 }

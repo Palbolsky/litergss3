@@ -31,8 +31,7 @@ namespace cgss {
   };
 
   class SpriteMap :
-  	public Drawable<SpriteMap, SpriteMapItem>,
-		public Transformable {
+  	public Drawable<SpriteMap, SpriteMapItem> {
   public:
     SpriteMap() = default;
     SpriteMap(SpriteMap&&) = default;

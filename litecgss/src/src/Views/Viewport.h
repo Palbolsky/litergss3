@@ -30,13 +30,15 @@ namespace cgss {
 		mutable sf::RenderTexture m_render;
 
 		bool m_smooth = false;
+		float m_wantedOx = 0;
+		float m_wantedOy = 0;
 	public:
 		void createRender();
 		ViewportItem(Viewport* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings);
 		void drawFast(sf::RenderTarget& target) const override { draw(target); }
 		void draw(sf::RenderTarget& target) const override;
 		void updateFromRectangle(const sf::IntRect& rectangle) override;
-		sf::IntRect getRectangle() const;
+		sf::IntRect getViewportBox() const;
 	private:
 		sf::Shader& getRenderStateShader() const;
 	};
@@ -62,7 +64,7 @@ namespace cgss {
 		void move(float x, float y);
 		void resize(long width, long height);
 		void setRectangle(sf::IntRect rectangle);
-		sf::IntRect getRectangle() const;
+		sf::IntRect getViewportBox() const;
 
 		long getOx() const;
 		long getOy() const;

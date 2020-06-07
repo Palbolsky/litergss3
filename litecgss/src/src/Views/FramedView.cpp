@@ -48,7 +48,7 @@ void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, sf::RenderTar
 	// TODO : can be based on event system ? when parent viewport is moved / resized.
 	LOG_DEBUG << "Draw calculate view";
 
-	const sf::IntRect parentViewport = parent.getRectangle();
+	const sf::IntRect parentViewport = parent.getViewportBox();
 	float zoom = parent.getScale();
 
 	const auto vx0 = parentViewport.width / 2.f - (parentViewport.width / 2.f) / zoom; // <- When vp.zoom = 0.5, zoom = 2
@@ -809,6 +809,8 @@ void cgss::FramedView::drawFast(sf::RenderTarget& target) const {
 }
 
 void cgss::FramedView::moveOrigin(long ox, long oy) {
+	m_proxy->m_wantedOx = ox;
+	m_proxy->m_wantedOy = oy;
 	m_proxy->moveOrigin(ox, oy);
 }
 
@@ -863,11 +865,11 @@ float cgss::FramedView::getHeight() const {
 }
 
 long cgss::FramedView::getOx() const {
-	return m_proxy->getOx();
+	return m_proxy->m_wantedOx;
 }
 
 long cgss::FramedView::getOy() const {
-	return m_proxy->getOy();
+	return m_proxy->m_wantedOy;
 }
 
 void cgss::FramedView::setBackOpacity(uint8_t backOpacity) {
