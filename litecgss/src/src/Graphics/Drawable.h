@@ -22,6 +22,8 @@ namespace cgss {
 			}
 		}
 
+		bool isDisposed() const { return m_disposed; }
+
 		const ZIndex& getZ() const {
 			return m_instanceOwner->getZ();
 		}
