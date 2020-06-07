@@ -24,6 +24,7 @@ bin
 **/Debug
 **/Release
 **.a
+*.log
 
 #Tests & playground
 playground/resources/*.png
