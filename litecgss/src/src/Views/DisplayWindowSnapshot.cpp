@@ -83,12 +83,20 @@ void cgss::DisplayWindowSnapshot::transitionRGSS(long time, const Texture& bitma
 	}
 }
 
+static inline long normalize_long(long value, long min, long max) {
+	if(value < min)
+		return min;
+	if(value > max)
+		return max;
+	return value;
+}
+
 void cgss::DisplayWindowSnapshot::transition(long time, Texture* texture) {
 	if(m_freezeSprite == nullptr) {
 		return;
 	}
 
-	//TODO : time = normalize_long(time, 1, 0xFFFF); ???
+	time = normalize_long(time, 1, 0xFFFF);
 	if (texture == nullptr) {
 		transitionBasic(time);
 	} else {
