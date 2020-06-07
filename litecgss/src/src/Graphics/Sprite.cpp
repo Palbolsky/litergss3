@@ -32,11 +32,25 @@ void cgss::Sprite::horizontalFlip() {
 	auto rect = m_proxy->m_sprite.getTextureRect();
 	rect.left += rect.width;
 	rect.width = -rect.width;
-	m_proxy->m_sprite.setTextureRect(rect);
+	setTextureRect(rect);
 }
 
 sf::Color cgss::Sprite::getColor() const {
 	return m_proxy->m_sprite.getColor();
+}
+
+float cgss::Sprite::getX() const {
+	return m_proxy->m_wantedX;
+}
+
+float cgss::Sprite::getY() const {
+	return m_proxy->m_wantedY;
+}
+
+void cgss::Sprite::move(float x, float y) {
+	m_proxy->m_wantedX = x;
+	m_proxy->m_wantedY = y;
+	Transformable::move(x, y);
 }
 
 void cgss::Sprite::setColor(sf::Color color) {

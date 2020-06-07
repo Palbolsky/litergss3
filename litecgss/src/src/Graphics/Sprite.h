@@ -18,6 +18,8 @@ namespace cgss {
 	private:
 		sf::Sprite m_sprite;
 		bool m_mirror = false;
+		float m_wantedX = 0;
+		float m_wantedY = 0;
 	public:
 		SpriteItem(Sprite* owner);
 		virtual ~SpriteItem();
@@ -28,7 +30,7 @@ namespace cgss {
 	
 	class Sprite :
 		public Drawable<Sprite, SpriteItem>,
-		public Transformable {
+		private Transformable {
 	private:
 		void horizontalFlip();
 
@@ -40,6 +42,20 @@ namespace cgss {
 		Sprite& operator=(Sprite&&) = default;
 		virtual ~Sprite() = default;
 
+		float getX() const;
+		float getY() const;
+		void move(float x, float y);
+
+		using Transformable::getOx;
+		using Transformable::getOy;
+		using Transformable::getScaleX;
+		using Transformable::getScaleY;
+		using Transformable::moveOrigin;
+		using Transformable::scale;
+		using Transformable::setInstance;
+		using Transformable::getAngle;
+		using Transformable::setAngle;
+		
 		sf::Color getColor() const;
 		void setColor(sf::Color color);
 
