@@ -37,6 +37,18 @@ cgss::GraphicsStackItem::~GraphicsStackItem() {
 	bindRectangle(nullptr);
 }
 
+void cgss::GraphicsStackItem::tryDraw(sf::RenderTarget& target) const {
+	if (m_visible) {
+		draw(target);
+	}
+}
+
+void cgss::GraphicsStackItem::tryDrawFast(sf::RenderTarget& target) const {
+	if (m_visible) {
+		drawFast(target);
+	}
+}
+
 void cgss::GraphicsStackItem::bindRectangle(Rectangle* rectangle) {
 	if (rectangle != m_boundRectangle) {
 		auto lastLinkedRect = m_boundRectangle;
