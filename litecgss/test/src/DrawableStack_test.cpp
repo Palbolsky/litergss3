@@ -7,6 +7,7 @@ struct DrawableTest;
 struct DrawableStackItemTest : 
 	public cgss::GraphicsStackItem {
 	DrawableStackItemTest(DrawableTest*) {}
+	uint32_t id = 0;
 protected:
 	void draw(sf::RenderTarget& target) const override {};
 	void drawFast(sf::RenderTarget& target) const override {};
@@ -15,6 +16,7 @@ protected:
 struct DrawableTest : 
 	public cgss::Drawable<DrawableTest, DrawableStackItemTest> {
 	bool hasProxy() const { return cgss::Drawable<DrawableTest, DrawableStackItemTest>::hasProxy(); }
+	void setId(std::size_t id) { m_proxy->id = id; }
 };
 
 
@@ -23,10 +25,10 @@ TEST_CASE("[DrawableStack] DrawableStack : drawable dies before : no effect") {
 
 	{
 		auto sprite = DrawableTest::create(stack);
-		CHECK(stack.getSize() == 1);
+		CHECK(stack.size() == 1);
 	}
 
-	CHECK(stack.getSize() == 1);
+	CHECK(stack.size() == 1);
 }
 
 TEST_CASE("[DrawableStack] DrawableStack : drawable disposed before : empty stack") {
@@ -37,7 +39,7 @@ TEST_CASE("[DrawableStack] DrawableStack : drawable disposed before : empty stac
 		sprite.dispose();
 	}
 
-	CHECK(stack.getSize() == 0);
+	CHECK(stack.size() == 0);
 }
 
 TEST_CASE("[DrawableStack] DrawableStack : stack dies before (moved Drawable)") {
@@ -46,7 +48,7 @@ TEST_CASE("[DrawableStack] DrawableStack : stack dies before (moved Drawable)") 
 		auto stack = cgss::DrawableStack{};
 		auto sprite = DrawableTest::create(stack);
 		sprite2 = std::move(sprite);
-		CHECK(stack.getSize() == 1);
+		CHECK(stack.size() == 1);
 	}
 
 	// Still usable safely, but no more presence on screen
@@ -58,12 +60,12 @@ TEST_CASE("[DrawableStack] DrawableStack : drawable is disposed explicitely") {
 
 	{
 		auto sprite = DrawableTest::create(stack);
-		CHECK(stack.getSize() == 1);
+		CHECK(stack.size() == 1);
 		sprite.dispose();
-		CHECK(stack.getSize() == 0);
+		CHECK(stack.size() == 0);
 	}
 
-	CHECK(stack.getSize() == 0);
+	CHECK(stack.size() == 0);
 }
 
 TEST_CASE("[DrawableStack] DrawableStack : moved sprite is not disposed") {
@@ -71,20 +73,20 @@ TEST_CASE("[DrawableStack] DrawableStack : moved sprite is not disposed") {
 	
 	auto sprite = DrawableTest::create(stack);
 	auto sprite2 = DrawableTest::create(stack);
-	CHECK(stack.getSize() == 2);
+	CHECK(stack.size() == 2);
 	sprite = std::move(sprite2);
-	CHECK(stack.getSize() == 2);
+	CHECK(stack.size() == 2);
 }
 
 TEST_CASE("[DrawableStack] DrawableStack : dispose several times") {
 	auto stack = cgss::DrawableStack{};
 
 	auto sprite = DrawableTest::create(stack);
-	CHECK(stack.getSize() == 1);
+	CHECK(stack.size() == 1);
 	sprite.dispose();
-	CHECK(stack.getSize() == 0);
+	CHECK(stack.size() == 0);
 	sprite.dispose();
-	CHECK(stack.getSize() == 0);
+	CHECK(stack.size() == 0);
 }
 
 TEST_CASE("[DrawableStack] DrawableStack : complex mix") {
@@ -95,24 +97,24 @@ TEST_CASE("[DrawableStack] DrawableStack : complex mix") {
 		auto sprite = DrawableTest::create(stack);
 		auto sprite2 = DrawableTest::create(stack);
 
-		CHECK(stack.getSize() == 2);
+		CHECK(stack.size() == 2);
 
 		sprite2.dispose();
 
-		CHECK(stack.getSize() == 1);
+		CHECK(stack.size() == 1);
 
 		auto sprite3 = DrawableTest::create(stack2);
 
-		CHECK(stack2.getSize() == 1);
+		CHECK(stack2.size() == 1);
 
 		sprite = std::move(sprite3);
 
-		CHECK(stack.getSize() == 1);
-		CHECK(stack2.getSize() == 1);
+		CHECK(stack.size() == 1);
+		CHECK(stack2.size() == 1);
 	}
 
-	CHECK(stack.getSize() == 1);
-	CHECK(stack2.getSize() == 1);
+	CHECK(stack.size() == 1);
+	CHECK(stack2.size() == 1);
 
 }
 
@@ -127,7 +129,7 @@ TEST_CASE("[DrawableStack] DrawableStack with drawing") {
 	// Here sprite2 is deleted from stack
 	sprite2.dispose();
 	
-	CHECK(stack.getSize() == 0);
+	CHECK(stack.size() == 0);
 	
 	// We still can use the object safely, it just has no effects anymore
 	auto view = renderTarget.getView();
@@ -149,7 +151,7 @@ TEST_CASE("[DrawableStack] Default z index") {
 }
 
 TEST_CASE("[DrawableStack] z sorting") {
-	constexpr const auto MaxStackNum = std::numeric_limits<long>::max();
+	constexpr const auto MaxStackNum = cgss::GraphicsStack::MaxZ();
 
 	auto stack = cgss::DrawableStack{};
 	auto zindexStack = std::vector<cgss::ZIndex> { {0, 0}, {0, 15}, {1, 1}, {1, 2}, {2, 33}, {3, 22}, {3, 55}, {4, 66}, {5, 55}, {6, 4}, {MaxStackNum, 5}, {MaxStackNum, 6}, {MaxStackNum, 7} };
@@ -193,4 +195,50 @@ TEST_CASE("[DrawableStack] z sorting") {
 		auto drawable = DrawableTest::create(stack);
 		CHECK(drawable.getZ() == stack[13].getZ());
 	}
+}
+
+
+TEST_CASE("[DrawableStack] z sorting from scratch") {
+	constexpr const auto MaxStackNum = std::numeric_limits<long>::max();
+
+	auto stack = cgss::DrawableStack{};
+	auto zindexStack = std::vector<long> { 2000, 2000, 2000, 0, 1 };
+	
+	std::size_t index = 0;
+	for (const auto& zindex : zindexStack) {
+		auto drawable = DrawableTest::create(stack);
+		drawable.setId(index);
+		drawable.setZ(zindexStack[index]);
+		index++;
+	}
+	
+	CHECK(reinterpret_cast<const DrawableStackItemTest&>(stack[0]).id == 3);
+	CHECK(reinterpret_cast<const DrawableStackItemTest&>(stack[1]).id == 4);
+	CHECK(reinterpret_cast<const DrawableStackItemTest&>(stack[2]).id == 0);
+	CHECK(reinterpret_cast<const DrawableStackItemTest&>(stack[3]).id == 1);
+	CHECK(reinterpret_cast<const DrawableStackItemTest&>(stack[4]).id == 2);
+
+	CHECK(stack[0].getZ() == cgss::ZIndex{ 0, 3 });
+	CHECK(stack[1].getZ() == cgss::ZIndex{ 1, 4 });
+	CHECK(stack[2].getZ() == cgss::ZIndex{ 2000, 0 });
+	CHECK(stack[3].getZ() == cgss::ZIndex{ 2000, 1 });
+	CHECK(stack[4].getZ() == cgss::ZIndex{ 2000, 2 });
+}
+
+TEST_CASE("[DrawableStack] z sorting from scratch") {
+	constexpr const auto MaxStackNum = std::numeric_limits<long>::max();
+
+	auto stack = cgss::DrawableStack{};
+	auto zindexStack = std::vector<long> { 0, 3, 1 };
+	
+	std::size_t index = 0;
+	for (const auto& zindex : zindexStack) {
+		auto drawable = DrawableTest::create(stack);
+		drawable.setZ(zindexStack[index]);
+		index++;
+	}
+
+	CHECK(stack[0].getZ() == cgss::ZIndex{ 0, 0 });
+	CHECK(stack[1].getZ() == cgss::ZIndex{ 1, 2 });
+	CHECK(stack[2].getZ() == cgss::ZIndex{ 3, 1 });
 }

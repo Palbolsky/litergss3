@@ -14,12 +14,12 @@ namespace cgss {
 		GraphicsStack() = default;
 		virtual ~GraphicsStack();
 
-		static auto MaxZ() { return std::numeric_limits<int32_t>::max(); }
-		static int32_t MinZ() { return 0; }
+		static constexpr auto MaxZ() { return std::numeric_limits<int32_t>::max(); }
+		static constexpr int32_t MinZ() { return 0; }
 
 		void add(GraphicsStackItemPtr item);
 		void syncFromRawData(GraphicsContainer data, bool forceDetachAll = true);
-		std::size_t getSize() const { return m_stack.size(); }
+		std::size_t size() const { return m_stack.size(); }
 		ZIndex currentZIndex() const { return { MaxZ(), m_zIndexCounter }; }
 
 		const auto& operator[](std::size_t index) const {

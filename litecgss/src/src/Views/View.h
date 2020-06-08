@@ -23,7 +23,7 @@ namespace cgss {
 		View(const View&) = delete;
 		View& operator=(const View&) = delete;
 
-		auto getStackSize() const { return m_drawables->getSize(); }
+		auto getStackSize() const { return m_drawables->size(); }
 		void updateContentsOpacity(std::uint8_t opacity) { m_drawables->updateContentsOpacity(opacity); }
 
 		template <class ViewImpl, class StackItem, class Drawable>
