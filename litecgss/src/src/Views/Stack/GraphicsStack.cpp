@@ -3,7 +3,7 @@
 #include "Graphics/GraphicsStackItem.h"
 #include "LoggerStack.h"
 
-SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::GraphicsStack);
+SKA_LOGC_CONFIG(ska::LogLevel::Disabled, cgss::GraphicsStack);
 
 #define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerStack(), ska::LogLevel::Debug, cgss::GraphicsStack)
 #define LOG_INFO SKA_LOGC_STATIC(GetLoggerStack(), ska::LogLevel::Info, cgss::GraphicsStack)
@@ -126,10 +126,19 @@ bool cgss::GraphicsStack::remove(GraphicsStackItem* item) {
 	return true;
 }
 
+cgss::ZIndex cgss::GraphicsStack::currentZIndex() const {
+    return {
+        MaxZ(),
+        m_zIndexCounter
+    };
+}
+
 void cgss::GraphicsStack::add(GraphicsStackItemPtr item) {
     item->forceAttach(*this);
     m_zIndexCounter++;
 
-    LOG_INFO << "Adding element to stack with z-index = " << item->getZ().z << ", " << item->getZ().index;
 	m_stack.push_back(std::move(item));
+    auto& inserted = m_stack.back(); 
+
+    LOG_INFO << "Adding element to stack " << static_cast<void*>(this) << " with z-index = " << inserted->getZ().z << ", " << inserted->getZ().index;
 }
