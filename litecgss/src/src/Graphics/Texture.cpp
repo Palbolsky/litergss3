@@ -31,10 +31,12 @@ cgss::Texture cgss::Texture::clone() const {
 	return result;
 }
 
-void cgss::Texture::update() {
-	if(hasImage()) {
-		m_texture.update(m_image);
+void cgss::Texture::update(sf::Image* image) {
+	if (image != nullptr) {
+		//Explicit copy
+		m_image = *image;
 	}
+	m_texture.update(m_image);
 }
 
 void cgss::Texture::blit(unsigned long x, unsigned long y, const Texture& srcTexture, const Rectangle& rect) {
@@ -61,12 +63,6 @@ void cgss::Texture::fillRect(long x, long y, unsigned int width, unsigned int he
 void cgss::Texture::clearRect(long x, long y, unsigned int width, unsigned int height) {
 	static const auto BLACK_COLOR = sf::Color{0, 0, 0, 0};
 	fillRect(x, y, width, height, BLACK_COLOR);
-}
-
-void cgss::Texture::sync() {
-	if (hasImage()) {
-		m_texture.update(m_image);
-	}
 }
 
 void cgss::Texture::write(TextureSaver& saver) const {

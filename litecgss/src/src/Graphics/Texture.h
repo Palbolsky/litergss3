@@ -21,7 +21,7 @@ namespace cgss {
 		static Texture create(const DisplayWindow& window, const std::string& filename);
 		static Texture create(const std::string& filename);
 
-		void update();
+		void update(sf::Image* image = nullptr);
 		auto getSize() const { return m_texture.getSize(); }
 
 		void blit(unsigned long x, unsigned long y, const Texture& srcTexture, const Rectangle& rect);
@@ -30,8 +30,6 @@ namespace cgss {
 		void setSmooth(bool smooth);
 		
 		Texture clone() const;
-
-		void sync();
 
 		bool load(const TextureLoader& loader);
 		void write(TextureSaver& saver) const;
