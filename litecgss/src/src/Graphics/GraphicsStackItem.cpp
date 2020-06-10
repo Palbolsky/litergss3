@@ -20,12 +20,6 @@ void cgss::GraphicsStackItem::detach() {
 	}
 }
 
-void cgss::GraphicsStackItem::setZ(ZIndex z) {
-	m_originStack->zSwap(m_priority, z);
-	LOG_DEBUG << "Zswapping to z = " << z.z;
-	m_priority = std::move(z);
-}
-
 void cgss::GraphicsStackItem::setZ(long z) {
 	m_originStack->zSwap(m_priority, {z, m_priority.index});
 	LOG_DEBUG << "Zswapping to z = " << z;

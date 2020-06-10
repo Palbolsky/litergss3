@@ -45,7 +45,6 @@ namespace cgss {
 		void detach();
 
 		const ZIndex& getZ() const { return m_priority; }
-		void setZ(ZIndex z);
 		void setZ(long z);
 
 		void bindRectangle(Rectangle* rectangle);

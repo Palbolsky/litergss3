@@ -27,10 +27,6 @@ namespace cgss {
 		const ZIndex& getZ() const {
 			return m_instanceOwner->getZ();
 		}
-		
-		void setZ(ZIndex z) {
-			m_instanceOwner->setZ(std::move(z));
-		}
 
 		void setZ(long z) {
 			m_instanceOwner->setZ(z);
