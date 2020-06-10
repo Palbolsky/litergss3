@@ -139,6 +139,7 @@ void cgss::GraphicsStack::add(GraphicsStackItemPtr item) {
 
 	m_stack.push_back(std::move(item));
     auto& inserted = m_stack.back(); 
+    inserted->setZ(MinZ());
 
     LOG_INFO << "Adding element to stack " << static_cast<void*>(this) << " with z-index = " << inserted->getZ().z << ", " << inserted->getZ().index;
 }

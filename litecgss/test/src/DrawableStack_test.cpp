@@ -142,19 +142,17 @@ TEST_CASE("[DrawableStack] DrawableStack with drawing") {
 TEST_CASE("[DrawableStack] Default z index") {
 	auto stack = cgss::DrawableStack{};
 	auto sprite = DrawableTest::create(stack);
-	CHECK(sprite.getZ().z == std::numeric_limits<long>::max());
+	CHECK(sprite.getZ().z == 0);
 	CHECK(sprite.getZ().index == 0);
 	
 	auto sprite2 = DrawableTest::create(stack);
-	CHECK(sprite2.getZ().z == std::numeric_limits<long>::max());
+	CHECK(sprite2.getZ().z == 0);
 	CHECK(sprite2.getZ().index == 1);
 }
 
 TEST_CASE("[DrawableStack] z sorting") {
-	constexpr const auto MaxStackNum = cgss::GraphicsStack::MaxZ();
-
 	auto stack = cgss::DrawableStack{};
-	auto zindexStack = std::vector<cgss::ZIndex> { {0, 0}, {0, 15}, {1, 1}, {1, 2}, {2, 33}, {3, 22}, {3, 55}, {4, 66}, {5, 55}, {6, 4}, {MaxStackNum, 5}, {MaxStackNum, 6}, {MaxStackNum, 7} };
+	auto zindexStack = std::vector<long> { 0, 0, 1, 1, 2, 3, 3, 4, 5, 6, 18, 20, 30 };
 	auto container = std::vector<DrawableTest>{};
 	std::size_t index = 0;
 	for (const auto& zindex : zindexStack) {
@@ -181,19 +179,19 @@ TEST_CASE("[DrawableStack] z sorting") {
 		container[6].setZ(-123);
 		CHECK(container[6].getZ() == stack[0].getZ());
 
-		container[6].setZ(MaxStackNum);
+		container[6].setZ(99999);
 		CHECK(container[6].getZ() == stack[12].getZ());
 	}
 
 	SUBCASE("Exact value testing") {
 		container[6].setZ(5);
-		CHECK(container[6].getZ() == stack[8].getZ());
+		CHECK(container[6].getZ() == stack[7].getZ());
 	}
 
 	SUBCASE("Push a new value") {
 		container[6].setZ(5);
 		auto drawable = DrawableTest::create(stack);
-		CHECK(drawable.getZ() == stack[13].getZ());
+		CHECK(drawable.getZ() == stack[2].getZ());
 	}
 }
 
@@ -223,22 +221,4 @@ TEST_CASE("[DrawableStack] z sorting from scratch") {
 	CHECK(stack[2].getZ() == cgss::ZIndex{ 2000, 0 });
 	CHECK(stack[3].getZ() == cgss::ZIndex{ 2000, 1 });
 	CHECK(stack[4].getZ() == cgss::ZIndex{ 2000, 2 });
-}
-
-TEST_CASE("[DrawableStack] z sorting from scratch") {
-	constexpr const auto MaxStackNum = std::numeric_limits<long>::max();
-
-	auto stack = cgss::DrawableStack{};
-	auto zindexStack = std::vector<long> { 0, 3, 1 };
-	
-	std::size_t index = 0;
-	for (const auto& zindex : zindexStack) {
-		auto drawable = DrawableTest::create(stack);
-		drawable.setZ(zindexStack[index]);
-		index++;
-	}
-
-	CHECK(stack[0].getZ() == cgss::ZIndex{ 0, 0 });
-	CHECK(stack[1].getZ() == cgss::ZIndex{ 1, 2 });
-	CHECK(stack[2].getZ() == cgss::ZIndex{ 3, 1 });
 }
