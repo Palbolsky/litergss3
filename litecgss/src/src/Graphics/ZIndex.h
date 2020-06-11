@@ -27,6 +27,10 @@ namespace cgss {
             return z == alter.z && index == alter.index;
         }
         
+        inline bool operator!=(const ZIndex& alter) const {
+            return !operator==(alter);
+        }
+
         inline bool operator>(const ZIndex& alter) const {
             if (z > alter.z) {
                 return true;

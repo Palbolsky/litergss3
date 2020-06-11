@@ -21,8 +21,11 @@ void cgss::GraphicsStackItem::detach() {
 }
 
 void cgss::GraphicsStackItem::setZ(long z) {
-	m_originStack->zSwap(m_priority, {z, m_priority.index});
-	LOG_DEBUG << "Zswapping to z = " << z;
+	if (m_originStack != nullptr) {
+		auto next = ZIndex{z, m_priority.index};
+		m_originStack->zSwap(m_priority, next);
+		LOG_DEBUG << "Zswapping to z = " << z;
+	}
 	m_priority.z = z;
 }
 

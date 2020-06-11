@@ -12,6 +12,10 @@ namespace cgss {
 		friend class GraphicsStackItem;
 	public:
 		GraphicsStack() = default;
+		GraphicsStack(const GraphicsStack&) = delete;
+		GraphicsStack& operator=(const GraphicsStack&) = delete;
+		GraphicsStack(GraphicsStack&&) = delete;
+		GraphicsStack& operator=(GraphicsStack&&) = delete;
 		virtual ~GraphicsStack();
 
 		static constexpr int32_t MaxZ() { return std::numeric_limits<int32_t>::max() >> 1; }
@@ -20,7 +24,7 @@ namespace cgss {
 		void add(GraphicsStackItemPtr item);
 		void syncFromRawData(GraphicsContainer data, bool forceDetachAll = true);
 		std::size_t size() const { return m_stack.size(); }
-		ZIndex currentZIndex() const;
+		std::int32_t queryNextIndex();
 
 		const auto& operator[](std::size_t index) const {
 			return *m_stack[index];

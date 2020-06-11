@@ -1,3 +1,5 @@
+#include <iostream>
+#include <sstream>
 #include <doctest.h>
 
 #include "Views/Stack/DrawableStack.h"
@@ -19,6 +21,17 @@ struct DrawableTest :
 	void setId(std::size_t id) { m_proxy->id = id; }
 };
 
+
+
+static std::string PrintStack(const cgss::DrawableStack& drawables) {
+	auto ss = std::stringstream {};
+	ss << static_cast<const void*>(&drawables) << "\t";
+	for (const auto& element : drawables) {
+		ss << "[" << element->getZ().z  << ", " << element->getZ().index << "]";
+	}
+	ss << std::endl;
+	return ss.str();
+}
 
 TEST_CASE("[DrawableStack] DrawableStack : drawable dies before : no effect") {
 	auto stack = cgss::DrawableStack{};
@@ -158,6 +171,7 @@ TEST_CASE("[DrawableStack] z sorting") {
 	for (const auto& zindex : zindexStack) {
 		auto drawable = DrawableTest::create(stack);
 		drawable.setZ(zindexStack[index]);
+		drawable.setId(index);
 		container.push_back(std::move(drawable));
 		index++;
 	}
@@ -177,10 +191,13 @@ TEST_CASE("[DrawableStack] z sorting") {
 
 	SUBCASE("Bound testing") {
 		container[6].setZ(-123);
+		std::cout << PrintStack(stack);
 		CHECK(container[6].getZ() == stack[0].getZ());
 
 		container[6].setZ(99999);
-		CHECK(container[6].getZ() == stack[12].getZ());
+		std::cout << PrintStack(stack);
+		CHECK(reinterpret_cast<const DrawableStackItemTest&>(stack[12]).id == 6);
+		CHECK(container[6].getZ().z == stack[12].getZ().z);
 	}
 
 	SUBCASE("Exact value testing") {
@@ -196,11 +213,9 @@ TEST_CASE("[DrawableStack] z sorting") {
 }
 
 
-TEST_CASE("[DrawableStack] z sorting from scratch") {
-	constexpr const auto MaxStackNum = std::numeric_limits<long>::max();
-
+TEST_CASE("[DrawableStack] adding elements (starting by high value = 2000)") {
 	auto stack = cgss::DrawableStack{};
-	auto zindexStack = std::vector<long> { 2000, 2000, 2000, 0, 1 };
+	auto zindexStack = std::vector<long> { 2000, 1 };
 	
 	std::size_t index = 0;
 	for (const auto& zindex : zindexStack) {
@@ -209,16 +224,81 @@ TEST_CASE("[DrawableStack] z sorting from scratch") {
 		drawable.setZ(zindexStack[index]);
 		index++;
 	}
-	
-	CHECK(reinterpret_cast<const DrawableStackItemTest&>(stack[0]).id == 3);
-	CHECK(reinterpret_cast<const DrawableStackItemTest&>(stack[1]).id == 4);
-	CHECK(reinterpret_cast<const DrawableStackItemTest&>(stack[2]).id == 0);
-	CHECK(reinterpret_cast<const DrawableStackItemTest&>(stack[3]).id == 1);
-	CHECK(reinterpret_cast<const DrawableStackItemTest&>(stack[4]).id == 2);
 
-	CHECK(stack[0].getZ() == cgss::ZIndex{ 0, 3 });
-	CHECK(stack[1].getZ() == cgss::ZIndex{ 1, 4 });
-	CHECK(stack[2].getZ() == cgss::ZIndex{ 2000, 0 });
-	CHECK(stack[3].getZ() == cgss::ZIndex{ 2000, 1 });
-	CHECK(stack[4].getZ() == cgss::ZIndex{ 2000, 2 });
+	CHECK(stack[0].getZ() == cgss::ZIndex{ 1, 1 });
+	CHECK(stack[1].getZ() == cgss::ZIndex{ 2000, 0 });
+}
+
+TEST_CASE("[DrawableStack] adding elements (starting by low value = 1)") {
+	auto stack = cgss::DrawableStack{};
+	auto zindexStack = std::vector<long> { 1, 2000 };
+	
+	std::size_t index = 0;
+	for (const auto& zindex : zindexStack) {
+		auto drawable = DrawableTest::create(stack);
+		drawable.setId(index);
+		drawable.setZ(zindexStack[index]);
+		index++;
+	}
+
+	CHECK(stack[0].getZ() == cgss::ZIndex{ 1, 0 });
+	CHECK(stack[1].getZ() == cgss::ZIndex{ 2000, 1 });
+}
+
+TEST_CASE("[DrawableStack] adding elements (starting by high value = 2000 then 0)") {
+	auto stack = cgss::DrawableStack{};
+	auto zindexStack = std::vector<long> { 2000, 0 };
+	
+	std::size_t index = 0;
+	for (const auto& zindex : zindexStack) {
+		auto drawable = DrawableTest::create(stack);
+		drawable.setId(index);
+		drawable.setZ(zindexStack[index]);
+		std::cout << PrintStack(stack);
+		index++;
+	}
+
+	CHECK(stack[0].getZ() == cgss::ZIndex{ 0, 1 });
+	CHECK(stack[1].getZ() == cgss::ZIndex{ 2000, 0 });
+}
+
+TEST_CASE("[DrawableStack] adding elements (starting by default value = 0)") {
+	auto stack = cgss::DrawableStack{};
+	auto zindexStack = std::vector<long> { 0, 2000 };
+	
+	std::size_t index = 0;
+	for (const auto& zindex : zindexStack) {
+		auto drawable = DrawableTest::create(stack);
+		drawable.setId(index);
+		drawable.setZ(zindexStack[index]);
+		index++;
+	}
+
+	CHECK(stack[0].getZ() == cgss::ZIndex{ 0, 0 });
+	CHECK(stack[1].getZ() == cgss::ZIndex{ 2000, 1 });
+}
+
+TEST_CASE("[DrawableStack] adding elements (only default value = 0)") {
+	auto stack = cgss::DrawableStack{};
+	DrawableTest::create(stack);
+	DrawableTest::create(stack);
+
+	CHECK(stack[0].getZ() == cgss::ZIndex{ 0, 0 });
+	CHECK(stack[1].getZ() == cgss::ZIndex{ 0, 1 });
+}
+
+TEST_CASE("[DrawableStack] remove elements") {
+	auto stack = cgss::DrawableStack{};
+	auto zindexStack = std::vector<long> { 2000, 0, 0, 1, 0 };
+	
+	std::size_t index = 0;
+	for (const auto& zindex : zindexStack) {
+		auto drawable = DrawableTest::create(stack);
+		drawable.setId(index);
+		drawable.setZ(zindexStack[index]);
+		std::cout << PrintStack(stack);
+		index++;
+	}
+
+	//stack[0].detach();
 }

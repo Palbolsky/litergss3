@@ -23,7 +23,7 @@ namespace cgss {
 		void forceAttach(GraphicsStack& originStack) {
 			auto& ref = static_cast<Item&>(*this);
 			ref.m_originStack = &originStack;
-			ref.m_priority = originStack.currentZIndex();
+			ref.m_priority.index = originStack.queryNextIndex();
 		}
 	};
 
@@ -39,6 +39,10 @@ namespace cgss {
 
 	public:
 		GraphicsStackItem() = default;
+		GraphicsStackItem(const GraphicsStackItem&) = delete;
+		GraphicsStackItem& operator=(const GraphicsStackItem&) = delete;
+		GraphicsStackItem(GraphicsStackItem&&) = delete;
+		GraphicsStackItem& operator=(GraphicsStackItem&&) = delete;
 		virtual ~GraphicsStackItem();
 		virtual void updateFromRectangle(const sf::IntRect& rectangle) {};
 
