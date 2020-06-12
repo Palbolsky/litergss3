@@ -75,27 +75,17 @@ static inline std::size_t AdaptIndex(const cgss::GraphicsContainer& stack, std::
   if (index == 1) {
       const auto diff = (value - stack[index]->getZ()).sign();
       LOG_DEBUG << "\tAdapting index " << index << " with diff = " << diff << " for value z = " << value.z << ", " << value.index;
+        if (diff == -1) {
+            return (value - stack[0]->getZ()).sign() <= 0 ? 0 : 1;
+        }
       return diff + index;
-  } else if (index == stack.size() - 1) {
+    }
+
       const auto diff = (value - stack[index]->getZ()).sign();
-      if (index == 0 || insert) {
           const auto finalIndex = index + (diff <= 0 ? 0 : 1);
           LOG_DEBUG << "\tAdapting index " << index << " to index = " << finalIndex << " for value z = " << value.z << ", " << value.index;
           return finalIndex;
       }
-
-      if (diff == -1 && stack.size() >= 2) {
-          const auto finalIndex = index + ((value - stack[index - 1]->getZ()).sign() == 1 ? 0 : -1);
-          LOG_DEBUG << "\t(diff - 1) Adapting index " << index << " to index = " << finalIndex << " for value z = " << value.z << ", " << value.index;
-          return finalIndex;
-      }
-
-      LOG_DEBUG << "\tAdapting index " << index << " with diff = " << diff << " for value z = " << value.z << ", " << value.index;
-      return index + diff;
-  }
-
-  return index;
-}
 
 void cgss::GraphicsStack::zSwap(const ZIndex& previous, const ZIndex& next) {
     std::size_t range[2];
