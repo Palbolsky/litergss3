@@ -78,15 +78,9 @@ static inline std::size_t AdaptIndex(const cgss::GraphicsContainer& stack, std::
       return diff + index;
   } else if (index == stack.size() - 1) {
       const auto diff = (value - stack[index]->getZ()).sign();
-      if (index == 0) {
-          const auto finalIndex = diff <= 0 ? 0 : 1;
+      if (index == 0 || insert) {
+          const auto finalIndex = index + (diff <= 0 ? 0 : 1);
           LOG_DEBUG << "\tAdapting index " << index << " to index = " << finalIndex << " for value z = " << value.z << ", " << value.index;
-          return finalIndex;
-      }
-
-      if (insert) {
-          const auto finalIndex = index + (diff == 1 ? 1 : 0);
-          LOG_DEBUG << "\t(insert) Adapting index " << index << " to index = " << finalIndex << " for value z = " << value.z << ", " << value.index;
           return finalIndex;
       }
 
