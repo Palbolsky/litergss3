@@ -67,19 +67,39 @@ std::size_t cgss::GraphicsStack::dichotomicFindFirstGreater(const ZIndex& value)
   return max;
 }
 
-static inline std::size_t AdaptIndex(const cgss::GraphicsContainer& stack, std::size_t index, const cgss::ZIndex& value) {
-  if (index == 1) {
-      const auto diff = (value - stack[0]->getZ()).sign();
-      LOG_DEBUG << "\tAdapting index with diff = " << diff;
-
-      switch (diff) {
-        case 0:
-        case -1:
-            return 0;
-        case 1:
-            return stack.size() == 1 || (value - stack[1]->getZ()).sign() >= 0 ? 1 : 0;
-      }
+static inline std::size_t AdaptIndex(const cgss::GraphicsContainer& stack, std::size_t index, const cgss::ZIndex& value, bool insert = false) {
+  if(stack.empty()) {
+      return 0;
   }
+
+  if (index == 1) {
+      const auto diff = (value - stack[index]->getZ()).sign();
+      LOG_DEBUG << "\tAdapting index " << index << " with diff = " << diff << " for value z = " << value.z << ", " << value.index;
+      return diff + index;
+  } else if (index == stack.size() - 1) {
+      const auto diff = (value - stack[index]->getZ()).sign();
+      if (index == 0) {
+          const auto finalIndex = diff <= 0 ? 0 : 1;
+          LOG_DEBUG << "\tAdapting index " << index << " to index = " << finalIndex << " for value z = " << value.z << ", " << value.index;
+          return finalIndex;
+      }
+
+      if (insert) {
+          const auto finalIndex = index + (diff == 1 ? 1 : 0);
+          LOG_DEBUG << "\t(insert) Adapting index " << index << " to index = " << finalIndex << " for value z = " << value.z << ", " << value.index;
+          return finalIndex;
+      }
+
+      if (diff == -1 && stack.size() >= 2) {
+          const auto finalIndex = index + ((value - stack[index - 1]->getZ()).sign() == 1 ? 0 : -1);
+          LOG_DEBUG << "\t(diff - 1) Adapting index " << index << " to index = " << finalIndex << " for value z = " << value.z << ", " << value.index;
+          return finalIndex;
+      }
+
+      LOG_DEBUG << "\tAdapting index " << index << " with diff = " << diff << " for value z = " << value.z << ", " << value.index;
+      return index + diff;
+  }
+
   return index;
 }
 
@@ -90,9 +110,9 @@ void cgss::GraphicsStack::zSwap(const ZIndex& previous, const ZIndex& next) {
 
     const auto diff = static_cast<long>(range[1] - range[0]);
     if (diff > 0) {
-        if (range[1] != m_stack.size() - 1 && range[1] > 0) {
+        //if (range[1] != m_stack.size() - 1 && range[1] > 0) {
             range[1]--;
-        }
+        //}
         leftCircleShift(range[0], range[1]);
     } else if (diff < 0) {
         rightCircleShift(range[1], range[0]);
@@ -121,13 +141,14 @@ static std::string PrintStack(const cgss::GraphicsStack& drawables) {
 }
 
 bool cgss::GraphicsStack::remove(GraphicsStackItem* item) {
-    auto index = dichotomicFindFirstGreater(item->getZ());
+    auto index = AdaptIndex(m_stack, dichotomicFindFirstGreater(item->getZ()), item->getZ());
 
     const auto foundExactValue = item == m_stack[index].get();
     if (!foundExactValue) {
         LOG_ERROR << static_cast<void*>(this) << " Trying to remove an element from stack but unable to find it for z-index = " << item->getZ().z << ", " << item->getZ().index
             << " only found position = " << index << " but no item equality";
         LOG_ERROR << PrintStack(*this);
+        throw std::runtime_error("Trying to remove an element from stack but unable to find it");
         return false;
     }
 
@@ -143,11 +164,7 @@ std::int32_t cgss::GraphicsStack::queryNextIndex() {
 
 void cgss::GraphicsStack::add(GraphicsStackItemPtr item) {
     item->forceAttach(*this);
-    auto position = AdaptIndex(m_stack, dichotomicFindFirstGreater(item->getZ()), item->getZ());
-    
-    if (position == m_stack.size() - 1 && (item->getZ() - m_stack.back()->getZ()).sign() > 0 ) {
-        position++;
-    }
+    auto position = AdaptIndex(m_stack, dichotomicFindFirstGreater(item->getZ()), item->getZ(), true);
 
     LOG_INFO << "Adding element to stack " << static_cast<void*>(this) << " with z-index = " << item->getZ().z << ", " << item->getZ().index <<
      " at position = " << position;
