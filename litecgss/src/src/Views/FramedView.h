@@ -44,7 +44,6 @@ namespace cgss {
 		bool m_paused = false;
 		bool m_stretch = false;
 
-		float m_viewportZoom = 1.F;
 		std::weak_ptr<ViewportItem> m_parent;
 
 		sf::IntRect m_cursorRect;
@@ -72,7 +71,6 @@ namespace cgss {
 		void updateVerticesStretch(long wt, long ht);
 		void allocateVerticesBlt(long delta_w, long nb2, long delta_h, long nb4);
 		void calculateVertices(long x, long y, long line, long cell, sf::Vector2i& a, sf::IntRect& rect);
-		void rectSet(sf::IntRect& rect, long x, long y, long width, long height);
 		void allocateVerticesStretch();
 		void calculateVerticesStretch(long x, long y, long line, long cell, sf::Vector2i& s, sf::Vector2i& a, sf::IntRect& rect);
 		void updateVertices();
@@ -189,7 +187,9 @@ namespace cgss {
 		void stretch(bool stretch);
 		bool isStretched() const;
 
+		void update();
 		sf::IntRect getViewportBox() const;
+		MainEventDispatcher& getEventDispatcher();
 		long getOx() const;
 		long getOy() const;
 

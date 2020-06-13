@@ -29,6 +29,8 @@ namespace cgss {
 		void setScale(float zoom);
 		void setAngle(float angle);
 		float getScale() const;
+
+		MainEventDispatcher& getEventDispatcher() { return m_eventDispatcher; }
 	protected:
 		long getScreenWidth() const { return m_screenWidth; }
 		long getScreenHeight() const { return m_screenHeight; }
@@ -47,6 +49,8 @@ namespace cgss {
 	private:
 		bool onWindowSettingsChange(WindowSettingsChangeEvent& event);
 		void updateCenter();
+
+		MainEventDispatcher& m_eventDispatcher;
 
 		sf::View m_view;
 		mutable sf::View m_copy;

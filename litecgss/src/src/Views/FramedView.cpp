@@ -872,6 +872,14 @@ long cgss::FramedView::getOy() const {
 	return m_proxy->m_wantedOy;
 }
 
+cgss::MainEventDispatcher& cgss::FramedView::getEventDispatcher() {
+	return m_proxy->getEventDispatcher();
+}
+
+void cgss::FramedView::update() {
+	m_proxy->update();
+}
+
 void cgss::FramedView::setBackOpacity(uint8_t backOpacity) {
 	m_proxy->setBackOpacity(backOpacity);
 }

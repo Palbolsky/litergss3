@@ -5,7 +5,7 @@
 struct WindowDataTest : cgss::Observer<cgss::WindowSettingsChangeEvent> {
 	WindowDataTest() :
 		cgss::Observer<cgss::WindowSettingsChangeEvent>(std::bind(&WindowDataTest::onWindowSettingsChangeEvent, this, std::placeholders::_1)) {
-		eventDispatcher.addObserver(*this);
+		eventDispatcher.cgss::Observable<cgss::WindowSettingsChangeEvent>::addObserver(*this);
 	}
 
 	bool onWindowSettingsChangeEvent(const cgss::WindowSettingsChangeEvent& event) {

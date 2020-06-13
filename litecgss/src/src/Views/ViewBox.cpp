@@ -2,7 +2,7 @@
 #include "ViewBox.h"
 #include "LoggerViews.h"
 
-SKA_LOGC_CONFIG(ska::LogLevel::Disabled, cgss::ViewBox);
+SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::ViewBox);
 
 #define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Debug, cgss::ViewBox)
 #define LOG_INFO SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info, cgss::ViewBox)
@@ -10,6 +10,7 @@ SKA_LOGC_CONFIG(ska::LogLevel::Disabled, cgss::ViewBox);
 
 cgss::ViewBox::ViewBox(MainEventDispatcher& ed, const DisplayWindowSettings& windowSettings) : 
 	SubObserver<WindowSettingsChangeEvent>(std::bind(&ViewBox::onWindowSettingsChange, this, std::placeholders::_1), ed),
+	m_eventDispatcher(ed),
 	m_screenWidth(windowSettings.video.width),
 	m_screenHeight(windowSettings.video.height) {
 	resize(m_screenWidth, m_screenHeight);
@@ -21,7 +22,7 @@ void cgss::ViewBox::moveOrigin(long ox, long oy) {
 
 	updateCenter();
 
-	LOG_INFO << "Center updated to ox = " << ox << " oy = " << oy;
+	LOG_DEBUG << "Center updated to ox = " << ox << " oy = " << oy;
 
 	if (m_triggerMove) {
 		m_triggerMove = false;
@@ -68,6 +69,8 @@ void cgss::ViewBox::updateViewport(float x, float y) {
 	const auto sw = static_cast<float>(m_screenWidth);
 	const auto sh = static_cast<float>(m_screenHeight);
 	m_view.setViewport(sf::FloatRect{ x / sw, y / sh, m_view.getSize().x / sw, m_view.getSize().y / sh });
+	auto event = ViewportChangeEvent { getRectangleBox() };
+	m_eventDispatcher.Observable<ViewportChangeEvent>::notifyObservers(event);
 }
 
 bool cgss::ViewBox::onWindowSettingsChange(WindowSettingsChangeEvent& event) {
