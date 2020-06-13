@@ -1,6 +1,7 @@
 #ifndef CGSS_FRAMED_VIEW_H
 #define CGSS_FRAMED_VIEW_H
 #include <optional>
+#include <array>
 #include "View.h"
 #include "ViewAuthorizations.h"
 #include "Graphics/Texture.h"
@@ -50,7 +51,9 @@ namespace cgss {
 		
 		// Array that describe how the frame is defined on the window skin (setted by the "setSkin" function member).
 		// Defined this way : [frame_mid_x, frame_mid_y, frame_mid_width, frame_mid_height, contents_ox, contents_oy]
-		long m_windowBuilder[6] = {};
+		// Last 2 elements are optional offset_x and offset_y of right and bottom sides.
+		std::array<long, 8> m_windowBuilder = {};
+		bool m_windowBuilderExtended = false;
 
 		long m_wantedWidth = 1;
 		long m_wantedHeight = 1;
@@ -124,7 +127,8 @@ namespace cgss {
 		void stretch(bool stretch);
 		bool isStretched() const;
 
-		void setBuilder(long windowBuilder[6]);
+		void setBuilder(std::array<long, 6> windowBuilder);
+		void setBuilder(std::array<long, 8> windowBuilder);
 
 		void move(float x, float y);
 		void updateFromRectangle(const sf::IntRect& rectangle) override;
@@ -180,7 +184,8 @@ namespace cgss {
 
 		void setCursorSkin(sf::Texture& texture);
 		void setCursorRectangle(sf::IntRect position);
-		void setBuilder(long windowBuilder[6]);
+		void setBuilder(std::array<long, 6> windowBuilder);
+		void setBuilder(std::array<long, 8> windowBuilder);
 
 		const sf::IntRect& getCursorRectangle() const;
 

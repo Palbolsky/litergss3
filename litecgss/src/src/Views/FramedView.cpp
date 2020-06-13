@@ -323,8 +323,14 @@ void cgss::FramedViewItem::updateVerticesBlt(long wt, long ht) {
 	}
 }
 
-void cgss::FramedViewItem::setBuilder(long windowBuilder[6]) {
-	memcpy(m_windowBuilder, windowBuilder, sizeof(long) * 6);
+void cgss::FramedViewItem::setBuilder(std::array<long, 6> windowBuilder) {
+	std::memcpy(m_windowBuilder.data(), windowBuilder.data(), sizeof(long) * 6);
+	m_windowBuilderExtended = false;
+}
+
+void cgss::FramedViewItem::setBuilder(std::array<long, 8> windowBuilder) {
+	m_windowBuilder = std::move(windowBuilder);
+	m_windowBuilderExtended = true;
 }
 
 long cgss::FramedViewItem::getPauseX() const {
@@ -577,10 +583,13 @@ std::uint8_t cgss::FramedViewItem::getBackOpacity() const {
 void cgss::FramedViewItem::updateView() {
 	long offset_x = m_windowBuilder[4];
 	long offset_y = m_windowBuilder[5];
+	long offset_x2 = m_windowBuilderExtended ? m_windowBuilder[6] : offset_x;
+	long offset_y2 = m_windowBuilderExtended ? m_windowBuilder[7] : offset_y;
 	long x = static_cast<long>(m_x) + offset_x;
 	long y = static_cast<long>(m_y) + offset_y;
-	long width = static_cast<long>(m_wantedWidth) - 2 * offset_x;
-	long height = static_cast<long>(m_wantedHeight) - 2 * offset_y;
+	long width = static_cast<long>(m_wantedWidth) - offset_x - offset_x2;
+	long height = static_cast<long>(m_wantedHeight) - offset_y - offset_y2;
+
 	LOG_INFO << "View updated to x = " << x << " y = " << y << " width = " << width << " height = " << height;
 	resize(width, height);
 	updateViewport(x, y);
@@ -829,7 +838,11 @@ void cgss::FramedView::resize(long width, long height) {
 	m_proxy->resize(width, height);
 }
 
-void cgss::FramedView::setBuilder(long windowBuilder[6]) {
+void cgss::FramedView::setBuilder(std::array<long, 6> windowBuilder) {
+	m_proxy->setBuilder(windowBuilder);
+}
+
+void cgss::FramedView::setBuilder(std::array<long, 8> windowBuilder) {
 	m_proxy->setBuilder(windowBuilder);
 }
 
