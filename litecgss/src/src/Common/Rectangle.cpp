@@ -52,6 +52,7 @@ void cgss::Rectangle::bindElement(GraphicsStackItem* target) {
       m_target->bindRectangle(this);
     }
   }
+  updateLinkedElement();
 }
 
 bool cgss::Rectangle::operator==(const Rectangle& rect) const {
