@@ -10,6 +10,13 @@ SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::FramedViewItem);
 #define LOG_INFO SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info, cgss::FramedViewItem)
 #define LOG_WARN SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Warn, cgss::FramedViewItem)
 
+static void RectSet(sf::IntRect& rect, long x, long y, long width, long height) {
+	rect.left = x;
+	rect.top = y;
+	rect.width = width;
+	rect.height = height;
+}
+
 cgss::FramedViewItem::FramedViewItem(FramedView* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings, std::weak_ptr<ViewportItem> parent) :
 	ViewBox(eventDispatcher, windowSettings),
 	m_parent(std::move(parent)) {
@@ -114,6 +121,8 @@ void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, sf::RenderTar
 		targetCenter.x -= dx * zoom / 2;
 	}
 
+	LOG_DEBUG << "Calculated view with center = " << targetCenter.x << ", " << targetCenter.y;			
+
 	// Set the view
 	targetView.setCenter(targetCenter);
 	targetView.setSize(targetSize);
@@ -204,26 +213,26 @@ void cgss::FramedViewItem::updateVerticesBlt(long wt, long ht) {
 
 	// 4 corner vertice calculation
 	// [ 1, ..., ...] / [ ..., ..., ...] / [ ..., ..., ...]
-	rectSet(rect, 0, 0, w1, h1);
+	RectSet(rect, 0, 0, w1, h1);
 	calculateVertices(x, y, 0, 0, a, rect);
 	// [ ..., ..., 3] / [ ..., ..., ...] / [ ..., ..., ...]
 	a.x = wt - w3;
-	rectSet(rect, ws - w3, 0, w3, h1);
+	RectSet(rect, ws - w3, 0, w3, h1);
 	calculateVertices(x, y, 0, -1, a, rect);
 	// [ ..., ..., ...] / [ ..., ..., ...] / [ ..., ..., 9]
 	a.y = ht - h7;
-	rectSet(rect, ws - w3, hs - h7, w3, h7);
+	RectSet(rect, ws - w3, hs - h7, w3, h7);
 	calculateVertices(x, y, m_vertices.size() - 1, -1, a, rect);
 	// [ ..., ..., ...] / [ ..., ..., ...] / [ 7, ..., ...]
 	a.x = 0;
-	rectSet(rect, 0, hs - h7, w1, h7);
+	RectSet(rect, 0, hs - h7, w1, h7);
 	calculateVertices(x, y, m_vertices.size() - 1, 0, a, rect);
 	// Side vertice calculation
 	int count;
 	// [ ..., 2, ...] / [ ..., ..., ...] / [ ..., ..., ...]
 	a.x = w1;
 	a.y = 0;
-	rectSet(rect, xm, 0, wm, h1);
+	RectSet(rect, xm, 0, wm, h1);
 	for (count = nb2; count > 0; count--) {
 		calculateVertices(x, y, 0, count, a, rect);
 		a.x += wm;
@@ -235,7 +244,7 @@ void cgss::FramedViewItem::updateVerticesBlt(long wt, long ht) {
 	// [ ..., ..., ...] / [ 4, ..., ...] / [ ..., ..., ...]
 	a.x = 0;
 	a.y = h1;
-	rectSet(rect, 0, ym, w1, hm);
+	RectSet(rect, 0, ym, w1, hm);
 	for (count = nb4; count > 0; count--) {
 		calculateVertices(x, y, count, 0, a, rect);
 		a.y += hm;
@@ -247,7 +256,7 @@ void cgss::FramedViewItem::updateVerticesBlt(long wt, long ht) {
 	// [ ..., ..., ...] / [ ..., ..., 6] / [ ..., ..., ...]
 	a.x = wt - w3;
 	a.y = h1;
-	rectSet(rect, ws - w3, ym, w3, hm);
+	RectSet(rect, ws - w3, ym, w3, hm);
 	for (count = nb4; count > 0; count--) {
 		calculateVertices(x, y, count, -1, a, rect);
 		a.y += hm;
@@ -259,7 +268,7 @@ void cgss::FramedViewItem::updateVerticesBlt(long wt, long ht) {
 	// [ ..., ..., ...] / [ ..., ..., ...] / [ ..., 8, ...]
 	a.x = w1;
 	a.y = ht - h7;
-	rectSet(rect, xm, hs - h7, wm, h7);
+	RectSet(rect, xm, hs - h7, wm, h7);
 	for (count = nb2; count > 0; count--)
 	{
 		calculateVertices(x, y, m_vertices.size() - 1, count, a, rect);
@@ -275,7 +284,7 @@ void cgss::FramedViewItem::updateVerticesBlt(long wt, long ht) {
 	// [ ..., ..., ...] / [ ..., 5|m , ...] / [ ..., ..., ...]
 	a.x = w1;
 	a.y = h1;
-	rectSet(rect, xm, ym, wm, hm);
+	RectSet(rect, xm, ym, wm, hm);
 	for (count = 1; count <= nb2; count++) {
 		for (count2 = 1; count2 <= nb4; count2++) {
 			calculateVertices(x, y, count2, count, a, rect);
@@ -287,13 +296,13 @@ void cgss::FramedViewItem::updateVerticesBlt(long wt, long ht) {
 	a.y += hm * nb4;
 
 	if (delta_h > 0 && delta_w > 0) {
-		rectSet(rect, xm, ym, delta_w, delta_h);
+		RectSet(rect, xm, ym, delta_w, delta_h);
 		calculateVertices(x, y, m_vertices.size() - 2, -2, a, rect);
 	}
 
 	if (delta_h > 0) {
 		a.x = w1;
-		rectSet(rect, xm, ym, wm, delta_h);
+		RectSet(rect, xm, ym, wm, delta_h);
 		for (count = nb2; count > 0; count--) {
 			calculateVertices(x, y, m_vertices.size() - 2, count, a, rect);
 			a.x += wm;
@@ -302,7 +311,7 @@ void cgss::FramedViewItem::updateVerticesBlt(long wt, long ht) {
 
 	if (delta_w > 0) {
 		a.y = h1;
-		rectSet(rect, xm, ym, delta_w, hm);
+		RectSet(rect, xm, ym, delta_w, hm);
 		for (count = nb4; count > 0; count--)
 		{
 			calculateVertices(x, y, count, -2, a, rect);
@@ -371,19 +380,19 @@ void cgss::FramedViewItem::updateVerticesStretch(long wt, long ht) {
 
 	// 4 corner vertice calculation
 	// [ 1, ..., ...] / [ ..., ..., ...] / [ ..., ..., ...]
-	rectSet(rect, 0, 0, w1, h1);
+	RectSet(rect, 0, 0, w1, h1);
 	calculateVertices(x, y, 0, 0, a, rect);
 	// [ ..., ..., 3] / [ ..., ..., ...] / [ ..., ..., ...]
 	a.x = wt - w3;
-	rectSet(rect, ws - w3, 0, w3, h1);
+	RectSet(rect, ws - w3, 0, w3, h1);
 	calculateVertices(x, y, 0, -1, a, rect);
 	// [ ..., ..., ...] / [ ..., ..., ...] / [ ..., ..., 9]
 	a.y = ht - h7;
-	rectSet(rect, ws - w3, hs - h7, w3, h7);
+	RectSet(rect, ws - w3, hs - h7, w3, h7);
 	calculateVertices(x, y, m_vertices.size() - 1, -1, a, rect);
 	// [ ..., ..., ...] / [ ..., ..., ...] / [ 7, ..., ...]
 	a.x = 0;
-	rectSet(rect, 0, hs - h7, w1, h7);
+	RectSet(rect, 0, hs - h7, w1, h7);
 	calculateVertices(x, y, m_vertices.size() - 1, 0, a, rect);
 
 	// 4 Side vertice calculation
@@ -392,41 +401,34 @@ void cgss::FramedViewItem::updateVerticesStretch(long wt, long ht) {
 	s.y = h1;
 	a.x = w1;
 	a.y = 0;
-	rectSet(rect, xm, 0, wm, h1);
+	RectSet(rect, xm, 0, wm, h1);
 	calculateVerticesStretch(x, y, 0, 1, s, a, rect);
 	// [ ..., ..., ...] / [ ..., ..., ...] / [ ..., 8, ...]
 	s.y = h7;
 	a.x = w1;
 	a.y = ht - h7;
-	rectSet(rect, xm, hs - h7, wm, h7);
+	RectSet(rect, xm, hs - h7, wm, h7);
 	calculateVerticesStretch(x, y, m_vertices.size() - 1, 1, s, a, rect);
 	// [ ..., ..., ...] / [ 4, ..., ...] / [ ..., ..., ...]
 	s.x = w1;
 	s.y = delta_h;
 	a.x = 0;
 	a.y = h1;
-	rectSet(rect, 0, ym, w1, hm);
+	RectSet(rect, 0, ym, w1, hm);
 	calculateVerticesStretch(x, y, 1, 0, s, a, rect);
 	// [ ..., ..., ...] / [ ..., ..., 6] / [ ..., ..., ...]
 	s.x = w3;
 	a.x = wt - w3;
 	a.y = h1;
-	rectSet(rect, ws - w3, ym, w3, hm);
+	RectSet(rect, ws - w3, ym, w3, hm);
 	calculateVerticesStretch(x, y, 1, 2, s, a, rect);
 
 	// Middle vertice calculation
 	s.x = delta_w;
 	a.x = w1;
 	a.y = h1;
-	rectSet(rect, xm, ym, wm, hm);
+	RectSet(rect, xm, ym, wm, hm);
 	calculateVerticesStretch(x, y, 1, 1, s, a, rect);
-}
-
-void cgss::FramedViewItem::rectSet(sf::IntRect& rect, long x, long y, long width, long height) {
-	rect.left = x;
-	rect.top = y;
-	rect.width = width;
-	rect.height = height;
 }
 
 void cgss::FramedViewItem::calculateVertices(long x, long y, long line, long cell, sf::Vector2i& a, sf::IntRect& rect) {
