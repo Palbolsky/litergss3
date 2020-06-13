@@ -60,7 +60,7 @@ void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, sf::RenderTar
 	LOG_DEBUG << "Draw calculate view";
 
 	const sf::IntRect parentViewport = parent.getViewportBox();
-	float zoom = parent.getScale();
+	float zoom = parent.getZoom();
 
 	const auto vx0 = parentViewport.width / 2.f - (parentViewport.width / 2.f) / zoom; // <- When vp.zoom = 0.5, zoom = 2
 	const auto vy0 = parentViewport.height / 2.f - (parentViewport.height / 2.f) / zoom;
@@ -329,7 +329,7 @@ void cgss::FramedViewItem::updateVerticesBlt(long wt, long ht) {
 
 void cgss::FramedViewItem::setBuilder(std::array<long, 6> windowBuilder) {
 	LOG_INFO << "Setting window builder 6";
-	std::copy(std::begin(windowBuilder), std::end(windowBuilder), std::begin(m_windowBuilder));
+	std::copy(std::begin(windowBuilder), std::begin(windowBuilder) + 6, std::begin(m_windowBuilder));
 	m_windowBuilderExtended = false;
 	updateVertices();
 	updateView();

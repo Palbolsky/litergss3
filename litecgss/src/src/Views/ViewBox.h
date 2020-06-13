@@ -26,9 +26,9 @@ namespace cgss {
 
 		long getOx() const;
 		long getOy() const;
-		void setScale(float zoom);
+		void setZoom(float zoom);
 		void setAngle(float angle);
-		float getScale() const;
+		float getZoom() const;
 
 		MainEventDispatcher& getEventDispatcher() { return m_eventDispatcher; }
 	protected:

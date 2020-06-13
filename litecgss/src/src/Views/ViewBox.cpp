@@ -99,12 +99,22 @@ float cgss::ViewBox::getHeight() const {
 	return m_view.getSize().y;
 }
 
-void cgss::ViewBox::setScale(float zoom) {
-	m_zoom = zoom;
+static inline double normalize_double(double value, double min, double max) {
+	if (value < min) {
+		return min;
+	}
+	if (value > max) {
+		return max;
+	}
+	return value;
+}
+
+void cgss::ViewBox::setZoom(float zoom) {
+	m_zoom = 1.0 / normalize_double(zoom, 0.001, 1000.0);
 	m_view.zoom(zoom);
 }
 
-float cgss::ViewBox::getScale() const {
+float cgss::ViewBox::getZoom() const {
 	return m_zoom;
 }
 

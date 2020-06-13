@@ -160,8 +160,8 @@ void cgss::Viewport::setAngle(float angle) {
 	m_proxy->setAngle(angle);
 }
 
-void cgss::Viewport::setScale(float zoom) {
-	m_proxy->setScale(zoom);
+void cgss::Viewport::setZoom(float zoom) {
+	m_proxy->setZoom(zoom);
 }
 
 void cgss::Viewport::onDispose() {

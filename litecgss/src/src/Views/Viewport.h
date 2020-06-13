@@ -70,7 +70,7 @@ namespace cgss {
 		long getOy() const;
 
 		void setAngle(float angle);
-		void setScale(float zoom);
+		void setZoom(float zoom);
 
 		template <class View, class StackItem, class Drawable>
 		StackItem& add(std::shared_ptr<StackItem> d) {
