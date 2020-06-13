@@ -57,7 +57,7 @@ void cgss::SpriteMap::setTileRect(std::size_t index, const sf::IntRect& tile) {
 	m_proxy->m_sprites[index].sprite.setTextureRect(tile);
 }
 
-void cgss::SpriteMap::clear() {
+void cgss::SpriteMap::reset() {
 	LOG_DEBUG << "SpriteMap resetted";
   	for (auto& sprite : m_proxy->m_sprites) {
 		sprite.active = false;

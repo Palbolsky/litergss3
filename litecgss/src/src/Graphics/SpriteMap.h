@@ -3,7 +3,7 @@
 #include "Graphics/Drawable.h"
 #include "Graphics/Transformable.h"
 #include "Common/Meta/metadata.h"
-
+#include <SFML/Graphics/Sprite.hpp>
 namespace cgss {
 	class Texture;
 	class SpriteMapItem;
@@ -45,7 +45,7 @@ namespace cgss {
     void move(float x, float y);
     void moveOrigin(float ox, float oy);
     void setTileScale(float scale);
-    void clear();
+    void reset();
   };
 
   namespace meta {
