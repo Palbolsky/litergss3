@@ -30,8 +30,8 @@ namespace cgss {
 		mutable sf::RenderTexture m_render;
 
 		bool m_smooth = false;
-		float m_wantedOx = 0;
-		float m_wantedOy = 0;
+		double m_wantedOx = 0;
+		double m_wantedOy = 0;
 	public:
 		void createRender();
 		ViewportItem(Viewport* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings);

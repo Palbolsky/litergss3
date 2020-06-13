@@ -5,7 +5,7 @@
 
 cgss::ViewportItem::ViewportItem(Viewport* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
 	ViewBox(eventDispatcher, windowSettings),
-	m_color(0, 0, 0, 0) {
+	m_color(sf::Color::Transparent) {
 	m_smooth = windowSettings.smoothScreen;
 	createRender();
 }
@@ -19,12 +19,13 @@ void cgss::ViewportItem::onPostWindowSettingsChange(WindowSettingsChangeEvent& e
 	m_render.setSmooth(m_smooth);
 }
 
-void cgss::ViewportItem::draw(sf::RenderTarget& target) const {
-	auto& renderStates = getRenderState();
+void cgss::ViewportItem::draw(sf::RenderTarget& target) const {	
+	sf::View originalView = sf::View(target.getView());
 
 	// Loading Target view
 	ViewBox::onRenderTarget(m_render, true);
-		
+	
+	auto& renderStates = getRenderState();
 	// Clearing render
 	const auto& color = renderStates.shader ? m_color : sf::Color::Transparent;
 	m_render.clear(color);
@@ -38,6 +39,8 @@ void cgss::ViewportItem::draw(sf::RenderTarget& target) const {
 
 	// Draw the result
 	target.draw(m_renderSprite, renderStates);
+
+	target.setView(originalView);
 }
 
 void cgss::ViewportItem::setupFullWindowView(sf::RenderTarget& target) const {
@@ -102,12 +105,16 @@ void cgss::ViewportItem::createRender() {
 	m_render.create(getScreenWidth(), getScreenHeight());
 	m_render.setSmooth(m_smooth);
 	m_renderSprite.setTexture(m_render.getTexture());
+	auto viewportBox = getViewportBox();
+	m_renderSprite.setTextureRect(viewportBox);
+	m_renderSprite.setPosition(viewportBox.left, viewportBox.top);
 
 	if (m_defaultRenderStates.loadShaderFromMemory(ViewportGlobalFragmentShader, sf::Shader::Fragment)) {
 		m_defaultRenderStates.setShaderUniform("texture", sf::Shader::CurrentTexture);
 		m_defaultRenderStates.setShaderUniform("tone", sf::Glsl::Vec4 {});
 	}
 
+	//TODO add a way to bind a color, or just get rid of the color system
 	sf::Glsl::Vec4 color(m_color.r / 255.0f, m_color.g / 255.0f, m_color.b / 255.0f, m_color.a / 255.0f);
 	m_defaultRenderStates.setShaderUniform("color", color);
 }
@@ -115,6 +122,9 @@ void cgss::ViewportItem::createRender() {
 void cgss::ViewportItem::updateFromRectangle(const sf::IntRect& rectangle) {
     ViewBox::resize(rectangle.width, rectangle.height);
 	ViewBox::updateViewport(rectangle.left, rectangle.top);
+
+	m_renderSprite.setTextureRect(rectangle);
+	m_renderSprite.setPosition(rectangle.left, rectangle.top);
 }
 
 void cgss::Viewport::setRectangle(sf::IntRect rectangle) {

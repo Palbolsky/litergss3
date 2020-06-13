@@ -29,7 +29,7 @@ void cgss::FramedViewItem::draw(sf::RenderTarget& target) const {
 void cgss::FramedViewItem::drawFast(sf::RenderTarget& target) const {
 	/* Draw window */
 	for (auto& vertice : m_vertices) {
-		target.draw(vertice, m_texture == nullptr ? sf::RenderStates::Default : sf::RenderStates{ m_texture });
+		target.draw(vertice, m_texture);
 	}
 
 	/* draw internal */
@@ -39,16 +39,20 @@ void cgss::FramedViewItem::drawFast(sf::RenderTarget& target) const {
 	if (parentView != nullptr) {
 		drawCalculateView(*parentView, target, targetView);
 	}
-	target.setView(targetView);
-
-	drawables().drawFast(target);
+	
+	if (targetView.getViewport().height > 0 && targetView.getViewport().width > 0) {
+		target.setView(targetView);
+		drawables().drawFast(target);
+	}
 
 	/* Draw cursor & reset view */
 	target.draw(m_cursor);
 	target.setView(originalView);
 
-	/* Draw pause */
-	target.draw(m_pause);
+	if (m_paused) {
+		/* Draw pause */
+		target.draw(m_pause);
+	}
 }
 
 void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, sf::RenderTarget& target, sf::View& targetView) const {
