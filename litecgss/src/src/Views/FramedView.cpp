@@ -84,6 +84,9 @@ void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, sf::RenderTar
 	targetViewport.width /= zoom;
 	targetViewport.height /= zoom;
 
+	targetViewport.left += vx0;
+	targetViewport.top += vy0;
+
 	// attempt to fix viewport coordinate
 	targetViewport.left += parentViewport.left;
 	targetViewport.top += parentViewport.top;
