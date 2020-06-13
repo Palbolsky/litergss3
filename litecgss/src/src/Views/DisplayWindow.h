@@ -8,6 +8,7 @@
 #include "DisplayWindowDraw.h"
 #include "DisplayWindowSnapshot.h"
 #include "FramedView.h"
+#include "SnapshotCapturable.h"
 
 #include "Events/MainEventDispatcher.h"
 #include "Events/Patterns/SubObserver.h"
@@ -16,7 +17,8 @@ namespace cgss {
 
 	struct DisplayWindowSettings;
 	class DisplayWindow :
-		public View {
+		public View,
+		public SnapshotCapturable {
 
 	public:
 		DisplayWindow(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& settings);
@@ -36,7 +38,7 @@ namespace cgss {
 		void draw();
 		bool pollEvent(sf::Event& event);
 
-		std::unique_ptr<cgss::Texture> takeSnapshot();
+		std::unique_ptr<sf::Texture> takeSnapshot() const override;
 		void freeze();
 		void transition(long time, Texture* texture = nullptr);
 		void resizeScreen(int width, int height);

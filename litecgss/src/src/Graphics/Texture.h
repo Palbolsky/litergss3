@@ -20,6 +20,7 @@ namespace cgss {
 
 		static Texture create(const DisplayWindow& window, const std::string& filename);
 		static Texture create(const std::string& filename);
+		static Texture create(sf::Texture texture);
 
 		void update(sf::Image* image = nullptr);
 		auto getSize() const { return m_texture.getSize(); }
@@ -39,7 +40,6 @@ namespace cgss {
 
 		bool isLoaded() const { return m_loaded; }
 
-		void update(const sf::Window& window, unsigned int x, unsigned int y) { m_texture.update(window, x, y); }
 		bool create(int sw, int sh) { return m_texture.create(sw, sh); }
 
 		sf::Texture& getTexture() { return m_texture; }

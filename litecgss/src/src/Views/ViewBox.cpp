@@ -119,7 +119,12 @@ float cgss::ViewBox::getZoom() const {
 }
 
 void cgss::ViewBox::setAngle(float angle) {
+	m_angle = -angle;
 	m_view.setRotation(-angle);
+}
+
+float cgss::ViewBox::getAngle() const {
+	return m_angle;
 }
 
 sf::IntRect cgss::ViewBox::getRectangleBox() const {

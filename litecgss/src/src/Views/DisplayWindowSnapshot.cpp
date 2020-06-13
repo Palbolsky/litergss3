@@ -36,12 +36,12 @@ void cgss::DisplayWindowSnapshot::freeze(sf::RenderWindow& window) {
 	}
 	m_window.draw();
 	m_freezeTexture = std::make_unique<Texture>();
-	takeSnapshotOn(window, *m_freezeTexture);
+	takeSnapshotOn(window, m_freezeTexture->getTexture());
 	m_freezeSprite = std::make_unique<sf::Sprite>(m_freezeTexture->getTexture());
 	m_freezeSprite->setScale(1.0f / static_cast<float>(m_window.scale()), 1.0f / static_cast<float>(m_window.scale()));
 }
 
-void cgss::DisplayWindowSnapshot::takeSnapshotOn(sf::RenderWindow& window, Texture& text) const {
+void cgss::DisplayWindowSnapshot::takeSnapshotOn(sf::RenderWindow& window, sf::Texture& text) const {
 	sf::Vector2u sc_sz = window.getSize();
 	int x = 0;
 	int y = 0;
@@ -107,8 +107,8 @@ void cgss::DisplayWindowSnapshot::transition(long time, Texture* texture) {
 	m_freezeTexture = nullptr;
 }
 
-std::unique_ptr<cgss::Texture> cgss::DisplayWindowSnapshot::takeSnapshot(sf::RenderWindow& window) {
-	auto texture = std::make_unique<Texture>();
+std::unique_ptr<sf::Texture> cgss::DisplayWindowSnapshot::takeSnapshot(sf::RenderWindow& window) const {
+	auto texture = std::make_unique<sf::Texture>();
 	takeSnapshotOn(window, *texture);
 	return texture;
 }

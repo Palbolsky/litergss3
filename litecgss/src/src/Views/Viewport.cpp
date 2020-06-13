@@ -43,6 +43,36 @@ void cgss::ViewportItem::draw(sf::RenderTarget& target) const {
 	target.setView(originalView);
 }
 
+std::unique_ptr<sf::Texture> cgss::ViewportItem::takeSnapshot() const {
+	sf::RenderTexture render;
+	sf::Sprite renderSprite;
+	sf::View renderView = ViewBox::clone();
+	render.create(renderView.getSize().x, renderView.getSize().y);
+	renderView.setViewport(sf::FloatRect(0.0f, 0.0f, 1.0f, 1.0f));
+	render.setView(renderView);
+	
+	auto& renderStates = getRenderState();
+
+	// Clearing render
+	const auto& color = renderStates.shader ? m_color : sf::Color::Transparent;
+	render.clear(color);
+
+	// Drawing sprites
+	drawables().drawFast(render);
+	render.display();
+
+	sf::Texture copy = sf::Texture(render.getTexture());
+	renderSprite.setTexture(copy);
+	renderSprite.setPosition(0, 0);
+
+	// Draw the result
+	render.clear(sf::Color::Transparent);
+	render.draw(renderSprite, renderStates);
+	render.display();
+
+	return std::make_unique<sf::Texture>(render.getTexture());
+}
+
 void cgss::ViewportItem::setupFullWindowView(sf::RenderTarget& target) const {
 	long height = getScreenHeight();
 	long width = getScreenWidth();
@@ -162,6 +192,10 @@ void cgss::Viewport::setAngle(float angle) {
 
 void cgss::Viewport::setZoom(float zoom) {
 	m_proxy->setZoom(zoom);
+}
+
+std::unique_ptr<sf::Texture> cgss::Viewport::takeSnapshot() const {
+	return m_proxy->takeSnapshot();
 }
 
 void cgss::Viewport::onDispose() {

@@ -2,6 +2,7 @@
 #define CGSS_VIEWPORT_H
 #include <optional>
 #include "Graphics/ShaderRenderable.h"
+#include "SnapshotCapturable.h"
 #include "View.h"
 #include "ViewAuthorizations.h"
 #include "ViewBox.h"
@@ -39,6 +40,7 @@ namespace cgss {
 		void draw(sf::RenderTarget& target) const override;
 		void updateFromRectangle(const sf::IntRect& rectangle) override;
 		sf::IntRect getViewportBox() const;
+		std::unique_ptr<sf::Texture> takeSnapshot() const;
 	private:
 		sf::Shader& getRenderStateShader() const;
 	};
@@ -46,7 +48,8 @@ namespace cgss {
 	struct DisplayWindowSettings;
 	class Viewport :
 		public Drawable<Viewport, ViewportItem>,
-		public GraphicItem {
+		public GraphicItem,
+		public SnapshotCapturable {
 
 	public:
 		Viewport();
@@ -57,6 +60,7 @@ namespace cgss {
 		virtual ~Viewport();
 
 		void bindRenderStates(RenderStates* states);
+		std::unique_ptr<sf::Texture> takeSnapshot() const override;
 		void drawFast(sf::RenderTarget& target) const override;
 		void draw(sf::RenderTarget& target) const override;
 

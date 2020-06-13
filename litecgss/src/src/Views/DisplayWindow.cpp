@@ -166,7 +166,7 @@ void cgss::DisplayWindow::setShader(sf::RenderStates* shader) {
 	}
 }
 
-std::unique_ptr<cgss::Texture> cgss::DisplayWindow::takeSnapshot() {
+std::unique_ptr<sf::Texture> cgss::DisplayWindow::takeSnapshot() const {
 	return m_snapshot.takeSnapshot(*m_gameWindow);
 }
 

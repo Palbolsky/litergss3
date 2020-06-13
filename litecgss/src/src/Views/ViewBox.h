@@ -28,6 +28,7 @@ namespace cgss {
 		long getOy() const;
 		void setZoom(float zoom);
 		void setAngle(float angle);
+		float getAngle() const;
 		float getZoom() const;
 
 		MainEventDispatcher& getEventDispatcher() { return m_eventDispatcher; }
@@ -63,6 +64,7 @@ namespace cgss {
 		long m_screenWidth = 640;
 		long m_screenHeight = 320;
 		float m_zoom = 1.f;
+		float m_angle = 0.f;
 	};
 }
 #endif
