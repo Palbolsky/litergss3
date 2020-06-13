@@ -328,13 +328,19 @@ void cgss::FramedViewItem::updateVerticesBlt(long wt, long ht) {
 }
 
 void cgss::FramedViewItem::setBuilder(std::array<long, 6> windowBuilder) {
-	std::memcpy(m_windowBuilder.data(), windowBuilder.data(), sizeof(long) * 6);
+	LOG_INFO << "Setting window builder 6";
+	std::copy(std::begin(windowBuilder), std::end(windowBuilder), std::begin(m_windowBuilder));
 	m_windowBuilderExtended = false;
+	updateVertices();
+	updateView();
 }
 
 void cgss::FramedViewItem::setBuilder(std::array<long, 8> windowBuilder) {
+	LOG_INFO << "Setting window builder 8";
 	m_windowBuilder = std::move(windowBuilder);
 	m_windowBuilderExtended = true;
+	updateVertices();
+	updateView();
 }
 
 long cgss::FramedViewItem::getPauseX() const {
