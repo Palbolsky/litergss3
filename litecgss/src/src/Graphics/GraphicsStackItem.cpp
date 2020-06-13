@@ -56,6 +56,7 @@ void cgss::GraphicsStackItem::bindRectangle(Rectangle* rectangle) {
 		m_boundRectangle = rectangle;
 		if (m_boundRectangle != nullptr) {
 			m_boundRectangle->bindElement(this);
+			updateFromRectangle(m_boundRectangle->getRect());
 		}
 	}
 }
