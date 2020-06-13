@@ -4,7 +4,7 @@
 #include "LoggerStack.h"
 #include "Graphics/ZIndex.h"
 
-SKA_LOGC_CONFIG(ska::LogLevel::Debug, cgss::GraphicsStack);
+SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::GraphicsStack);
 
 #define LOG_DEBUG SKA_LOGC_STATIC(cgss::GetLoggerStack(), ska::LogLevel::Debug, cgss::GraphicsStack)
 #define LOG_INFO SKA_LOGC_STATIC(cgss::GetLoggerStack(), ska::LogLevel::Info, cgss::GraphicsStack)

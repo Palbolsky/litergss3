@@ -3,7 +3,8 @@
 #include "Graphics/Sprite.h"
 #include "LoggerStack.h"
 
-SKA_LOGC_CONFIG(ska::LogLevel::Debug, cgss::DrawableStack);
+SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::DrawableStack);
+#define LOG_FREQUENCY 300
 
 #define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerStack(), ska::LogLevel::Debug, cgss::DrawableStack)
 #define LOG_INFO SKA_LOGC_STATIC(GetLoggerStack(), ska::LogLevel::Info, cgss::DrawableStack)
@@ -11,6 +12,7 @@ SKA_LOGC_CONFIG(ska::LogLevel::Debug, cgss::DrawableStack);
 
 static std::string PrintStack(const cgss::DrawableStack& drawables) {
 	auto ss = std::stringstream {};
+	ss << static_cast<const void*>(&drawables) << "\t";
 	for (const auto& element : drawables) {
 		ss << "[" << element->getZ().z  << ", " << element->getZ().index << "]";
 	}
@@ -18,8 +20,8 @@ static std::string PrintStack(const cgss::DrawableStack& drawables) {
 }
 
 void cgss::DrawableStack::draw(sf::View& defview, sf::RenderTarget& target) const  {
-	static int counter = 60;
-	if (++counter % 120 == 0) { 
+	static int counter = LOG_FREQUENCY / 2;
+	if (++counter % LOG_FREQUENCY == 0) { 
 		LOG_DEBUG << PrintStack(*this);
 		counter = 0;
 	}
@@ -32,7 +34,7 @@ void cgss::DrawableStack::draw(sf::View& defview, sf::RenderTarget& target) cons
 
 void cgss::DrawableStack::drawFast(sf::RenderTarget& target) const {
 	static int counter = 0;
-	if (++counter % 120 == 0) { 
+	if (++counter % LOG_FREQUENCY == 0) { 
 		LOG_DEBUG << PrintStack(*this);
 		counter = 0;
 	}

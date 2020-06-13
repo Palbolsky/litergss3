@@ -4,7 +4,7 @@
 #include "Viewport.h"
 #include "Common/Rectangle.h"
 
-SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::FramedViewItem);
+SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::FramedViewItem);
 
 #define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Debug, cgss::FramedViewItem)
 #define LOG_INFO SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info, cgss::FramedViewItem)
