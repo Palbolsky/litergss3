@@ -76,6 +76,7 @@ namespace cgss {
 		void setShaderUniformArray(const std::string& name, const float* scalarArray, std::size_t length);
 
 		const sf::RenderStates& getRenderStates() const { return m_renderStates; }
+		sf::RenderStates& getRenderStates() { return m_renderStates; }
 
 		void bindElement(ShaderRenderable* target);
 	};

@@ -11,6 +11,8 @@ namespace cgss {
         virtual ~ShaderRenderable();
         void bindRenderStates(RenderStates* target);
         const RenderStates* getBoundRenderStates() const { return m_target; }
+    protected:
+        RenderStates* getBoundRenderStates() { return m_target; }
     };
 }
 

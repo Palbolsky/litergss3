@@ -19,7 +19,6 @@ namespace cgss {
 		public ShaderRenderable {
 		friend class Viewport;
 	private:
-		const sf::RenderStates& getRenderState() const;
 		void setupFullWindowView(sf::RenderTarget& target) const;
 		void onPostWindowSettingsChange(WindowSettingsChangeEvent& event) override;
 
@@ -38,11 +37,15 @@ namespace cgss {
 		ViewportItem(Viewport* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings);
 		void drawFast(sf::RenderTarget& target) const override { draw(target); }
 		void draw(sf::RenderTarget& target) const override;
+
 		void updateFromRectangle(const sf::IntRect& rectangle) override;
 		sf::IntRect getViewportBox() const;
 		std::unique_ptr<sf::Texture> takeSnapshot() const;
-	private:
-		sf::Shader& getRenderStateShader() const;
+
+		const RenderStates& getRenderStates() const;
+		RenderStates& getRenderStates();
+
+		void setColor(const sf::Color* colorValue);
 	};
 
 	struct DisplayWindowSettings;
@@ -52,7 +55,7 @@ namespace cgss {
 		public SnapshotCapturable {
 
 	public:
-		Viewport();
+		Viewport() = default;
 		Viewport(Viewport&&) noexcept = default;
 		Viewport& operator=(Viewport&&) noexcept = default;
 		Viewport(const Viewport&) = delete;
@@ -75,6 +78,9 @@ namespace cgss {
 
 		void setAngle(float angle);
 		void setZoom(float zoom);
+
+		void setTone(const sf::Glsl::Vec4* toneValue);
+		void setColor(const sf::Color* colorValue);
 
 		template <class View, class StackItem, class Drawable>
 		StackItem& add(std::shared_ptr<StackItem> d) {

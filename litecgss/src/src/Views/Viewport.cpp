@@ -2,6 +2,13 @@
 #include "Viewport.h"
 #include "Common/Rectangle.h"
 #include "Configuration/DisplayWindowSettings.h"
+#include "LoggerViews.h"
+
+SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::ViewportItem);
+
+#define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Debug, cgss::ViewportItem)
+#define LOG_INFO SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info, cgss::ViewportItem)
+#define LOG_WARN SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Warn, cgss::ViewportItem)
 
 cgss::ViewportItem::ViewportItem(Viewport* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
 	ViewBox(eventDispatcher, windowSettings),
@@ -10,8 +17,12 @@ cgss::ViewportItem::ViewportItem(Viewport* owner, MainEventDispatcher& eventDisp
 	createRender();
 }
 
-const sf::RenderStates& cgss::ViewportItem::getRenderState() const {
-	return getBoundRenderStates() != nullptr ? getBoundRenderStates()->getRenderStates() : m_defaultRenderStates.getRenderStates();
+const cgss::RenderStates& cgss::ViewportItem::getRenderStates() const {
+	return getBoundRenderStates() != nullptr ? *getBoundRenderStates() : m_defaultRenderStates;
+}
+
+cgss::RenderStates& cgss::ViewportItem::getRenderStates() {
+	return getBoundRenderStates() != nullptr ? *getBoundRenderStates() : m_defaultRenderStates;
 }
 
 void cgss::ViewportItem::onPostWindowSettingsChange(WindowSettingsChangeEvent& event) {
@@ -25,7 +36,7 @@ void cgss::ViewportItem::draw(sf::RenderTarget& target) const {
 	// Loading Target view
 	ViewBox::onRenderTarget(m_render, true);
 	
-	auto& renderStates = getRenderState();
+	const auto& renderStates = getRenderStates().getRenderStates();
 	// Clearing render
 	const auto& color = renderStates.shader ? m_color : sf::Color::Transparent;
 	m_render.clear(color);
@@ -51,7 +62,7 @@ std::unique_ptr<sf::Texture> cgss::ViewportItem::takeSnapshot() const {
 	renderView.setViewport(sf::FloatRect(0.0f, 0.0f, 1.0f, 1.0f));
 	render.setView(renderView);
 	
-	auto& renderStates = getRenderState();
+	const auto& renderStates = getRenderStates().getRenderStates();
 
 	// Clearing render
 	const auto& color = renderStates.shader ? m_color : sf::Color::Transparent;
@@ -84,9 +95,6 @@ void cgss::ViewportItem::setupFullWindowView(sf::RenderTarget& target) const {
 
 void cgss::Viewport::move(float x, float y) {
 	m_proxy->updateViewport(x, y);
-}
-
-cgss::Viewport::Viewport() {
 }
 
 void cgss::Viewport::moveOrigin(long ox, long oy) {
@@ -144,9 +152,7 @@ void cgss::ViewportItem::createRender() {
 		m_defaultRenderStates.setShaderUniform("tone", sf::Glsl::Vec4 {});
 	}
 
-	//TODO add a way to bind a color, or just get rid of the color system
-	sf::Glsl::Vec4 color(m_color.r / 255.0f, m_color.g / 255.0f, m_color.b / 255.0f, m_color.a / 255.0f);
-	m_defaultRenderStates.setShaderUniform("color", color);
+	setColor(nullptr);
 }
 
 void cgss::ViewportItem::updateFromRectangle(const sf::IntRect& rectangle) {
@@ -155,6 +161,24 @@ void cgss::ViewportItem::updateFromRectangle(const sf::IntRect& rectangle) {
 
 	m_renderSprite.setTextureRect(rectangle);
 	m_renderSprite.setPosition(rectangle.left, rectangle.top);
+}
+
+void cgss::Viewport::setTone(const sf::Glsl::Vec4* toneValue) {
+	auto& renderStates = m_proxy->getRenderStates();
+	renderStates.setShaderUniform("tone", toneValue == nullptr ? sf::Glsl::Vec4 {} : *toneValue);
+	LOG_DEBUG << "Setting tone " << static_cast<const void*>(toneValue);
+}
+
+void cgss::ViewportItem::setColor(const sf::Color* colorValue) {
+	auto& renderStates = getRenderStates();
+	m_color = colorValue == nullptr ? sf::Color {0, 0, 0, 0} : *colorValue;
+	sf::Glsl::Vec4 shaderColor(m_color.r / 255.0f, m_color.g / 255.0f, m_color.b / 255.0f, m_color.a / 255.0f);
+	renderStates.setShaderUniform("color", shaderColor);
+	LOG_DEBUG << "Setting color " << static_cast<const void*>(colorValue);
+}
+
+void cgss::Viewport::setColor(const sf::Color* colorValue) {
+	m_proxy->setColor(colorValue);
 }
 
 void cgss::Viewport::setRectangle(sf::IntRect rectangle) {
