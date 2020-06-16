@@ -82,6 +82,39 @@ void cgss::Text::setStyle(sf::Uint32 style) {
 	m_proxy->m_text.setStyle(style);
 }
 
+void cgss::Text::setDrawShadow(bool drawshadow) {
+	m_proxy->m_text.setDrawShadow(drawshadow);
+}
+
+bool cgss::Text::getDrawShadow() const {
+	return m_proxy->m_text.getDrawShadow();
+}
+
+void cgss::Text::setNumCharToDraw(sf::Uint32 num) {
+	m_proxy->m_text.setNumCharToDraw(num);
+	m_proxy->updateAlign();
+}
+
+sf::Uint32 cgss::Text::getNumCharToDraw() const {
+	return m_proxy->m_text.getNumCharToDraw();
+}
+
+void cgss::Text::setLineHeight(float height) {
+	m_proxy->m_text.setLineHeight(height);
+}
+
+sf::Uint32 cgss::Text::getTextWidth(const sf::String& string) const {
+	return m_proxy->m_text.getTextWidth(string);
+}
+
+void cgss::Text::setSmooth(bool smooth) {
+	m_proxy->m_text.setSmooth(smooth);
+}
+
+bool cgss::Text::getSmooth() const {
+	return m_proxy->m_text.getSmooth();
+}
+
 void cgss::TextItem::updateAlign() {
 	auto box = sf::FloatRect { m_wantedX, m_wantedY, static_cast<float>(m_width), static_cast<float>(m_height) };
 	auto bounds = m_text.getLocalBounds();
@@ -143,6 +176,7 @@ long cgss::Text::getCharacterSize() const {
 
 void cgss::Text::setCharacterSize(long characterSize) {
 	m_proxy->m_text.setCharacterSize(characterSize);
+	m_proxy->updateAlign();
 }
 
 void cgss::Text::setString(const sf::String& text) {

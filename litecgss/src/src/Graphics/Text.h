@@ -1,6 +1,6 @@
 #ifndef CGSS_TEXT_H
 #define CGSS_TEXT_H
-#include <SFML/Graphics/Text.hpp>
+#include "Graphics/ScrollText.h"
 #include "Graphics/Drawable.h"
 #include "Graphics/Transformable.h"
 #include "Common/Meta/metadata.h"
@@ -16,7 +16,7 @@ namespace cgss {
 		void drawFast(sf::RenderTarget& target) const override;
 		void updateAlign();
 	private:
-		sf::Text m_text;
+		ScrollText m_text;
 		uint8_t m_align = 0;
 		long m_width = 1;
 		long m_height = 1;
@@ -52,6 +52,15 @@ namespace cgss {
 		void setCharacterSize(long characterSize);
 		void setString(const sf::String& text);
 		void setFont(sf::Font& font);
+
+		void setDrawShadow(bool drawshadow);
+		bool getDrawShadow() const;
+		void setNumCharToDraw(sf::Uint32 num);
+		sf::Uint32 getNumCharToDraw() const;
+		void setLineHeight(float height);
+		sf::Uint32 getTextWidth(const sf::String& string) const;
+		void setSmooth(bool smooth);
+		bool getSmooth() const;
 
 		float getX() const;
 		float getY() const;
