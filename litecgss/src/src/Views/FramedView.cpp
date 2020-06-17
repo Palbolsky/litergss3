@@ -649,7 +649,7 @@ void cgss::FramedViewItem::setCursorRectangle(sf::IntRect rect) {
 }
 
 void cgss::FramedViewItem::updateContentsOpacity() {
-	const auto opacity = static_cast<uint8_t>(m_opacity * (m_contentOpacity / 255.F));
+	const auto opacity = static_cast<uint8_t>((m_opacity * m_contentOpacity) / 255.F);
 
 	drawables().updateContentsOpacity(opacity);
 }

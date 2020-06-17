@@ -54,7 +54,15 @@ void cgss::Sprite::move(float x, float y) {
 }
 
 void cgss::Sprite::setColor(sf::Color color) {
-	m_proxy->m_sprite.setColor(color);
+	m_proxy->setColor(std::move(color));
+}
+
+void cgss::SpriteItem::setColor(sf::Color color) {
+	m_sprite.setColor(color);
+}
+
+const sf::Color& cgss::SpriteItem::getColor() const {
+	return m_sprite.getColor();
 }
 
 void cgss::Sprite::setTexture(Texture& texture, bool resetRect) {

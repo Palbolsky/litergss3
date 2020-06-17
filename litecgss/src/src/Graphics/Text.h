@@ -15,6 +15,7 @@ namespace cgss {
 		void draw(sf::RenderTarget& target) const override;
 		void drawFast(sf::RenderTarget& target) const override;
 		void updateAlign();
+		void setOpacity(std::uint8_t opacity);
 	private:
 		ScrollText m_text;
 		uint8_t m_align = 0;

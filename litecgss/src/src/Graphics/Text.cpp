@@ -24,16 +24,20 @@ std::uint8_t cgss::Text::getOpacity() const {
 	return m_proxy->m_text.getFillColor().a;
 }
 
-void cgss::Text::setOpacity(std::uint8_t opacity) {
-	auto color = m_proxy->m_text.getFillColor();
+void cgss::TextItem::setOpacity(std::uint8_t opacity) {
+	auto color = m_text.getFillColor();
 	color.a = opacity;
 	LOG_INFO << "Set opacity (" << static_cast<int>(opacity) << ")";
-	m_proxy->m_text.setFillColor(color);
-	if (m_proxy->m_text.getOutlineThickness() < 1.0f && opacity != 255) {
-		color = m_proxy->m_text.getOutlineColor();
+	m_text.setFillColor(color);
+	if (m_text.getOutlineThickness() < 1.0f && opacity != 255) {
+		color = m_text.getOutlineColor();
 		color.a = opacity / 3;
-		m_proxy->m_text.setOutlineColor(std::move(color));
+		m_text.setOutlineColor(color);
 	}
+}
+
+void cgss::Text::setOpacity(std::uint8_t opacity) {
+	m_proxy->setOpacity(opacity);
 }
 
 float cgss::Text::getX() const {
@@ -54,7 +58,7 @@ const sf::Color& cgss::Text::getFillColor() const {
 
 void cgss::Text::setFillColor(sf::Color color) {
 	LOG_INFO << "Set fill color (r = " << static_cast<int>(color.r) << " g =" << static_cast<int>(color.g) << " b = " << static_cast<int>(color.b) << " a = " << static_cast<int>(color.a) << ")";
-	m_proxy->m_text.setFillColor(std::move(color));
+	m_proxy->m_text.setFillColor(color);
 }
 
 const sf::Color& cgss::Text::getOutlineColor() const {
@@ -62,7 +66,7 @@ const sf::Color& cgss::Text::getOutlineColor() const {
 }
 
 void cgss::Text::setOutlineColor(sf::Color color) {
-	m_proxy->m_text.setOutlineColor(std::move(color));
+	m_proxy->m_text.setOutlineColor(color);
 }
 
 float cgss::Text::getOutlineThickness() const {
