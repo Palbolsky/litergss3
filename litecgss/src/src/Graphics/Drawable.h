@@ -14,7 +14,7 @@ namespace cgss {
 	public:
 		virtual ~Drawable() = default;
 	
-		void dispose() {
+		void detach() {
 			if (m_instanceOwner != nullptr && !m_disposed) {
 				m_instanceOwner->detach();
 				m_disposed = true;
@@ -22,7 +22,7 @@ namespace cgss {
 			}
 		}
 
-		bool isDisposed() const { return m_disposed; }
+		bool isDetached() const { return m_disposed; }
 
 		const ZIndex& getZ() const {
 			return m_instanceOwner->getZ();
