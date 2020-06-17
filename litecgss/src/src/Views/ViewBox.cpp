@@ -32,8 +32,8 @@ void cgss::ViewBox::moveOrigin(long ox, long oy) {
 }
 
 void cgss::ViewBox::updateCenter() {
-	m_view.setCenter(std::roundf(static_cast<float>(m_ox + m_view.getSize().x) / 2.0f),
-		std::roundf(static_cast<float>(m_oy + m_view.getSize().y) / 2.0f));
+	m_view.setCenter(std::roundf(static_cast<float>(m_ox) + m_view.getSize().x / 2.0f),
+		std::roundf(static_cast<float>(m_oy) + m_view.getSize().y / 2.0f));
 }
 
 void cgss::ViewBox::resize(long width, long height) {
