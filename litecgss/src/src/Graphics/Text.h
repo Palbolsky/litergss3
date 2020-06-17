@@ -58,7 +58,6 @@ namespace cgss {
 		bool getDrawShadow() const;
 		void setNumCharToDraw(sf::Uint32 num);
 		sf::Uint32 getNumCharToDraw() const;
-		void setLineHeight(float height);
 		sf::Uint32 getTextWidth(const sf::String& string) const;
 		void setSmooth(bool smooth);
 		bool getSmooth() const;
@@ -78,6 +77,8 @@ namespace cgss {
 		void resize(long width, long height);
 		long getWidth() const;
 		long getHeight() const;
+	private:
+		void setLineHeight(float height);
 	};
 
 	namespace meta {

@@ -121,17 +121,17 @@ bool cgss::Text::getSmooth() const {
 
 void cgss::TextItem::updateAlign() {
 	auto box = sf::FloatRect { m_wantedX, m_wantedY, static_cast<float>(m_width), static_cast<float>(m_height) };
-	auto bounds = m_text.getLocalBounds();
+	const auto localBounds = m_text.getLocalBounds();
 	float ox = 0.f;
 	switch (m_align) {
 		case 1: /* Center */
 			LOG_DEBUG << "Update align center";
-			ox = std::round(bounds.width / 2.f);
+			ox = std::round(localBounds.width / 2.f);
 			box.left = std::round(box.left + box.width / 2.f);
 			break;
 		case 2: /* Right */
 			LOG_DEBUG << "Update align right";
-			ox = std::round(bounds.width);
+			ox = std::round(localBounds.width);
 			box.left = std::round(box.left + box.width);
 			break;
 		default: /* Left */
@@ -162,6 +162,7 @@ void cgss::Text::move(float x, float y) {
 void cgss::Text::resize(long width, long height) {
 	m_proxy->m_width = width;
 	m_proxy->m_height = height;
+	setLineHeight(height);
 	LOG_INFO << "Text resized explicitely to width = " << width << " height = " << height;
 	m_proxy->updateAlign();
 }
