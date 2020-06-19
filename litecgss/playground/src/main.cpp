@@ -32,7 +32,7 @@ void MemTest() {
 	std::cout << "Drawing..." << std::endl;
 	window.draw();
 	std::cout << "Before mem release" << std::endl;
-	viewport.dispose();
+	viewport.detach();
 	std::cout << "After mem release" << std::endl;
 }
 
@@ -98,7 +98,7 @@ void ViewTest() {
 			sprite.setAngle(sprite.getAngle() + 1.f);
 			
 			if (i == 500) {
-				framedView.dispose();
+				framedView.detach();
 			}
 
 			if (i > 1000) {

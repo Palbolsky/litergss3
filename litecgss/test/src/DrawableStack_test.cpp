@@ -44,12 +44,12 @@ TEST_CASE("[DrawableStack] DrawableStack : drawable dies before : no effect") {
 	CHECK(stack.size() == 1);
 }
 
-TEST_CASE("[DrawableStack] DrawableStack : drawable disposed before : empty stack") {
+TEST_CASE("[DrawableStack] DrawableStack : drawable detached before : empty stack") {
 	auto stack = cgss::DrawableStack{};
 
 	{
 		auto sprite = DrawableTest::create(stack);
-		sprite.dispose();
+		sprite.detach();
 	}
 
 	CHECK(stack.size() == 0);
@@ -68,20 +68,20 @@ TEST_CASE("[DrawableStack] DrawableStack : stack dies before (moved Drawable)") 
 	CHECK(sprite2.hasProxy());
 }
 
-TEST_CASE("[DrawableStack] DrawableStack : drawable is disposed explicitely") {
+TEST_CASE("[DrawableStack] DrawableStack : drawable is detached explicitely") {
 	auto stack = cgss::DrawableStack{};
 
 	{
 		auto sprite = DrawableTest::create(stack);
 		CHECK(stack.size() == 1);
-		sprite.dispose();
+		sprite.detach();
 		CHECK(stack.size() == 0);
 	}
 
 	CHECK(stack.size() == 0);
 }
 
-TEST_CASE("[DrawableStack] DrawableStack : moved sprite is not disposed") {
+TEST_CASE("[DrawableStack] DrawableStack : moved sprite is not detached") {
 	auto stack = cgss::DrawableStack{};
 	
 	auto sprite = DrawableTest::create(stack);
@@ -91,14 +91,14 @@ TEST_CASE("[DrawableStack] DrawableStack : moved sprite is not disposed") {
 	CHECK(stack.size() == 2);
 }
 
-TEST_CASE("[DrawableStack] DrawableStack : dispose several times") {
+TEST_CASE("[DrawableStack] DrawableStack : detach several times") {
 	auto stack = cgss::DrawableStack{};
 
 	auto sprite = DrawableTest::create(stack);
 	CHECK(stack.size() == 1);
-	sprite.dispose();
+	sprite.detach();
 	CHECK(stack.size() == 0);
-	sprite.dispose();
+	sprite.detach();
 	CHECK(stack.size() == 0);
 }
 
@@ -112,7 +112,7 @@ TEST_CASE("[DrawableStack] DrawableStack : complex mix") {
 
 		CHECK(stack.size() == 2);
 
-		sprite2.dispose();
+		sprite2.detach();
 
 		CHECK(stack.size() == 1);
 
@@ -140,7 +140,7 @@ TEST_CASE("[DrawableStack] DrawableStack with drawing") {
 	CHECK(sprite2.hasProxy());
 
 	// Here sprite2 is deleted from stack
-	sprite2.dispose();
+	sprite2.detach();
 	
 	CHECK(stack.size() == 0);
 	
