@@ -41,7 +41,7 @@ namespace cgss {
 		std::unique_ptr<sf::Texture> takeSnapshot() const override;
 		void freeze();
 		void transition(long time, Texture* texture = nullptr);
-		void resizeScreen(int width, int height);
+		void resizeScreen(unsigned int width, unsigned int height);
 		void setShader(sf::RenderStates* shader);
 
 		void reload(DisplayWindowSettings settings);

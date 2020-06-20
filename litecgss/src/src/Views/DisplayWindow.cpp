@@ -155,9 +155,16 @@ void cgss::DisplayWindow::postProcessing() {
 	}
 }
 
-void cgss::DisplayWindow::resizeScreen(int width, int height) {
-	//TODO : use an event
+void cgss::DisplayWindow::resizeScreen(unsigned int width, unsigned int height) {
+	m_settings.video.width = width;
+	m_settings.video.height = height;
+	auto we = WindowSettingsChangeEvent{};
+	we.settings = m_settings;
+	m_eventDispatcher.Observable<WindowSettingsChangeEvent>::notifyObservers(we);
+
+	m_gameWindow->setSize(sf::Vector2u { width, height });
 }
+
 
 void cgss::DisplayWindow::setShader(sf::RenderStates* shader) {
 	m_draw.renderState = shader;
