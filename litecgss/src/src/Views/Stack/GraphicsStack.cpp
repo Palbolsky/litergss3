@@ -107,8 +107,10 @@ void cgss::GraphicsStack::zSwap(const ZIndex& previous, const ZIndex& next) {
 static bool ZIndexSort(const cgss::GraphicsStackItemPtr &lhs, const cgss::GraphicsStackItemPtr &rhs) { return lhs->getZ() < rhs->getZ(); }
 
 void cgss::GraphicsStack::sortZ() {
-	std::sort(m_stack.begin(), m_stack.end(), ZIndexSort);
-	m_zDirty = false;
+	if (m_zDirty) {
+		std::sort(m_stack.begin(), m_stack.end(), ZIndexSort);
+		m_zDirty = false;
+	}
 }
 
 void cgss::GraphicsStack::setZDirty() {
@@ -134,9 +136,7 @@ static std::string PrintStack(const cgss::GraphicsStack& drawables) {
 }
 
 bool cgss::GraphicsStack::remove(GraphicsStackItem* item) {
-	if (m_zDirty) {
-		sortZ();
-	}
+	sortZ();
 	const auto index = AdaptIndex(m_stack, dichotomicFindFirstGreater(item->getZ()), item->getZ());
 
 	const auto foundExactValue = item == m_stack[index].get();
