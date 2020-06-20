@@ -829,6 +829,10 @@ void cgss::FramedView::drawFast(sf::RenderTarget& target) const {
 	m_proxy->draw(target);
 }
 
+void cgss::FramedView::sortZ() {
+	m_proxy->sortZ();
+}
+
 void cgss::FramedView::moveOrigin(long ox, long oy) {
 	m_proxy->m_wantedOx = ox;
 	m_proxy->m_wantedOy = oy;

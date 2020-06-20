@@ -22,9 +22,13 @@ void cgss::GraphicsStackItem::detach() {
 
 void cgss::GraphicsStackItem::setZ(long z) {
 	if (m_originStack != nullptr) {
-		auto next = ZIndex{z, m_priority.index};
-		m_originStack->zSwap(m_priority, next);
-		LOG_DEBUG << "Zswapping to z = " << z;
+		if (m_originStack->isInsertionZSort()) {		
+			auto next = ZIndex{z, m_priority.index};
+			m_originStack->zSwap(m_priority, next);
+			LOG_DEBUG << "Zswapping to z = " << z;
+		} else {
+			m_originStack->setZDirty();
+		}
 	}
 	m_priority.z = z;
 } 

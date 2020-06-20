@@ -19,7 +19,6 @@ namespace cgss {
 		void forceDetach() { 
 			auto& ref = static_cast<Item&>(*this);
 			ref.m_originStack = nullptr;
-			ref.m_priority = ZIndex{};
 		}
 		
 		void forceAttach(GraphicsStack& originStack) {

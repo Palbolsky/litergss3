@@ -26,6 +26,11 @@ namespace cgss {
 		std::size_t size() const { return m_stack.size(); }
 		std::int32_t queryNextIndex();
 
+		void sortZ();
+		void setZDirty();
+		bool isInsertionZSort() const;
+		void setInsertionZSort(bool zsort);
+
 		const auto& operator[](std::size_t index) const {
 			return *m_stack[index];
 		}
@@ -50,6 +55,8 @@ namespace cgss {
 		int32_t m_zIndexCounter = 0;		
 		mutable std::mutex m_mutexDetached;
 		mutable GraphicsContainer m_detached;
+		bool m_zDirty = false;
+		bool m_insertionZSort = false;
 	};
 }
 #endif

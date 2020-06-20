@@ -148,6 +148,7 @@ namespace cgss {
 
 		void draw(sf::RenderTarget& target) const override;
 		void drawFast(sf::RenderTarget& target) const override;
+		void sortZ();
 
 		void lock();
 		void unlock();

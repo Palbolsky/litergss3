@@ -50,18 +50,18 @@ std::size_t cgss::GraphicsStack::dichotomicFindFirstGreater(const ZIndex& value)
 	std::size_t min = 0;
 	std::size_t max = m_stack.size() - 1;
 	while (max - min > 1) {
-	const auto index = (max + min) >> 1;
-	const auto diff = (value - m_stack[index]->getZ()).sign();
-	switch (diff) {
-		case 0:
-		return index;
-		case 1:
-		min = index;
-		break;
-		case -1:
-		max = index;
-		break;
-	}
+		const auto index = (max + min) >> 1;
+		const auto diff = (value - m_stack[index]->getZ()).sign();
+		switch (diff) {
+			case 0:
+			return index;
+			case 1:
+			min = index;
+			break;
+			case -1:
+			max = index;
+			break;
+		}
 	}
   
   return max;
@@ -104,6 +104,17 @@ void cgss::GraphicsStack::zSwap(const ZIndex& previous, const ZIndex& next) {
 	<< " next = " << next.z << ", " << next.index << " found at index = " << range[1];
 }
 
+static bool ZIndexSort(const cgss::GraphicsStackItemPtr &lhs, const cgss::GraphicsStackItemPtr &rhs) { return lhs->getZ() < rhs->getZ(); }
+
+void cgss::GraphicsStack::sortZ() {
+	std::sort(m_stack.begin(), m_stack.end(), ZIndexSort);
+	m_zDirty = false;
+}
+
+void cgss::GraphicsStack::setZDirty() {
+	m_zDirty = true;
+}
+
 void cgss::GraphicsStack::syncFromRawData(GraphicsContainer data, bool forceDetachAll) {
 	if (forceDetachAll) {
 		for(auto& it : m_stack) {
@@ -123,14 +134,16 @@ static std::string PrintStack(const cgss::GraphicsStack& drawables) {
 }
 
 bool cgss::GraphicsStack::remove(GraphicsStackItem* item) {
-	auto index = AdaptIndex(m_stack, dichotomicFindFirstGreater(item->getZ()), item->getZ());
+	if (m_zDirty) {
+		sortZ();
+	}
+	const auto index = AdaptIndex(m_stack, dichotomicFindFirstGreater(item->getZ()), item->getZ());
 
 	const auto foundExactValue = item == m_stack[index].get();
 	if (!foundExactValue) {
 		LOG_ERROR << static_cast<void*>(this) << " Trying to remove an element from stack but unable to find it for z-index = " << item->getZ().z << ", " << item->getZ().index
 			<< " only found position = " << index << " but no item equality";
 		LOG_ERROR << PrintStack(*this);
-		throw std::runtime_error("Trying to remove an element from stack but unable to find it");
 		return false;
 	}
 
@@ -146,13 +159,29 @@ std::int32_t cgss::GraphicsStack::queryNextIndex() {
 
 void cgss::GraphicsStack::add(GraphicsStackItemPtr item) {
 	item->forceAttach(*this);
-	auto position = AdaptIndex(m_stack, dichotomicFindFirstGreater(item->getZ()), item->getZ());
+	if (!m_insertionZSort) {
+		LOG_INFO << "Adding element to stack " << static_cast<void*>(this) << " with z-index = " <<
+			item->getZ().z << ", " << item->getZ().index;
+		m_stack.push_back(std::move(item));
+		m_zDirty = true;
+		return;
+	}
 
-	LOG_INFO << "Adding element to stack " << static_cast<void*>(this) << " with z-index = " << item->getZ().z << ", " << item->getZ().index <<
-	 " at position = " << position;
+	const auto position = AdaptIndex(m_stack, dichotomicFindFirstGreater(item->getZ()), item->getZ());
+	
+	LOG_INFO << "Adding element to stack " << static_cast<void*>(this) << " with z-index = " <<
+		item->getZ().z << ", " << item->getZ().index << " at position = " << position;
 	if (position == m_stack.size()) {
 		m_stack.push_back(std::move(item));
 	} else {
 		m_stack.insert(m_stack.begin() + position, std::move(item));
 	}
+}
+
+bool cgss::GraphicsStack::isInsertionZSort() const {
+	return m_insertionZSort;
+}
+
+void cgss::GraphicsStack::setInsertionZSort(bool zsort) {
+	m_insertionZSort = zsort;
 }

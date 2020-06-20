@@ -66,6 +66,7 @@ namespace cgss {
 		std::unique_ptr<sf::Texture> takeSnapshot() const override;
 		void drawFast(sf::RenderTarget& target) const override;
 		void draw(sf::RenderTarget& target) const override;
+		void sortZ();
 
 		void moveOrigin(long ox, long oy);
 		void move(float x, float y);

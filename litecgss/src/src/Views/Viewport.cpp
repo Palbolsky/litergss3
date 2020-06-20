@@ -93,6 +93,10 @@ void cgss::ViewportItem::setupFullWindowView(sf::RenderTarget& target) const {
 	target.setView(defview);
 }
 
+void cgss::Viewport::sortZ() {
+	m_proxy->sortZ();
+}
+
 void cgss::Viewport::move(float x, float y) {
 	m_proxy->updateViewport(x, y);
 }
