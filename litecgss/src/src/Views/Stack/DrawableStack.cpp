@@ -46,19 +46,6 @@ void cgss::DrawableStack::drawFast(sf::RenderTarget& target) const {
 
 void cgss::DrawableStack::updateContentsOpacity(std::uint8_t opacity) {
 	for (auto& sp : *this) {
-		//TODO polymorphism
-		//FIXME PLEAAAAASE !!!
-
-		TextItem* text = dynamic_cast<TextItem*>(sp.get());
-		if (text != nullptr) {
-			text->setOpacity(opacity);
-		} else {
-			SpriteItem* sprite = dynamic_cast<SpriteItem*>(sp.get());
-			if (sprite != nullptr) {
-				sf::Color col = sprite->getColor();
-				col.a = opacity;
-				sprite->setColor(col);
-			}
-		}
+		sp->setOpacity(opacity);
 	}
 }

@@ -45,6 +45,7 @@ namespace cgss {
 		GraphicsStackItem& operator=(GraphicsStackItem&&) = delete;
 		virtual ~GraphicsStackItem();
 		virtual void updateFromRectangle(const sf::IntRect&) {};
+		virtual void setOpacity(std::uint8_t) {};
 
 		void detach();
 

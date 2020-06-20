@@ -26,8 +26,7 @@ namespace cgss {
 		void draw(sf::RenderTarget& target) const override;
 		void drawFast(sf::RenderTarget& target) const override;
 		void updateFromRectangle(const sf::IntRect& rectangle) override;
-		void setColor(sf::Color color);
-		const sf::Color& getColor() const;
+		void setOpacity(std::uint8_t opacity) override;
 	};
 	
 	class Sprite :
