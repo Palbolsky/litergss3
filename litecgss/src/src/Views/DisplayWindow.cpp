@@ -165,6 +165,9 @@ void cgss::DisplayWindow::resizeScreen(unsigned int width, unsigned int height) 
 	m_gameWindow->setSize(sf::Vector2u { width, height });
 }
 
+void cgss::DisplayWindow::setIcon(const sf::Image& image) {
+	m_gameWindow->setIcon(image.getSize().x, image.getSize().y, image.getPixelsPtr());
+}
 
 void cgss::DisplayWindow::setShader(sf::RenderStates* shader) {
 	m_draw.renderState = shader;

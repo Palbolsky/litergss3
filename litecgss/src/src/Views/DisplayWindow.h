@@ -3,6 +3,8 @@
 
 #include <memory>
 
+#include <SFML/Graphics/Image.hpp>
+
 #include "View.h"
 #include "ViewAuthorizations.h"
 #include "DisplayWindowDraw.h"
@@ -32,6 +34,7 @@ namespace cgss {
 		bool smoothScreen() const { return m_draw.smoothScreen; }
 		double scale() const { return m_draw.scale; }
 		auto frameRate() const { return m_draw.frameRate; }
+		void setIcon(const sf::Image& image);
 
 		void stop();
 		bool isOpen() const;
