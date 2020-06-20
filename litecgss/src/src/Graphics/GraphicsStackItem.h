@@ -2,6 +2,8 @@
 #define CGSS_GRAPHICS_STACK_ITEM_H
 #include <memory>
 #include "GraphicItem.h"
+#include "Common/BondElement.h"
+#include "Common/Bindable.h"
 #include "Views/Stack/GraphicsStack.h"
 #include "ZIndex.h"
 
@@ -29,6 +31,7 @@ namespace cgss {
 
 	class GraphicsStackItem : 
 		public GraphicsStackBinder<GraphicsStackItem>,
+		public Bindable<sf::IntRect>,
 		protected GraphicItem {
 		friend class GraphicsStackBinder<GraphicsStackItem>;
 	private:
@@ -44,17 +47,13 @@ namespace cgss {
 		GraphicsStackItem(GraphicsStackItem&&) = delete;
 		GraphicsStackItem& operator=(GraphicsStackItem&&) = delete;
 		virtual ~GraphicsStackItem();
-		virtual void updateFromRectangle(const sf::IntRect&) {};
+		void updateFromValue(const sf::IntRect*) override {};
 		virtual void setOpacity(std::uint8_t) {};
 
 		void detach();
 
 		const ZIndex& getZ() const { return m_priority; }
 		void setZ(long z);
-
-		void bindRectangle(Rectangle* rectangle);
-		Rectangle* getBoundRectangle() { return m_boundRectangle; }
-		const Rectangle* getBoundRectangle() const { return m_boundRectangle; }
 
 		void tryDraw(sf::RenderTarget& target) const;
 		void tryDrawFast(sf::RenderTarget& target) const;

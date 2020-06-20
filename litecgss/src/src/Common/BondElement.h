@@ -43,6 +43,14 @@ namespace cgss {
 			}
 		}
 
+		bool operator==(const BondElement<Value>& other) const {
+			return m_value == other.m_value;
+		}
+
+		bool operator!=(const BondElement<Value>& other) const {
+			return m_value != other.m_value;
+		}
+
 		template <class Function>
 		void edit(Function&& operate) { 
 			std::forward<Function>(operate)(m_value);

@@ -66,15 +66,12 @@ void cgss::SpriteItem::setOpacity(std::uint8_t opacity) {
 void cgss::Sprite::setTexture(Texture& texture, bool resetRect) {
 	m_proxy->m_sprite.setTexture(texture.getTexture(), resetRect);
 	if (resetRect) {
-		auto* boundRectangle = m_proxy->getBoundRectangle();
-		if (boundRectangle != nullptr) {
-			boundRectangle->setRect(m_proxy->m_sprite.getTextureRect());
-		}
+		m_proxy->setValue(m_proxy->m_sprite.getTextureRect());
 	}
 }
 
-void cgss::SpriteItem::updateFromRectangle(const sf::IntRect& rectangle) {
-	auto tmpRectangle = rectangle;
+void cgss::SpriteItem::updateFromValue(const sf::IntRect* rectangle) {
+	auto tmpRectangle = rectangle == nullptr ? sf::IntRect{} : *rectangle;
 	if (m_mirror) {
 		tmpRectangle.left += tmpRectangle.width;
 		tmpRectangle.width = -tmpRectangle.width;
@@ -83,25 +80,9 @@ void cgss::SpriteItem::updateFromRectangle(const sf::IntRect& rectangle) {
 }
 
 void cgss::Sprite::setTextureRect(sf::IntRect rectangle) {
-	auto* boundRectangle = m_proxy->getBoundRectangle();
-	if (boundRectangle != nullptr) {
-		boundRectangle->setRect(rectangle);
-	} else {
-		m_proxy->updateFromRectangle(rectangle);
-	}
+	m_proxy->setValue(std::move(rectangle));
 }
 
 const sf::IntRect& cgss::Sprite::getTextureRect() const {
 	return m_proxy->m_sprite.getTextureRect();
-}
-
-cgss::SpriteItem::~SpriteItem() {
-	/*
-	static std::size_t counter = 0;
-	counter++;
-	if (counter % 10000 == 0) {
-		counter = 0;
-		std::cerr << "[LiteCGSS][" << cgss::meta::Log<Sprite>::classname << "] Freeing 10000 elements" << std::endl;
-	}
-	*/
 }

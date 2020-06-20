@@ -38,12 +38,26 @@ namespace cgss {
             }
         }
 
+        void setValue(Value value) {
+            if (!m_in) {
+                m_in = true;
+                if (m_target != nullptr) {
+                    m_target->setValue(std::move(value));
+                } else {
+                    updateFromValue(&value);
+                }
+                m_in = false;
+            }
+        }
+
     protected:
         virtual void updateFromValue(const Value* value) = 0;
+        const Value* getValue() const { return m_target != nullptr ? &m_target->getValue() : nullptr; }
 
     private:
         BondElement<Value>* m_target = nullptr;
         bool m_destructing = false;
+        bool m_in = false;
     };
 }
 

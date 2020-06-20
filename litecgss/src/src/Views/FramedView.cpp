@@ -634,10 +634,7 @@ void cgss::FramedViewItem::resetPausePosition() {
 }
 
 void cgss::FramedViewItem::setCursorRectangle(sf::IntRect rect) {
-	auto cursorRect = getBoundRectangle();
-	if (cursorRect != nullptr && cursorRect->getRect() != rect) {
-		cursorRect->setRect(rect);
-	}
+	setValue(rect);
 	m_cursorRect = std::move(rect);
 	
 	if (m_cursor.getTexture() == nullptr) {
@@ -856,8 +853,8 @@ void cgss::FramedView::setBuilder(std::array<long, 8> windowBuilder) {
 	m_proxy->setBuilder(windowBuilder);
 }
 
-void cgss::FramedViewItem::updateFromRectangle(const sf::IntRect& rectangle) {
-	setCursorRectangle(rectangle);
+void cgss::FramedViewItem::updateFromValue(const sf::IntRect* rectangle) {
+	setCursorRectangle(rectangle == nullptr ? sf::IntRect{} : *rectangle);
 }
 
 long cgss::FramedView::getPauseX() const {

@@ -48,7 +48,7 @@ void cgss::Texture::update(sf::Image* image) {
 
 void cgss::Texture::blit(unsigned long x, unsigned long y, const Texture& srcTexture, const Rectangle& rect) {
 	if(hasImage()) {
-		m_image.copy(srcTexture.m_image, x, y, rect.getRect());
+		m_image.copy(srcTexture.m_image, x, y, rect.getValue());
 	}
 }
 

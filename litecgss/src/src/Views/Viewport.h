@@ -38,7 +38,7 @@ namespace cgss {
 		void drawFast(sf::RenderTarget& target) const override { draw(target); }
 		void draw(sf::RenderTarget& target) const override;
 
-		void updateFromRectangle(const sf::IntRect& rectangle) override;
+		void updateFromValue(const sf::IntRect* rectangle) override;
 		sf::IntRect getViewportBox() const;
 		std::unique_ptr<sf::Texture> takeSnapshot() const;
 

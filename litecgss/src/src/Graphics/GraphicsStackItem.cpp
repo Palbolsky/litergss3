@@ -27,11 +27,10 @@ void cgss::GraphicsStackItem::setZ(long z) {
 		LOG_DEBUG << "Zswapping to z = " << z;
 	}
 	m_priority.z = z;
-}
+} 
 
 cgss::GraphicsStackItem::~GraphicsStackItem() {
 	detach();
-	bindRectangle(nullptr);
 }
 
 void cgss::GraphicsStackItem::tryDraw(sf::RenderTarget& target) const {
@@ -43,20 +42,5 @@ void cgss::GraphicsStackItem::tryDraw(sf::RenderTarget& target) const {
 void cgss::GraphicsStackItem::tryDrawFast(sf::RenderTarget& target) const {
 	if (m_visible) {
 		drawFast(target);
-	}
-}
-
-void cgss::GraphicsStackItem::bindRectangle(Rectangle* rectangle) {
-	if (rectangle != m_boundRectangle) {
-		auto lastLinkedRect = m_boundRectangle;
-		m_boundRectangle = nullptr;
-		if (lastLinkedRect != nullptr) {
-			lastLinkedRect->bindElement(nullptr);
-		}
-		m_boundRectangle = rectangle;
-		if (m_boundRectangle != nullptr) {
-			m_boundRectangle->bindElement(this);
-			updateFromRectangle(m_boundRectangle->getRect());
-		}
 	}
 }

@@ -22,10 +22,10 @@ namespace cgss {
 		float m_wantedY = 0;
 	public:
 		SpriteItem(Sprite* owner);
-		virtual ~SpriteItem();
+		virtual ~SpriteItem() = default;
 		void draw(sf::RenderTarget& target) const override;
 		void drawFast(sf::RenderTarget& target) const override;
-		void updateFromRectangle(const sf::IntRect& rectangle) override;
+		void updateFromValue(const sf::IntRect* rectangle) override;
 		void setOpacity(std::uint8_t opacity) override;
 	};
 	

@@ -10,6 +10,7 @@ struct DrawableStackItemTest :
 	public cgss::GraphicsStackItem {
 	DrawableStackItemTest(DrawableTest*) {}
 	uint32_t id = 0;
+	void updateFromValue(const sf::IntRect*) override {}
 protected:
 	void draw(sf::RenderTarget&) const override {};
 	void drawFast(sf::RenderTarget&) const override {};

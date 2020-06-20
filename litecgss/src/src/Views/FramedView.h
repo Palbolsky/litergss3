@@ -131,7 +131,7 @@ namespace cgss {
 		void setBuilder(std::array<long, 8> windowBuilder);
 
 		void move(float x, float y);
-		void updateFromRectangle(const sf::IntRect& rectangle) override;
+		void updateFromValue(const sf::IntRect* rectangle) override;
 	};
 
 	class FramedView :

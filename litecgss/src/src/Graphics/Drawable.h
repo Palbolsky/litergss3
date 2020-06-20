@@ -41,7 +41,7 @@ namespace cgss {
 		}
 
 		void bindRectangle(Rectangle* rectangle) {
-			m_instanceOwner->bindRectangle(rectangle);
+			m_instanceOwner->bindValue(rectangle);
 		}
 
 		template <class View, class ... Args>

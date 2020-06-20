@@ -33,10 +33,7 @@ void cgss::Shape::setTexture(Texture* texture, bool resetRect) {
 	}
 
 	if (resetRect) {
-		auto* boundRectangle = m_proxy->getBoundRectangle();
-		if (boundRectangle != nullptr) {
-			boundRectangle->setRect(m_proxy->m_shape->getTextureRect());
-		}
+		m_proxy->setValue(m_proxy->m_shape->getTextureRect());
 	}
 }
 
@@ -45,12 +42,7 @@ sf::IntRect cgss::Shape::getRectangle() const {
 }
 
 void cgss::Shape::setRectangle(sf::IntRect rectangle) {
-	auto* boundRectangle = m_proxy->getBoundRectangle();
-	if (boundRectangle != nullptr) {
-		boundRectangle->setRect(rectangle);
-	} else {
-		m_proxy->updateFromRectangle(rectangle);
-	}
+	m_proxy->setValue(std::move(rectangle));
 }
 
 std::size_t cgss::Shape::getPointCount() const {
@@ -160,6 +152,6 @@ void cgss::Shape::setOutlineThickness(float thickness) const {
 	return m_proxy->m_shape->setOutlineThickness(thickness);
 }
 
-void cgss::ShapeItem::updateFromRectangle(const sf::IntRect& rectangle) {
-	m_shape->setTextureRect(rectangle);
+void cgss::ShapeItem::updateFromValue(const sf::IntRect* rectangle) {
+	m_shape->setTextureRect(rectangle == nullptr ? sf::IntRect{} : *rectangle);
 }

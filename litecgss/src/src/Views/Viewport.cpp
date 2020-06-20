@@ -155,7 +155,8 @@ void cgss::ViewportItem::createRender() {
 	setColor(nullptr);
 }
 
-void cgss::ViewportItem::updateFromRectangle(const sf::IntRect& rectangle) {
+void cgss::ViewportItem::updateFromValue(const sf::IntRect* rectanglePtr) {
+	auto rectangle = rectanglePtr == nullptr ? sf::IntRect{} : *rectanglePtr;
     ViewBox::resize(rectangle.width, rectangle.height);
 	ViewBox::updateViewport(rectangle.left, rectangle.top);
 
@@ -182,18 +183,13 @@ void cgss::Viewport::setColor(const sf::Color* colorValue) {
 }
 
 void cgss::Viewport::setRectangle(sf::IntRect rectangle) {
-	auto* boundRectangle = m_proxy->getBoundRectangle();
-	if (boundRectangle != nullptr) {
-		boundRectangle->setRect(std::move(rectangle));
-	} else {
-		m_proxy->updateFromRectangle(rectangle);
-	}
+	m_proxy->setValue(std::move(rectangle));
 }
 
 sf::IntRect cgss::ViewportItem::getViewportBox() const {
-	const auto* boundRectangle = getBoundRectangle();
+	const auto* boundRectangle = getValue();
 	if (boundRectangle != nullptr) {
-		return boundRectangle->getRect();
+		return *boundRectangle;
 	}
 	return getRectangleBox();
 }
