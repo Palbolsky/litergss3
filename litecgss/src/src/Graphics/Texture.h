@@ -2,7 +2,9 @@
 #define CGSS_TEXTURE_H
 
 #include <vector>
-#include <SFML/Graphics.hpp>
+#include <SFML/Graphics/Texture.hpp>
+#include <SFML/Graphics/Image.hpp>
+#include <SFML/Graphics/Color.hpp>
 #include "Common/Meta/metadata.h"
 
 namespace cgss {
