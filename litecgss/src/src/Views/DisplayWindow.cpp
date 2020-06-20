@@ -3,21 +3,21 @@
 #include "Configuration/DisplayWindowSettings.h"
 #include "DisplayWindow.h"
 #include "LoggerViews.h"
-SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::DisplayWindow);
+SKA_LOGC_CONFIG(ska::LogLevel::Disabled, cgss::DisplayWindow);
 
 #define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Debug, cgss::DisplayWindow)
 #define LOG_INFO SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info, cgss::DisplayWindow)
 #define LOG_WARN SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Warn, cgss::DisplayWindow)
 
 cgss::DisplayWindow::DisplayWindow(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& settings) :
-	m_snapshot{ *this },
-	m_eventDispatcher(eventDispatcher) {
+	m_eventDispatcher(eventDispatcher),
+	m_snapshot{ *this } {
 	reload(settings);
 }
 
 cgss::DisplayWindow::DisplayWindow(MainEventDispatcher& eventDispatcher) :
-	m_snapshot{ *this },
-	m_eventDispatcher(eventDispatcher) {
+	m_eventDispatcher(eventDispatcher),
+	m_snapshot{ *this } {
 }
 
 cgss::DisplayWindow::~DisplayWindow() {

@@ -10,7 +10,7 @@ SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::ViewportItem);
 #define LOG_INFO SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info, cgss::ViewportItem)
 #define LOG_WARN SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Warn, cgss::ViewportItem)
 
-cgss::ViewportItem::ViewportItem(Viewport* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
+cgss::ViewportItem::ViewportItem(Viewport*, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
 	ViewBox(eventDispatcher, windowSettings),
 	m_color(sf::Color::Transparent) {
 	m_smooth = windowSettings.smoothScreen;

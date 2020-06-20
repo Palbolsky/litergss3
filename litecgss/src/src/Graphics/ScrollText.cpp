@@ -323,8 +323,6 @@ sf::Uint32 cgss::ScrollText::getTextWidth(const sf::String& string) const {
 															// Compute the location of the strike through dynamically
 															// We use the center point of the lowercase 'x' glyph as the reference
 															// We reuse the underline thickness as the thickness of the strike through as well
-	sf::FloatRect xBounds = m_font->getGlyph(L'x', m_characterSize, isBold).bounds;
-	float strikeThroughOffset = xBounds.top + xBounds.height / 2.f;
 
 	// Precompute the variables needed by the algorithm
 	float whitespaceWidth = m_font->getGlyph(L' ', m_characterSize, isBold).advance;

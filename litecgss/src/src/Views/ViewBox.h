@@ -43,7 +43,7 @@ namespace cgss {
 
 		void onRenderTarget(sf::RenderTarget& renderTarget, bool copy = false) const;
 
-		virtual void onPostWindowSettingsChange(WindowSettingsChangeEvent& event) {}
+		virtual void onPostWindowSettingsChange(WindowSettingsChangeEvent&) {}
 		virtual void onMove() {}
 		virtual void onResize() {}
 

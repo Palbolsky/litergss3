@@ -88,7 +88,7 @@ namespace cgss {
 
 		void draw(sf::RenderTarget& target) const override;
 		void drawFast(sf::RenderTarget& target) const override;
-		void drawCalculateView(ViewportItem& parent, sf::RenderTarget& target, sf::View& targetView) const;
+		void drawCalculateView(ViewportItem& parent, sf::View& targetView) const;
 		void update();
 
 		void setOpacity(uint8_t opacity);

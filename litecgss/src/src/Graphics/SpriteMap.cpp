@@ -7,7 +7,7 @@ SKA_LOGC_CONFIG(ska::LogLevel::Error, cgss::SpriteMapItem);
 #define LOG_INFO SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Info, cgss::SpriteMapItem)
 #define LOG_WARN SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Warn, cgss::SpriteMapItem)
 
-cgss::SpriteMapItem::SpriteMapItem(SpriteMap* owner) {
+cgss::SpriteMapItem::SpriteMapItem(SpriteMap*) {
 }
 
 void cgss::SpriteMapItem::draw(sf::RenderTarget& target) const {

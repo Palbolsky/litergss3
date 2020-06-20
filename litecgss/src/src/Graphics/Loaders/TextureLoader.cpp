@@ -40,7 +40,7 @@ bool cgss::TextureMemoryLoader::load(sf::Texture& texture, sf::Image& image) con
 	return instantLoad(m_memory, texture, image);
 }
 
-bool cgss::TextureMemoryLoader::instantLoad(const std::vector<unsigned char>& rawData, sf::Texture& texture, sf::Image& image) {
+bool cgss::TextureMemoryLoader::instantLoad(const std::vector<unsigned char>& rawData, sf::Texture& texture, sf::Image&) {
 	const bool errorCode = lodePngDecode(texture, reinterpret_cast<const char*>(&rawData[0]), rawData.size());
 	if (errorCode == 0) {
 		return texture.loadFromMemory(&rawData[0], rawData.size());
@@ -84,7 +84,7 @@ void cgss::TextureMemoryLoader::save(const sf::Texture& texture) {
 	m_memory = std::move(instantSave(texture));
 }
 
-bool cgss::TextureFileLoader::instantLoad(const std::string& filename, sf::Texture& texture, sf::Image& image) {
+bool cgss::TextureFileLoader::instantLoad(const std::string& filename, sf::Texture& texture, sf::Image&) {
 	const auto errorCode = lodePngDecode(texture, filename.c_str(), 0);
 	if (errorCode == 0) {
 		return texture.loadFromFile(filename.c_str());

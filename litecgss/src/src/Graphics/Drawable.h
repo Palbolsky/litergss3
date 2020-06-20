@@ -48,14 +48,14 @@ namespace cgss {
 		static DrawableOwner create(View& view, Args&& ... args) {
 			auto result = buildOwner(std::forward<Args>(args)...);
 			view.template add<View, StackItem, DrawableOwner>(result.m_instanceOwner);
-			return std::move(result);
+			return result;
 		}
 
 		template <class ... Args>
 		static DrawableOwner create(DrawableStack& stack, Args&& ... args) {
 			auto result = buildOwner(std::forward<Args>(args)...);
 			stack.add(result.m_instanceOwner);
-			return std::move(result);
+			return result;
 		}
 
 		std::weak_ptr<StackItem> weak() {

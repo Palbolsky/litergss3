@@ -11,8 +11,8 @@ struct DrawableStackItemTest :
 	DrawableStackItemTest(DrawableTest*) {}
 	uint32_t id = 0;
 protected:
-	void draw(sf::RenderTarget& target) const override {};
-	void drawFast(sf::RenderTarget& target) const override {};
+	void draw(sf::RenderTarget&) const override {};
+	void drawFast(sf::RenderTarget&) const override {};
 };
 
 struct DrawableTest : 
@@ -169,6 +169,7 @@ TEST_CASE("[DrawableStack] z sorting") {
 	auto container = std::vector<DrawableTest>{};
 	std::size_t index = 0;
 	for (const auto& zindex : zindexStack) {
+		(void)zindex;
 		auto drawable = DrawableTest::create(stack);
 		drawable.setZ(zindexStack[index]);
 		drawable.setId(index);
@@ -219,6 +220,7 @@ TEST_CASE("[DrawableStack] adding elements (starting by high value = 2000)") {
 	
 	std::size_t index = 0;
 	for (const auto& zindex : zindexStack) {
+		(void)zindex;
 		auto drawable = DrawableTest::create(stack);
 		drawable.setId(index);
 		drawable.setZ(zindexStack[index]);
@@ -235,6 +237,7 @@ TEST_CASE("[DrawableStack] adding elements (starting by low value = 1)") {
 	
 	std::size_t index = 0;
 	for (const auto& zindex : zindexStack) {
+		(void)zindex;
 		auto drawable = DrawableTest::create(stack);
 		drawable.setId(index);
 		drawable.setZ(zindexStack[index]);
@@ -251,6 +254,7 @@ TEST_CASE("[DrawableStack] adding elements (starting by high value = 2000 then 0
 	
 	std::size_t index = 0;
 	for (const auto& zindex : zindexStack) {
+		(void)zindex;
 		auto drawable = DrawableTest::create(stack);
 		drawable.setId(index);
 		drawable.setZ(zindexStack[index]);
@@ -268,6 +272,7 @@ TEST_CASE("[DrawableStack] adding elements (starting by default value = 0)") {
 	
 	std::size_t index = 0;
 	for (const auto& zindex : zindexStack) {
+		(void)zindex;
 		auto drawable = DrawableTest::create(stack);
 		drawable.setId(index);
 		drawable.setZ(zindexStack[index]);
@@ -297,6 +302,7 @@ TEST_CASE("[DrawableStack] adding elements with default value then set it with d
 	auto container = std::vector<DrawableTest>{};
 	auto zindexStack = std::vector<long> { 2000, 0, 1, 0 };
 	for (const auto& zindex : zindexStack) {
+		(void)zindex;
 		container.push_back(DrawableTest::create(stack));
 	}
 
@@ -319,6 +325,7 @@ TEST_CASE("[DrawableStack] remove elements") {
 	
 	std::size_t index = 0;
 	for (const auto& zindex : zindexStack) {
+		(void)zindex;
 		auto drawable = DrawableTest::create(stack);
 		drawable.setId(index);
 		drawable.setZ(zindexStack[index]);

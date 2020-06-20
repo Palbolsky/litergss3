@@ -17,7 +17,7 @@ static void RectSet(sf::IntRect& rect, long x, long y, long width, long height) 
 	rect.height = height;
 }
 
-cgss::FramedViewItem::FramedViewItem(FramedView* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings, std::weak_ptr<ViewportItem> parent) :
+cgss::FramedViewItem::FramedViewItem(FramedView*, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings, std::weak_ptr<ViewportItem> parent) :
 	ViewBox(eventDispatcher, windowSettings),
 	m_parent(std::move(parent)) {
 }
@@ -37,7 +37,7 @@ void cgss::FramedViewItem::drawFast(sf::RenderTarget& target) const {
 	auto originalView = sf::View{ target.getView() };
 	auto parentView = m_parent.lock();
 	if (parentView != nullptr) {
-		drawCalculateView(*parentView, target, targetView);
+		drawCalculateView(*parentView, targetView);
 	}
 	
 	if (targetView.getViewport().height > 0 && targetView.getViewport().width > 0) {
@@ -55,7 +55,7 @@ void cgss::FramedViewItem::drawFast(sf::RenderTarget& target) const {
 	}
 }
 
-void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, sf::RenderTarget& target, sf::View& targetView) const {
+void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, sf::View& targetView) const {
 	// TODO : can be based on event system ? when parent viewport is moved / resized.
 	LOG_DEBUG << "Draw calculate view";
 
@@ -546,13 +546,13 @@ void cgss::FramedViewItem::allocateVerticesBlt(long delta_w, long nb2, long delt
 	}
 	// Delete the vertices if the number of line is different
 	// Alloction of the vertex Arrays (if no vertices or different lines)
-	if (m_vertices.empty() || nb4 != m_vertices.size()) {
+	if (m_vertices.empty() || nb4 != static_cast<long>(m_vertices.size())) {
 		m_vertices = nb4 == 0 ? std::vector<sf::VertexArray>{} : std::vector<sf::VertexArray>(nb4);
 	}
 
 	for (auto& vertice : m_vertices) {
 		vertice.setPrimitiveType(sf::Triangles);
-		if (nb2 != vertice.getVertexCount()) {
+		if (nb2 != static_cast<long>(vertice.getVertexCount())) {
 			vertice.resize(nb2);
 		}
 	}

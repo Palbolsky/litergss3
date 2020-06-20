@@ -67,7 +67,7 @@ std::size_t cgss::GraphicsStack::dichotomicFindFirstGreater(const ZIndex& value)
   return max;
 }
 
-static inline std::size_t AdaptIndex(const cgss::GraphicsContainer& stack, std::size_t index, const cgss::ZIndex& value, bool insert = false) {
+static inline std::size_t AdaptIndex(const cgss::GraphicsContainer& stack, std::size_t index, const cgss::ZIndex& value) {
   if(stack.empty()) {
       return 0;
   }
@@ -148,7 +148,7 @@ std::int32_t cgss::GraphicsStack::queryNextIndex() {
 
 void cgss::GraphicsStack::add(GraphicsStackItemPtr item) {
     item->forceAttach(*this);
-    auto position = AdaptIndex(m_stack, dichotomicFindFirstGreater(item->getZ()), item->getZ(), true);
+    auto position = AdaptIndex(m_stack, dichotomicFindFirstGreater(item->getZ()), item->getZ());
 
     LOG_INFO << "Adding element to stack " << static_cast<void*>(this) << " with z-index = " << item->getZ().z << ", " << item->getZ().index <<
      " at position = " << position;
