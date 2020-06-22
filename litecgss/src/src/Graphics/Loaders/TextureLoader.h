@@ -12,7 +12,7 @@ namespace cgss {
 		virtual ~TextureLoader() = default;
 		virtual bool load(sf::Texture& texture, sf::Image& image) const = 0;
 	protected:
-		static bool lodePngDecode(sf::Texture& texture, const char* rawDataOrFilename, long from_memory_size);
+		static unsigned int lodePngDecode(sf::Texture& texture, const char* rawDataOrFilename, long from_memory_size);
 	};
 
 	class TextureSaver {
@@ -41,14 +41,14 @@ namespace cgss {
 		public TextureLoader,
 		public TextureSaver {
 	public:
-		TextureMemoryLoader(std::string data);
+		TextureMemoryLoader(std::vector<unsigned char> data);
 		bool load(sf::Texture& texture, sf::Image& image) const override;
 		void save(const sf::Texture& texture) override;
-		static bool instantLoad(const std::string& data, sf::Texture& texture, sf::Image& image);
-		static std::string instantSave(const sf::Texture& texture);
-		std::string&& stealMemory() { return std::move(m_memory); }
+		static bool instantLoad(const std::vector<unsigned char>& data, sf::Texture& texture, sf::Image& image);
+		static std::vector<unsigned char> instantSave(const sf::Texture& texture);
+		std::vector<unsigned char>&& stealMemory() { return std::move(m_memory); }
 	private:
-		std::string m_memory;
+		std::vector<unsigned char> m_memory;
 	};
 
 	class TextureEmptyLoader :

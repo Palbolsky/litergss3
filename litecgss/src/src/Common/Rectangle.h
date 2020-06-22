@@ -1,22 +1,22 @@
 #ifndef CGSS_RECTANGLE_H
 #define CGSS_RECTANGLE_H
-#include <SFML/Graphics.hpp>
-#include "Graphics/GraphicsStackItem.h"
+
+#include <SFML/Graphics/Rect.hpp>
 #include "Meta/metadata.h"
+#include "Common/BondElement.h"
 
 namespace cgss {
-	class Rectangle {
-	private:
-		sf::IntRect m_rect;
-		GraphicsStackItem* m_target = nullptr;
+	class Rectangle : 
+		public BondElement<sf::IntRect> {
 	public:
 		Rectangle() = default;
-		~Rectangle() = default;
+		virtual ~Rectangle() = default;
 
-		void setRect(sf::IntRect rect) { m_rect = std::move(rect); }
-		const sf::IntRect& getRect() const { return m_rect; }
+		void setX(long x);
+		void setY(long y);
+		void setWidth(long width);
+		void setHeight(long height);
 
-		GraphicsStackItem* getElement() { return m_target; }
 	};
 
 	namespace meta {

@@ -1,3 +1,5 @@
+#include <iostream>
+#include <sstream>
 #include <doctest.h>
 
 #include "Views/Stack/DrawableStack.h"
@@ -7,26 +9,51 @@ struct DrawableTest;
 struct DrawableStackItemTest : 
 	public cgss::GraphicsStackItem {
 	DrawableStackItemTest(DrawableTest*) {}
+	uint32_t id = 0;
+	void updateFromValue(const sf::IntRect*) override {}
 protected:
-	void draw(sf::RenderTarget& target) const override {};
-	void drawFast(sf::RenderTarget& target) const override {};
+	void draw(sf::RenderTarget&) const override {};
+	void drawFast(sf::RenderTarget&) const override {};
 };
 
 struct DrawableTest : 
 	public cgss::Drawable<DrawableTest, DrawableStackItemTest> {
 	bool hasProxy() const { return cgss::Drawable<DrawableTest, DrawableStackItemTest>::hasProxy(); }
+	void setId(std::size_t id) { m_proxy->id = id; }
 };
 
 
-TEST_CASE("[DrawableStack] DrawableStack : drawable dies before") {
+
+static std::string PrintStack(const cgss::DrawableStack& drawables) {
+	auto ss = std::stringstream {};
+	ss << static_cast<const void*>(&drawables) << "\t";
+	for (const auto& element : drawables) {
+		ss << "[" << element->getZ().z  << ", " << element->getZ().index << "]";
+	}
+	ss << std::endl;
+	return ss.str();
+}
+
+TEST_CASE("[DrawableStack] DrawableStack : drawable dies before : no effect") {
 	auto stack = cgss::DrawableStack{};
 
 	{
 		auto sprite = DrawableTest::create(stack);
-		CHECK(stack.getSize() == 1);
+		CHECK(stack.size() == 1);
 	}
 
-	CHECK(stack.getSize() == 0);
+	CHECK(stack.size() == 1);
+}
+
+TEST_CASE("[DrawableStack] DrawableStack : drawable detached before : empty stack") {
+	auto stack = cgss::DrawableStack{};
+
+	{
+		auto sprite = DrawableTest::create(stack);
+		sprite.detach();
+	}
+
+	CHECK(stack.size() == 0);
 }
 
 TEST_CASE("[DrawableStack] DrawableStack : stack dies before (moved Drawable)") {
@@ -35,45 +62,45 @@ TEST_CASE("[DrawableStack] DrawableStack : stack dies before (moved Drawable)") 
 		auto stack = cgss::DrawableStack{};
 		auto sprite = DrawableTest::create(stack);
 		sprite2 = std::move(sprite);
-		CHECK(stack.getSize() == 1);
+		CHECK(stack.size() == 1);
 	}
 
 	// Still usable safely, but no more presence on screen
 	CHECK(sprite2.hasProxy());
 }
 
-TEST_CASE("[DrawableStack] DrawableStack : drawable is disposed explicitely") {
-	auto& stack = cgss::DrawableStack{};
+TEST_CASE("[DrawableStack] DrawableStack : drawable is detached explicitely") {
+	auto stack = cgss::DrawableStack{};
 
 	{
 		auto sprite = DrawableTest::create(stack);
-		CHECK(stack.getSize() == 1);
-		sprite.dispose();
-		CHECK(stack.getSize() == 0);
+		CHECK(stack.size() == 1);
+		sprite.detach();
+		CHECK(stack.size() == 0);
 	}
 
-	CHECK(stack.getSize() == 0);
+	CHECK(stack.size() == 0);
 }
 
-TEST_CASE("[DrawableStack] DrawableStack : ensure moved sprite is disposed") {
+TEST_CASE("[DrawableStack] DrawableStack : moved sprite is not detached") {
 	auto stack = cgss::DrawableStack{};
 	
 	auto sprite = DrawableTest::create(stack);
 	auto sprite2 = DrawableTest::create(stack);
-	CHECK(stack.getSize() == 2);
+	CHECK(stack.size() == 2);
 	sprite = std::move(sprite2);
-	CHECK(stack.getSize() == 1);
+	CHECK(stack.size() == 2);
 }
 
-TEST_CASE("[DrawableStack] DrawableStack : dispose several times") {
+TEST_CASE("[DrawableStack] DrawableStack : detach several times") {
 	auto stack = cgss::DrawableStack{};
 
 	auto sprite = DrawableTest::create(stack);
-	CHECK(stack.getSize() == 1);
-	sprite.dispose();
-	CHECK(stack.getSize() == 0);
-	sprite.dispose();
-	CHECK(stack.getSize() == 0);
+	CHECK(stack.size() == 1);
+	sprite.detach();
+	CHECK(stack.size() == 0);
+	sprite.detach();
+	CHECK(stack.size() == 0);
 }
 
 TEST_CASE("[DrawableStack] DrawableStack : complex mix") {
@@ -84,24 +111,24 @@ TEST_CASE("[DrawableStack] DrawableStack : complex mix") {
 		auto sprite = DrawableTest::create(stack);
 		auto sprite2 = DrawableTest::create(stack);
 
-		CHECK(stack.getSize() == 2);
+		CHECK(stack.size() == 2);
 
-		sprite2.dispose();
+		sprite2.detach();
 
-		CHECK(stack.getSize() == 1);
+		CHECK(stack.size() == 1);
 
 		auto sprite3 = DrawableTest::create(stack2);
 
-		CHECK(stack2.getSize() == 1);
+		CHECK(stack2.size() == 1);
 
 		sprite = std::move(sprite3);
 
-		CHECK(stack.getSize() == 0);
-		CHECK(stack2.getSize() == 1);
+		CHECK(stack.size() == 1);
+		CHECK(stack2.size() == 1);
 	}
 
-	CHECK(stack.getSize() == 0);
-	CHECK(stack2.getSize() == 0);
+	CHECK(stack.size() == 1);
+	CHECK(stack2.size() == 1);
 
 }
 
@@ -114,9 +141,9 @@ TEST_CASE("[DrawableStack] DrawableStack with drawing") {
 	CHECK(sprite2.hasProxy());
 
 	// Here sprite2 is deleted from stack
-	sprite2.dispose();
+	sprite2.detach();
 	
-	CHECK(stack.getSize() == 0);
+	CHECK(stack.size() == 0);
 	
 	// We still can use the object safely, it just has no effects anymore
 	auto view = renderTarget.getView();
@@ -129,24 +156,24 @@ TEST_CASE("[DrawableStack] DrawableStack with drawing") {
 TEST_CASE("[DrawableStack] Default z index") {
 	auto stack = cgss::DrawableStack{};
 	auto sprite = DrawableTest::create(stack);
-	CHECK(sprite.getZ().z == std::numeric_limits<long>::max());
+	CHECK(sprite.getZ().z == 0);
 	CHECK(sprite.getZ().index == 0);
 	
 	auto sprite2 = DrawableTest::create(stack);
-	CHECK(sprite2.getZ().z == std::numeric_limits<long>::max());
+	CHECK(sprite2.getZ().z == 0);
 	CHECK(sprite2.getZ().index == 1);
 }
 
 TEST_CASE("[DrawableStack] z sorting") {
-	constexpr const auto MaxStackNum = std::numeric_limits<long>::max();
-
 	auto stack = cgss::DrawableStack{};
-	auto zindexStack = std::vector<cgss::ZIndex> { {0, 0}, {0, 15}, {1, 1}, {1, 2}, {2, 33}, {3, 22}, {3, 55}, {4, 66}, {5, 55}, {6, 4}, {MaxStackNum, 5}, {MaxStackNum, 6}, {MaxStackNum, 7} };
+	auto zindexStack = std::vector<long> { 0, 0, 1, 1, 2, 3, 3, 4, 5, 6, 18, 20, 30 };
 	auto container = std::vector<DrawableTest>{};
 	std::size_t index = 0;
 	for (const auto& zindex : zindexStack) {
+		(void)zindex;
 		auto drawable = DrawableTest::create(stack);
 		drawable.setZ(zindexStack[index]);
+		drawable.setId(index);
 		container.push_back(std::move(drawable));
 		index++;
 	}
@@ -166,20 +193,146 @@ TEST_CASE("[DrawableStack] z sorting") {
 
 	SUBCASE("Bound testing") {
 		container[6].setZ(-123);
+		std::cout << PrintStack(stack);
 		CHECK(container[6].getZ() == stack[0].getZ());
 
-		container[6].setZ(MaxStackNum);
-		CHECK(container[6].getZ() == stack[12].getZ());
+		container[6].setZ(99999);
+		std::cout << PrintStack(stack);
+		CHECK(reinterpret_cast<const DrawableStackItemTest&>(stack[12]).id == 6);
+		CHECK(container[6].getZ().z == stack[12].getZ().z);
 	}
 
 	SUBCASE("Exact value testing") {
 		container[6].setZ(5);
-		CHECK(container[6].getZ() == stack[8].getZ());
+		CHECK(container[6].getZ() == stack[7].getZ());
 	}
 
 	SUBCASE("Push a new value") {
 		container[6].setZ(5);
 		auto drawable = DrawableTest::create(stack);
-		CHECK(drawable.getZ() == stack[13].getZ());
+		CHECK(drawable.getZ() == stack[2].getZ());
 	}
+}
+
+
+TEST_CASE("[DrawableStack] adding elements (starting by high value = 2000)") {
+	auto stack = cgss::DrawableStack{};
+	auto zindexStack = std::vector<long> { 2000, 1 };
+	
+	std::size_t index = 0;
+	for (const auto& zindex : zindexStack) {
+		(void)zindex;
+		auto drawable = DrawableTest::create(stack);
+		drawable.setId(index);
+		drawable.setZ(zindexStack[index]);
+		index++;
+	}
+
+	CHECK(stack[0].getZ() == cgss::ZIndex{ 1, 1 });
+	CHECK(stack[1].getZ() == cgss::ZIndex{ 2000, 0 });
+}
+
+TEST_CASE("[DrawableStack] adding elements (starting by low value = 1)") {
+	auto stack = cgss::DrawableStack{};
+	auto zindexStack = std::vector<long> { 1, 2000 };
+	
+	std::size_t index = 0;
+	for (const auto& zindex : zindexStack) {
+		(void)zindex;
+		auto drawable = DrawableTest::create(stack);
+		drawable.setId(index);
+		drawable.setZ(zindexStack[index]);
+		index++;
+	}
+	std::cout << PrintStack(stack);
+	CHECK(stack[0].getZ() == cgss::ZIndex{ 1, 0 });
+	CHECK(stack[1].getZ() == cgss::ZIndex{ 2000, 1 });
+}
+
+TEST_CASE("[DrawableStack] adding elements (starting by high value = 2000 then 0)") {
+	auto stack = cgss::DrawableStack{};
+	auto zindexStack = std::vector<long> { 2000, 0 };
+	
+	std::size_t index = 0;
+	for (const auto& zindex : zindexStack) {
+		(void)zindex;
+		auto drawable = DrawableTest::create(stack);
+		drawable.setId(index);
+		drawable.setZ(zindexStack[index]);
+		std::cout << PrintStack(stack);
+		index++;
+	}
+
+	CHECK(stack[0].getZ() == cgss::ZIndex{ 0, 1 });
+	CHECK(stack[1].getZ() == cgss::ZIndex{ 2000, 0 });
+}
+
+TEST_CASE("[DrawableStack] adding elements (starting by default value = 0)") {
+	auto stack = cgss::DrawableStack{};
+	auto zindexStack = std::vector<long> { 0, 2000 };
+	
+	std::size_t index = 0;
+	for (const auto& zindex : zindexStack) {
+		(void)zindex;
+		auto drawable = DrawableTest::create(stack);
+		drawable.setId(index);
+		drawable.setZ(zindexStack[index]);
+		index++;
+	}
+
+	CHECK(stack[0].getZ() == cgss::ZIndex{ 0, 0 });
+	CHECK(stack[1].getZ() == cgss::ZIndex{ 2000, 1 });
+}
+
+TEST_CASE("[DrawableStack] adding elements (only default value = 0)") {
+	auto stack = cgss::DrawableStack{};
+	DrawableTest::create(stack);
+	DrawableTest::create(stack);
+	DrawableTest::create(stack);
+
+	std::cout << PrintStack(stack);
+
+	CHECK(stack[0].getZ() == cgss::ZIndex{ 0, 0 });
+	CHECK(stack[1].getZ() == cgss::ZIndex{ 0, 1 });
+	CHECK(stack[2].getZ() == cgss::ZIndex{ 0, 2 });
+}
+
+
+TEST_CASE("[DrawableStack] adding elements with default value then set it with different z") {
+	auto stack = cgss::DrawableStack{};
+	auto container = std::vector<DrawableTest>{};
+	auto zindexStack = std::vector<long> { 2000, 0, 1, 0 };
+	for (const auto& zindex : zindexStack) {
+		(void)zindex;
+		container.push_back(DrawableTest::create(stack));
+	}
+
+	std::size_t index = 0;
+	for (auto& drawable : container) {
+		drawable.setZ(zindexStack[index]);
+		std::cout << PrintStack(stack);
+		index++;
+	}
+
+	CHECK(stack[0].getZ() == cgss::ZIndex{ 0, 1 });
+	CHECK(stack[1].getZ() == cgss::ZIndex{ 0, 3 });
+	CHECK(stack[2].getZ() == cgss::ZIndex{ 1, 2 });
+	CHECK(stack[3].getZ() == cgss::ZIndex{ 2000, 0 });
+}
+
+TEST_CASE("[DrawableStack] remove elements") {
+	auto stack = cgss::DrawableStack{};
+	auto zindexStack = std::vector<long> { 2000, 0, 0, 1, 0 };
+	
+	std::size_t index = 0;
+	for (const auto& zindex : zindexStack) {
+		(void)zindex;
+		auto drawable = DrawableTest::create(stack);
+		drawable.setId(index);
+		drawable.setZ(zindexStack[index]);
+		std::cout << PrintStack(stack);
+		index++;
+	}
+
+	//stack[0].detach();
 }

@@ -4,11 +4,13 @@
 #include "Patterns/EventDispatcher.h"
 
 #include "WindowSettingsChangeEvent.h"
+#include "ViewportChangeEvent.h"
 
 namespace cgss {
 	using MainEventDispatcher = 
 		EventDispatcher<
-			WindowSettingsChangeEvent
+			WindowSettingsChangeEvent,
+			ViewportChangeEvent
 		>;
 }
 

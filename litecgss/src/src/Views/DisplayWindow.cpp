@@ -2,11 +2,22 @@
 #include <cassert>
 #include "Configuration/DisplayWindowSettings.h"
 #include "DisplayWindow.h"
+#include "LoggerViews.h"
+SKA_LOGC_CONFIG(ska::LogLevel::Disabled, cgss::DisplayWindow);
+
+#define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Debug, cgss::DisplayWindow)
+#define LOG_INFO SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info, cgss::DisplayWindow)
+#define LOG_WARN SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Warn, cgss::DisplayWindow)
 
 cgss::DisplayWindow::DisplayWindow(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& settings) :
-	m_snapshot{ *this },
-	m_eventDispatcher(eventDispatcher) {
+	m_eventDispatcher(eventDispatcher),
+	m_snapshot{ *this } {
 	reload(settings);
+}
+
+cgss::DisplayWindow::DisplayWindow(MainEventDispatcher& eventDispatcher) :
+	m_eventDispatcher(eventDispatcher),
+	m_snapshot{ *this } {
 }
 
 cgss::DisplayWindow::~DisplayWindow() {
@@ -19,8 +30,11 @@ void cgss::DisplayWindow::reload(DisplayWindowSettings settings) {
 	if (settings.fullscreen) {
 		style = sf::Style::Fullscreen;
 	}
+
+	auto scaledWidth = static_cast<unsigned int>(settings.video.width * settings.video.scale);
+	auto scaledHeight = static_cast<unsigned int>(settings.video.height * settings.video.scale);
 	m_gameWindow = settings.headless ? std::make_unique<sf::RenderWindow>() : 
-		std::make_unique<sf::RenderWindow>(sf::VideoMode{ settings.video.width, settings.video.height, settings.video.bitsPerPixel }, settings.title, style);
+		std::make_unique<sf::RenderWindow>(sf::VideoMode{ scaledWidth, scaledHeight, settings.video.bitsPerPixel }, settings.title, style);
 	m_gameWindow->setMouseCursorVisible(settings.visibleMouse);
 	
 	/* VSYNC choice */
@@ -34,6 +48,9 @@ void cgss::DisplayWindow::reload(DisplayWindowSettings settings) {
 	m_draw.smoothScreen = settings.smoothScreen;
 	m_draw.scale = settings.video.scale;
 	m_draw.frameRate = settings.frameRate;
+
+	LOG_WARN << "Reloading window with parameters screenwidth = " << m_draw.screenWidth << " screenheight = " << m_draw.screenHeight
+		<< " smoothScreen = " << m_draw.smoothScreen << " scale = " << m_draw.scale << " framerate = " << m_draw.frameRate;
 
 	/* Render resize */
 	if (m_draw.renderTexture != nullptr) {
@@ -95,17 +112,8 @@ void cgss::DisplayWindow::draw() {
 	m_gameWindow->display();
 }
 
-void cgss::DisplayWindow::update() {
-	if (!isOpen()) {
-		return;
-	}
-
-	sf::Event event;
-	while (m_gameWindow->pollEvent(event)) {
-		if (event.type == sf::Event::Closed) {
-			m_gameWindow->close();
-		}
-	}
+bool cgss::DisplayWindow::pollEvent(sf::Event& event) {
+	return m_gameWindow->pollEvent(event);
 }
 
 void cgss::DisplayWindow::initRender() {
@@ -147,8 +155,18 @@ void cgss::DisplayWindow::postProcessing() {
 	}
 }
 
-void cgss::DisplayWindow::resizeScreen(int width, int height) {
-	//TODO : use an event
+void cgss::DisplayWindow::resizeScreen(unsigned int width, unsigned int height) {
+	m_settings.video.width = width;
+	m_settings.video.height = height;
+	auto we = WindowSettingsChangeEvent{};
+	we.settings = m_settings;
+	m_eventDispatcher.Observable<WindowSettingsChangeEvent>::notifyObservers(we);
+
+	m_gameWindow->setSize(sf::Vector2u { width, height });
+}
+
+void cgss::DisplayWindow::setIcon(const sf::Image& image) {
+	m_gameWindow->setIcon(image.getSize().x, image.getSize().y, image.getPixelsPtr());
 }
 
 void cgss::DisplayWindow::setShader(sf::RenderStates* shader) {
@@ -158,7 +176,7 @@ void cgss::DisplayWindow::setShader(sf::RenderStates* shader) {
 	}
 }
 
-std::unique_ptr<cgss::Texture> cgss::DisplayWindow::takeSnapshot() {
+std::unique_ptr<sf::Texture> cgss::DisplayWindow::takeSnapshot() const {
 	return m_snapshot.takeSnapshot(*m_gameWindow);
 }
 

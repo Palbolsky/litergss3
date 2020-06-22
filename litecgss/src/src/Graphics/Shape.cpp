@@ -9,6 +9,7 @@ cgss::ShapeItem::ShapeItem(Shape* owner, ShapeData shape) :
 	if (m_shape == nullptr) {
 		throw std::runtime_error("Invalid shape provided");
 	}
+	m_shape->setFillColor(sf::Color::White);
 	owner->setInstance(m_shape ? *m_shape : m_defaultShape);
 }
 
@@ -24,11 +25,15 @@ void cgss::Shape::setRenderState(sf::RenderStates states) {
 	m_proxy->m_renderStates = std::move(states);
 }
 
-void cgss::Shape::linkTexture(Texture* texture) {
+void cgss::Shape::setTexture(Texture* texture, bool resetRect) {
 	// /!\ Here, we assume the Texture has a longer lifetime than our Shape
 	m_proxy->m_linkedTexture = texture;
 	if (m_proxy->m_linkedTexture != nullptr) {
-		texture->linkShape(*m_proxy->m_shape);
+		m_proxy->m_shape->setTexture(&texture->getTexture(), resetRect);
+	}
+
+	if (resetRect) {
+		m_proxy->setValue(m_proxy->m_shape->getTextureRect());
 	}
 }
 
@@ -37,7 +42,7 @@ sf::IntRect cgss::Shape::getRectangle() const {
 }
 
 void cgss::Shape::setRectangle(sf::IntRect rectangle) {
-	m_proxy->m_shape->setTextureRect(rectangle);
+	m_proxy->setValue(std::move(rectangle));
 }
 
 std::size_t cgss::Shape::getPointCount() const {
@@ -79,6 +84,40 @@ sf::Vector2f cgss::Shape::getPoint(const std::size_t index) const {
 	return m_proxy->m_shape->getPoint(index);
 }
 
+long cgss::Shape::getWidth() const {
+	return m_proxy->m_shape->getGlobalBounds().width;
+}
+
+long cgss::Shape::getHeight() const {
+	return m_proxy->m_shape->getGlobalBounds().height;
+}
+
+void cgss::Shape::setWidth(long width) {
+	switch (m_proxy->m_type) {
+		case ShapeType::Rectangle: {
+			auto& rectangle = static_cast<sf::RectangleShape&>(*m_proxy->m_shape);
+			auto size = rectangle.getSize();
+			size.x = width;
+			rectangle.setSize(size);
+		}
+		default:
+			break;
+	}
+}
+
+void cgss::Shape::setHeight(long height) {
+	switch (m_proxy->m_type) {
+		case ShapeType::Rectangle: {
+			auto& rectangle = static_cast<sf::RectangleShape&>(*m_proxy->m_shape);
+			auto size = rectangle.getSize();
+			size.y = height;
+			rectangle.setSize(size);
+		}
+		default:
+			break;
+	}
+}
+
 void cgss::Shape::setPoint(const std::size_t index, float x, float y) {
 	switch (m_proxy->m_type) {
 	case ShapeType::Convex:
@@ -111,4 +150,8 @@ float cgss::Shape::getOutlineThickness() const {
 
 void cgss::Shape::setOutlineThickness(float thickness) const {
 	return m_proxy->m_shape->setOutlineThickness(thickness);
+}
+
+void cgss::ShapeItem::updateFromValue(const sf::IntRect* rectangle) {
+	m_shape->setTextureRect(rectangle == nullptr ? sf::IntRect{} : *rectangle);
 }

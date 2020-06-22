@@ -15,7 +15,7 @@ static inline FramedViewDataTest& PrepareTest() {
 }
 
 static inline cgss::FramedView CreateFramedView(FramedViewDataTest& data = PrepareTest()) {
-	return data.window.addView<cgss::FramedView>();
+	return data.window.addView<cgss::FramedView>(data.window);
 }
 
 TEST_CASE("[FramedView] Creation") {

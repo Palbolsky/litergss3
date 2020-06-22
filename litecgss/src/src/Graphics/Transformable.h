@@ -7,7 +7,7 @@ namespace cgss {
 
 	class Transformable {
 	public:
-		~Transformable() = default;
+		virtual ~Transformable() = default;
 		
 		float getX() const;
 		float getY() const;

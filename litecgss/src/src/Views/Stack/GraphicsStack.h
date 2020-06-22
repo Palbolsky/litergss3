@@ -12,12 +12,24 @@ namespace cgss {
 		friend class GraphicsStackItem;
 	public:
 		GraphicsStack() = default;
+		GraphicsStack(const GraphicsStack&) = delete;
+		GraphicsStack& operator=(const GraphicsStack&) = delete;
+		GraphicsStack(GraphicsStack&&) = delete;
+		GraphicsStack& operator=(GraphicsStack&&) = delete;
 		virtual ~GraphicsStack();
+
+		static constexpr int32_t MaxZ() { return std::numeric_limits<int32_t>::max() >> 1; }
+		static constexpr int32_t MinZ() { return 0; }
 
 		void add(GraphicsStackItemPtr item);
 		void syncFromRawData(GraphicsContainer data, bool forceDetachAll = true);
-		std::size_t getSize() const { return m_stack.size(); }
-		ZIndex currentZIndex() const { return {std::numeric_limits<long>::max(), m_zIndexCounter}; }
+		std::size_t size() const { return m_stack.size(); }
+		std::int32_t queryNextIndex();
+
+		void sortZ();
+		void setZDirty();
+		bool isInsertionZSort() const;
+		void setInsertionZSort(bool zsort);
 
 		const auto& operator[](std::size_t index) const {
 			return *m_stack[index];
@@ -29,23 +41,22 @@ namespace cgss {
 
 		auto begin() const { return m_stack.begin(); }
 		auto end() const { return m_stack.end(); }
-
-	protected:
-		void freeDetached() const;
-
+		void clear();
+		
 	private:
-		bool transferToDetached(GraphicsStackItem* item);
+		bool remove(GraphicsStackItem* item);
 		void zSwap(const ZIndex& previous, const ZIndex& next);
 
 		void leftCircleShift(std::size_t begin, std::size_t end);
 		void rightCircleShift(std::size_t begin, std::size_t end);
 		std::size_t dichotomicFindFirstGreater(const ZIndex& value) const;
-		void clear();
 
 		GraphicsContainer m_stack;
-		long m_zIndexCounter = 0;
+		int32_t m_zIndexCounter = 0;		
 		mutable std::mutex m_mutexDetached;
 		mutable GraphicsContainer m_detached;
+		bool m_zDirty = false;
+		bool m_insertionZSort = false;
 	};
 }
 #endif

@@ -12,22 +12,20 @@ namespace cgss {
 	class Drawable {
 		
 	public:
-		virtual ~Drawable() {
-			dispose();
-		}
+		virtual ~Drawable() = default;
 	
-		void dispose() {
-			if (m_instanceOwner != nullptr) {
+		void detach() {
+			if (m_instanceOwner != nullptr && !m_disposed) {
 				m_instanceOwner->detach();
+				m_disposed = true;
+				onDispose();				
 			}
 		}
 
+		bool isDetached() const { return m_disposed; }
+
 		const ZIndex& getZ() const {
 			return m_instanceOwner->getZ();
-		}
-		
-		void setZ(ZIndex z) {
-			m_instanceOwner->setZ(std::move(z));
 		}
 
 		void setZ(long z) {
@@ -38,18 +36,30 @@ namespace cgss {
 			m_instanceOwner->setVisible(visible);
 		}
 
+		bool isVisible() const {
+			return m_instanceOwner->isVisible();
+		}
+
+		void bindRectangle(Rectangle* rectangle) {
+			m_instanceOwner->bindValue(rectangle);
+		}
+
 		template <class View, class ... Args>
 		static DrawableOwner create(View& view, Args&& ... args) {
 			auto result = buildOwner(std::forward<Args>(args)...);
 			view.template add<View, StackItem, DrawableOwner>(result.m_instanceOwner);
-			return std::move(result);
+			return result;
 		}
 
 		template <class ... Args>
 		static DrawableOwner create(DrawableStack& stack, Args&& ... args) {
 			auto result = buildOwner(std::forward<Args>(args)...);
 			stack.add(result.m_instanceOwner);
-			return std::move(result);
+			return result;
+		}
+
+		std::weak_ptr<StackItem> weak() {
+			return m_instanceOwner;
 		}
 
 	protected:
@@ -62,9 +72,9 @@ namespace cgss {
 		}
 
 		Drawable& operator=(Drawable&& drawable) noexcept {
-			dispose();
 			m_instanceOwner = std::move(drawable.m_instanceOwner);
-			m_proxy = std::move(drawable.m_proxy);
+			m_proxy = m_instanceOwner.get();
+			m_disposed = drawable.m_disposed;
 			drawable.m_proxy = nullptr;
 			drawable.m_instanceOwner = nullptr;
 			return *this;
@@ -76,6 +86,8 @@ namespace cgss {
 		StackItem* m_proxy = nullptr;
 	
 		bool hasProxy() const { return m_proxy != nullptr && m_instanceOwner != nullptr; }
+		
+		virtual void onDispose() {}
 
 	private:
 		template <class ... Args>
@@ -87,6 +99,7 @@ namespace cgss {
 		}
 
 		std::shared_ptr<StackItem> m_instanceOwner = nullptr;
+		bool m_disposed = false;
 	};
 	
 }

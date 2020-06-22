@@ -1,42 +1,51 @@
 #include "DrawableStack.h"
 #include "Graphics/Text.h"
 #include "Graphics/Sprite.h"
+#include "LoggerStack.h"
+
+SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::DrawableStack);
+#define LOG_FREQUENCY 300
+
+#define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerStack(), ska::LogLevel::Debug, cgss::DrawableStack)
+#define LOG_INFO SKA_LOGC_STATIC(GetLoggerStack(), ska::LogLevel::Info, cgss::DrawableStack)
+#define LOG_WARN SKA_LOGC_STATIC(GetLoggerStack(), ska::LogLevel::Warn, cgss::DrawableStack)
+
+static std::string PrintStack(const cgss::DrawableStack& drawables) {
+	auto ss = std::stringstream {};
+	ss << static_cast<const void*>(&drawables) << "\t";
+	for (const auto& element : drawables) {
+		ss << "[" << element->getZ().z  << ", " << element->getZ().index << "]";
+	}
+	return ss.str();
+}
 
 void cgss::DrawableStack::draw(sf::View& defview, sf::RenderTarget& target) const  {
+	static int counter = LOG_FREQUENCY / 2;
+	if (++counter % LOG_FREQUENCY == 0) { 
+		LOG_DEBUG << PrintStack(*this);
+		counter = 0;
+	}
+
 	for(auto& element: *this) {		
 		target.setView(defview);
 		element->tryDraw(target);
 	}
-	freeDetached();
 }
 
 void cgss::DrawableStack::drawFast(sf::RenderTarget& target) const {
+	static int counter = 0;
+	if (++counter % LOG_FREQUENCY == 0) { 
+		LOG_DEBUG << PrintStack(*this);
+		counter = 0;
+	}
+
 	for(auto& element: *this) {
 		element->tryDrawFast(target);
 	}
-	freeDetached();
 }
 
 void cgss::DrawableStack::updateContentsOpacity(std::uint8_t opacity) {
 	for (auto& sp : *this) {
-		//TODO polymorphism
-
-		Text* text = dynamic_cast<Text*>(sp.get());
-		if (text != nullptr) {
-			auto& text2 = text->getText();
-			sf::Color col = sf::Color(text2.getFillColor());
-			col.a = opacity;
-			text2.setFillColor(col);
-			col = sf::Color(text2.getOutlineColor());
-			col.a = opacity;
-			text2.setOutlineColor(col);
-		} else {
-			Sprite* sprite = dynamic_cast<Sprite*>(sp.get());
-			if (sprite != nullptr) {
-				sf::Color col = sprite->getColor();
-				col.a = opacity;
-				sprite->setColor(col);
-			}
-		}
+		sp->setOpacity(opacity);
 	}
 }

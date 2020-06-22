@@ -7,6 +7,14 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
+set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+
 set(LITECGSS_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(LITE_CGSS_EXTERNAL ${CMAKE_CURRENT_SOURCE_DIR}/external)
 
@@ -23,6 +31,11 @@ function(generate_source_groups src_files src_dir)
         source_group("${_group_path}" FILES "${_source}")
     endforeach()
 endfunction()
+
+set(OLD_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
+set(BUILD_SHARED_LIBS False)
+add_subdirectory(external/skalog)
+set(BUILD_SHARED_LIBS ${OLD_BUILD_SHARED_LIBS})
 
 add_subdirectory(src)
 add_subdirectory(test)

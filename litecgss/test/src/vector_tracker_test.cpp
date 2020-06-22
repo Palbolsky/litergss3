@@ -3,7 +3,7 @@
 #include "Common/vector_tracker.h"
 
 struct VectorTrackerElementTest {
-    bool operator==(const VectorTrackerElementTest& el) const { return true; }
+    bool operator==(const VectorTrackerElementTest&) const { return true; }
 };
 using VectorTrackerTest = cgss::vector_tracker<VectorTrackerElementTest>;
 

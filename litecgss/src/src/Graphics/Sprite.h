@@ -2,30 +2,36 @@
 #define CGSS_SPRITE_H
 #include "Graphics/Drawable.h"
 #include "Graphics/Transformable.h"
+#include "Graphics/ShaderRenderable.h"
 #include "Common/Meta/metadata.h"
 
 namespace cgss {
 	class Texture;
 	class Sprite;
 	class View;
+	class RenderStates;
 
-	class SpriteItem : public GraphicsStackItem {
+	class SpriteItem : 
+		public GraphicsStackItem,
+		public ShaderRenderable {
 		friend class Sprite;
 	private:
 		sf::Sprite m_sprite;
 		bool m_mirror = false;
-
-		sf::RenderStates m_renderStates = sf::RenderStates::Default;
+		float m_wantedX = 0;
+		float m_wantedY = 0;
 	public:
 		SpriteItem(Sprite* owner);
+		virtual ~SpriteItem() = default;
 		void draw(sf::RenderTarget& target) const override;
 		void drawFast(sf::RenderTarget& target) const override;
+		void updateFromValue(const sf::IntRect* rectangle) override;
+		void setOpacity(std::uint8_t opacity) override;
 	};
 	
-
 	class Sprite :
 		public Drawable<Sprite, SpriteItem>,
-		public Transformable {
+		private Transformable {
 	private:
 		void horizontalFlip();
 
@@ -37,11 +43,27 @@ namespace cgss {
 		Sprite& operator=(Sprite&&) = default;
 		virtual ~Sprite() = default;
 
+		float getX() const;
+		float getY() const;
+		void move(float x, float y);
+
+		using Transformable::getOx;
+		using Transformable::getOy;
+		using Transformable::getScaleX;
+		using Transformable::getScaleY;
+		using Transformable::moveOrigin;
+		using Transformable::scale;
+		using Transformable::setInstance;
+		using Transformable::getAngle;
+		using Transformable::setAngle;
+		
 		sf::Color getColor() const;
 		void setColor(sf::Color color);
 
-		void setRenderStates(sf::RenderStates renderStates);
-		void setTexture(Texture& texture);
+		void bindRenderStates(RenderStates* renderStates);
+		void setTexture(Texture& texture, bool resetRect = false);
+		void setTextureRect(sf::IntRect rectangle);
+		const sf::IntRect& getTextureRect() const;
 		void setMirror(bool mirror);
 	};
 

@@ -26,30 +26,45 @@ namespace cgss {
 
 		long getOx() const;
 		long getOy() const;
-		void setScale(float zoom);
+		void setZoom(float zoom);
 		void setAngle(float angle);
+		float getAngle() const;
+		float getZoom() const;
 
+		MainEventDispatcher& getEventDispatcher() { return m_eventDispatcher; }
 	protected:
 		long getScreenWidth() const { return m_screenWidth; }
 		long getScreenHeight() const { return m_screenHeight; }
+		float getWidth() const;
+		float getHeight() const;
+		sf::View clone() const { return m_view; }
+		void updateViewport(float x, float y);
+		sf::IntRect getRectangleBox() const;
 
 		void onRenderTarget(sf::RenderTarget& renderTarget, bool copy = false) const;
 
-		virtual void onPostWindowSettingsChange(WindowSettingsChangeEvent& event) {}
+		virtual void onPostWindowSettingsChange(WindowSettingsChangeEvent&) {}
 		virtual void onMove() {}
 		virtual void onResize() {}
 
 	private:
 		bool onWindowSettingsChange(WindowSettingsChangeEvent& event);
-		void udpateDimensions();
+		void updateCenter();
+
+		MainEventDispatcher& m_eventDispatcher;
 
 		sf::View m_view;
 		mutable sf::View m_copy;
+
+		bool m_triggerMove = true;
+		bool m_triggerResize = true;
 
 		long m_ox = 0;
 		long m_oy = 0;
 		long m_screenWidth = 640;
 		long m_screenHeight = 320;
+		float m_zoom = 1.f;
+		float m_angle = 0.f;
 	};
 }
 #endif
