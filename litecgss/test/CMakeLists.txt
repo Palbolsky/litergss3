@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.9)
 project(LiteCGSS_test)
 
+include_directories(../src/src/LiteCGSS)
 include_directories(../src/src)
 include_directories(${LITE_CGSS_EXTERNAL}/doctest)
 

@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.9)
 project(LiteCGSS_playground)
 
+include_directories(../src/src/LiteCGSS)
 include_directories(../src/src)
 
 file(GLOB_RECURSE SOURCES
