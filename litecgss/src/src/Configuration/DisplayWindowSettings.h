@@ -1,9 +1,12 @@
 #ifndef CGSS_DISPLAY_WINDOW_SETTINGS_H
 #define CGSS_DISPLAY_WINDOW_SETTINGS_H
 
-#include <SFML/Graphics.hpp>
+#include <SFML/System/String.hpp>
+#include <SFML/Window/ContextSettings.hpp>
 
 namespace cgss {
+	using DisplayWindowContextSettings = sf::ContextSettings;
+
 	struct DisplayWindowVideoSettings {
 		unsigned int bitsPerPixel = 32;
 		unsigned int width = 320;
@@ -13,7 +16,8 @@ namespace cgss {
 
 	struct DisplayWindowSettings {
 		bool headless = false;
-		DisplayWindowVideoSettings video;
+		DisplayWindowVideoSettings video {};
+		DisplayWindowContextSettings context {};
 		bool smoothScreen = false;
 		sf::String title;
 		unsigned int frameRate = 60;

@@ -34,7 +34,7 @@ void cgss::DisplayWindow::reload(DisplayWindowSettings settings) {
 	auto scaledWidth = static_cast<unsigned int>(settings.video.width * settings.video.scale);
 	auto scaledHeight = static_cast<unsigned int>(settings.video.height * settings.video.scale);
 	m_gameWindow = settings.headless ? std::make_unique<sf::RenderWindow>() : 
-		std::make_unique<sf::RenderWindow>(sf::VideoMode{ scaledWidth, scaledHeight, settings.video.bitsPerPixel }, settings.title, style);
+		std::make_unique<sf::RenderWindow>(sf::VideoMode{ scaledWidth, scaledHeight, settings.video.bitsPerPixel }, settings.title, style, settings.context);
 	m_gameWindow->setMouseCursorVisible(settings.visibleMouse);
 	
 	/* VSYNC choice */
@@ -81,6 +81,10 @@ sf::RenderTarget& cgss::DisplayWindow::configureAndGetRenderTarget(sf::View& def
 		return *m_draw.renderTexture.get();
 	}
 	return *m_gameWindow;
+}
+
+const cgss::DisplayWindowContextSettings& cgss::DisplayWindow::getContextSettings() const {
+	return m_gameWindow->getSettings();
 }
 
 bool cgss::DisplayWindow::isOpen() const {
