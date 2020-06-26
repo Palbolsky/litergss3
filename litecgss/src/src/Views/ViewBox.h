@@ -1,6 +1,8 @@
 #ifndef CGSS_INNER_VIEW_H
 #define CGSS_INNER_VIEW_H
 
+#include <SFML/Graphics/View.hpp>
+#include <SFML/Graphics/RenderTarget.hpp>
 #include "Events/Patterns/SubObserver.h"
 #include "Events/WindowSettingsChangeEvent.h"
 #include "Events/MainEventDispatcher.h"

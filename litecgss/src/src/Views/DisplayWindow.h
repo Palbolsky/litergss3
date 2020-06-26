@@ -48,7 +48,8 @@ namespace cgss {
 		void setShader(sf::RenderStates* shader);
 
 		void reload(DisplayWindowSettings settings);
-	
+		const DisplayWindowContextSettings& getContextSettings() const;
+
 		template <class View, class ViewOwner, class ... Args>
 		View addView(ViewOwner& owner, Args&& ... args) {
 			return View::create(owner, m_eventDispatcher, m_settings, std::forward<Args>(args)...);
