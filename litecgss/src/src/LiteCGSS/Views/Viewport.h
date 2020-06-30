@@ -23,11 +23,12 @@ namespace cgss {
 		void onPostWindowSettingsChange(WindowSettingsChangeEvent& event) override;
 
 		sf::Color m_color;
-		sf::Sprite m_renderSprite;
 		std::optional<sf::RenderStates> m_renderStates;
 		RenderStates m_defaultRenderStates;
 
-		mutable sf::RenderTexture m_render;
+		/* Shader related stuff (unique per Window) */
+		static std::unique_ptr<sf::Sprite> RenderSprite;
+		static std::unique_ptr<sf::RenderTexture> Render;
 
 		bool m_smooth = false;
 		double m_wantedOx = 0;
