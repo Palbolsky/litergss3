@@ -10,6 +10,9 @@ SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::ViewportItem);
 #define LOG_INFO SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info, cgss::ViewportItem)
 #define LOG_WARN SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Warn, cgss::ViewportItem)
 
+std::unique_ptr<sf::Sprite> cgss::ViewportItem::RenderSprite = nullptr;
+std::unique_ptr<sf::RenderTexture> cgss::ViewportItem::Render = nullptr;
+
 cgss::ViewportItem::ViewportItem(Viewport*, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
 	ViewBox(eventDispatcher, windowSettings),
 	m_color(sf::Color::Transparent) {
@@ -27,29 +30,31 @@ cgss::RenderStates& cgss::ViewportItem::getRenderStates() {
 
 void cgss::ViewportItem::onPostWindowSettingsChange(WindowSettingsChangeEvent& event) {
 	m_smooth = event.settings.smoothScreen;
-	m_render.setSmooth(m_smooth);
+	if (Render != nullptr) {
+		Render->setSmooth(m_smooth);
+	}
 }
 
 void cgss::ViewportItem::draw(sf::RenderTarget& target) const {	
 	sf::View originalView = sf::View(target.getView());
 
 	// Loading Target view
-	ViewBox::onRenderTarget(m_render, true);
+	ViewBox::onRenderTarget(*Render, true);
 	
 	const auto& renderStates = getRenderStates().getRenderStates();
 	// Clearing render
 	const auto& color = renderStates.shader ? m_color : sf::Color::Transparent;
-	m_render.clear(color);
+	Render->clear(color);
 
 	// Drawing sprites
-	drawables().drawFast(m_render);
-	m_render.display();
+	drawables().drawFast(*Render);
+	Render->display();
 
 	// Reset the target view
 	setupFullWindowView(target);
 
 	// Draw the result
-	target.draw(m_renderSprite, renderStates);
+	target.draw(*RenderSprite, renderStates);
 
 	target.setView(originalView);
 }
@@ -144,12 +149,17 @@ static const std::string ViewportGlobalFragmentShader = \
 
 
 void cgss::ViewportItem::createRender() {
-	m_render.create(getScreenWidth(), getScreenHeight());
-	m_render.setSmooth(m_smooth);
-	m_renderSprite.setTexture(m_render.getTexture());
-	auto viewportBox = getViewportBox();
-	m_renderSprite.setTextureRect(viewportBox);
-	m_renderSprite.setPosition(viewportBox.left, viewportBox.top);
+	if (Render == nullptr) {
+		Render = std::make_unique<sf::RenderTexture>();
+		RenderSprite = std::make_unique<sf::Sprite>();
+		Render->create(getScreenWidth(), getScreenHeight());
+		Render->setSmooth(m_smooth);
+		
+		RenderSprite->setTexture(Render->getTexture());
+		auto viewportBox = getViewportBox();
+		RenderSprite->setTextureRect(viewportBox);
+		RenderSprite->setPosition(viewportBox.left, viewportBox.top);
+	}
 
 	if (m_defaultRenderStates.loadShaderFromMemory(ViewportGlobalFragmentShader, sf::Shader::Fragment)) {
 		m_defaultRenderStates.setShaderUniform("texture", sf::Shader::CurrentTexture);
@@ -164,8 +174,10 @@ void cgss::ViewportItem::updateFromValue(const sf::IntRect* rectanglePtr) {
     ViewBox::resize(rectangle.width, rectangle.height);
 	ViewBox::updateViewport(rectangle.left, rectangle.top);
 
-	m_renderSprite.setTextureRect(rectangle);
-	m_renderSprite.setPosition(rectangle.left, rectangle.top);
+	if (RenderSprite != nullptr) {
+		RenderSprite->setTextureRect(rectangle);
+		RenderSprite->setPosition(rectangle.left, rectangle.top);
+	}
 }
 
 void cgss::Viewport::setTone(const sf::Glsl::Vec4* toneValue) {
