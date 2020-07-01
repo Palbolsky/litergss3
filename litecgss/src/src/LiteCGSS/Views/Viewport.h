@@ -24,7 +24,7 @@ namespace cgss {
 
 		sf::Color m_color;
 		std::optional<sf::RenderStates> m_renderStates;
-		RenderStates m_defaultRenderStates;
+		std::unique_ptr<RenderStates> m_defaultRenderStates;
 
 		/* Shader related stuff (unique per Window) */
 		static std::unique_ptr<sf::Sprite> RenderSprite;
@@ -40,11 +40,12 @@ namespace cgss {
 		void draw(sf::RenderTarget& target) const override;
 
 		void updateFromValue(const sf::IntRect* rectangle) override;
+		void updateFromValue(const RenderStatesData* renderStatesData) override;
 		sf::IntRect getViewportBox() const;
 		std::unique_ptr<sf::Texture> takeSnapshot() const;
 
-		const RenderStates& getRenderStates() const;
-		RenderStates& getRenderStates();
+		const RenderStatesData* getRenderStates() const;
+		RenderStatesData* getRenderStates();
 
 		void setColor(const sf::Color* colorValue);
 	};

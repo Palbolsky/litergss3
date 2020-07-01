@@ -27,7 +27,7 @@ void cgss::DisplayWindowSnapshot::init() {
 		"  gl_FragColor = frag;" \
 		"}";
 
-	m_freezeShader.loadShaderFromMemory(GraphicsTransitionFragmentShader, sf::Shader::Type::Fragment);	
+	m_freezeShader.data().loadShaderFromMemory(GraphicsTransitionFragmentShader, sf::Shader::Type::Fragment);	
 }
 
 void cgss::DisplayWindowSnapshot::freeze(sf::RenderWindow& window) {
@@ -77,9 +77,9 @@ void cgss::DisplayWindowSnapshot::transitionBasic(long time) {
 void cgss::DisplayWindowSnapshot::transitionRGSS(long time, const Texture& bitmap) {
 	m_freezeSprite->setColor(sf::Color(255, 255, 255, 255));
 	m_rgssTransition = true;
-	m_freezeShader.setShaderUniform("transition", bitmap.getTexture());
+	m_freezeShader.data().setShaderUniform("transition", bitmap.getTexture());
 	for (long i = 1; i <= time; i++) {
-		m_freezeShader.setShaderUniform("param", static_cast<float>(i) / time);
+		m_freezeShader.data().setShaderUniform("param", static_cast<float>(i) / time);
 	}
 }
 
@@ -124,7 +124,7 @@ void cgss::DisplayWindowSnapshot::draw(sf::RenderWindow& window) {
 	// Display transition sprite
 	if (m_freezeSprite != nullptr) {
 		if (m_rgssTransition) {
-			window.draw(*m_freezeSprite, m_freezeShader.getRenderStates());
+			window.draw(*m_freezeSprite, m_freezeShader.data().getRenderStates());
 		} else {
 			window.draw(*m_freezeSprite);
 		}

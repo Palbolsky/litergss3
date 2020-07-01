@@ -13,12 +13,14 @@ void cgss::SpriteItem::draw(sf::RenderTarget& target) const {
 	SpriteItem::drawFast(target);
 }
 
+void cgss::SpriteItem::updateFromValue(const RenderStatesData*) {}
+
 void cgss::SpriteItem::drawFast(sf::RenderTarget& target) const {
-	target.draw(m_sprite, getBoundRenderStates() == nullptr ? sf::RenderStates::Default : getBoundRenderStates()->getRenderStates());	
+	target.draw(m_sprite, ShaderRenderable::getValue() == nullptr ? sf::RenderStates::Default : ShaderRenderable::getValue()->getRenderStates());	
 }
 
 void cgss::Sprite::bindRenderStates(RenderStates* renderStates) {
-	m_proxy->bindRenderStates(renderStates);
+	m_proxy->ShaderRenderable::bindValue(renderStates);
 }
 
 void cgss::Sprite::setMirror(bool mirror) {
@@ -66,7 +68,7 @@ void cgss::SpriteItem::setOpacity(std::uint8_t opacity) {
 void cgss::Sprite::setTexture(Texture& texture, bool resetRect) {
 	m_proxy->m_sprite.setTexture(texture.getTexture(), resetRect);
 	if (resetRect) {
-		m_proxy->setValue(m_proxy->m_sprite.getTextureRect());
+		m_proxy->GraphicsStackItem::setValue(m_proxy->m_sprite.getTextureRect());
 	}
 }
 
@@ -80,7 +82,7 @@ void cgss::SpriteItem::updateFromValue(const sf::IntRect* rectangle) {
 }
 
 void cgss::Sprite::setTextureRect(sf::IntRect rectangle) {
-	m_proxy->setValue(std::move(rectangle));
+	m_proxy->GraphicsStackItem::setValue(std::move(rectangle));
 }
 
 const sf::IntRect& cgss::Sprite::getTextureRect() const {
