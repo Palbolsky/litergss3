@@ -26,6 +26,7 @@ namespace cgss {
 		void draw(sf::RenderTarget& target) const override;
 		void drawFast(sf::RenderTarget& target) const override;
 		void updateFromValue(const sf::IntRect* rectangle) override;
+		void updateFromValue(const RenderStatesData* value) override;
 		void setOpacity(std::uint8_t opacity) override;
 	};
 	

@@ -7,12 +7,15 @@ namespace cgss {
 	template<class Value>
 	class BondElement {
 	private:
+		friend class Bindable<Value>;
 		Value m_value {};
 		Bindable<Value>* m_target = nullptr;
 	public:
 		BondElement() = default;
 		BondElement(const BondElement&) = delete;
 		BondElement& operator=(const BondElement&) = delete;
+		BondElement(BondElement&&) = default;
+		BondElement& operator=(BondElement&&) = default;
 
 		const Value& getValue() const { return m_value; };
 		
@@ -57,7 +60,10 @@ namespace cgss {
 			if (m_target != nullptr) {
 				m_target->updateFromValue(&m_value);
 			}
-		} 
+		}
+	protected:
+		Value& directAccess() { return m_value; }	
+		const Value& directAccess() const { return m_value; }
 	};
 }
 

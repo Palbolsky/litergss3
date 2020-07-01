@@ -17,15 +17,20 @@ cgss::ViewportItem::ViewportItem(Viewport*, MainEventDispatcher& eventDispatcher
 	ViewBox(eventDispatcher, windowSettings),
 	m_color(sf::Color::Transparent) {
 	m_smooth = windowSettings.smoothScreen;
-	createRender();
 }
 
-const cgss::RenderStates& cgss::ViewportItem::getRenderStates() const {
-	return getBoundRenderStates() != nullptr ? *getBoundRenderStates() : m_defaultRenderStates;
+const cgss::RenderStatesData* cgss::ViewportItem::getRenderStates() const {
+	if (ShaderRenderable::directAccess() != nullptr) {
+		return ShaderRenderable::directAccess();
+	}
+	return m_defaultRenderStates == nullptr ? nullptr : &m_defaultRenderStates->data();
 }
 
-cgss::RenderStates& cgss::ViewportItem::getRenderStates() {
-	return getBoundRenderStates() != nullptr ? *getBoundRenderStates() : m_defaultRenderStates;
+cgss::RenderStatesData* cgss::ViewportItem::getRenderStates() {
+	if (ShaderRenderable::directAccess() != nullptr) {
+		return ShaderRenderable::directAccess();
+	}
+	return m_defaultRenderStates == nullptr ? nullptr : &m_defaultRenderStates->data();
 }
 
 void cgss::ViewportItem::onPostWindowSettingsChange(WindowSettingsChangeEvent& event) {
@@ -38,23 +43,28 @@ void cgss::ViewportItem::onPostWindowSettingsChange(WindowSettingsChangeEvent& e
 void cgss::ViewportItem::draw(sf::RenderTarget& target) const {	
 	sf::View originalView = sf::View(target.getView());
 
-	// Loading Target view
-	ViewBox::onRenderTarget(*Render, true);
-	
-	const auto& renderStates = getRenderStates().getRenderStates();
-	// Clearing render
-	const auto& color = renderStates.shader ? m_color : sf::Color::Transparent;
-	Render->clear(color);
+	const auto* renderStates = getRenderStates() == nullptr ? nullptr : &getRenderStates()->getRenderStates();
+	if (renderStates) {
+		// Loading Target view
+		ViewBox::onRenderTarget(*Render, true);
 
-	// Drawing sprites
-	drawables().drawFast(*Render);
-	Render->display();
+		// Clearing render
+		const auto& color = renderStates->shader ? m_color : sf::Color::Transparent;
+		Render->clear(color);
 
-	// Reset the target view
-	setupFullWindowView(target);
+		// Drawing sprites
+		drawables().drawFast(*Render);
+		Render->display();
 
-	// Draw the result
-	target.draw(*RenderSprite, renderStates);
+		// Reset the target view
+		setupFullWindowView(target);
+
+		// Draw the result
+		target.draw(*RenderSprite, *renderStates);
+	} else {
+		ViewBox::onRenderTarget(target, false);
+		drawables().drawFast(target);
+	}
 
 	target.setView(originalView);
 }
@@ -67,24 +77,29 @@ std::unique_ptr<sf::Texture> cgss::ViewportItem::takeSnapshot() const {
 	renderView.setViewport(sf::FloatRect(0.0f, 0.0f, 1.0f, 1.0f));
 	render.setView(renderView);
 	
-	const auto& renderStates = getRenderStates().getRenderStates();
+	const auto* renderStates = getRenderStates() == nullptr ? nullptr : &getRenderStates()->getRenderStates();
+	if (renderStates) {
+		// Clearing render
+		const auto& color = renderStates->shader ? m_color : sf::Color::Transparent;
+		render.clear(color);
 
-	// Clearing render
-	const auto& color = renderStates.shader ? m_color : sf::Color::Transparent;
-	render.clear(color);
+		// Drawing sprites
+		drawables().drawFast(render);
+		render.display();
 
-	// Drawing sprites
-	drawables().drawFast(render);
-	render.display();
+		sf::Texture copy = sf::Texture(render.getTexture());
+		renderSprite.setTexture(copy);
+		renderSprite.setPosition(0, 0);
 
-	sf::Texture copy = sf::Texture(render.getTexture());
-	renderSprite.setTexture(copy);
-	renderSprite.setPosition(0, 0);
-
-	// Draw the result
-	render.clear(sf::Color::Transparent);
-	render.draw(renderSprite, renderStates);
-	render.display();
+		// Draw the result
+		render.clear(sf::Color::Transparent);
+		render.draw(renderSprite, *renderStates);
+		render.display();
+	} else {
+		render.clear(sf::Color::Transparent);
+		drawables().drawFast(render);
+		render.display();
+	}
 
 	return std::make_unique<sf::Texture>(render.getTexture());
 }
@@ -125,7 +140,18 @@ void cgss::Viewport::draw(sf::RenderTarget& target) const {
 }
 
 void cgss::Viewport::bindRenderStates(RenderStates* states) {
-	m_proxy->bindRenderStates(states);
+	m_proxy->ShaderRenderable::bindValue(states);
+}
+
+void cgss::ViewportItem::updateFromValue(const RenderStatesData* renderStatesData) {
+	LOG_INFO << "Updating render states " << static_cast<const void*>(renderStatesData);
+	if (renderStatesData != nullptr) {
+		createRender();
+	} else {
+		Render = nullptr;
+		RenderSprite = nullptr;
+		m_defaultRenderStates = nullptr;
+	}
 }
 
 /* ---- Shader Part ---- */
@@ -147,6 +173,13 @@ static const std::string ViewportGlobalFragmentShader = \
 "   gl_FragColor = frag;" \
 "}";
 
+void cgss::ViewportItem::scaleRenderSpriteToViewport() {
+	if (RenderSprite != nullptr) {
+		auto viewportBox = getViewportBox();
+		RenderSprite->setTextureRect(viewportBox);
+		RenderSprite->setPosition(viewportBox.left, viewportBox.top);
+	}
+}
 
 void cgss::ViewportItem::createRender() {
 	if (Render == nullptr) {
@@ -156,17 +189,18 @@ void cgss::ViewportItem::createRender() {
 		Render->setSmooth(m_smooth);
 		
 		RenderSprite->setTexture(Render->getTexture());
-		auto viewportBox = getViewportBox();
-		RenderSprite->setTextureRect(viewportBox);
-		RenderSprite->setPosition(viewportBox.left, viewportBox.top);
 	}
 
-	if (m_defaultRenderStates.loadShaderFromMemory(ViewportGlobalFragmentShader, sf::Shader::Fragment)) {
-		m_defaultRenderStates.setShaderUniform("texture", sf::Shader::CurrentTexture);
-		m_defaultRenderStates.setShaderUniform("tone", sf::Glsl::Vec4 {});
-	}
+	scaleRenderSpriteToViewport();
 
-	setColor(nullptr);
+	if (m_defaultRenderStates == nullptr) {
+		m_defaultRenderStates = std::make_unique<RenderStates>();
+		if (m_defaultRenderStates->data().loadShaderFromMemory(ViewportGlobalFragmentShader, sf::Shader::Fragment)) {
+			m_defaultRenderStates->data().setShaderUniform("texture", sf::Shader::CurrentTexture);
+			m_defaultRenderStates->data().setShaderUniform("tone", sf::Glsl::Vec4 {});
+		}
+		setColor(nullptr);
+	}
 }
 
 void cgss::ViewportItem::updateFromValue(const sf::IntRect* rectanglePtr) {
@@ -174,24 +208,26 @@ void cgss::ViewportItem::updateFromValue(const sf::IntRect* rectanglePtr) {
     ViewBox::resize(rectangle.width, rectangle.height);
 	ViewBox::updateViewport(rectangle.left, rectangle.top);
 
-	if (RenderSprite != nullptr) {
-		RenderSprite->setTextureRect(rectangle);
-		RenderSprite->setPosition(rectangle.left, rectangle.top);
-	}
+	scaleRenderSpriteToViewport();
 }
 
 void cgss::Viewport::setTone(const sf::Glsl::Vec4* toneValue) {
-	auto& renderStates = m_proxy->getRenderStates();
-	renderStates.setShaderUniform("tone", toneValue == nullptr ? sf::Glsl::Vec4 {} : *toneValue);
-	LOG_DEBUG << "Setting tone " << static_cast<const void*>(toneValue);
+	m_proxy->createRender();
+	auto* renderStates = m_proxy->getRenderStates();
+	if (renderStates != nullptr) {
+		renderStates->setShaderUniform("tone", toneValue == nullptr ? sf::Glsl::Vec4 {} : *toneValue);
+		LOG_DEBUG << "Setting tone " << static_cast<const void*>(toneValue);
+	}
 }
 
 void cgss::ViewportItem::setColor(const sf::Color* colorValue) {
-	auto& renderStates = getRenderStates();
+	auto* renderStates = getRenderStates();
 	m_color = colorValue == nullptr ? sf::Color {0, 0, 0, 0} : *colorValue;
-	sf::Glsl::Vec4 shaderColor(m_color.r / 255.0f, m_color.g / 255.0f, m_color.b / 255.0f, m_color.a / 255.0f);
-	renderStates.setShaderUniform("color", shaderColor);
-	LOG_DEBUG << "Setting color " << static_cast<const void*>(colorValue);
+	if (renderStates != nullptr) {
+		sf::Glsl::Vec4 shaderColor(m_color.r / 255.0f, m_color.g / 255.0f, m_color.b / 255.0f, m_color.a / 255.0f);
+		renderStates->setShaderUniform("color", shaderColor);
+		LOG_DEBUG << "Setting color " << static_cast<const void*>(colorValue);
+	}
 }
 
 void cgss::Viewport::setColor(const sf::Color* colorValue) {
@@ -199,11 +235,11 @@ void cgss::Viewport::setColor(const sf::Color* colorValue) {
 }
 
 void cgss::Viewport::setRectangle(sf::IntRect rectangle) {
-	m_proxy->setValue(std::move(rectangle));
+	m_proxy->GraphicsStackItem::setValue(std::move(rectangle));
 }
 
 sf::IntRect cgss::ViewportItem::getViewportBox() const {
-	const auto* boundRectangle = getValue();
+	const auto* boundRectangle = GraphicsStackItem::getValue();
 	if (boundRectangle != nullptr) {
 		return *boundRectangle;
 	}

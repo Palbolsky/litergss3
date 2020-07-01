@@ -11,7 +11,9 @@ namespace cgss {
         Bindable() = default;
         Bindable(const Bindable&) = delete;
         Bindable& operator=(const Bindable&) = delete;
-        
+        Bindable(Bindable&&) = default;
+        Bindable& operator=(Bindable&&) = default;
+
         virtual ~Bindable() {
             m_destructing = true;
             if (m_target != nullptr) {
@@ -53,6 +55,9 @@ namespace cgss {
     protected:
         virtual void updateFromValue(const Value* value) = 0;
         const Value* getValue() const { return m_target != nullptr ? &m_target->getValue() : nullptr; }
+
+        Value* directAccess() { return m_target != nullptr ? &m_target->directAccess() : nullptr; }
+        const Value* directAccess() const { return getValue(); }
 
     private:
         BondElement<Value>* m_target = nullptr;
