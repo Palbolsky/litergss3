@@ -173,6 +173,13 @@ static const std::string ViewportGlobalFragmentShader = \
 "   gl_FragColor = frag;" \
 "}";
 
+void cgss::ViewportItem::scaleRenderSpriteToViewport() {
+	if (RenderSprite != nullptr) {
+		auto viewportBox = getViewportBox();
+		RenderSprite->setTextureRect(viewportBox);
+		RenderSprite->setPosition(viewportBox.left, viewportBox.top);
+	}
+}
 
 void cgss::ViewportItem::createRender() {
 	if (Render == nullptr) {
@@ -182,10 +189,9 @@ void cgss::ViewportItem::createRender() {
 		Render->setSmooth(m_smooth);
 		
 		RenderSprite->setTexture(Render->getTexture());
-		auto viewportBox = getViewportBox();
-		RenderSprite->setTextureRect(viewportBox);
-		RenderSprite->setPosition(viewportBox.left, viewportBox.top);
 	}
+
+	scaleRenderSpriteToViewport();
 
 	if (m_defaultRenderStates == nullptr) {
 		m_defaultRenderStates = std::make_unique<RenderStates>();
@@ -202,10 +208,7 @@ void cgss::ViewportItem::updateFromValue(const sf::IntRect* rectanglePtr) {
     ViewBox::resize(rectangle.width, rectangle.height);
 	ViewBox::updateViewport(rectangle.left, rectangle.top);
 
-	if (RenderSprite != nullptr) {
-		RenderSprite->setTextureRect(rectangle);
-		RenderSprite->setPosition(rectangle.left, rectangle.top);
-	}
+	scaleRenderSpriteToViewport();
 }
 
 void cgss::Viewport::setTone(const sf::Glsl::Vec4* toneValue) {

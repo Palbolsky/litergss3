@@ -21,6 +21,7 @@ namespace cgss {
 	private:
 		void setupFullWindowView(sf::RenderTarget& target) const;
 		void onPostWindowSettingsChange(WindowSettingsChangeEvent& event) override;
+		void scaleRenderSpriteToViewport();
 
 		sf::Color m_color;
 		std::optional<sf::RenderStates> m_renderStates;
