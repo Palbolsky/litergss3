@@ -37,5 +37,7 @@ add_subdirectory(external/skalog)
 set(BUILD_SHARED_LIBS ${OLD_BUILD_SHARED_LIBS})
 
 add_subdirectory(src)
-add_subdirectory(test)
+if(NOT LITECGSS_NO_TEST)
+  add_subdirectory(test)
+endif()
 add_subdirectory(playground)
