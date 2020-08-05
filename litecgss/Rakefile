@@ -1,0 +1,49 @@
+require_relative 'build/ruby_installer'
+require_relative 'build/sfml_installer'
+require_relative 'build/builder'
+
+require 'rake/extensiontask'
+
+CGSS_SFML_VERSION = "2.5.1"
+CGSS_RUBY_VERSION_MAIN = "2.6"
+CGSS_RUBY_VERSION_MINOR = "6"
+CGSS_ARCHITECTURE = "x86"
+
+desc "Configure the project by checking / setting up a working environment"
+task :configure do 
+    ridk_script = Cgss::RubyInstaller.detect_ridk_or_download_it(CGSS_RUBY_VERSION_MAIN, CGSS_RUBY_VERSION_MINOR, CGSS_ARCHITECTURE)
+    Cgss::RubyInstaller.ridk_enable(ridk_script)
+    Cgss::Builder.cmake_guard()
+    Cgss::Builder.check_compiler(CGSS_RUBY_VERSION_MAIN, CGSS_RUBY_VERSION_MINOR, CGSS_ARCHITECTURE)
+    Cgss::SfmlInstaller.check_sfml_or_download_and_make_it(CGSS_SFML_VERSION)
+end
+
+desc "Build the project"
+task :compile do
+    ridk_script = Cgss::RubyInstaller.ridk_guard()
+    Cgss::RubyInstaller.ridk_enable(ridk_script)
+    
+    litecgss_root_dir = File.expand_path(File.dirname(__FILE__))
+    
+    $INCFLAGS << " -I" + (litecgss_root_dir + "/src/src")
+    $LDFLAGS << " -L" + (litecgss_root_dir + "/lib")
+    
+    puts "Building LiteCGSS in #{litecgss_root_dir}... "
+    Dir.chdir(litecgss_root_dir) {
+        system("cmake -G \"MinGW Makefiles\" -DBUILD_SHARED_LIBS=True -DLITECGSS_NO_TEST=True .")
+        system("cmake --build .")
+    }
+end
+
+desc "Clean the project"
+task :clean do   
+    litecgss_root_dir = File.expand_path(File.dirname(__FILE__))
+    
+    puts "Cleaning LiteCGSS in #{litecgss_root_dir}... "
+    Dir.chdir(litecgss_root_dir) {
+        FileUtils.rm_rf litecgss_root_dir + "/lib"
+        FileUtils.rm_rf litecgss_root_dir + "/bin"
+        FileUtils.rm_rf litecgss_root_dir + "/src/CMakeFiles"
+        File.delete("CMakeCache.txt") if File.exists? 'CMakeCache.txt'
+    }
+end
