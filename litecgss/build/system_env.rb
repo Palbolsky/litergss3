@@ -2,10 +2,12 @@ require 'rbconfig'
 
 module Cgss
     class SystemEnv
-        IS_WINDOWS = (RbConfig::CONFIG['host_os'] =~ /mswin|mingw/)
+        def self.is_windows
+            return RbConfig::CONFIG['host_os'] =~ /mswin|mingw/
+        end
 
         def self.export_env(variable, value)
-            if IS_WINDOWS
+            if SystemEnv::is_windows()
                 require 'win32/registry.rb'
                 Win32::Registry::HKEY_CURRENT_USER.open('Environment', Win32::Registry::KEY_WRITE) do |reg|
                     reg[variable] = value
@@ -16,7 +18,7 @@ module Cgss
         end
 
         def self.notify_all_running_windows
-            if IS_WINDOWS
+            if SystemEnv::is_windows()
                 require 'Win32API'
                 sendMessageTimeout = Win32API.new('user32', 'SendMessageTimeout', 'LLLPLLP', 'L') 
                 hwnd_broadcast = 0xffff
@@ -30,7 +32,7 @@ module Cgss
         end
 
         def self.refresh_path
-            if IS_WINDOWS
+            if SystemEnv::is_windows()
                 system(File.dirname(__FILE__) + "/resetvars.bat")
             else
                 puts "Unsupported refresh PATH variable on platform '" + RbConfig::CONFIG['host_os'] + "'"

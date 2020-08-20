@@ -1,6 +1,7 @@
 require 'fileutils'
 require 'mkmf.rb'
 require_relative 'downloader'
+require_relative 'system_env'
 
 module Cgss
     class RubyInstaller
@@ -22,7 +23,7 @@ module Cgss
             end
 
             # This triggers Microsoft Installer. Next Next Next Install Finish. Sad.
-            # TODO auto install ??? How ?
+            # TODO Windows auto install ??? How ?
             exec(ruby_dev_kit_installer)
             # Refresh path
             SystemEnv.refresh_path()
@@ -30,44 +31,52 @@ module Cgss
         end
 
         def self.ridk_enable(ridk_script)
-            print "Enabling ridk environment... "
-            exit 1 if ridk_script.nil?
-            ENV["RI_DEVKIT"] = File.expand_path(ridk_script + "/../../msys32/", Dir.pwd)
-            ENV["MSYSTEM"] = "MINGW32"
-            ENV["PKG_CONFIG_PATH"] = "/mingw32/lib/pkgconfig:/mingw32/share/pkgconfig"    
-            ENV["ACLOCAL_PATH"] = "/mingw32/share/aclocal:/usr/share/aclocal"
-            ENV["MANPATH"] = "/mingw32/share/man"
-            ENV["MINGW_PACKAGE_PREFIX"] = "mingw-w64-i686"
-            ENV["LANG"] = "fr_FR.UTF-8"
-            
-            ruby_bin_dir = ENV["RI_DEVKIT"] + "/../bin"
-            mingw_bin_dir = ENV["RI_DEVKIT"] + "/mingw32/bin"
-            msys_usr_bin_dir = ENV["RI_DEVKIT"] + "/usr/bin"
-            ENV["PATH"] = ruby_bin_dir + ";" + mingw_bin_dir + ";" + msys_usr_bin_dir + ";" + ENV["PATH"]
-            puts "OK"
+            if SystemEnv::is_windows()
+                print "Enabling ridk environment... "
+                exit 1 if ridk_script.nil?
+                ENV["RI_DEVKIT"] = File.expand_path(ridk_script + "/../../msys32/", Dir.pwd)
+                ENV["MSYSTEM"] = "MINGW32"
+                ENV["PKG_CONFIG_PATH"] = "/mingw32/lib/pkgconfig:/mingw32/share/pkgconfig"    
+                ENV["ACLOCAL_PATH"] = "/mingw32/share/aclocal:/usr/share/aclocal"
+                ENV["MANPATH"] = "/mingw32/share/man"
+                ENV["MINGW_PACKAGE_PREFIX"] = "mingw-w64-i686"
+                ENV["LANG"] = "fr_FR.UTF-8"
+                
+                ruby_bin_dir = ENV["RI_DEVKIT"] + "/../bin"
+                mingw_bin_dir = ENV["RI_DEVKIT"] + "/mingw32/bin"
+                msys_usr_bin_dir = ENV["RI_DEVKIT"] + "/usr/bin"
+                ENV["PATH"] = ruby_bin_dir + ";" + mingw_bin_dir + ";" + msys_usr_bin_dir + ";" + ENV["PATH"]
+                puts "OK"
+            end
         end
 
         def self.ridk_guard
-            ridk_script = find_executable('ridk')
-            if ridk_script.nil?
-                puts("Unable to find ridk, please run 'rake configure' to setup a working environment")
-                exit 1
+            if SystemEnv::is_windows()
+                ridk_script = find_executable('ridk')
+                if ridk_script.nil?
+                    puts("Unable to find ridk, please run 'rake configure' to setup a working environment")
+                    exit 1
+                end
+                return ridk_script
             end
-            return ridk_script
+            return nil
         end
 
         def self.detect_ridk_or_download_it(ruby_main_version, ruby_minor_version, architecture)
-            ridk_script = find_executable('ridk')
-            if ridk_script.nil?
-                RubyInstaller.install_ruby_dev_kit(ruby_main_version, ruby_minor_version, architecture)
-
+            if SystemEnv::is_windows()
                 ridk_script = find_executable('ridk')
                 if ridk_script.nil?
-                    puts("Still unable to find ridk, try to restart you CMD.EXE process and ensure you have it in the PATH environment variable. Aborting")
-                    exit 1
+                    RubyInstaller.install_ruby_dev_kit(ruby_main_version, ruby_minor_version, architecture)
+
+                    ridk_script = find_executable('ridk')
+                    if ridk_script.nil?
+                        puts("Still unable to find ridk, try to restart you CMD.EXE process and ensure you have it in the PATH environment variable. Aborting")
+                        exit 1
+                    end
                 end
+                return ridk_script
             end
-            return ridk_script
+            return nil
         end
     end
 end
