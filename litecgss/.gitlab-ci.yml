@@ -1,0 +1,32 @@
+stages:
+  - compile
+  - test
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
+compile:
+  stage: compile
+  script:
+    - rake compile
+  image: 'scorbutics/sfml-rake:latest'
+  before_script:
+    - rake configure
+    - rake clean
+  artifacts:
+    name: "LiteCGSS-$CI_COMMIT_REF_NAME"
+    paths:
+      - bin/
+      - lib/
+    expire_in: 1 day
+
+test:
+  stage: test
+  image: 'scorbutics/sfml-exec:latest'
+  script: 
+    - export LD_LIBRARY_PATH=$pwd/lib:$LD_LIBRARY_PATH
+    - Xvfb :1 -screen 0 800x600x24+32 &
+    - export DISPLAY=:1
+    - ./bin/LiteCGSS_test
+  dependencies:
+    - compile
