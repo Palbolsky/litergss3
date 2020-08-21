@@ -1,6 +1,8 @@
 #ifndef CGSS_BINDABLE_H
 #define CGSS_BINDABLE_H
 
+#include <utility>
+
 namespace cgss {
     template<class> class BondElement;
 
