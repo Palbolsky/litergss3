@@ -27,6 +27,7 @@ test:
     - export LD_LIBRARY_PATH=$pwd/lib:$LD_LIBRARY_PATH
     - Xvfb :1 -screen 0 800x600x24+32 &
     - export DISPLAY=:1
+    - sleep 5
     - ./bin/LiteCGSS_test
   dependencies:
     - compile
