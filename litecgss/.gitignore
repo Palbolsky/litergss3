@@ -25,6 +25,12 @@ bin
 **/Release
 **.a
 *.log
+generated/
+
+#External
+external/sfml
+external/skalog
+external/sfml_src.zip
 
 #Tests & playground
 playground/resources/*.png
