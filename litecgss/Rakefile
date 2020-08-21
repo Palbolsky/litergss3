@@ -32,12 +32,18 @@ task :compile do
     puts "Building LiteCGSS in #{litecgss_root_dir}... "
     Dir.chdir(litecgss_root_dir) {
         if Cgss::SystemEnv::is_windows()
-            system("cmake -G \"MinGW Makefiles\" -DBUILD_SHARED_LIBS=True -DLITECGSS_NO_TEST=True .")
+            system("cmake -G \"MinGW Makefiles\" -DBUILD_SHARED_LIBS=True .")
         else
-            system("cmake -DBUILD_SHARED_LIBS=True -DLITECGSS_NO_TEST=True .")        
+            system("cmake -DBUILD_SHARED_LIBS=True .")        
         end
-        system("cmake --build .")
+        system("cmake --build .") or fail "[LiteCGSS] Build failed"
     }
+end
+
+desc "Start unit-tests"
+task :test do
+    litecgss_root_dir = File.expand_path(File.dirname(__FILE__))
+    system(litecgss_root_dir + "/bin/LiteCGSS_test") or fail "[LiteCGSS] Tests failed"
 end
 
 desc "Clean the project"

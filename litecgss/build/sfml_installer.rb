@@ -13,10 +13,10 @@ module Cgss
                 File.delete("CMakeCache.txt") if File.exists? 'CMakeCache.txt'
                 if SystemEnv::is_windows()
                     system("cmake -G \"MinGW Makefiles\" -DSFML_BUILD_EXAMPLES=False .")
-                    system("cmake --build .")
+                    system("cmake --build .") or fail "[SFML] Build failed"
                 else
                     system("cmake -DSFML_BUILD_EXAMPLES=False .")
-                    system("cmake --build .")
+                    system("cmake --build .") or fail "[SFML] Build failed"
                     puts "Installing newly compiled SFML"
                     system("ln -sf #{sfml_src}/lib/*.so* /usr/lib/")
                     system("ln -sf #{sfml_src}/include/SFML /usr/include/")

@@ -177,26 +177,33 @@ TEST_CASE("[DrawableStack] z sorting") {
 		container.push_back(std::move(drawable));
 		index++;
 	}
-	
+	stack.sortZ();
 	SUBCASE("Internal 'random' movements") {
 		container[6].setZ(2);
+		stack.sortZ();
 		CHECK(container[6].getZ() == stack[5].getZ());
 		container[6].setZ(3);
+		stack.sortZ();
 		CHECK(container[6].getZ() == stack[6].getZ());
 		container[6].setZ(7);
+		stack.sortZ();
 		CHECK(container[6].getZ() == stack[9].getZ());
 		container[6].setZ(12);
+		stack.sortZ();
 		CHECK(container[6].getZ() == stack[9].getZ());
 		container[6].setZ(0);
+		stack.sortZ();
 		CHECK(container[6].getZ() == stack[2].getZ());
 	}
 
 	SUBCASE("Bound testing") {
 		container[6].setZ(-123);
+		stack.sortZ();
 		std::cout << PrintStack(stack);
 		CHECK(container[6].getZ() == stack[0].getZ());
 
 		container[6].setZ(99999);
+		stack.sortZ();
 		std::cout << PrintStack(stack);
 		CHECK(reinterpret_cast<const DrawableStackItemTest&>(stack[12]).id == 6);
 		CHECK(container[6].getZ().z == stack[12].getZ().z);
@@ -204,12 +211,14 @@ TEST_CASE("[DrawableStack] z sorting") {
 
 	SUBCASE("Exact value testing") {
 		container[6].setZ(5);
+		stack.sortZ();
 		CHECK(container[6].getZ() == stack[7].getZ());
 	}
 
 	SUBCASE("Push a new value") {
 		container[6].setZ(5);
 		auto drawable = DrawableTest::create(stack);
+		stack.sortZ();
 		CHECK(drawable.getZ() == stack[2].getZ());
 	}
 }
@@ -227,7 +236,7 @@ TEST_CASE("[DrawableStack] adding elements (starting by high value = 2000)") {
 		drawable.setZ(zindexStack[index]);
 		index++;
 	}
-
+	stack.sortZ();
 	CHECK(stack[0].getZ() == cgss::ZIndex{ 1, 1 });
 	CHECK(stack[1].getZ() == cgss::ZIndex{ 2000, 0 });
 }
@@ -262,7 +271,7 @@ TEST_CASE("[DrawableStack] adding elements (starting by high value = 2000 then 0
 		std::cout << PrintStack(stack);
 		index++;
 	}
-
+	stack.sortZ();
 	CHECK(stack[0].getZ() == cgss::ZIndex{ 0, 1 });
 	CHECK(stack[1].getZ() == cgss::ZIndex{ 2000, 0 });
 }
@@ -279,7 +288,7 @@ TEST_CASE("[DrawableStack] adding elements (starting by default value = 0)") {
 		drawable.setZ(zindexStack[index]);
 		index++;
 	}
-
+	stack.sortZ();
 	CHECK(stack[0].getZ() == cgss::ZIndex{ 0, 0 });
 	CHECK(stack[1].getZ() == cgss::ZIndex{ 2000, 1 });
 }
@@ -289,6 +298,8 @@ TEST_CASE("[DrawableStack] adding elements (only default value = 0)") {
 	DrawableTest::create(stack);
 	DrawableTest::create(stack);
 	DrawableTest::create(stack);
+
+	stack.sortZ();
 
 	std::cout << PrintStack(stack);
 
@@ -313,6 +324,7 @@ TEST_CASE("[DrawableStack] adding elements with default value then set it with d
 		std::cout << PrintStack(stack);
 		index++;
 	}
+	stack.sortZ();
 
 	CHECK(stack[0].getZ() == cgss::ZIndex{ 0, 1 });
 	CHECK(stack[1].getZ() == cgss::ZIndex{ 0, 3 });
