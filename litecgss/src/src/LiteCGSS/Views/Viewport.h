@@ -23,7 +23,6 @@ namespace cgss {
 		void onPostWindowSettingsChange(WindowSettingsChangeEvent& event) override;
 		void scaleRenderSpriteToViewport();
 
-		sf::Color m_color;
 		std::optional<sf::RenderStates> m_renderStates;
 		std::unique_ptr<RenderStates> m_defaultRenderStates;
 
@@ -47,8 +46,6 @@ namespace cgss {
 
 		const RenderStatesData* getRenderStates() const;
 		RenderStatesData* getRenderStates();
-
-		void setColor(const sf::Color* colorValue);
 	};
 
 	struct DisplayWindowSettings;
@@ -82,9 +79,6 @@ namespace cgss {
 
 		void setAngle(float angle);
 		void setZoom(float zoom);
-
-		void setTone(const sf::Glsl::Vec4* toneValue);
-		void setColor(const sf::Color* colorValue);
 
 		template <class View, class StackItem, class Drawable>
 		StackItem& add(std::shared_ptr<StackItem> d) {

@@ -14,8 +14,7 @@ std::unique_ptr<sf::Sprite> cgss::ViewportItem::RenderSprite = nullptr;
 std::unique_ptr<sf::RenderTexture> cgss::ViewportItem::Render = nullptr;
 
 cgss::ViewportItem::ViewportItem(Viewport*, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
-	ViewBox(eventDispatcher, windowSettings),
-	m_color(sf::Color::Transparent) {
+	ViewBox(eventDispatcher, windowSettings) {
 	m_smooth = windowSettings.smoothScreen;
 }
 
@@ -49,8 +48,7 @@ void cgss::ViewportItem::draw(sf::RenderTarget& target) const {
 		ViewBox::onRenderTarget(*Render, true);
 
 		// Clearing render
-		const auto& color = renderStates->shader ? m_color : sf::Color::Transparent;
-		Render->clear(color);
+		Render->clear(sf::Color::Transparent);
 
 		// Drawing sprites
 		drawables().drawFast(*Render);
@@ -80,8 +78,7 @@ std::unique_ptr<sf::Texture> cgss::ViewportItem::takeSnapshot() const {
 	const auto* renderStates = getRenderStates() == nullptr ? nullptr : &getRenderStates()->getRenderStates();
 	if (renderStates) {
 		// Clearing render
-		const auto& color = renderStates->shader ? m_color : sf::Color::Transparent;
-		render.clear(color);
+		render.clear(sf::Color::Transparent);
 
 		// Drawing sprites
 		drawables().drawFast(render);
@@ -154,25 +151,6 @@ void cgss::ViewportItem::updateFromValue(const RenderStatesData* renderStatesDat
 	}
 }
 
-/* ---- Shader Part ---- */
-/* Thaks to https://github.com/Ancurio/mkxp/blob/master/shader/sprite.frag (Ancurio & urkle) */
-static const std::string ViewportGlobalFragmentShader = \
-"uniform sampler2D texture;" \
-"uniform vec4 tone;" \
-"uniform vec4 color;" \
-"const vec3 lumaF = vec3(.299, .587, .114);" \
-"void main()" \
-"{" \
-"   vec4 frag = texture2D(texture, gl_TexCoord[0].xy);" \
-/*"   frag.rgb = mix(frag.rgb, gl_Color.rgb, cola);" \*/
-"   frag.rgb = mix(frag.rgb, color.rgb, color.a);" \
-"   float luma = dot(frag.rgb, lumaF);" \
-"   frag.rgb += tone.rgb;" \
-"   frag.rgb = mix(frag.rgb, vec3(luma), tone.w);" \
-"   frag.a *= gl_Color.a;" \
-"   gl_FragColor = frag;" \
-"}";
-
 void cgss::ViewportItem::scaleRenderSpriteToViewport() {
 	if (RenderSprite != nullptr) {
 		auto viewportBox = getViewportBox();
@@ -195,11 +173,6 @@ void cgss::ViewportItem::createRender() {
 
 	if (m_defaultRenderStates == nullptr) {
 		m_defaultRenderStates = std::make_unique<RenderStates>();
-		if (m_defaultRenderStates->data().loadShaderFromMemory(ViewportGlobalFragmentShader, sf::Shader::Fragment)) {
-			m_defaultRenderStates->data().setShaderUniform("texture", sf::Shader::CurrentTexture);
-			m_defaultRenderStates->data().setShaderUniform("tone", sf::Glsl::Vec4 {});
-		}
-		setColor(nullptr);
 	}
 }
 
@@ -209,29 +182,6 @@ void cgss::ViewportItem::updateFromValue(const sf::IntRect* rectanglePtr) {
 	ViewBox::updateViewport(rectangle.left, rectangle.top);
 
 	scaleRenderSpriteToViewport();
-}
-
-void cgss::Viewport::setTone(const sf::Glsl::Vec4* toneValue) {
-	m_proxy->createRender();
-	auto* renderStates = m_proxy->getRenderStates();
-	if (renderStates != nullptr) {
-		renderStates->setShaderUniform("tone", toneValue == nullptr ? sf::Glsl::Vec4 {} : *toneValue);
-		LOG_DEBUG << "Setting tone " << static_cast<const void*>(toneValue);
-	}
-}
-
-void cgss::ViewportItem::setColor(const sf::Color* colorValue) {
-	auto* renderStates = getRenderStates();
-	m_color = colorValue == nullptr ? sf::Color {0, 0, 0, 0} : *colorValue;
-	if (renderStates != nullptr) {
-		sf::Glsl::Vec4 shaderColor(m_color.r / 255.0f, m_color.g / 255.0f, m_color.b / 255.0f, m_color.a / 255.0f);
-		renderStates->setShaderUniform("color", shaderColor);
-		LOG_DEBUG << "Setting color " << static_cast<const void*>(colorValue);
-	}
-}
-
-void cgss::Viewport::setColor(const sf::Color* colorValue) {
-	m_proxy->setColor(colorValue);
 }
 
 void cgss::Viewport::setRectangle(sf::IntRect rectangle) {
