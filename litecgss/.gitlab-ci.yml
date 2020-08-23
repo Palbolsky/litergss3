@@ -5,20 +5,70 @@ stages:
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
-compile:
+compile:linux:
   stage: compile
-  script:
-    - rake compile
+  tags:
+    - linux
   image: 'scorbutics/sfml-rake:latest'
   before_script:
     - rake configure
     - rake clean
+  script:
+    - rake compile
   artifacts:
-    name: "LiteCGSS-$CI_COMMIT_REF_NAME"
+    name: "LiteCGSS-linux-$CI_COMMIT_REF_NAME"
     paths:
       - bin/
       - lib/
     expire_in: 1 day
+
+compile:windows:msvc:
+  stage: compile
+  tags:
+    - windows
+  before_script:
+    - Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
+    - choco install git --force --params "/GitAndUnixToolsOnPath" -y
+    - choco install 7zip -y
+    - choco install cmake.install --installargs 'ADD_CMAKE_TO_PATH=System' -y
+    - gem install rake-compiler
+    - refreshenv
+    - rake "configure[msvc]"
+    - rake clean
+  script:
+    - rake compile
+  artifacts:
+    name: "LiteCGSS-win-msvc-$CI_COMMIT_REF_NAME"
+    paths:
+      - bin/
+      - lib/
+    expire_in: 1 day
+
+compile:windows:mingw:
+  stage: compile
+  allow_failure: true
+  tags:
+    - windows
+  before_script:
+    - Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
+    - choco install git --force --params "/GitAndUnixToolsOnPath" -y
+    - choco install 7zip -y
+    - choco install cmake.install --installargs 'ADD_CMAKE_TO_PATH=System' -y
+    - gem install rake-compiler
+    - refreshenv
+    - $env:Path = (Get-Item .).FullName + "\generated\rubyinstaller-2.6.6-1-x86\msys32\mingw32\bin;" + (Get-Item .).FullName + "\generated\rubyinstaller-2.6.6-1-x86\bin;" + $env:Path
+    - powershell.exe -File "build/export_env.ps1"
+    - rake configure
+  script:
+    - rake clean
+    - rake compile
+  artifacts:
+    name: "LiteCGSS-win-mingw-$CI_COMMIT_REF_NAME"
+    paths:
+      - bin/
+      - lib/
+    expire_in: 1 day
+  when: manual
 
 test:
   stage: test
@@ -30,4 +80,4 @@ test:
     - sleep 5
     - ./bin/LiteCGSS_test
   dependencies:
-    - compile
+    - compile:linux

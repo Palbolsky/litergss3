@@ -26,16 +26,20 @@ module Cgss
                 smto_abortifhung = 2
                 result = 0
                 sendMessageTimeout.call(hwnd_broadcast, wm_settingchange, 0, 'Environment', smto_abortifhung, 5000, result) 
+                # In case of PowerShell + Chocolatey
+                system("refreshenv")
             else
                 puts "Unsupported env notify all windows on platform '" + RbConfig::CONFIG['host_os'] + "'"
             end
         end
 
-        def self.refresh_path
+        def self.enqueue_path(value)
             if SystemEnv::is_windows()
-                system(File.dirname(__FILE__) + "/resetvars.bat")
+                value = value.gsub!("/", "\\")
+                export_env("PATH", "#{value};" + ENV["PATH"])
+                ENV["PATH"] = "#{value};" + ENV["PATH"]
             else
-                puts "Unsupported refresh PATH variable on platform '" + RbConfig::CONFIG['host_os'] + "'"
+                system("export 'PATH=#{value}:$PATH'")
             end
         end
     end

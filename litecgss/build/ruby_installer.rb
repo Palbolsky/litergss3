@@ -7,27 +7,67 @@ module Cgss
     class RubyInstaller
         CGSS_RUBY_VERSION_SUFFIX = "-1"
 
-        def self.install_ruby_dev_kit (ruby_main_version, ruby_minor_version, architecture)
+        def self.setup_path(ruby_main_version, ruby_minor_version, architecture)
             ruby_version = ruby_main_version + "." + ruby_minor_version
-            ruby_dev_kit_uri = URI("https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-" + 
-                + "#{ruby_version}#{CGSS_RUBY_VERSION_SUFFIX}/rubyinstaller-devkit-#{ruby_version}#{CGSS_RUBY_VERSION_SUFFIX}-#{architecture}.exe")
+            ruby_installer_version = "rubyinstaller-#{ruby_version}#{CGSS_RUBY_VERSION_SUFFIX}-#{architecture}"
+            root_dir = File.expand_path(File.dirname(__FILE__)) + "/.."
+
+            SystemEnv.enqueue_path("#{root_dir}/generated/#{ruby_installer_version}/bin")
+            SystemEnv.notify_all_running_windows()
+        end
+
+        def self.install_ruby_dev_kit(ruby_main_version, ruby_minor_version, architecture)
+            ruby_version = ruby_main_version + "." + ruby_minor_version
+            ruby_installer_version = "rubyinstaller-#{ruby_version}#{CGSS_RUBY_VERSION_SUFFIX}-#{architecture}"
+            root_dir = File.expand_path(File.dirname(__FILE__)) + "/.."
+
+            RubyInstaller::setup_path(ruby_main_version, ruby_minor_version, architecture)
+
+            if Dir.exists?("#{root_dir}/generated/#{ruby_installer_version}/bin") and
+               Dir.exists?("#{root_dir}/generated/#{ruby_installer_version}/msys32/mingw32/i686-w64-mingw32")
+               return
+            end
+
+            Builder::seven_zip_guard()
             
             FileUtils.mkdir_p 'generated/tmp'
-            ruby_dev_kit_installer = Dir.pwd + "/generated/tmp/ruby_dev_kit.exe"
-            unless File.exists?(ruby_dev_kit_installer)
-                Downloader.download_or_quit(ruby_dev_kit_uri) do |response|
-                    open(ruby_dev_kit_installer, "wb") do |file|
+
+            ruby_archive_uri = URI("https://github.com/oneclick/rubyinstaller2/releases/download/" +
+                "RubyInstaller-#{ruby_version}#{CGSS_RUBY_VERSION_SUFFIX}/#{ruby_installer_version}.7z")
+            ruby_archive = root_dir + "/generated/tmp/ruby_dev_kit.7z"
+            unless File.exists?(ruby_archive)
+                Downloader.download_or_quit(ruby_archive_uri) do |response|
+                    open(ruby_archive, "wb") do |file|
                         file.write(response.body)
                     end
                 end
             end
 
-            # This triggers Microsoft Installer. Next Next Next Install Finish. Sad.
-            # TODO Windows auto install ??? How ?
-            exec(ruby_dev_kit_installer)
-            # Refresh path
-            SystemEnv.refresh_path()
+            Dir.chdir(root_dir + "/generated/tmp/") {
+                system("7z x -y ruby_dev_kit.7z -o\"#{root_dir}/generated\"")
+            }
+
+            msys2_archive_uri = URI("http://repo.msys2.org/distrib/msys2-i686-latest.tar.xz")
+            msys2_archive = root_dir + "/generated/tmp/msys2.tar.xz"
+            unless File.exists?(msys2_archive)
+                Downloader.download_or_quit(msys2_archive_uri) do |response|
+                    open(msys2_archive, "wb") do |file|
+                        file.write(response.body)
+                    end
+                end
+            end
+
+            Dir.chdir(root_dir + "/generated/tmp/") {
+                system("7z x -y msys2.tar.xz")
+                system("7z x -y msys2.tar -o\"#{root_dir}/generated/#{ruby_installer_version}\"")
+
+                Dir.chdir("#{root_dir}/generated/#{ruby_installer_version}/msys32/usr/bin") {
+                    script = File.expand_path("#{root_dir}/build/msys32-mingw-x86-install.ps1").gsub("/", "\\")
+                    system("powershell.exe -File \"#{script}\"")
+                }
+            }
             SystemEnv.notify_all_running_windows()
+            system("gem install rake-compiler")
         end
 
         def self.ridk_enable(ridk_script)
