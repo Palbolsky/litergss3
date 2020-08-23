@@ -24,7 +24,6 @@ compile:linux:
 
 compile:windows:msvc:
   stage: compile
-  allow_failure: true
   tags:
     - windows
   before_script:
@@ -69,6 +68,7 @@ compile:windows:mingw:
       - bin/
       - lib/
     expire_in: 1 day
+  when: manual
 
 test:
   stage: test
