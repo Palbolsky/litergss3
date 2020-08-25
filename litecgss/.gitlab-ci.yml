@@ -46,7 +46,6 @@ compile:windows:msvc:
 
 compile:windows:mingw:
   stage: compile
-  allow_failure: true
   tags:
     - windows
   before_script:
@@ -67,10 +66,11 @@ compile:windows:mingw:
       - bin/
       - lib/
     expire_in: 1 day
-  when: manual
 
 test:
   stage: test
+  tags:
+    - linux
   image: 'scorbutics/sfml-exec:latest'
   script: 
     - export LD_LIBRARY_PATH=$pwd/lib:$LD_LIBRARY_PATH
