@@ -51,7 +51,6 @@ compile:windows:mingw:
     - windows
   before_script:
     - Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
-    - choco install git --force --params "/GitAndUnixToolsOnPath" -y
     - choco install 7zip -y
     - choco install cmake.install --installargs 'ADD_CMAKE_TO_PATH=System' -y
     - gem install rake-compiler
