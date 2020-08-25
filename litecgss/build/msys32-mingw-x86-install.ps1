@@ -28,3 +28,5 @@ bash_exec 'pacman -Syu --noconfirm'
 # install packages
 bash_exec 'pacman --sync --noconfirm mingw-w64-i686-toolchain'
 bash_exec 'pacman --sync --noconfirm make'
+
+bash_exec "ps x | awk 'NR>1 {print `$1}' | xargs kill -9"

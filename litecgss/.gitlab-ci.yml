@@ -46,17 +46,15 @@ compile:windows:msvc:
 
 compile:windows:mingw:
   stage: compile
-  allow_failure: true
   tags:
     - windows
   before_script:
     - Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
-    - choco install git --force --params "/GitAndUnixToolsOnPath" -y
     - choco install 7zip -y
     - choco install cmake.install --installargs 'ADD_CMAKE_TO_PATH=System' -y
     - gem install rake-compiler
     - refreshenv
-    - $env:Path = (Get-Item .).FullName + "\generated\rubyinstaller-2.6.6-1-x86\msys32\mingw32\bin;" + (Get-Item .).FullName + "\generated\rubyinstaller-2.6.6-1-x86\bin;" + $env:Path
+    - $env:Path = (Get-Item .).FullName + "\generated\rubyinstaller-2.6.6-1-x86\bin;" + $env:Path
     - powershell.exe -File "build/export_env.ps1"
     - rake configure
   script:
@@ -68,10 +66,11 @@ compile:windows:mingw:
       - bin/
       - lib/
     expire_in: 1 day
-  when: manual
 
 test:
   stage: test
+  tags:
+    - linux
   image: 'scorbutics/sfml-exec:latest'
   script: 
     - export LD_LIBRARY_PATH=$pwd/lib:$LD_LIBRARY_PATH
