@@ -55,7 +55,7 @@ compile:windows:mingw:
     - choco install cmake.install --installargs 'ADD_CMAKE_TO_PATH=System' -y
     - gem install rake-compiler
     - refreshenv
-    - $env:Path = (Get-Item .).FullName + "\generated\rubyinstaller-2.6.6-1-x86\msys32\mingw32\bin;" + (Get-Item .).FullName + "\generated\rubyinstaller-2.6.6-1-x86\bin;" + $env:Path
+    - $env:Path = (Get-Item .).FullName + "\generated\rubyinstaller-2.6.6-1-x86\bin;" + $env:Path
     - powershell.exe -File "build/export_env.ps1"
     - rake configure
   script:
