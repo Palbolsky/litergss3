@@ -5,7 +5,7 @@ stages:
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
-compile:linux:
+compile:linux:gcc:
   stage: compile
   tags:
     - linux
@@ -16,7 +16,27 @@ compile:linux:
   script:
     - rake compile
   artifacts:
-    name: "LiteCGSS-linux-$CI_COMMIT_REF_NAME"
+    name: "LiteCGSS-linux-gcc-$CI_COMMIT_REF_NAME"
+    paths:
+      - bin/
+      - lib/
+    expire_in: 1 day
+
+compile:linux:clang:
+  stage: compile
+  tags:
+    - linux
+  image: 'scorbutics/sfml-rake:latest'
+  before_script:
+    - apt-get update && apt-get -y install clang
+    - export CC=/usr/bin/clang
+    - export CXX=/usr/bin/clang++
+    - rake configure
+    - rake clean
+  script:
+    - rake compile
+  artifacts:
+    name: "LiteCGSS-linux-clang-$CI_COMMIT_REF_NAME"
     paths:
       - bin/
       - lib/
@@ -79,4 +99,4 @@ test:
     - sleep 5
     - ./bin/LiteCGSS_test
   dependencies:
-    - compile:linux
+    - compile:linux:gcc

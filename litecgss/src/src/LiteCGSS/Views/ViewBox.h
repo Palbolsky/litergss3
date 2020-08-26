@@ -14,8 +14,8 @@ namespace cgss {
 		private SubObserver<WindowSettingsChangeEvent> {
 
 	public:
-		ViewBox(ViewBox&&) noexcept = default;
-		ViewBox& operator=(ViewBox&&) noexcept = default;
+		ViewBox(ViewBox&&) noexcept = delete;
+		ViewBox& operator=(ViewBox&&) noexcept = delete;
 		ViewBox(const ViewBox&) = delete;
 		ViewBox& operator=(const ViewBox&) = delete;
 		
