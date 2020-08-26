@@ -81,8 +81,8 @@ namespace cgss {
 
 	public:
 		FramedViewItem(FramedView* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings, std::weak_ptr<ViewportItem> parent = {});
-		FramedViewItem(FramedViewItem&&) noexcept = default;
-		FramedViewItem& operator=(FramedViewItem&&) noexcept = default;
+		FramedViewItem(FramedViewItem&&) noexcept = delete;
+		FramedViewItem& operator=(FramedViewItem&&) noexcept = delete;
 		FramedViewItem(const FramedViewItem&) = delete;
 		FramedViewItem& operator=(const FramedViewItem&) = delete;
 
@@ -91,7 +91,7 @@ namespace cgss {
 		void drawCalculateView(ViewportItem& parent, sf::View& targetView) const;
 		void update();
 
-		void setOpacity(uint8_t opacity);
+		void setOpacity(uint8_t opacity) override;
 		uint8_t getOpacity() const;
 
 		void setContentsOpacity(uint8_t opacity);
