@@ -21,7 +21,7 @@ namespace cgss {
 	private:
 		void setupFullWindowView(sf::RenderTarget& target) const;
 		void onPostWindowSettingsChange(WindowSettingsChangeEvent& event) override;
-		void scaleRenderSpriteToViewport();
+		void scaleRenderSpriteToViewport() const;
 
 		std::optional<sf::RenderStates> m_renderStates;
 		std::unique_ptr<RenderStates> m_defaultRenderStates;

@@ -46,6 +46,7 @@ void cgss::ViewportItem::draw(sf::RenderTarget& target) const {
 	if (renderStates) {
 		// Loading Target view
 		ViewBox::onRenderTarget(*Render, true);
+		scaleRenderSpriteToViewport();
 
 		// Clearing render
 		Render->clear(sf::Color::Transparent);
@@ -151,7 +152,7 @@ void cgss::ViewportItem::updateFromValue(const RenderStatesData* renderStatesDat
 	}
 }
 
-void cgss::ViewportItem::scaleRenderSpriteToViewport() {
+void cgss::ViewportItem::scaleRenderSpriteToViewport() const {
 	if (RenderSprite != nullptr) {
 		auto viewportBox = getViewportBox();
 		RenderSprite->setTextureRect(viewportBox);
