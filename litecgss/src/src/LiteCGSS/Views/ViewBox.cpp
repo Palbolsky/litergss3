@@ -10,7 +10,6 @@ SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::ViewBox);
 
 cgss::ViewBox::ViewBox(MainEventDispatcher& ed, const DisplayWindowSettings& windowSettings) : 
 	SubObserver<WindowSettingsChangeEvent>(std::bind(&ViewBox::onWindowSettingsChange, this, std::placeholders::_1), ed),
-	m_eventDispatcher(ed),
 	m_screenWidth(windowSettings.video.width),
 	m_screenHeight(windowSettings.video.height) {
 	resize(m_screenWidth, m_screenHeight);
@@ -74,7 +73,7 @@ void cgss::ViewBox::moveViewport(float x, float y) {
 	const auto sh = static_cast<float>(m_screenHeight);
 	m_view.setViewport(sf::FloatRect{ x / sw, y / sh, m_view.getSize().x / sw, m_view.getSize().y / sh });
 	auto event = ViewportChangeEvent { getRectangleBox() };
-	m_eventDispatcher.Observable<ViewportChangeEvent>::notifyObservers(event);
+	Observable<ViewportChangeEvent>::notifyObservers(event);
 }
 
 bool cgss::ViewBox::onWindowSettingsChange(WindowSettingsChangeEvent& event) {
