@@ -600,9 +600,12 @@ void cgss::FramedViewItem::updateView() {
 	long width = static_cast<long>(m_wantedWidth) - offset_x - offset_x2;
 	long height = static_cast<long>(m_wantedHeight) - offset_y - offset_y2;
 
+	width = width < 0 ? 0 : width;
+	height = height < 0 ? 0 : height;
+
 	LOG_INFO << "View updated to x = " << x << " y = " << y << " width = " << width << " height = " << height;
 	resize(width, height);
-	updateViewport(x, y);
+	moveViewport(x, y);
 }
 
 void cgss::FramedViewItem::lock() {

@@ -73,7 +73,8 @@ void cgss::Sprite::setTexture(Texture& texture, bool resetRect) {
 }
 
 void cgss::SpriteItem::updateFromValue(const sf::IntRect* rectangle) {
-	auto tmpRectangle = rectangle == nullptr ? sf::IntRect{} : *rectangle;
+	auto textureSize = m_sprite.getTexture() == nullptr ? sf::Vector2u{} : m_sprite.getTexture()->getSize();
+	auto tmpRectangle = rectangle == nullptr ? sf::IntRect{0, 0, static_cast<int>(textureSize.x), static_cast<int>(textureSize.y) } : *rectangle;
 	if (m_mirror) {
 		tmpRectangle.left += tmpRectangle.width;
 		tmpRectangle.width = -tmpRectangle.width;

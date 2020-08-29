@@ -13,8 +13,17 @@ namespace cgss {
         Bindable() = default;
         Bindable(const Bindable&) = delete;
         Bindable& operator=(const Bindable&) = delete;
-        Bindable(Bindable&&) = default;
-        Bindable& operator=(Bindable&&) = default;
+
+        Bindable(Bindable&& bindableElement) {
+            m_destructing = true;
+            operator=(std::move(bindableElement));
+            m_destructing = false;
+        }
+
+        Bindable& operator=(Bindable&& bindableElement) {            
+            bindValue(bindableElement.m_target);
+            bindableElement.m_target = nullptr;
+        }
 
         virtual ~Bindable() {
             m_destructing = true;

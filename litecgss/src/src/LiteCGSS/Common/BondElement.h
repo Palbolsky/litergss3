@@ -14,8 +14,18 @@ namespace cgss {
 		BondElement() = default;
 		BondElement(const BondElement&) = delete;
 		BondElement& operator=(const BondElement&) = delete;
-		BondElement(BondElement&&) = default;
-		BondElement& operator=(BondElement&&) = default;
+
+		BondElement(BondElement&& bondElement) {
+			operator=(std::move(bondElement));
+		}
+
+		BondElement& operator=(BondElement&& bondElement) {
+			m_value = std::move(bondElement.m_value);
+			bondElement.m_value = {};
+			bind(bondElement.m_target);
+			bondElement.m_target = nullptr;
+			return *this;
+		}
 
 		const Value& getValue() const { return m_value; };
 		
