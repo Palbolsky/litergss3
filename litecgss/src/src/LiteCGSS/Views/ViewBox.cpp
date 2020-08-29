@@ -45,6 +45,10 @@ void cgss::ViewBox::resize(long width, long height) {
 		height++;
 	}
 	m_view.setSize(static_cast<float>(width), static_cast<float>(height));
+	const auto& percentBox = m_view.getViewport();
+	const auto sw = static_cast<float>(m_screenWidth);
+	const auto sh = static_cast<float>(m_screenHeight);
+	moveViewport(percentBox.left * sw, percentBox.top * sh);
 	updateCenter();
 
 	LOG_INFO << "Resizing to width = " << width << " height = " << height;
@@ -65,7 +69,7 @@ void cgss::ViewBox::onRenderTarget(sf::RenderTarget& renderTarget, bool copy) co
 	}
 }
 
-void cgss::ViewBox::updateViewport(float x, float y) {
+void cgss::ViewBox::moveViewport(float x, float y) {
 	const auto sw = static_cast<float>(m_screenWidth);
 	const auto sh = static_cast<float>(m_screenHeight);
 	m_view.setViewport(sf::FloatRect{ x / sw, y / sh, m_view.getSize().x / sw, m_view.getSize().y / sh });

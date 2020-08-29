@@ -115,7 +115,7 @@ void cgss::Viewport::sortZ() {
 }
 
 void cgss::Viewport::move(float x, float y) {
-	m_proxy->updateViewport(x, y);
+	m_proxy->moveViewport(x, y);
 }
 
 void cgss::Viewport::moveOrigin(long ox, long oy) {
@@ -177,10 +177,13 @@ void cgss::ViewportItem::createRender() {
 }
 
 void cgss::ViewportItem::updateFromValue(const sf::IntRect* rectanglePtr) {
-	auto rectangle = rectanglePtr == nullptr ? sf::IntRect{} : *rectanglePtr;
-    ViewBox::resize(rectangle.width, rectangle.height);
-	ViewBox::updateViewport(rectangle.left, rectangle.top);
+	auto rectangle = rectanglePtr == nullptr ? getRectangleBox() : *rectanglePtr;
 
+	LOG_INFO << "View " << static_cast<void*>(this) << " updated with rect x = " << rectangle.left << " y = " << rectangle.top << " width = " << rectangle.width << " height = " << rectangle.height;
+	LOG_DEBUG << "Rectangle is " << static_cast<const void*>(rectanglePtr);
+    ViewBox::resize(rectangle.width, rectangle.height);
+	ViewBox::moveViewport(rectangle.left, rectangle.top);
+	
 	scaleRenderSpriteToViewport();
 }
 
