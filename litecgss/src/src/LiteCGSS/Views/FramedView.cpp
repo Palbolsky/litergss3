@@ -22,6 +22,14 @@ cgss::FramedViewItem::FramedViewItem(FramedView*, MainEventDispatcher& eventDisp
 	m_parent(std::move(parent)) {
 }
 
+void cgss::FramedView::subscribeViewportChange(Observer<ViewportChangeEvent>& observer) {
+	m_proxy->ViewBox::addObserver(observer);
+}
+
+void cgss::FramedView::unsubscribeViewportChange(Observer<ViewportChangeEvent>& observer) {
+	m_proxy->ViewBox::removeObserver(observer);
+}
+
 void cgss::FramedViewItem::draw(sf::RenderTarget& target) const {
 	drawFast(target);
 }
@@ -902,10 +910,6 @@ long cgss::FramedView::getOx() const {
 
 long cgss::FramedView::getOy() const {
 	return m_proxy->m_wantedOy;
-}
-
-cgss::MainEventDispatcher& cgss::FramedView::getEventDispatcher() {
-	return m_proxy->getEventDispatcher();
 }
 
 void cgss::FramedView::update() {

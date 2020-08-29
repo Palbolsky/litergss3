@@ -6,12 +6,14 @@
 #include "LiteCGSS/Events/Patterns/SubObserver.h"
 #include "LiteCGSS/Events/WindowSettingsChangeEvent.h"
 #include "LiteCGSS/Events/MainEventDispatcher.h"
+#include "LiteCGSS/Events/ViewportChangeEvent.h"
 
 namespace cgss {
 
 	struct DisplayWindowSettings;
 	class ViewBox :
-		private SubObserver<WindowSettingsChangeEvent> {
+		private SubObserver<WindowSettingsChangeEvent>,
+		public Observable<ViewportChangeEvent> {
 
 	public:
 		ViewBox(ViewBox&&) noexcept = delete;
@@ -33,7 +35,6 @@ namespace cgss {
 		float getAngle() const;
 		float getZoom() const;
 
-		MainEventDispatcher& getEventDispatcher() { return m_eventDispatcher; }
 	protected:
 		long getScreenWidth() const { return m_screenWidth; }
 		long getScreenHeight() const { return m_screenHeight; }
@@ -52,8 +53,6 @@ namespace cgss {
 	private:
 		bool onWindowSettingsChange(WindowSettingsChangeEvent& event);
 		void updateCenter();
-
-		MainEventDispatcher& m_eventDispatcher;
 
 		sf::View m_view;
 		mutable sf::View m_copy;

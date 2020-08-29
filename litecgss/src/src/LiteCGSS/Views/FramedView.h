@@ -195,7 +195,6 @@ namespace cgss {
 
 		void update();
 		sf::IntRect getViewportBox() const;
-		MainEventDispatcher& getEventDispatcher();
 		long getOx() const;
 		long getOy() const;
 
@@ -208,6 +207,9 @@ namespace cgss {
 		StackItem& add(std::shared_ptr<StackItem> d) {
 			return m_proxy->View::add<FramedView, StackItem, Drawable>(std::move(d));
 		}
+
+		void subscribeViewportChange(Observer<ViewportChangeEvent>& observer);
+		void unsubscribeViewportChange(Observer<ViewportChangeEvent>& observer);
 	private:
 		void onDispose() override { m_proxy->View::drawables().clear(); }
 	};
