@@ -14,6 +14,7 @@
 
 #include "LiteCGSS/Events/MainEventDispatcher.h"
 #include "LiteCGSS/Events/Patterns/SubObserver.h"
+#include "LiteCGSS/Events/Patterns/Observable.h"
 
 namespace cgss {
 
@@ -23,8 +24,10 @@ namespace cgss {
 		public SnapshotCapturable {
 
 	public:
-		DisplayWindow(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& settings);
-		DisplayWindow(MainEventDispatcher& eventDispatcher);
+		DisplayWindow(const DisplayWindowSettings& settings);
+		DisplayWindow(DisplayWindow&&) = default;
+		DisplayWindow& operator=(DisplayWindow&&) = delete;
+		DisplayWindow();
 		virtual ~DisplayWindow();
 
 		void setBrightness(unsigned char brightness) { m_draw.brightness = brightness; }
@@ -55,14 +58,26 @@ namespace cgss {
 			return View::create(owner, m_eventDispatcher, m_settings, std::forward<Args>(args)...);
 		}
 
+		template <class Event>
+		void record(Observer<Event>& observer) {
+			m_eventDispatcher.template Observable<Event>::addObserver(observer);
+		}
+
+		template <class Event>
+		void erase(Observer<Event>& observer) {
+			m_eventDispatcher.template Observable<Event>::removeObserver(observer);
+		}
+
+		MainEventDispatcher& eventDispatcher() { return m_eventDispatcher; }
+
 	private:
 		void initRender();
 		void drawBrightness();
 		sf::RenderTarget& configureAndGetRenderTarget(sf::View& defview);
 		void postProcessing();
 
-		DisplayWindowSettings m_settings;
-		MainEventDispatcher& m_eventDispatcher;
+		MainEventDispatcher m_eventDispatcher {};
+		DisplayWindowSettings m_settings {};
 		std::unique_ptr<sf::RenderWindow> m_gameWindow = nullptr;
 		DisplayWindowSnapshot m_snapshot;
 		DisplayWindowDrawData m_draw;

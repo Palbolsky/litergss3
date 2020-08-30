@@ -8,14 +8,13 @@
 #include "Graphics/Loaders/TextureLoader.h"
 
 void MemTest() {
-	auto eventDispatcher = cgss::MainEventDispatcher{};
 	auto settings = cgss::DisplayWindowSettings{};
 	settings.video.scale = 1;
 	settings.visibleMouse = true;
 	settings.video.width = 400;
 	settings.video.height = 300;
 	settings.title = "MemTest";
-	auto window = cgss::DisplayWindow{ eventDispatcher, settings };
+	auto window = cgss::DisplayWindow{ settings };
 
 	auto viewport = window.addView<cgss::Viewport>(window);
 	auto texture = cgss::Texture::create(window, LITE_CGSS_PLAYGROUND_DIR "/resources/test.png");
@@ -37,14 +36,13 @@ void MemTest() {
 }
 
 void ViewTest() {
-	auto eventDispatcher = cgss::MainEventDispatcher{};
 	auto settings = cgss::DisplayWindowSettings{};
 	settings.video.scale = 1;
 	settings.visibleMouse = true;
 	settings.video.width = 400;
 	settings.video.height = 300;
 	settings.title = "Playground";
-	auto window = cgss::DisplayWindow{ eventDispatcher, settings };
+	auto window = cgss::DisplayWindow{ settings };
 
 	auto viewport = window.addView<cgss::Viewport>(window);
 	auto texture = cgss::Texture::create(window, LITE_CGSS_PLAYGROUND_DIR "/resources/test.png");
