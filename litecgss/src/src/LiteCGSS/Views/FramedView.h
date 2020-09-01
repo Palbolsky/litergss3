@@ -80,7 +80,7 @@ namespace cgss {
 		void updateView();
 
 	public:
-		FramedViewItem(FramedView* owner, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings, std::weak_ptr<ViewportItem> parent = {});
+		FramedViewItem(FramedView* owner, MainEventDispatcher& eventDispatcher, DisplayWindowUserData windowData, const DisplayWindowSettings& windowSettings, std::weak_ptr<ViewportItem> parent = {});
 		FramedViewItem(FramedViewItem&&) noexcept = delete;
 		FramedViewItem& operator=(FramedViewItem&&) noexcept = delete;
 		FramedViewItem(const FramedViewItem&) = delete;

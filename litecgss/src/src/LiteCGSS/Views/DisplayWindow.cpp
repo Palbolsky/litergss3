@@ -11,15 +11,27 @@ SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::DisplayWindow);
 
 cgss::DisplayWindow::DisplayWindow(const DisplayWindowSettings& settings) :
 	m_snapshot{ *this } {
+	m_userRenderTexture = std::make_unique<sf::RenderTexture>();
+	m_userRenderSprite = std::make_unique<sf::Sprite>();
 	reload(settings);
+	initUserRender();
 }
 
 cgss::DisplayWindow::DisplayWindow() :
 	m_snapshot{ *this } {
+	m_userRenderTexture = std::make_unique<sf::RenderTexture>();
+	m_userRenderSprite = std::make_unique<sf::Sprite>();
 }
 
 cgss::DisplayWindow::~DisplayWindow() {
 	if (m_gameWindow != nullptr) { stop(); }
+}
+
+void cgss::DisplayWindow::initUserRender() {
+	m_userRenderTexture->create(m_draw.screenWidth, m_draw.screenHeight);
+	m_userRenderTexture->setSmooth(m_draw.smoothScreen);
+
+	m_userRenderSprite->setTexture(m_userRenderTexture->getTexture());
 }
 
 void cgss::DisplayWindow::reload(DisplayWindowSettings settings) {
@@ -56,6 +68,9 @@ void cgss::DisplayWindow::reload(DisplayWindowSettings settings) {
 	}
 
 	m_snapshot.init();
+
+	/* Re-init user drawing surface */
+	initUserRender();
 
 	auto we = WindowSettingsChangeEvent{};
 	we.settings = std::move(settings);
@@ -160,6 +175,10 @@ void cgss::DisplayWindow::postProcessing() {
 void cgss::DisplayWindow::resizeScreen(unsigned int width, unsigned int height) {
 	m_settings.video.width = width;
 	m_settings.video.height = height;
+
+		/* Re-init user drawing surface */
+	initUserRender();
+
 	auto we = WindowSettingsChangeEvent{};
 	we.settings = m_settings;
 	m_eventDispatcher.Observable<WindowSettingsChangeEvent>::notifyObservers(we);

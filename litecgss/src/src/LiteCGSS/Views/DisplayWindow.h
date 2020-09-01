@@ -9,6 +9,7 @@
 #include "ViewAuthorizations.h"
 #include "DisplayWindowDraw.h"
 #include "DisplayWindowSnapshot.h"
+#include "DisplayWindowUserData.h"
 #include "FramedView.h"
 #include "SnapshotCapturable.h"
 
@@ -53,9 +54,13 @@ namespace cgss {
 		void reload(DisplayWindowSettings settings);
 		const DisplayWindowContextSettings& getContextSettings() const;
 
+		DisplayWindowUserData buildUserData() {
+			return { m_userRenderSprite.get(), m_userRenderTexture.get() };
+		}
+
 		template <class View, class ViewOwner, class ... Args>
 		View addView(ViewOwner& owner, Args&& ... args) {
-			return View::create(owner, m_eventDispatcher, m_settings, std::forward<Args>(args)...);
+			return View::create(owner, m_eventDispatcher, buildUserData(), m_settings, std::forward<Args>(args)...);
 		}
 
 		template <class Event>
@@ -71,6 +76,7 @@ namespace cgss {
 		MainEventDispatcher& eventDispatcher() { return m_eventDispatcher; }
 
 	private:
+		void initUserRender();
 		void initRender();
 		void drawBrightness();
 		sf::RenderTarget& configureAndGetRenderTarget(sf::View& defview);
@@ -81,6 +87,9 @@ namespace cgss {
 		std::unique_ptr<sf::RenderWindow> m_gameWindow = nullptr;
 		DisplayWindowSnapshot m_snapshot;
 		DisplayWindowDrawData m_draw;
+
+		std::unique_ptr<sf::Sprite> m_userRenderSprite;
+		std::unique_ptr<sf::RenderTexture> m_userRenderTexture;
 	};
 
 	class Sprite;

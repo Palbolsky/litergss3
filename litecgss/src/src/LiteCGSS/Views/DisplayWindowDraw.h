@@ -2,7 +2,8 @@
 #define CGSS_DISPLAY_WINDOW_DRAW_H
 #include <memory>
 
-#include <SFML/Graphics.hpp>
+#include <SFML/Graphics/Sprite.hpp>
+#include <SFML/Graphics/RenderTexture.hpp>
 
 namespace cgss {
 	struct DisplayWindowDrawData {

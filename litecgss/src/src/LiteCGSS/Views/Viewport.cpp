@@ -10,11 +10,9 @@ SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::ViewportItem);
 #define LOG_INFO SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info, cgss::ViewportItem)
 #define LOG_WARN SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Warn, cgss::ViewportItem)
 
-std::unique_ptr<sf::Sprite> cgss::ViewportItem::RenderSprite = nullptr;
-std::unique_ptr<sf::RenderTexture> cgss::ViewportItem::Render = nullptr;
-
-cgss::ViewportItem::ViewportItem(Viewport*, MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& windowSettings) :
-	ViewBox(eventDispatcher, windowSettings) {
+cgss::ViewportItem::ViewportItem(Viewport*, MainEventDispatcher& eventDispatcher, DisplayWindowUserData windowData, const DisplayWindowSettings& windowSettings) :
+	ViewBox(eventDispatcher, windowSettings),
+	m_windowData(std::move(windowData)) {
 	m_smooth = windowSettings.smoothScreen;
 }
 
@@ -34,8 +32,8 @@ cgss::RenderStatesData* cgss::ViewportItem::getRenderStates() {
 
 void cgss::ViewportItem::onPostWindowSettingsChange(WindowSettingsChangeEvent& event) {
 	m_smooth = event.settings.smoothScreen;
-	if (Render != nullptr) {
-		Render->setSmooth(m_smooth);
+	if (m_windowData.userRenderTexture != nullptr) {
+		m_windowData.userRenderTexture->setSmooth(m_smooth);
 	}
 }
 
@@ -45,21 +43,21 @@ void cgss::ViewportItem::draw(sf::RenderTarget& target) const {
 	const auto* renderStates = getRenderStates() == nullptr ? nullptr : &getRenderStates()->getRenderStates();
 	if (renderStates) {
 		// Loading Target view
-		ViewBox::onRenderTarget(*Render, true);
+		ViewBox::onRenderTarget(*m_windowData.userRenderTexture, true);
 		scaleRenderSpriteToViewport();
 
 		// Clearing render
-		Render->clear(sf::Color::Transparent);
+		m_windowData.userRenderTexture->clear(sf::Color::Transparent);
 
 		// Drawing sprites
-		drawables().drawFast(*Render);
-		Render->display();
+		drawables().drawFast(*m_windowData.userRenderTexture);
+		m_windowData.userRenderTexture->display();
 
 		// Reset the target view
 		setupFullWindowView(target);
 
 		// Draw the result
-		target.draw(*RenderSprite, *renderStates);
+		target.draw(*m_windowData.userRenderSprite, *renderStates);
 	} else {
 		ViewBox::onRenderTarget(target, false);
 		drawables().drawFast(target);
@@ -146,32 +144,21 @@ void cgss::ViewportItem::updateFromValue(const RenderStatesData* renderStatesDat
 	if (renderStatesData != nullptr) {
 		createRender();
 	} else {
-		Render = nullptr;
-		RenderSprite = nullptr;
+		m_windowData.userRenderTexture = nullptr;
+		m_windowData.userRenderSprite = nullptr;
 		m_defaultRenderStates = nullptr;
 	}
 }
 
 void cgss::ViewportItem::scaleRenderSpriteToViewport() const {
-	if (RenderSprite != nullptr) {
+	if (m_windowData.userRenderSprite != nullptr) {
 		auto viewportBox = getViewportBox();
-		RenderSprite->setTextureRect(viewportBox);
-		RenderSprite->setPosition(viewportBox.left, viewportBox.top);
+		m_windowData.userRenderSprite->setTextureRect(viewportBox);
+		m_windowData.userRenderSprite->setPosition(viewportBox.left, viewportBox.top);
 	}
 }
 
 void cgss::ViewportItem::createRender() {
-	if (Render == nullptr) {
-		Render = std::make_unique<sf::RenderTexture>();
-		RenderSprite = std::make_unique<sf::Sprite>();
-		Render->create(getScreenWidth(), getScreenHeight());
-		Render->setSmooth(m_smooth);
-		
-		RenderSprite->setTexture(Render->getTexture());
-	}
-
-	scaleRenderSpriteToViewport();
-
 	if (m_defaultRenderStates == nullptr) {
 		m_defaultRenderStates = std::make_unique<RenderStates>();
 	}
