@@ -34,6 +34,7 @@ namespace cgss {
 		void updateBackOpacity();
 		void updateContentsOpacity();
 
+		DisplayWindowUserData m_windowData;
 		std::vector<sf::VertexArray> m_vertices;
 		sf::Texture* m_texture = nullptr;
 		sf::Sprite m_pause;
@@ -206,6 +207,11 @@ namespace cgss {
 		template <class View, class StackItem, class Drawable>
 		StackItem& add(std::shared_ptr<StackItem> d) {
 			return m_proxy->View::add<FramedView, StackItem, Drawable>(std::move(d));
+		}
+
+		template <class View, class ... Args>
+		View addView(Args&& ... args) {
+			return View::create(*this, m_proxy->m_windowData.eventDispatcher, m_proxy->m_windowData, m_proxy->m_windowData.settings, std::forward<Args>(args)...);
 		}
 
 		void subscribeViewportChange(Observer<ViewportChangeEvent>& observer);

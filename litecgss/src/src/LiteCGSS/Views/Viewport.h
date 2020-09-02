@@ -24,14 +24,14 @@ namespace cgss {
 		void onPostWindowSettingsChange(WindowSettingsChangeEvent& event) override;
 		void scaleRenderSpriteToViewport() const;
 
+		DisplayWindowUserData m_windowData;
+
 		std::optional<sf::RenderStates> m_renderStates;
 		std::unique_ptr<RenderStates> m_defaultRenderStates;
 
 		bool m_smooth = false;
 		double m_wantedOx = 0;
 		double m_wantedOy = 0;
-
-		DisplayWindowUserData m_windowData;
 	public:
 		void createRender();
 		ViewportItem(Viewport* owner, MainEventDispatcher& eventDispatcher, DisplayWindowUserData windowData, const DisplayWindowSettings& windowSettings);
@@ -83,6 +83,12 @@ namespace cgss {
 		StackItem& add(std::shared_ptr<StackItem> d) {
 			return m_proxy->View::add<Viewport, StackItem, Drawable>(std::move(d));
 		}
+
+		template <class View, class ... Args>
+		View addView(Args&& ... args) {
+			return View::create(*this, m_proxy->m_windowData.eventDispatcher, m_proxy->m_windowData, m_proxy->m_windowData.settings, std::forward<Args>(args)...);
+		}
+
 	private:
 		void onDispose() override;
 	};

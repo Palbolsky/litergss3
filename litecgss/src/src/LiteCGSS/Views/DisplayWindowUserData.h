@@ -4,9 +4,16 @@
 
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/RenderTexture.hpp>
+#include "LiteCGSS/Events/MainEventDispatcher.h"
 
 namespace cgss {
+	class DisplayWindow;
+	struct DisplayWindowSettings;
+
 	struct DisplayWindowUserData {
+		MainEventDispatcher& eventDispatcher;
+		const DisplayWindowSettings& settings;
+
 		/* Shader related stuff (used by Viewports) */
 		sf::Sprite* userRenderSprite = nullptr;
 		sf::RenderTexture* userRenderTexture = nullptr;

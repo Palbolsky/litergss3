@@ -16,7 +16,7 @@ void MemTest() {
 	settings.title = "MemTest";
 	auto window = cgss::DisplayWindow{ settings };
 
-	auto viewport = window.addView<cgss::Viewport>(window);
+	auto viewport = window.addView<cgss::Viewport>();
 	auto texture = cgss::Texture::create(window, LITE_CGSS_PLAYGROUND_DIR "/resources/test.png");
 	viewport.resize(200, 200);
 	
@@ -44,9 +44,9 @@ void ViewTest() {
 	settings.title = "Playground";
 	auto window = cgss::DisplayWindow{ settings };
 
-	auto viewport = window.addView<cgss::Viewport>(window);
+	auto viewport = window.addView<cgss::Viewport>();
 	auto texture = cgss::Texture::create(window, LITE_CGSS_PLAYGROUND_DIR "/resources/test.png");
-	auto framedView = window.addView<cgss::FramedView>(viewport);
+	auto framedView = viewport.addView<cgss::FramedView>();
 
 	auto fillTexture = cgss::Texture{};
 	auto memoryLoader = cgss::TextureEmptyLoader{ 1000, 1000 };
@@ -110,7 +110,8 @@ void ViewTest() {
 int main(int argc, char* argv[]) {
 	(void)argc;
 	(void)argv;
-	MemTest();
+	//MemTest();
+	ViewTest();
 
 	return 0;
 }

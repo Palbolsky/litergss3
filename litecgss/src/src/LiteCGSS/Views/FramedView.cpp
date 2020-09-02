@@ -17,8 +17,9 @@ static void RectSet(sf::IntRect& rect, long x, long y, long width, long height) 
 	rect.height = height;
 }
 
-cgss::FramedViewItem::FramedViewItem(FramedView*, MainEventDispatcher& eventDispatcher, DisplayWindowUserData, const DisplayWindowSettings& windowSettings, std::weak_ptr<ViewportItem> parent) :
+cgss::FramedViewItem::FramedViewItem(FramedView*, MainEventDispatcher& eventDispatcher, DisplayWindowUserData windowData, const DisplayWindowSettings& windowSettings, std::weak_ptr<ViewportItem> parent) :
 	ViewBox(eventDispatcher, windowSettings),
+	m_windowData(std::move(windowData)),
 	m_parent(std::move(parent)) {
 }
 

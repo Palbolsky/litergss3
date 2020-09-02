@@ -54,13 +54,9 @@ namespace cgss {
 		void reload(DisplayWindowSettings settings);
 		const DisplayWindowContextSettings& getContextSettings() const;
 
-		DisplayWindowUserData buildUserData() {
-			return { m_userRenderSprite.get(), m_userRenderTexture.get() };
-		}
-
-		template <class View, class ViewOwner, class ... Args>
-		View addView(ViewOwner& owner, Args&& ... args) {
-			return View::create(owner, m_eventDispatcher, buildUserData(), m_settings, std::forward<Args>(args)...);
+		template <class View, class ... Args>
+		View addView(Args&& ... args) {
+			return View::create(*this, m_eventDispatcher, buildUserData(), m_settings, std::forward<Args>(args)...);
 		}
 
 		template <class Event>
@@ -76,6 +72,9 @@ namespace cgss {
 		MainEventDispatcher& eventDispatcher() { return m_eventDispatcher; }
 
 	private:
+		DisplayWindowUserData buildUserData() {
+			return { m_eventDispatcher, m_settings, m_userRenderSprite.get(), m_userRenderTexture.get() };
+		}
 		void initUserRender();
 		void initRender();
 		void drawBrightness();
