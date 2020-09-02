@@ -73,7 +73,7 @@ namespace cgss {
 
 	private:
 		DisplayWindowUserData buildUserData() {
-			return { m_eventDispatcher, m_settings, m_userRenderSprite.get(), m_userRenderTexture.get() };
+			return { m_eventDispatcher, m_settings, m_userRenderSprite, m_userRenderTexture };
 		}
 		void initUserRender();
 		void initRender();
@@ -87,8 +87,8 @@ namespace cgss {
 		DisplayWindowSnapshot m_snapshot;
 		DisplayWindowDrawData m_draw;
 
-		std::unique_ptr<sf::Sprite> m_userRenderSprite;
-		std::unique_ptr<sf::RenderTexture> m_userRenderTexture;
+		std::unique_ptr<sf::Sprite> m_userRenderSprite = std::make_unique<sf::Sprite>();
+		std::unique_ptr<sf::RenderTexture> m_userRenderTexture = std::make_unique<sf::RenderTexture>();
 	};
 
 	class Sprite;

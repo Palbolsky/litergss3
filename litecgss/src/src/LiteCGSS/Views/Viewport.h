@@ -21,7 +21,6 @@ namespace cgss {
 		friend class Viewport;
 	private:
 		void setupFullWindowView(sf::RenderTarget& target) const;
-		void onPostWindowSettingsChange(WindowSettingsChangeEvent& event) override;
 		void scaleRenderSpriteToViewport() const;
 
 		DisplayWindowUserData m_windowData;
@@ -29,11 +28,9 @@ namespace cgss {
 		std::optional<sf::RenderStates> m_renderStates;
 		std::unique_ptr<RenderStates> m_defaultRenderStates;
 
-		bool m_smooth = false;
 		double m_wantedOx = 0;
 		double m_wantedOy = 0;
 	public:
-		void createRender();
 		ViewportItem(Viewport* owner, MainEventDispatcher& eventDispatcher, DisplayWindowUserData windowData, const DisplayWindowSettings& windowSettings);
 		void drawFast(sf::RenderTarget& target) const override { draw(target); }
 		void draw(sf::RenderTarget& target) const override;

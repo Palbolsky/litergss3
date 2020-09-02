@@ -11,16 +11,11 @@ SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::DisplayWindow);
 
 cgss::DisplayWindow::DisplayWindow(const DisplayWindowSettings& settings) :
 	m_snapshot{ *this } {
-	m_userRenderTexture = std::make_unique<sf::RenderTexture>();
-	m_userRenderSprite = std::make_unique<sf::Sprite>();
 	reload(settings);
-	initUserRender();
 }
 
 cgss::DisplayWindow::DisplayWindow() :
 	m_snapshot{ *this } {
-	m_userRenderTexture = std::make_unique<sf::RenderTexture>();
-	m_userRenderSprite = std::make_unique<sf::Sprite>();
 }
 
 cgss::DisplayWindow::~DisplayWindow() {
@@ -175,9 +170,6 @@ void cgss::DisplayWindow::postProcessing() {
 void cgss::DisplayWindow::resizeScreen(unsigned int width, unsigned int height) {
 	m_settings.video.width = width;
 	m_settings.video.height = height;
-
-		/* Re-init user drawing surface */
-	initUserRender();
 
 	auto we = WindowSettingsChangeEvent{};
 	we.settings = m_settings;

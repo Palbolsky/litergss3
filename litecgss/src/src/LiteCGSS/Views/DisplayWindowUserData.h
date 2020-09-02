@@ -15,8 +15,8 @@ namespace cgss {
 		const DisplayWindowSettings& settings;
 
 		/* Shader related stuff (used by Viewports) */
-		sf::Sprite* userRenderSprite = nullptr;
-		sf::RenderTexture* userRenderTexture = nullptr;
+		std::unique_ptr<sf::Sprite>& userRenderSprite;
+		std::unique_ptr<sf::RenderTexture>& userRenderTexture;
 	};
 }
 
