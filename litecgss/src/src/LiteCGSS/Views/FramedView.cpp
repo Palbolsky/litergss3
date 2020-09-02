@@ -19,16 +19,23 @@ static void RectSet(sf::IntRect& rect, long x, long y, long width, long height) 
 
 cgss::FramedViewItem::FramedViewItem(FramedView*, MainEventDispatcher& eventDispatcher, DisplayWindowUserData windowData, const DisplayWindowSettings& windowSettings, std::weak_ptr<ViewportItem> parent) :
 	ViewBox(eventDispatcher, windowSettings),
+	SubObserver<ViewportChangeEvent>(std::bind(&FramedViewItem::onViewportChange, this, std::placeholders::_1), *this),
 	m_windowData(std::move(windowData)),
 	m_parent(std::move(parent)) {
 }
 
-void cgss::FramedView::subscribeViewportChange(Observer<ViewportChangeEvent>& observer) {
-	m_proxy->ViewBox::addObserver(observer);
+bool cgss::FramedViewItem::onViewportChange(cgss::ViewportChangeEvent& event) {
+	if (m_bondRectViewport == nullptr) {
+		return true;
+	}
+
+	auto& viewportBox = event.viewportBox;
+	m_bondRectViewport->setValue(viewportBox);
+	return true;
 }
 
-void cgss::FramedView::unsubscribeViewportChange(Observer<ViewportChangeEvent>& observer) {
-	m_proxy->ViewBox::removeObserver(observer);
+void cgss::FramedViewItem::bindRectangleViewport(Rectangle* output) {
+	m_bondRectViewport = output;
 }
 
 void cgss::FramedViewItem::draw(sf::RenderTarget& target) const {
@@ -843,6 +850,10 @@ void cgss::FramedView::drawFast(sf::RenderTarget& target) const {
 
 void cgss::FramedView::sortZ() {
 	m_proxy->sortZ();
+}
+
+void cgss::FramedView::bindRectangleViewport(Rectangle* output) {
+	m_proxy->bindRectangleViewport(output);
 }
 
 void cgss::FramedView::moveOrigin(long ox, long oy) {

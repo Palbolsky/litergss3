@@ -18,7 +18,8 @@ namespace cgss {
 	class FramedViewItem : 
 		public GraphicsStackItem,
 		public View,
-		public ViewBox {
+		public ViewBox,
+		private SubObserver<ViewportChangeEvent> {
 		friend class FramedView;
 
 	private:
@@ -70,7 +71,9 @@ namespace cgss {
 		bool m_active = false;
 		std::optional<long> m_pauseX;
 		std::optional<long> m_pauseY;
+		Rectangle* m_bondRectViewport = nullptr;
 
+		bool onViewportChange(ViewportChangeEvent& event);
 		void updateVerticesBlt(long wt, long ht);
 		void updateVerticesStretch(long wt, long ht);
 		void allocateVerticesBlt(long delta_w, long nb2, long delta_h, long nb4);
@@ -123,6 +126,7 @@ namespace cgss {
 		void setCursorSkin(sf::Texture& texture);
 		void setCursorRectangle(sf::IntRect position);
 
+		void bindRectangleViewport(Rectangle* output);
 		const sf::IntRect& getCursorRectangle() const;
 
 		void stretch(bool stretch);
@@ -214,8 +218,7 @@ namespace cgss {
 			return View::create(*this, m_proxy->m_windowData.eventDispatcher, m_proxy->m_windowData, m_proxy->m_windowData.settings, std::forward<Args>(args)...);
 		}
 
-		void subscribeViewportChange(Observer<ViewportChangeEvent>& observer);
-		void unsubscribeViewportChange(Observer<ViewportChangeEvent>& observer);
+		void bindRectangleViewport(Rectangle* output);
 	private:
 		void onDispose() override { m_proxy->View::drawables().clear(); }
 	};
