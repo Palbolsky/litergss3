@@ -2,7 +2,7 @@
 #include "LoggerDrawables.h"
 #include "Text.h"
 
-SKA_LOGC_CONFIG(ska::LogLevel::Disabled, cgss::TextItem);
+SKA_LOGC_CONFIG(ska::LogLevel::Disabled, cgss::TextItem)
 
 #define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Debug, cgss::TextItem)
 #define LOG_INFO SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Info, cgss::TextItem)

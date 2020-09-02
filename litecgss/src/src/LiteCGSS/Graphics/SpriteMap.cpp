@@ -1,7 +1,7 @@
 #include "SpriteMap.h"
 #include "LoggerDrawables.h"
 
-SKA_LOGC_CONFIG(ska::LogLevel::Error, cgss::SpriteMapItem);
+SKA_LOGC_CONFIG(ska::LogLevel::Error, cgss::SpriteMapItem)
 
 #define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Debug, cgss::SpriteMapItem)
 #define LOG_INFO SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Info, cgss::SpriteMapItem)

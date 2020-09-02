@@ -4,7 +4,7 @@
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
 #include "LoggerViews.h"
 
-SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::ViewportItem);
+SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::ViewportItem)
 
 #define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Debug, cgss::ViewportItem)
 #define LOG_INFO SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info, cgss::ViewportItem)

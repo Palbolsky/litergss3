@@ -2,7 +2,7 @@
 #include "ViewBox.h"
 #include "LoggerViews.h"
 
-SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::ViewBox);
+SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::ViewBox)
 
 #define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Debug, cgss::ViewBox)
 #define LOG_INFO SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info, cgss::ViewBox)
