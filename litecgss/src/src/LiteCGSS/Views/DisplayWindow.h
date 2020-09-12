@@ -75,6 +75,7 @@ namespace cgss {
 		DisplayWindowUserData buildUserData() {
 			return { m_eventDispatcher, m_settings, m_userRenderSprite, m_userRenderTexture };
 		}
+
 		void initUserRender();
 		void initRender();
 		void drawBrightness();
@@ -87,6 +88,10 @@ namespace cgss {
 		DisplayWindowSnapshot m_snapshot;
 		DisplayWindowDrawData m_draw;
 
+		/* The user render sprite and texture belong to the window and are only used by children element on the window.
+			As of today, only viewports use this. The use of render sprite and texture is to be used as the target view of
+			children viewports (when render states, so shaders, are enabled).
+		*/
 		std::unique_ptr<sf::Sprite> m_userRenderSprite = std::make_unique<sf::Sprite>();
 		std::unique_ptr<sf::RenderTexture> m_userRenderTexture = std::make_unique<sf::RenderTexture>();
 	};

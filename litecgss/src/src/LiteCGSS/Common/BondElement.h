@@ -64,6 +64,10 @@ namespace cgss {
 			return m_value != other.m_value;
 		}
 
+		const Value* operator->() const {
+			return &m_value;
+		}
+
 		template <class Function>
 		void edit(Function&& operate) { 
 			std::forward<Function>(operate)(m_value);
