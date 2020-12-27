@@ -4,12 +4,6 @@
 #include "LiteCGSS/Common/Rectangle.h"
 #include "LoggerDrawables.h"
 
-SKA_LOGC_CONFIG(ska::LogLevel::Disabled, cgss::GraphicsStackItem);
-
-#define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Debug, cgss::GraphicsStackItem)
-#define LOG_INFO SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Info, cgss::GraphicsStackItem)
-#define LOG_WARN SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Warn, cgss::GraphicsStackItem)
-
 void cgss::GraphicsStackItem::detach() {
 	if(m_originStack != nullptr) {
 		if (!m_originStack->remove(this)) {
@@ -22,16 +16,11 @@ void cgss::GraphicsStackItem::detach() {
 
 void cgss::GraphicsStackItem::setZ(long z) {
 	if (m_originStack != nullptr) {
-		if (m_originStack->isInsertionZSort()) {		
-			auto next = ZIndex{z, m_priority.index};
-			m_originStack->zSwap(m_priority, next);
-			LOG_DEBUG << "Zswapping to z = " << z;
-		} else {
-			m_originStack->setZDirty();
-		}
+		m_originStack->set(m_priority, z);
+	} else {
+		m_priority.z = z;
 	}
-	m_priority.z = z;
-} 
+}
 
 cgss::GraphicsStackItem::~GraphicsStackItem() {
 	detach();

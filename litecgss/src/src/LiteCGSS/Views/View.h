@@ -25,7 +25,7 @@ namespace cgss {
 
 		auto getStackSize() const { return m_drawables->size(); }
 		void updateContentsOpacity(std::uint8_t opacity) { m_drawables->updateContentsOpacity(opacity); }
-		void sortZ() { m_drawables->sortZ(); }
+		void sortZ() { m_drawables->refreshZ(); }
 
 		template <class ViewImpl, class StackItem, class Drawable>
 		StackItem& add(std::shared_ptr<StackItem> d) {
