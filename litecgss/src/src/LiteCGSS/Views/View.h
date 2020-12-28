@@ -42,7 +42,7 @@ namespace cgss {
 		DrawableStack& drawables() { return *m_drawables; }
 
 		View() : m_drawables(std::make_unique<DrawableStack>()) {}
-		void syncFromRawData(GraphicsContainer data, bool forceDetachAll = true) { m_drawables->syncFromRawData(std::move(data), forceDetachAll); }
+		void syncFromRawData(std::vector<GraphicsStackItemPtr> data, bool forceDetachAll = true) { m_drawables->syncFromRawData(std::move(data), forceDetachAll); }
 
 	private:
 		std::unique_ptr<DrawableStack> m_drawables;

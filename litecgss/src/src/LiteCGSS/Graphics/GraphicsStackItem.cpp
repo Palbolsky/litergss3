@@ -1,8 +1,6 @@
 #include <cstdio>
 #include "GraphicsStackItem.h"
 #include "LiteCGSS/Views/Stack/GraphicsStack.h"
-#include "LiteCGSS/Common/Rectangle.h"
-#include "LoggerDrawables.h"
 
 void cgss::GraphicsStackItem::detach() {
 	if(m_originStack != nullptr) {

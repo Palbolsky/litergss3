@@ -2,19 +2,22 @@
 #define CGSS_GRAPHICS_STACK_ITEM_H
 #include <memory>
 #include "GraphicItem.h"
+#include "GraphicsStackItemPtr.h"
 #include "LiteCGSS/Common/BondElement.h"
 #include "LiteCGSS/Common/Bindable.h"
 #include "LiteCGSS/Views/Stack/MainGraphicsStack.h"
+#include "LiteCGSS/Views/Stack/ZGetter.h"
 #include "ZIndex.h"
 
 namespace cgss {
-	
+
 	class Rectangle;
 
-	class GraphicsStackItem : 
+	class GraphicsStackItem :
 		public Bindable<sf::IntRect>,
 		protected GraphicItem {
-		template <class ZAlgo>
+
+		template <template <class> class ZAlgo>
 		friend class GraphicsStack;
 	private:
 		MainGraphicsStack* m_originStack = nullptr;
@@ -48,6 +51,14 @@ namespace cgss {
 		void setVisible(bool value) { m_visible = value; };
 		bool isVisible() const { return m_visible; };
 	};
+
+	template <>
+	struct ZGetter<GraphicsStackItemPtr> {
+		static const ZIndex& z(const GraphicsStackItemPtr& item) {
+			return item->getZ();
+		}
+	};
+
 
 }
 #endif

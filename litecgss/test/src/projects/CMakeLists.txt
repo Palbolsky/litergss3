@@ -12,6 +12,6 @@ FOREACH(subdir ${SUBDIRS})
 	string(REGEX REPLACE "[^;]*CMakeFiles/[^;]+;?" "" SOURCES "${SOURCES}")
 	add_executable(LiteCGSS_${subdir}_test ${SOURCES} ${SUBDIR_SOURCES})
 
-	set(TARGET_LIBS sfml-graphics sfml-window sfml-system gtest_main)
+	set(TARGET_LIBS sfml-graphics sfml-window sfml-system ${SUBDIR_LIBS} gtest_main)
 	target_link_libraries(LiteCGSS_${subdir}_test PRIVATE ${TARGET_LIBS})
 ENDFOREACH()

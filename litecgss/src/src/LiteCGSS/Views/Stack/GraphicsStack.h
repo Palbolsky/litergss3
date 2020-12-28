@@ -3,14 +3,13 @@
 
 #include <mutex>
 #include <ostream>
-#include "GraphicsContainer.h"
 #include "LiteCGSS/Graphics/GraphicsStackItemPtr.h"
 #include "LiteCGSS/Graphics/GraphicsStackItem.h"
 #include "LiteCGSS/Graphics/ZIndex.h"
 
 namespace cgss {
 
-	template <class ZAlgorithmStrategy>
+	template <template <class> class ZAlgorithmStrategy>
 	class GraphicsStack {
 	public:
 		GraphicsStack() = default;
@@ -39,10 +38,10 @@ namespace cgss {
 
 		auto begin() const { return m_stack.begin(); }
 		auto end() const { return m_stack.end(); }
-		
-		void syncFromRawData(GraphicsContainer data, bool forceDetachAll = true) {
+
+		void syncFromRawData(std::vector<GraphicsStackItemPtr> data, bool forceDetachAll = true) {
 			if (forceDetachAll) {
-				for(auto& it : m_stack) {
+				for (auto& it : m_stack) {
 					it->m_originStack = nullptr;
 				}
 			}
@@ -56,39 +55,36 @@ namespace cgss {
 		void add(GraphicsStackItemPtr item) {
 			item->m_originStack = this;
 			item->m_priority.index = queryNextIndex();
-			m_zSorter.add(std::move(item));
+			m_stack.add(std::move(item));
 		}
 
 		void set(ZIndex& item, long z) {
-			m_zSorter.set(item, z);
+			m_stack.set(item, z);
 		}
 
 		void refreshZ() {
-			m_zSorter.refresh();
+			m_stack.refresh();
 		}
 
 		bool remove(const GraphicsStackItem* item) {
-			return m_zSorter.remove(item);
+			return m_stack.remove(item->getZ(), [item](const GraphicsStackItemPtr& el) {
+				return item == el.get();
+			});
 		}
 
 	private:
-		template <class ZAlgo>
+		template <template <class> class ZAlgo>
 		friend std::ostream& operator<<(std::ostream& os, const GraphicsStack<ZAlgo>& dt);
 
 		std::int32_t queryNextIndex() {
 			return m_zIndexCounter++;
 		}
 
-		GraphicsContainer m_stack;
-		ZAlgorithmStrategy m_zSorter = ZAlgorithmStrategy { m_stack };
-
-		int32_t m_zIndexCounter = 0;		
-		mutable std::mutex m_mutexDetached;
-		mutable GraphicsContainer m_detached;
-		bool m_insertionZSort = false;
+		ZAlgorithmStrategy<GraphicsStackItemPtr> m_stack;
+		int32_t m_zIndexCounter = 0;
 	};
 
-	template<class ZAlgorithmStrategy>
+	template<template <class> class ZAlgorithmStrategy>
 	std::ostream& operator<<(std::ostream& os, const cgss::GraphicsStack<ZAlgorithmStrategy>& dt) {
 		os << static_cast<const void*>(&dt) << "\t";
 		for (const auto& element : dt) {
