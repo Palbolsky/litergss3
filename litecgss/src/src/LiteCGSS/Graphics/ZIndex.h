@@ -5,8 +5,12 @@
 
 namespace cgss {
 	struct ZIndex {
-		long z = 0;
-		long index = 0;
+		ZIndex() : z(0) {}
+		ZIndex(long z) : z(z), index(0) {}
+		ZIndex(long z, long index) : z(z), index(index) {}
+
+		long z;
+		long index;
 
 		inline int sign() const {
 			if (z != 0) {

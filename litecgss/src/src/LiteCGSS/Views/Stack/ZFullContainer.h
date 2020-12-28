@@ -11,6 +11,7 @@ namespace cgss {
 		public ZBaseContainer<ZIndexedElement> {
 		using ZGet = ZGetter<ZIndexedElement>;
 	public:
+		using ZBaseContainer<ZIndexedElement>::ZBaseContainer;
 		ZFullContainer& operator=(std::vector<ZIndexedElement>&& value) {
 			this->m_stack = std::move(value);
 			return *this;

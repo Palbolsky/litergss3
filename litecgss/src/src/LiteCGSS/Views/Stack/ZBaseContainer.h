@@ -21,16 +21,27 @@ namespace cgss {
 
 	public:
 		ZBaseContainer() = default;
+		ZBaseContainer(std::vector<ZIndexedElement> stack) :
+			m_stack(std::move(stack)) {
+		}
 		virtual ~ZBaseContainer() = default;
 
 		std::size_t size() const { return m_stack.size(); }
 
 		const auto& operator[](std::size_t index) const {
-			return *m_stack[index];
+			return m_stack[index];
 		}
 
 		auto& operator[](std::size_t index) {
-			return *m_stack[index];
+			return m_stack[index];
+		}
+
+		bool operator==(const std::vector<ZIndexedElement>& vec) const {
+			return m_stack == vec;
+		}
+
+		bool operator!=(const std::vector<ZIndexedElement>& vec) const {
+			return m_stack != vec;
 		}
 
 		auto begin() const { return m_stack.begin(); }

@@ -1,64 +1,48 @@
 #include <gtest/gtest.h>
 
-#include "Views/Stack/ZBaseContainer.h"
+#include "Views/Stack/ZFullContainer.h"
 
-TEST(ZContainerGroup, DefaultZIndex) {
-	/*auto stack = cgss::GraphicsContainer {};
-	auto sprite = DrawableTest::create(stack);
-	CHECK(sprite.getZ().z == 0);
-	CHECK(sprite.getZ().index == 0);
+namespace cgss {
+	template<>
+	struct ZGetter<ZIndex> {
+		static const ZIndex& z(const ZIndex& itm) {
+			return itm;
+		}
+	};
+}
 
-	auto sprite2 = DrawableTest::create(stack);
-	CHECK(sprite2.getZ().z == 0);
-	CHECK(sprite2.getZ().index == 1);*/
+TEST(ZFullContainerGroup, InternalRandomMovements) {
+	auto stack = cgss::ZFullContainer<cgss::ZIndex> { { 0, 0, 1, 1, 2, 3, 3, 4, 5, 6, 18, 20, 30} };
+
+	stack.set(stack[6], 2);
+	stack.refresh();
+	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 0, 0, 1, 1, 2, 2, 3, 4, 5, 6, 18, 20, 30}));
+	stack.set(stack[6], 3);
+	stack.refresh();
+	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 0, 0, 1, 1, 2, 2, 3, 4, 5, 6, 18, 20, 30}));
+	stack.set(stack[6], 7);
+	stack.refresh();
+	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 0, 0, 1, 1, 2, 2, 4, 5, 6, 7, 18, 20, 30}));
+	stack.set(stack[6], 12);
+	stack.refresh();
+	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 0, 0, 1, 1, 2, 2, 5, 6, 7, 12, 18, 20, 30}));
+	stack.set(stack[6], 0);
+	stack.refresh();
+	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 0, 0, 0, 1, 1, 2, 2, 6, 7, 12, 18, 20, 30}));
+}
+
+TEST(ZFullContainerGroup, Bounds) {
+	auto stack = cgss::ZFullContainer<cgss::ZIndex> { { 0, 0, 1, 1, 2, 3, 3, 4, 5, 6, 18, 20, 30} };
+	stack.set(stack[6], -123);
+	stack.refresh();
+	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { -123, 0, 0, 1, 1, 2, 3, 4, 5, 6, 18, 20, 30}));
+
+	stack.set(stack[6], 99999);
+	stack.refresh();
+	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { -123, 0, 0, 1, 1, 2, 4, 5, 6, 18, 20, 30, 99999}));
 }
 
 /*
-TEST_CASE("[DrawableStack] z sorting") {
-	auto stack = cgss::DrawableStack{};
-	auto zindexStack = std::vector<long> { 0, 0, 1, 1, 2, 3, 3, 4, 5, 6, 18, 20, 30 };
-	auto container = std::vector<DrawableTest>{};
-	std::size_t index = 0;
-	for (const auto& zindex : zindexStack) {
-		(void)zindex;
-		auto drawable = DrawableTest::create(stack);
-		drawable.setZ(zindexStack[index]);
-		drawable.setId(index);
-		container.push_back(std::move(drawable));
-		index++;
-	}
-	stack.sortZ();
-	SUBCASE("Internal 'random' movements") {
-		container[6].setZ(2);
-		stack.sortZ();
-		CHECK(container[6].getZ() == stack[5].getZ());
-		container[6].setZ(3);
-		stack.sortZ();
-		CHECK(container[6].getZ() == stack[6].getZ());
-		container[6].setZ(7);
-		stack.sortZ();
-		CHECK(container[6].getZ() == stack[9].getZ());
-		container[6].setZ(12);
-		stack.sortZ();
-		CHECK(container[6].getZ() == stack[9].getZ());
-		container[6].setZ(0);
-		stack.sortZ();
-		CHECK(container[6].getZ() == stack[2].getZ());
-	}
-
-	SUBCASE("Bound testing") {
-		container[6].setZ(-123);
-		stack.sortZ();
-		std::cout << PrintStack(stack);
-		CHECK(container[6].getZ() == stack[0].getZ());
-
-		container[6].setZ(99999);
-		stack.sortZ();
-		std::cout << PrintStack(stack);
-		CHECK(reinterpret_cast<const DrawableStackItemTest&>(stack[12]).id == 6);
-		CHECK(container[6].getZ().z == stack[12].getZ().z);
-	}
-
 	SUBCASE("Exact value testing") {
 		container[6].setZ(5);
 		stack.sortZ();
