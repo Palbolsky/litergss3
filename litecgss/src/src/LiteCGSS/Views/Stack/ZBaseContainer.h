@@ -53,8 +53,8 @@ namespace cgss {
 				return 0;
 			}
 
+			const auto diff = (value - ZGet::z(m_stack[index])).sign();
 			if (index == 1) {
-				const auto diff = (value - ZGet::z(m_stack[index])).sign();
 				SKA_LOGC_STATIC(cgss::GetLoggerStack(), ska::LogLevel::Debug, cgss::ZContainerLog) << "\tAdapting index " << index << " with diff = " << diff << " for value z = " << value.z << ", " << value.index;
 				if (diff == -1) {
 					return (value - ZGet::z(m_stack[0])).sign() <= 0 ? 0 : 1;
@@ -62,7 +62,6 @@ namespace cgss {
 				return diff + index;
 			}
 
-			const auto diff = (value - ZGet::z(m_stack[index])).sign();
 			const auto finalIndex = index + (diff <= 0 ? 0 : 1);
 			SKA_LOGC_STATIC(cgss::GetLoggerStack(), ska::LogLevel::Debug, cgss::ZContainerLog) << "\tAdapting index " << index << " to index = " << finalIndex << " for value z = " << value.z << ", " << value.index;
 			return finalIndex;
@@ -85,6 +84,9 @@ namespace cgss {
 			m_stack.erase(m_stack.begin() + index);
 			return true;
 		}
+
+		template<class ZIndexedEl>
+		friend std::ostream& operator<<(std::ostream& os, const ZBaseContainer<ZIndexedEl>& dt);
 
 	private:
 		std::size_t dichotomicFindFirstGreater(const ZIndex& value) const {
@@ -113,6 +115,17 @@ namespace cgss {
 		}
 
 	};
+
+	template<class ZIndexedElement>
+	std::ostream& operator<<(std::ostream& os, const ZBaseContainer<ZIndexedElement>& stack) {
+		os << static_cast<const void*>(&stack) << "\t";
+		for (const auto& element : stack.m_stack) {
+			const auto elementZ = ZGetter<ZIndexedElement>::z(element);
+			os << "[" << elementZ.z  << ", " << elementZ.index << "]";
+		}
+		return os;
+	}
+
 }
 
 #endif

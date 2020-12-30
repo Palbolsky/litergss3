@@ -1,6 +1,7 @@
 #ifndef CGSS_Z_INSERTION_CONTAINER_H
 #define CGSS_Z_INSERTION_CONTAINER_H
 
+#include <utility>
 #include "ZBaseContainer.h"
 
 namespace cgss {
@@ -17,7 +18,7 @@ namespace cgss {
 
 		void add(ZIndexedElement item) {
 			const auto itemZ = ZGet::z(item);
-			const auto position = findFirstGreater(itemZ);
+			const auto position = this->findFirstGreater(itemZ);
 
 			SKA_LOGC_STATIC(cgss::GetLoggerStack(), ska::LogLevel::Info, cgss::ZContainerLog) <<
 				"Adding element to stack " << static_cast<void*>(this) << " with z-index = " <<
@@ -30,16 +31,16 @@ namespace cgss {
 			}
 		}
 
-		void set(ZIndex& item, long z) {
-			auto next = ZIndex{z, item.index};
-			zSwap(item, next);
+		void set(ZIndex& itemZ, long z) {
+			auto nextZ = ZIndex{z, itemZ.index};
+			const auto [originalIndex, finalIndex] = zSwap(itemZ, nextZ);
 			SKA_LOGC_STATIC(cgss::GetLoggerStack(), ska::LogLevel::Debug, cgss::ZContainerLog) << "Zswapping to z = " << z;
-			item.z = z;
+			ZGet::setZ(this->m_stack[finalIndex], z);
 		}
 
 		template <class ZPredicate>
 		bool remove(const ZIndex& itemZ, ZPredicate&& predicate) {
-			return ZBaseContainer<ZIndexedElement>::remove(itemZ, std::forward<Predicate>(predicate));
+			return ZBaseContainer<ZIndexedElement>::remove(itemZ, std::forward<ZPredicate>(predicate));
 		}
 
 		void refresh() { }
@@ -65,8 +66,8 @@ namespace cgss {
 			this->m_stack[end] = std::move(first);
 		}
 
-		void zSwap(const ZIndex& previous, const ZIndex& next) {
-			std::size_t range[2] = { findFirstGreater(previous), findFirstGreater(next) };
+		std::pair<size_t, size_t> zSwap(const ZIndex& previous, const ZIndex& next) {
+			std::size_t range[2] = { this->findFirstGreater(previous), this->findFirstGreater(next) };
 
 			const auto diff = static_cast<long>(range[1] - range[0]);
 			if (diff > 0) {
@@ -79,6 +80,7 @@ namespace cgss {
 			SKA_LOGC_STATIC(cgss::GetLoggerStack(), ska::LogLevel::Debug, cgss::ZContainerLog)
 			<< "Stack item zswaping, previous = " << previous.z << ", " << previous.index << " found at index = " << range[0]
 			<< " next = " << next.z << ", " << next.index << " found at index = " << range[1];
+			return std::make_pair(range[0], range[1]);
 		}
 	};
 }

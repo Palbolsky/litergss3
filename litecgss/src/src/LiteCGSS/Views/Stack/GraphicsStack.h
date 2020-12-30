@@ -86,11 +86,7 @@ namespace cgss {
 
 	template<template <class> class ZAlgorithmStrategy>
 	std::ostream& operator<<(std::ostream& os, const cgss::GraphicsStack<ZAlgorithmStrategy>& dt) {
-		os << static_cast<const void*>(&dt) << "\t";
-		for (const auto& element : dt) {
-			os << "[" << element->getZ().z  << ", " << element->getZ().index << "]";
-		}
-		os << std::endl;
+		os << dt.m_stack;
 		return os;
 	}
 

@@ -57,6 +57,10 @@ namespace cgss {
 		static const ZIndex& z(const GraphicsStackItemPtr& item) {
 			return item->getZ();
 		}
+
+		static void setZ(GraphicsStackItemPtr& item, long z) {
+			return item->setZ(z);
+		}
 	};
 
 
