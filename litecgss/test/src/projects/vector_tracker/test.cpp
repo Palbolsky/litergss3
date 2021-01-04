@@ -40,4 +40,10 @@ TEST(VectorTrackerGroup, RemoveIf) {
 		return true;
 	});
 	EXPECT_EQ(container.size(), 0);
+	container.push_back({});
+	EXPECT_EQ(container.size(), 1);
+	container.remove_if([] (const VectorTrackerElementTest&) {
+		return false;
+	});
+	EXPECT_EQ(container.size(), 1);
 }
