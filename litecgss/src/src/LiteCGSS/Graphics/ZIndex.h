@@ -1,11 +1,12 @@
 #ifndef CGSS_ZINDEX_H
 #define CGSS_ZINDEX_H
 
+#include <sstream>
 #include <vector>
 
 namespace cgss {
 	struct ZIndex {
-		ZIndex() : z(0) {}
+		ZIndex() : z(0), index(0) {}
 		ZIndex(long z) : z(z), index(0) {}
 		ZIndex(long z, long index) : z(z), index(index) {}
 
@@ -56,6 +57,13 @@ namespace cgss {
 		inline bool operator>=(const ZIndex& alter) const {
 			return !operator<(alter);
 		}
+
+		friend std::ostream& operator<<(std::ostream& os, const ZIndex& element);
 	};
+
+	inline std::ostream& operator<<(std::ostream& os, const ZIndex& element) {
+		os << "[" << element.z << ", " << element.index << "]";
+		return os;
+	}
 }
 #endif

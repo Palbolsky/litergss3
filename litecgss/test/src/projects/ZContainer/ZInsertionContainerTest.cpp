@@ -15,17 +15,56 @@ namespace cgss {
 	};
 }
 
+TEST(ZInsertionContainerGroup, Init) {
+	auto stack = cgss::ZInsertionContainer<cgss::ZIndex> { { 0, 0, 1, 1, 2, 3, 3, 4, 5, 6, 18, 20, 30} };
+	EXPECT_EQ(stack.size(), 13);
+	EXPECT_EQ(stack[0], (cgss::ZIndex { 0, 0 }));
+	EXPECT_EQ(stack[1], (cgss::ZIndex { 0, 0 }));
+	EXPECT_EQ(stack[2], (cgss::ZIndex { 1, 0 }));
+	EXPECT_EQ(stack[3], (cgss::ZIndex { 1, 0 }));
+	EXPECT_EQ(stack[4], (cgss::ZIndex { 2, 0 }));
+	EXPECT_EQ(stack[5], (cgss::ZIndex { 3, 0 }));
+	EXPECT_EQ(stack[6], (cgss::ZIndex { 3, 0 }));
+	EXPECT_EQ(stack[7], (cgss::ZIndex { 4, 0 }));
+	EXPECT_EQ(stack[8], (cgss::ZIndex { 5, 0 }));
+	EXPECT_EQ(stack[9], (cgss::ZIndex { 6, 0 }));
+	EXPECT_EQ(stack[10], (cgss::ZIndex { 18, 0 }));
+	EXPECT_EQ(stack[11], (cgss::ZIndex { 20, 0 }));
+	EXPECT_EQ(stack[12], (cgss::ZIndex { 30, 0 }));
+}
+
+TEST(ZInsertionContainerGroup, NoUpdate) {
+	auto stack = cgss::ZInsertionContainer<cgss::ZIndex> { std::vector<cgss::ZIndex> { 0, 0, 1, 1, 2, 3, 3, 4, 5, 6, 18, 20, 30} };
+	
+	// Direct ZIndex access => no update supported, be careful !
+	stack[6].z = -123;
+
+	// So, still the same order as initial, but with a modified value
+	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 0, 0, 1, 1, 2, 3, -123, 4, 5, 6, 18, 20, 30}));
+}
+
+TEST(ZInsertionContainerGroup, Update) {
+	auto stack = cgss::ZInsertionContainer<cgss::ZIndex> { std::vector<cgss::ZIndex> { 0, 0, 1, 1, 2, 3, 3, 4, 5, 6, 18, 20, 30} };
+	
+	stack.set(stack[6], 0);
+	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 0, 0, 0, 1, 1, 2, 3, 4, 5, 6, 18, 20, 30}));
+}
+
 TEST(ZInsertionContainerGroup, InternalRandomMovements) {
 	auto stack = cgss::ZInsertionContainer<cgss::ZIndex> { { 0, 0, 1, 1, 2, 3, 3, 4, 5, 6, 18, 20, 30} };
 
 	stack.set(stack[6], 2);
 	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 0, 0, 1, 1, 2, 2, 3, 4, 5, 6, 18, 20, 30}));
+
 	stack.set(stack[6], 3);
 	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 0, 0, 1, 1, 2, 2, 3, 4, 5, 6, 18, 20, 30}));
+
 	stack.set(stack[6], 7);
 	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 0, 0, 1, 1, 2, 2, 4, 5, 6, 7, 18, 20, 30}));
+
 	stack.set(stack[6], 12);
 	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 0, 0, 1, 1, 2, 2, 5, 6, 7, 12, 18, 20, 30}));
+
 	stack.set(stack[6], 0);
 	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 0, 0, 0, 1, 1, 2, 2, 6, 7, 12, 18, 20, 30}));
 }
@@ -39,144 +78,37 @@ TEST(ZInsertionContainerGroup, Bounds) {
 	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { -123, 0, 0, 1, 1, 2, 4, 5, 6, 18, 20, 30, 99999}));
 }
 
-/*
-	SUBCASE("Exact value testing") {
-		container[6].setZ(5);
-		stack.sortZ();
-		CHECK(container[6].getZ() == stack[7].getZ());
-	}
+TEST(ZInsertionContainerGroup, ExactExistingValue) {
+	auto stack = cgss::ZInsertionContainer<cgss::ZIndex> { { 0, 0, 1, 1, 2, 3, 3, 4, 5, 6, 18, 20, 30} };
+	stack.set(stack[6], 5);
+	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 0, 0, 1, 1, 2, 3, 4, 5, 5, 6, 18, 20, 30}));
 
-	SUBCASE("Push a new value") {
-		container[6].setZ(5);
-		auto drawable = DrawableTest::create(stack);
-		stack.sortZ();
-		CHECK(drawable.getZ() == stack[2].getZ());
-	}
+	// stack[6] has been moved to position 8
+	EXPECT_EQ(stack[7], (cgss::ZIndex{5, 0}));
+
+	// No index change
+	EXPECT_EQ(stack[8], (cgss::ZIndex{5, 0}));
 }
 
+TEST(ZInsertionContainerGroup, AddFromEmpty) {
+	auto stack = cgss::ZInsertionContainer<cgss::ZIndex> { };
+	EXPECT_EQ(stack.size(), 0);
+	stack.add(cgss::ZIndex { 10, 0 });
+	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 10 }));
 
-TEST_CASE("[DrawableStack] adding elements (starting by high value = 2000)") {
-	auto stack = cgss::DrawableStack{};
-	auto zindexStack = std::vector<long> { 2000, 1 };
-	
-	std::size_t index = 0;
-	for (const auto& zindex : zindexStack) {
-		(void)zindex;
-		auto drawable = DrawableTest::create(stack);
-		drawable.setId(index);
-		drawable.setZ(zindexStack[index]);
-		index++;
-	}
-	stack.sortZ();
-	CHECK(stack[0].getZ() == cgss::ZIndex{ 1, 1 });
-	CHECK(stack[1].getZ() == cgss::ZIndex{ 2000, 0 });
+	stack.add(cgss::ZIndex { 0, 0 });
+	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 0, 10 }));
+
+	stack.add(cgss::ZIndex { 10, 1 });
+	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 0, {10, 0}, {10, 1} }));
+
+	stack.add(cgss::ZIndex { 5, 0 });
+	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 0, 5, {10, 0}, {10, 1} }));
 }
 
-TEST_CASE("[DrawableStack] adding elements (starting by low value = 1)") {
-	auto stack = cgss::DrawableStack{};
-	auto zindexStack = std::vector<long> { 1, 2000 };
-	
-	std::size_t index = 0;
-	for (const auto& zindex : zindexStack) {
-		(void)zindex;
-		auto drawable = DrawableTest::create(stack);
-		drawable.setId(index);
-		drawable.setZ(zindexStack[index]);
-		index++;
-	}
-	std::cout << PrintStack(stack);
-	CHECK(stack[0].getZ() == cgss::ZIndex{ 1, 0 });
-	CHECK(stack[1].getZ() == cgss::ZIndex{ 2000, 1 });
+TEST(ZInsertionContainerGroup, Remove) {
+	auto stack = cgss::ZInsertionContainer<cgss::ZIndex> { { 0, 0, 1, 1, 2, 3, 3, 4, 5, 6, 18, 20, 30} };
+	stack.remove(cgss::ZIndex{ 0 }, [](const cgss::ZIndex& index) {
+		return true;
+	});
 }
-
-TEST_CASE("[DrawableStack] adding elements (starting by high value = 2000 then 0)") {
-	auto stack = cgss::DrawableStack{};
-	auto zindexStack = std::vector<long> { 2000, 0 };
-	
-	std::size_t index = 0;
-	for (const auto& zindex : zindexStack) {
-		(void)zindex;
-		auto drawable = DrawableTest::create(stack);
-		drawable.setId(index);
-		drawable.setZ(zindexStack[index]);
-		std::cout << PrintStack(stack);
-		index++;
-	}
-	stack.sortZ();
-	CHECK(stack[0].getZ() == cgss::ZIndex{ 0, 1 });
-	CHECK(stack[1].getZ() == cgss::ZIndex{ 2000, 0 });
-}
-
-TEST_CASE("[DrawableStack] adding elements (starting by default value = 0)") {
-	auto stack = cgss::DrawableStack{};
-	auto zindexStack = std::vector<long> { 0, 2000 };
-	
-	std::size_t index = 0;
-	for (const auto& zindex : zindexStack) {
-		(void)zindex;
-		auto drawable = DrawableTest::create(stack);
-		drawable.setId(index);
-		drawable.setZ(zindexStack[index]);
-		index++;
-	}
-	stack.sortZ();
-	CHECK(stack[0].getZ() == cgss::ZIndex{ 0, 0 });
-	CHECK(stack[1].getZ() == cgss::ZIndex{ 2000, 1 });
-}
-
-TEST_CASE("[DrawableStack] adding elements (only default value = 0)") {
-	auto stack = cgss::DrawableStack{};
-	DrawableTest::create(stack);
-	DrawableTest::create(stack);
-	DrawableTest::create(stack);
-
-	stack.sortZ();
-
-	std::cout << PrintStack(stack);
-
-	CHECK(stack[0].getZ() == cgss::ZIndex{ 0, 0 });
-	CHECK(stack[1].getZ() == cgss::ZIndex{ 0, 1 });
-	CHECK(stack[2].getZ() == cgss::ZIndex{ 0, 2 });
-}
-
-
-TEST_CASE("[DrawableStack] adding elements with default value then set it with different z") {
-	auto stack = cgss::DrawableStack{};
-	auto container = std::vector<DrawableTest>{};
-	auto zindexStack = std::vector<long> { 2000, 0, 1, 0 };
-	for (const auto& zindex : zindexStack) {
-		(void)zindex;
-		container.push_back(DrawableTest::create(stack));
-	}
-
-	std::size_t index = 0;
-	for (auto& drawable : container) {
-		drawable.setZ(zindexStack[index]);
-		std::cout << PrintStack(stack);
-		index++;
-	}
-	stack.sortZ();
-
-	CHECK(stack[0].getZ() == cgss::ZIndex{ 0, 1 });
-	CHECK(stack[1].getZ() == cgss::ZIndex{ 0, 3 });
-	CHECK(stack[2].getZ() == cgss::ZIndex{ 1, 2 });
-	CHECK(stack[3].getZ() == cgss::ZIndex{ 2000, 0 });
-}
-
-TEST_CASE("[DrawableStack] remove elements") {
-	auto stack = cgss::DrawableStack{};
-	auto zindexStack = std::vector<long> { 2000, 0, 0, 1, 0 };
-	
-	std::size_t index = 0;
-	for (const auto& zindex : zindexStack) {
-		(void)zindex;
-		auto drawable = DrawableTest::create(stack);
-		drawable.setId(index);
-		drawable.setZ(zindexStack[index]);
-		std::cout << PrintStack(stack);
-		index++;
-	}
-
-	//stack[0].detach();
-}
-*/
