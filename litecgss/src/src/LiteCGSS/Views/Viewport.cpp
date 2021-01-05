@@ -19,15 +19,15 @@ cgss::ViewportItem::ViewportItem(Viewport*, MainEventDispatcher& eventDispatcher
 }
 
 const cgss::RenderStatesData* cgss::ViewportItem::getRenderStates() const {
-	if (ShaderRenderable::directAccess() != nullptr) {
-		return ShaderRenderable::directAccess();
+	if (ShaderRenderable::getValue() != nullptr) {
+		return ShaderRenderable::getValue();
 	}
 	return m_defaultRenderStates == nullptr ? nullptr : &m_defaultRenderStates->data();
 }
 
 cgss::RenderStatesData* cgss::ViewportItem::getRenderStates() {
-	if (ShaderRenderable::directAccess() != nullptr) {
-		return ShaderRenderable::directAccess();
+	if (ShaderRenderable::getValue() != nullptr) {
+		return ShaderRenderable::getValue();
 	}
 	return m_defaultRenderStates == nullptr ? nullptr : &m_defaultRenderStates->data();
 }

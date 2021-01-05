@@ -25,7 +25,7 @@ namespace cgss {
 		static bool areShadersEnabled();
 		static bool areGeometryShadersEnabled();
 
-		RenderStatesData& data() { return directAccess(); }
+		RenderStatesData& data() { return getValue(); }
 	};
 
 	namespace meta {
