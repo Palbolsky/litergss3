@@ -108,7 +108,7 @@ TEST(ZInsertionContainerGroup, AddFromEmpty) {
 
 TEST(ZInsertionContainerGroup, Remove) {
 	auto stack = cgss::ZInsertionContainer<cgss::ZIndex> { { 0, 0, 1, 1, 2, 3, 3, 4, 5, 6, 18, 20, 30} };
-	stack.remove(cgss::ZIndex{ 0 }, [](const cgss::ZIndex& index) {
+	stack.removeOne(cgss::ZIndex{ 0 }, [](const cgss::ZIndex& index) {
 		return true;
 	});
 }

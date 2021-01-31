@@ -68,7 +68,7 @@ namespace cgss {
 		}
 
 		template<class ZPredicate>
-		bool remove(const ZIndex& itemZ, ZPredicate predicate) {
+		bool removeOne(const ZIndex& itemZ, ZPredicate predicate) {
 			const auto index = findFirstGreater(itemZ);
 
 			const auto foundExactValue = predicate(m_stack[index]);

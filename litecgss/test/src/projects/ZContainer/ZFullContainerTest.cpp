@@ -32,3 +32,48 @@ TEST(ZFullContainerGroup, RefreshTrigger) {
 	stack.refresh();
 	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 0, 0, 1, 1, 2, 2, 0, 4, 5, 6, 18, 20, 30}));
 }
+
+TEST(ZFullContainerGroup, Remove) {
+	const auto init = std::vector<cgss::ZIndex> { 0, 0, 1, 1, 2, 3, 3, 4, 5, 6, 18, 20, 30};
+	auto stack = cgss::ZFullContainer<cgss::ZIndex> { init };
+
+	stack.removeOne(cgss::ZIndex { 3 }, [](const cgss::ZIndex& index) {
+		return true;
+	});
+
+	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 0, 0, 1, 1, 2, 3, 4, 5, 6, 18, 20, 30}));
+}
+
+TEST(ZFullContainerGroup, RemoveUnsorted) {
+	const auto init = std::vector<cgss::ZIndex> { 0, 0, 1, 1, 2, 3, 3, 4, 5, 6, 18, 20, 30};
+	auto stack = cgss::ZFullContainer<cgss::ZIndex> { init };
+
+	// Sets the dirty flag
+	stack.set(stack[6], 2);
+
+	// No refresh required after a remove, because : 1 - it's automatically done before, 2 - a remove does not change the order
+	// (the remove operation is performed through binary lookup which require the container to be sorted)
+	stack.removeOne(cgss::ZIndex { 3 }, [](const cgss::ZIndex& index) {
+		return true;
+	});
+
+	// No refresh required after a remove, because : 1 - it's automatically done before, 2 - a remove does not change the order
+	// (the remove operation is performed through binary lookup which require the container to be sorted)
+	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 0, 0, 1, 1, 2, 2, 4, 5, 6, 18, 20, 30}));
+}
+
+TEST(ZFullContainerGroup, Add) {
+	const auto init = std::vector<cgss::ZIndex> { 0, 0, 1, 1, 2, 3, 3, 4, 5, 6, 18, 20, 30};
+	auto stack = cgss::ZFullContainer<cgss::ZIndex> { init };
+
+	// Sets the dirty flag
+	stack.add(cgss::ZIndex { 7 });
+
+	// Not sorted
+	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 0, 0, 1, 1, 2, 3, 3, 4, 5, 6, 18, 20, 30, 7}));
+
+	stack.refresh();
+
+	// Sorted
+	EXPECT_TRUE((stack == std::vector<cgss::ZIndex> { 0, 0, 1, 1, 2, 3, 3, 4, 5, 6, 7, 18, 20, 30}));
+}

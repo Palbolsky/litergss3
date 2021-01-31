@@ -28,9 +28,9 @@ namespace cgss {
 		}
 
 		template<class ZPredicate>
-		bool remove(const ZIndex& itemZ, ZPredicate&& predicate = {}) {
+		bool removeOne(const ZIndex& itemZ, ZPredicate&& predicate = {}) {
 			sortZ();
-			return cgss::ZBaseContainer<ZIndexedElement>::remove(itemZ, std::forward<ZPredicate>(predicate));
+			return cgss::ZBaseContainer<ZIndexedElement>::removeOne(itemZ, std::forward<ZPredicate>(predicate));
 		}
 
 		void refresh() {

@@ -67,7 +67,7 @@ namespace cgss {
 		}
 
 		bool remove(const GraphicsStackItem* item) {
-			return m_stack.remove(item->getZ(), [item](const GraphicsStackItemPtr& el) {
+			return m_stack.removeOne(item->getZ(), [item](const GraphicsStackItemPtr& el) {
 				return item == el.get();
 			});
 		}
