@@ -42,55 +42,55 @@ compile:linux:clang:
       - lib/
     expire_in: 1 day
 
-compile:windows:msvc:
-  stage: compile
-  tags:
-    - windows
-  before_script:
-    - Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
-    - choco install git --force --params "/GitAndUnixToolsOnPath" -y
-    - choco install 7zip -y
-    - choco install cmake.install --installargs 'ADD_CMAKE_TO_PATH=System' -y
-    - gem install rake-compiler
-    - refreshenv
-    - rake "configure[msvc]"
-    - rake clean
-  script:
-    - rake compile
-  artifacts:
-    name: "LiteCGSS-win-msvc-$CI_COMMIT_REF_NAME"
-    paths:
-      - bin/
-      - lib/
-    expire_in: 1 day
+# compile:windows:msvc:
+#   stage: compile
+#   tags:
+#     - windows
+#   before_script:
+#     - Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
+#     - choco install git --force --params "/GitAndUnixToolsOnPath" -y
+#     - choco install 7zip -y
+#     - choco install cmake.install --installargs 'ADD_CMAKE_TO_PATH=System' -y
+#     - gem install rake-compiler
+#     - refreshenv
+#     - rake "configure[msvc]"
+#     - rake clean
+#   script:
+#     - rake compile
+#   artifacts:
+#     name: "LiteCGSS-win-msvc-$CI_COMMIT_REF_NAME"
+#     paths:
+#       - bin/
+#       - lib/
+#     expire_in: 1 day
 
-compile:windows:mingw:
-  stage: compile
-  tags:
-    - windows
-  before_script:
-    - Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
-    - choco install 7zip -y
-    - choco install cmake.install --installargs 'ADD_CMAKE_TO_PATH=System' -y
-    - gem install rake-compiler
-    - refreshenv
-    - $env:Path = (Get-Item .).FullName + "\generated\rubyinstaller-2.6.6-1-x86\bin;" + $env:Path
-    - powershell.exe -File "build/export_env.ps1"
-    - rake configure
-  script:
-    - rake clean
-    - rake compile
-  artifacts:
-    name: "LiteCGSS-win-mingw-$CI_COMMIT_REF_NAME"
-    paths:
-      - bin/
-      - lib/
-    expire_in: 1 day
-  cache:
-    key: compile_windows_mingw
-    paths:
-      - generated/
-      - external/sfml
+# compile:windows:mingw:
+#   stage: compile
+#   tags:
+#     - windows
+#   before_script:
+#     - Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
+#     - choco install 7zip -y
+#     - choco install cmake.install --installargs 'ADD_CMAKE_TO_PATH=System' -y
+#     - gem install rake-compiler
+#     - refreshenv
+#     - $env:Path = (Get-Item .).FullName + "\generated\rubyinstaller-2.6.6-1-x86\bin;" + $env:Path
+#     - powershell.exe -File "build/export_env.ps1"
+#     - rake configure
+#   script:
+#     - rake clean
+#     - rake compile
+#   artifacts:
+#     name: "LiteCGSS-win-mingw-$CI_COMMIT_REF_NAME"
+#     paths:
+#       - bin/
+#       - lib/
+#     expire_in: 1 day
+#   cache:
+#     key: compile_windows_mingw
+#     paths:
+#       - generated/
+#      - external/sfml
 
 test:
   stage: test
