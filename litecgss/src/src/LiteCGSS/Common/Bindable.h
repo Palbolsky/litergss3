@@ -23,6 +23,7 @@ namespace cgss {
 		Bindable& operator=(Bindable&& bindableElement) {            
 			bindValue(bindableElement.m_target);
 			bindableElement.m_target = nullptr;
+			return *this;
 		}
 
 		virtual ~Bindable() {
