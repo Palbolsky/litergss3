@@ -5,7 +5,7 @@
 
 struct BondTest :
 	public cgss::BondElement<int> {
-	int& getValue() { return cgss::BondElement<int>::getValue(); }
+	int& getValue() { return cgss::BondElement<int>::value(); }
 	const int& getValue() const { return cgss::BondElement<int>::getValue(); }
 };
 
@@ -13,14 +13,14 @@ struct BindableTestBasic :
 	public cgss::Bindable<int> {
 	void updateFromValue(const int*) override {}
 	const int* getValue() const { return cgss::Bindable<int>::getValue(); }
-	int* getValue() { return cgss::Bindable<int>::getValue(); }
+	int* getValue() { return cgss::Bindable<int>::value(); }
 };
 
 struct BindableTest :
 	public cgss::Bindable<int> {
 	MOCK_METHOD(void, updateFromValue, (const int* ptr), (override));
 	const int* getValue() const { return cgss::Bindable<int>::getValue(); }
-	int* getValue() { return cgss::Bindable<int>::getValue(); }
+	int* getValue() { return cgss::Bindable<int>::value(); }
 };
 
 using ::testing::Return;

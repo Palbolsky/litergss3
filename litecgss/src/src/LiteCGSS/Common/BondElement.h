@@ -72,7 +72,7 @@ namespace cgss {
 			}
 		}
 	protected:
-		Value& getValue() { return m_value; }
+		Value& value() { return m_value; }
 	};
 }
 

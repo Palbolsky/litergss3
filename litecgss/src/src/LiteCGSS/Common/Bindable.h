@@ -68,7 +68,7 @@ namespace cgss {
 		virtual void updateFromValue(const Value* value) = 0;
 
 		const Value* getValue() const { return m_target != nullptr ? &m_target->getValue() : nullptr; }
-		Value* getValue() { return m_target != nullptr ? &m_target->getValue() : nullptr; }
+		Value* value() { return m_target != nullptr ? &m_target->value() : nullptr; }
 
 	private:
 		BondElement<Value>* m_target = nullptr;

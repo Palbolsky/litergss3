@@ -26,8 +26,8 @@ const cgss::RenderStatesData* cgss::ViewportItem::getRenderStates() const {
 }
 
 cgss::RenderStatesData* cgss::ViewportItem::getRenderStates() {
-	if (ShaderRenderable::getValue() != nullptr) {
-		return ShaderRenderable::getValue();
+	if (ShaderRenderable::value() != nullptr) {
+		return ShaderRenderable::value();
 	}
 	return m_defaultRenderStates == nullptr ? nullptr : &m_defaultRenderStates->data();
 }
