@@ -3,32 +3,36 @@
 #include "LiteCGSS/Views/DisplayWindow.h"
 #include "LiteCGSS/Graphics/Loaders/TextureLoader.h"
 
+cgss::Texture::Texture() :
+	m_texture(std::make_shared<sf::Texture>()) {
+}
+
 cgss::Texture cgss::Texture::create(const DisplayWindow& window, const std::string& filename) {
 	auto result = Texture{};
-	result.m_texture.setSmooth(window.smoothScreen());
-	TextureFileLoader::instantLoad(filename, result.m_texture, result.m_image);
+	result.m_texture->setSmooth(window.smoothScreen());
+	TextureFileLoader::instantLoad(filename, *result.m_texture, result.m_image);
 	return result;
 }
 
 cgss::Texture cgss::Texture::create(const std::string& filename) {
 	auto result = Texture{};
-	TextureFileLoader::instantLoad(filename, result.m_texture, result.m_image);
+	TextureFileLoader::instantLoad(filename, *result.m_texture, result.m_image);
 	return result;
 }
 
 cgss::Texture cgss::Texture::create(sf::Texture texture) {
 	auto result = Texture {};
-	result.m_texture = std::move(texture);
+	result.m_texture = std::make_shared<sf::Texture>(std::move(texture));
 	result.m_loaded = true;
 	return result;
 }
 
 void cgss::Texture::setSmooth(bool smooth) {
-	m_texture.setSmooth(smooth);
+	m_texture->setSmooth(smooth);
 }
 
 bool cgss::Texture::load(const TextureLoader& loader) {
-	m_loaded = loader.load(m_texture, m_image);
+	m_loaded = loader.load(*m_texture, m_image);
 	return m_loaded;
 }
 
@@ -43,7 +47,7 @@ void cgss::Texture::update(sf::Image* image) {
 		//Explicit copy
 		m_image = *image;
 	}
-	m_texture.update(m_image);
+	m_texture->update(m_image);
 }
 
 void cgss::Texture::blit(unsigned long x, unsigned long y, const Texture& srcTexture, const Rectangle& rect) {
@@ -73,13 +77,13 @@ void cgss::Texture::clearRect(long x, long y, unsigned int width, unsigned int h
 }
 
 void cgss::Texture::write(TextureSaver& saver) const {
-	saver.save(m_texture);
+	saver.save(*m_texture);
 }
 
 std::vector<unsigned char> cgss::Texture::toRawDataPng() const {
-	return TextureMemoryLoader::instantSave(m_texture);
+	return TextureMemoryLoader::instantSave(*m_texture);
 }
 
 unsigned int cgss::Texture::toFile(const std::string& filename) const {
-	return TextureFileLoader::instantSave(filename, m_texture);
+	return TextureFileLoader::instantSave(filename, *m_texture);
 }

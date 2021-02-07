@@ -26,10 +26,9 @@ void cgss::Shape::setRenderState(sf::RenderStates states) {
 }
 
 void cgss::Shape::setTexture(Texture* texture, bool resetRect) {
-	// /!\ Here, we assume the Texture has a longer lifetime than our Shape
-	m_proxy->m_linkedTexture = texture;
+	m_proxy->m_linkedTexture = texture != nullptr ? texture->ref() : nullptr;
 	if (m_proxy->m_linkedTexture != nullptr) {
-		m_proxy->m_shape->setTexture(&texture->getTexture(), resetRect);
+		m_proxy->m_shape->setTexture(m_proxy->m_linkedTexture.get(), resetRect);
 	}
 
 	if (resetRect) {

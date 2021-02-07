@@ -66,7 +66,8 @@ void cgss::SpriteItem::setOpacity(std::uint8_t opacity) {
 }
 
 void cgss::Sprite::setTexture(Texture& texture, bool resetRect) {
-	m_proxy->m_sprite.setTexture(texture.getTexture(), resetRect);
+	m_proxy->m_linkedTexture = texture.ref();
+	m_proxy->m_sprite.setTexture(*m_proxy->m_linkedTexture.get(), resetRect);
 	if (resetRect) {
 		m_proxy->GraphicsStackItem::setValue(m_proxy->m_sprite.getTextureRect());
 	}

@@ -36,8 +36,8 @@ void cgss::DisplayWindowSnapshot::freeze(sf::RenderWindow& window) {
 	}
 	m_window.draw();
 	m_freezeTexture = std::make_unique<Texture>();
-	takeSnapshotOn(window, m_freezeTexture->getTexture());
-	m_freezeSprite = std::make_unique<sf::Sprite>(m_freezeTexture->getTexture());
+	takeSnapshotOn(window, m_freezeTexture->raw());
+	m_freezeSprite = std::make_unique<sf::Sprite>(m_freezeTexture->raw());
 	m_freezeSprite->setScale(1.0f / static_cast<float>(m_window.scale()), 1.0f / static_cast<float>(m_window.scale()));
 }
 
@@ -77,7 +77,7 @@ void cgss::DisplayWindowSnapshot::transitionBasic(long time) {
 void cgss::DisplayWindowSnapshot::transitionRGSS(long time, const Texture& bitmap) {
 	m_freezeSprite->setColor(sf::Color(255, 255, 255, 255));
 	m_rgssTransition = true;
-	m_freezeShader.data().setShaderUniform("transition", bitmap.getTexture());
+	m_freezeShader.data().setShaderUniform("transition", bitmap.raw());
 	for (long i = 1; i <= time; i++) {
 		m_freezeShader.data().setShaderUniform("param", static_cast<float>(i) / time);
 	}
