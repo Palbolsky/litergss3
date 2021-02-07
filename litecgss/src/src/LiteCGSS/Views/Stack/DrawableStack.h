@@ -4,12 +4,13 @@
 #include <cstdint>
 #include <SFML/Graphics.hpp>
 #include "GraphicsStack.h"
+#include "MainGraphicsStack.h"
 
 namespace cgss {
 	class DrawableStack :
-		public GraphicsStack {
+		public MainGraphicsStack {
 	public:
-		using GraphicsStack::GraphicsStack;
+		using MainGraphicsStack::MainGraphicsStack;
 		void draw(sf::View& defview, sf::RenderTarget& target) const;
 		void drawFast(sf::RenderTarget& target) const;
 		void updateContentsOpacity(std::uint8_t opacity);

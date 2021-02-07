@@ -1,5 +1,6 @@
 #ifndef CGSS_SHAPE_H
 #define CGSS_SHAPE_H
+#include <memory>
 #include "LiteCGSS/Graphics/Drawable.h"
 #include "LiteCGSS/Graphics/Transformable.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
@@ -22,7 +23,7 @@ namespace cgss {
 		friend class Shape;
 	private:
 		std::unique_ptr<sf::Shape> m_shape;
-		Texture* m_linkedTexture = nullptr;
+		std::shared_ptr<sf::Texture> m_linkedTexture = nullptr;
 		ShapeType m_type = ShapeType::Rectangle;
 		sf::RectangleShape m_defaultShape;
 

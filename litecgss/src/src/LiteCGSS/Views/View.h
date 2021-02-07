@@ -25,7 +25,7 @@ namespace cgss {
 
 		auto getStackSize() const { return m_drawables->size(); }
 		void updateContentsOpacity(std::uint8_t opacity) { m_drawables->updateContentsOpacity(opacity); }
-		void sortZ() { m_drawables->sortZ(); }
+		void sortZ() { m_drawables->refreshZ(); }
 
 		template <class ViewImpl, class StackItem, class Drawable>
 		StackItem& add(std::shared_ptr<StackItem> d) {
@@ -42,7 +42,7 @@ namespace cgss {
 		DrawableStack& drawables() { return *m_drawables; }
 
 		View() : m_drawables(std::make_unique<DrawableStack>()) {}
-		void syncFromRawData(GraphicsContainer data, bool forceDetachAll = true) { m_drawables->syncFromRawData(std::move(data), forceDetachAll); }
+		void syncFromRawData(std::vector<GraphicsStackItemPtr> data, bool forceDetachAll = true) { m_drawables->syncFromRawData(std::move(data), forceDetachAll); }
 
 	private:
 		std::unique_ptr<DrawableStack> m_drawables;

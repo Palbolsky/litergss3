@@ -1,6 +1,7 @@
 version: '3'
 services:
     litecgss:
+        network_mode: host
         build: .
         stdin_open: true
         tty: true
@@ -11,4 +12,12 @@ services:
         ports:
             - "127.0.0.1:5901:5900"
         volumes:
+            - ..:/litecgss
+    litecgss_test:
+        network_mode: host
+        build: ./test
+        container_name: litecgss_test
+        entrypoint: /entrypoint.sh
+        volumes:
+            - ../generated/html:/html
             - ..:/litecgss

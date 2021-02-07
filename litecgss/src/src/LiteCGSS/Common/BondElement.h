@@ -72,8 +72,7 @@ namespace cgss {
 			}
 		}
 	protected:
-		Value& directAccess() { return m_value; }	
-		const Value& directAccess() const { return m_value; }
+		Value& value() { return m_value; }
 	};
 }
 

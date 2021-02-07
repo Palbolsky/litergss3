@@ -1,5 +1,7 @@
 #ifndef CGSS_SPRITE_H
 #define CGSS_SPRITE_H
+
+#include <memory>
 #include "LiteCGSS/Graphics/Drawable.h"
 #include "LiteCGSS/Graphics/Transformable.h"
 #include "LiteCGSS/Graphics/ShaderRenderable.h"
@@ -17,6 +19,7 @@ namespace cgss {
 		friend class Sprite;
 	private:
 		sf::Sprite m_sprite;
+		std::shared_ptr<sf::Texture> m_linkedTexture = nullptr;
 		bool m_mirror = false;
 		float m_wantedX = 0;
 		float m_wantedY = 0;

@@ -2,34 +2,31 @@
 #define CGSS_GRAPHICS_STACK_H
 
 #include <mutex>
-#include "GraphicsContainer.h"
+#include <ostream>
 #include "LiteCGSS/Graphics/GraphicsStackItemPtr.h"
+#include "LiteCGSS/Graphics/GraphicsStackItem.h"
 #include "LiteCGSS/Graphics/ZIndex.h"
 
 namespace cgss {
+
+	template <template <class> class ZAlgorithmStrategy>
 	class GraphicsStack {
-		// friend because it has to be able to manipulate z index swaps and auto detaching system
-		friend class GraphicsStackItem;
 	public:
 		GraphicsStack() = default;
+
 		GraphicsStack(const GraphicsStack&) = delete;
 		GraphicsStack& operator=(const GraphicsStack&) = delete;
 		GraphicsStack(GraphicsStack&&) = delete;
 		GraphicsStack& operator=(GraphicsStack&&) = delete;
-		virtual ~GraphicsStack();
+
+		virtual ~GraphicsStack() {
+			clear();
+		}
 
 		static constexpr int32_t MaxZ() { return std::numeric_limits<int32_t>::max() >> 1; }
 		static constexpr int32_t MinZ() { return 0; }
 
-		void add(GraphicsStackItemPtr item);
-		void syncFromRawData(GraphicsContainer data, bool forceDetachAll = true);
 		std::size_t size() const { return m_stack.size(); }
-		std::int32_t queryNextIndex();
-
-		void sortZ();
-		void setZDirty();
-		bool isInsertionZSort() const;
-		void setInsertionZSort(bool zsort);
 
 		const auto& operator[](std::size_t index) const {
 			return *m_stack[index];
@@ -41,22 +38,58 @@ namespace cgss {
 
 		auto begin() const { return m_stack.begin(); }
 		auto end() const { return m_stack.end(); }
-		void clear();
-		
+
+		void syncFromRawData(std::vector<GraphicsStackItemPtr> data, bool forceDetachAll = true) {
+			if (forceDetachAll) {
+				for (auto& it : m_stack) {
+					it->m_originStack = nullptr;
+				}
+			}
+			m_stack = std::move(data);
+		}
+
+		void clear() {
+			syncFromRawData({});
+		}
+
+		void add(GraphicsStackItemPtr item) {
+			item->m_originStack = this;
+			item->m_priority.index = queryNextIndex();
+			m_stack.add(std::move(item));
+		}
+
+		void set(ZIndex& item, long z) {
+			m_stack.set(item, z);
+		}
+
+		void refreshZ() {
+			m_stack.refresh();
+		}
+
+		bool remove(const GraphicsStackItem* item) {
+			return m_stack.removeOne(item->getZ(), [item](const GraphicsStackItemPtr& el) {
+				return item == el.get();
+			});
+		}
+
 	private:
-		bool remove(GraphicsStackItem* item);
-		void zSwap(const ZIndex& previous, const ZIndex& next);
+		template <template <class> class ZAlgo>
+		friend std::ostream& operator<<(std::ostream& os, const GraphicsStack<ZAlgo>& dt);
 
-		void leftCircleShift(std::size_t begin, std::size_t end);
-		void rightCircleShift(std::size_t begin, std::size_t end);
-		std::size_t dichotomicFindFirstGreater(const ZIndex& value) const;
+		std::int32_t queryNextIndex() {
+			return m_zIndexCounter++;
+		}
 
-		GraphicsContainer m_stack;
-		int32_t m_zIndexCounter = 0;		
-		mutable std::mutex m_mutexDetached;
-		mutable GraphicsContainer m_detached;
-		bool m_zDirty = false;
-		bool m_insertionZSort = false;
+		ZAlgorithmStrategy<GraphicsStackItemPtr> m_stack;
+		int32_t m_zIndexCounter = 0;
 	};
+
+	template<template <class> class ZAlgorithmStrategy>
+	std::ostream& operator<<(std::ostream& os, const cgss::GraphicsStack<ZAlgorithmStrategy>& dt) {
+		os << dt.m_stack;
+		return os;
+	}
+
 }
+
 #endif
