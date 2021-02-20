@@ -8,7 +8,11 @@
 
 namespace cgss {
     template <ska::LogLevel BaseLogLevel>
+#ifdef CGSS_NO_LOGS
+    using LoggerBaseType = ska::Logger<ska::LogLevel::Disabled, ska::LogLevel::Disabled, ska::LogSync>;
+#else
     using LoggerBaseType = ska::Logger<BaseLogLevel, ska::LogLevel::Error, ska::LogSync>;
+#endif
 
     template <ska::LogLevel BaseLogLevel>
     struct Logger : 
