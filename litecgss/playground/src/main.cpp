@@ -8,16 +8,15 @@
 #include "Graphics/Loaders/TextureLoader.h"
 
 void MemTest() {
-	auto eventDispatcher = cgss::MainEventDispatcher{};
 	auto settings = cgss::DisplayWindowSettings{};
 	settings.video.scale = 1;
 	settings.visibleMouse = true;
 	settings.video.width = 400;
 	settings.video.height = 300;
 	settings.title = "MemTest";
-	auto window = cgss::DisplayWindow{ eventDispatcher, settings };
+	auto window = cgss::DisplayWindow{ settings };
 
-	auto viewport = window.addView<cgss::Viewport>(window);
+	auto viewport = window.addView<cgss::Viewport>();
 	auto texture = cgss::Texture::create(window, LITE_CGSS_PLAYGROUND_DIR "/resources/test.png");
 	viewport.resize(200, 200);
 	
@@ -37,18 +36,17 @@ void MemTest() {
 }
 
 void ViewTest() {
-	auto eventDispatcher = cgss::MainEventDispatcher{};
 	auto settings = cgss::DisplayWindowSettings{};
 	settings.video.scale = 1;
 	settings.visibleMouse = true;
 	settings.video.width = 400;
 	settings.video.height = 300;
 	settings.title = "Playground";
-	auto window = cgss::DisplayWindow{ eventDispatcher, settings };
+	auto window = cgss::DisplayWindow{ settings };
 
-	auto viewport = window.addView<cgss::Viewport>(window);
+	auto viewport = window.addView<cgss::Viewport>();
 	auto texture = cgss::Texture::create(window, LITE_CGSS_PLAYGROUND_DIR "/resources/test.png");
-	auto framedView = window.addView<cgss::FramedView>(viewport);
+	auto framedView = viewport.addView<cgss::FramedView>();
 
 	auto fillTexture = cgss::Texture{};
 	auto memoryLoader = cgss::TextureEmptyLoader{ 1000, 1000 };
@@ -112,7 +110,8 @@ void ViewTest() {
 int main(int argc, char* argv[]) {
 	(void)argc;
 	(void)argv;
-	MemTest();
+	//MemTest();
+	ViewTest();
 
 	return 0;
 }

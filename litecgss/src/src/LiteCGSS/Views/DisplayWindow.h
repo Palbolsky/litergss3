@@ -9,11 +9,13 @@
 #include "ViewAuthorizations.h"
 #include "DisplayWindowDraw.h"
 #include "DisplayWindowSnapshot.h"
+#include "DisplayWindowUserData.h"
 #include "FramedView.h"
 #include "SnapshotCapturable.h"
 
 #include "LiteCGSS/Events/MainEventDispatcher.h"
 #include "LiteCGSS/Events/Patterns/SubObserver.h"
+#include "LiteCGSS/Events/Patterns/Observable.h"
 
 namespace cgss {
 
@@ -23,8 +25,10 @@ namespace cgss {
 		public SnapshotCapturable {
 
 	public:
-		DisplayWindow(MainEventDispatcher& eventDispatcher, const DisplayWindowSettings& settings);
-		DisplayWindow(MainEventDispatcher& eventDispatcher);
+		DisplayWindow(const DisplayWindowSettings& settings);
+		DisplayWindow(DisplayWindow&&) = default;
+		DisplayWindow& operator=(DisplayWindow&&) = delete;
+		DisplayWindow();
 		virtual ~DisplayWindow();
 
 		void setBrightness(unsigned char brightness) { m_draw.brightness = brightness; }
@@ -50,22 +54,46 @@ namespace cgss {
 		void reload(DisplayWindowSettings settings);
 		const DisplayWindowContextSettings& getContextSettings() const;
 
-		template <class View, class ViewOwner, class ... Args>
-		View addView(ViewOwner& owner, Args&& ... args) {
-			return View::create(owner, m_eventDispatcher, m_settings, std::forward<Args>(args)...);
+		template <class View, class ... Args>
+		View addView(Args&& ... args) {
+			return View::create(*this, m_eventDispatcher, buildUserData(), m_settings, std::forward<Args>(args)...);
 		}
 
+		template <class Event>
+		void record(Observer<Event>& observer) {
+			m_eventDispatcher.template Observable<Event>::addObserver(observer);
+		}
+
+		template <class Event>
+		void erase(Observer<Event>& observer) {
+			m_eventDispatcher.template Observable<Event>::removeObserver(observer);
+		}
+
+		MainEventDispatcher& eventDispatcher() { return m_eventDispatcher; }
+
 	private:
+		DisplayWindowUserData buildUserData() {
+			return { m_eventDispatcher, m_settings, m_userRenderSprite, m_userRenderTexture };
+		}
+
+		void initUserRender();
 		void initRender();
 		void drawBrightness();
 		sf::RenderTarget& configureAndGetRenderTarget(sf::View& defview);
 		void postProcessing();
 
-		DisplayWindowSettings m_settings;
-		MainEventDispatcher& m_eventDispatcher;
+		MainEventDispatcher m_eventDispatcher {};
+		DisplayWindowSettings m_settings {};
 		std::unique_ptr<sf::RenderWindow> m_gameWindow = nullptr;
 		DisplayWindowSnapshot m_snapshot;
 		DisplayWindowDrawData m_draw;
+
+		/* The user render sprite and texture belong to the window and are only used by children element on the window.
+			As of today, only viewports use this. The use of render sprite and texture is to be used as the target view of
+			children viewports (when render states, so shaders, are enabled).
+		*/
+		std::unique_ptr<sf::Sprite> m_userRenderSprite = std::make_unique<sf::Sprite>();
+		std::unique_ptr<sf::RenderTexture> m_userRenderTexture = std::make_unique<sf::RenderTexture>();
 	};
 
 	class Sprite;

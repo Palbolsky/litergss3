@@ -10,16 +10,18 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+if(CGSS_NO_LOGS)
+  set(CMAKE_CXX_FLAGS "-DCGSS_NO_LOGS")
+endif()
+
+project(LiteCGSS_engine CXX)
+
 if(CMAKE_COMPILER_IS_GNUCXX)
-  set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-  set(CMAKE_CXX_FLAGS_DEBUG "-g")
-  set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 endif()
 
 set(LITECGSS_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(LITE_CGSS_EXTERNAL ${CMAKE_CURRENT_SOURCE_DIR}/external)
-
-project(LiteCGSS_engine)
 
 find_package(SFML 2 REQUIRED COMPONENTS graphics window system)
 

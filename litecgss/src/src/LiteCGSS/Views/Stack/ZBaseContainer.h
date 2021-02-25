@@ -9,7 +9,7 @@
 namespace cgss {
 	struct ZContainerLog;
 }
-SKA_LOGC_CONFIG(ska::LogLevel::Error, cgss::ZContainerLog);
+SKA_LOGC_CONFIG(ska::LogLevel::Error, cgss::ZContainerLog)
 
 namespace cgss {
 

@@ -37,7 +37,7 @@ task :configure, [:buildtype] do |t, args|
 end
 
 desc "Build the project"
-task :compile do
+task :compile, [:type] do |t, args|
     buildtype = File.read(litecgss_root_dir + "/generated/build.cache")
     cmake_generator = Cgss::Builder::get_cmake_generator()
     
@@ -51,11 +51,18 @@ task :compile do
     $INCFLAGS << " -I" + (litecgss_root_dir + "/src/src")
     $LDFLAGS << " -L" + (litecgss_root_dir + "/lib")
     
+    extra_args = "-DCGSS_NO_LOGS=Y -DCMAKE_BUILD_TYPE=Release" if args[:type].eql? "release" 
+
     puts "Building LiteCGSS in #{litecgss_root_dir}... "
     Dir.chdir(litecgss_root_dir) {
-        system("cmake #{cmake_generator} -DBUILD_SHARED_LIBS=True .")
+        system("cmake #{cmake_generator} -DBUILD_SHARED_LIBS=True #{extra_args} .")
         system("cmake --build .") or fail "[LiteCGSS] Build failed"
     }
+end
+
+desc "Build the project, in release mode"
+task :release do
+    Rake::Task[:compile].invoke("release")
 end
 
 desc "Start unit-tests"

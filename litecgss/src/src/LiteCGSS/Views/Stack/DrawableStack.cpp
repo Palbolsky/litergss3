@@ -5,7 +5,12 @@
 #include <Logging/PeriodicTracer.h>
 #include "LoggerStack.h"
 
-SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::DrawableStack);
+SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::DrawableStack)
+#define LOG_FREQUENCY 300
+
+#define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerStack(), ska::LogLevel::Debug, cgss::DrawableStack)
+#define LOG_INFO SKA_LOGC_STATIC(GetLoggerStack(), ska::LogLevel::Info, cgss::DrawableStack)
+#define LOG_WARN SKA_LOGC_STATIC(GetLoggerStack(), ska::LogLevel::Warn, cgss::DrawableStack)
 
 #define LOG_FREQUENCY 300
 static ska::PeriodicTracer<cgss::LoggerStack, ska::LogLevel::Debug> DrawableStackTracer = { cgss::GetLoggerStack() };

@@ -2,7 +2,7 @@
 #include "ViewBox.h"
 #include "LoggerViews.h"
 
-SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::ViewBox);
+SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::ViewBox)
 
 #define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Debug, cgss::ViewBox)
 #define LOG_INFO SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info, cgss::ViewBox)
@@ -72,6 +72,8 @@ void cgss::ViewBox::moveViewport(float x, float y) {
 	const auto sw = static_cast<float>(m_screenWidth);
 	const auto sh = static_cast<float>(m_screenHeight);
 	m_view.setViewport(sf::FloatRect{ x / sw, y / sh, m_view.getSize().x / sw, m_view.getSize().y / sh });
+	
+	LOG_DEBUG << "Viewbox " << static_cast<void*>(this) <<  " has been moved to x = " << x << " y = " << y;
 	auto event = ViewportChangeEvent { getRectangleBox() };
 	Observable<ViewportChangeEvent>::notifyObservers(event);
 }
@@ -81,8 +83,6 @@ bool cgss::ViewBox::onWindowSettingsChange(WindowSettingsChangeEvent& event) {
 	m_screenHeight = event.settings.video.height;
 
 	LOG_INFO << "Window settings have changed to screenwidth = " << m_screenWidth << " screenheight = " << m_screenHeight;
-
-	onPostWindowSettingsChange(event);
 	return true;
 }
 
