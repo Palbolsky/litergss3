@@ -200,6 +200,14 @@ void cgss::DisplayWindow::setFrameRate(unsigned int frameRate) {
 	m_gameWindow.setFramerateLimit(!m_settings.vSync ? m_settings.frameRate : 0);
 }
 
+void cgss::DisplayWindow::setScale(double scale) {
+	m_settings.video.scale = scale;
+
+	const auto scaledWidth = static_cast<unsigned int>(m_settings.video.width * m_settings.video.scale);
+	const auto scaledHeight = static_cast<unsigned int>(m_settings.video.height * m_settings.video.scale);
+	m_gameWindow.setSize(sf::Vector2u { scaledWidth, scaledHeight });
+}
+
 void cgss::DisplayWindow::setIcon(const sf::Image& image) {
 	m_gameWindow.setIcon(image.getSize().x, image.getSize().y, image.getPixelsPtr());
 }

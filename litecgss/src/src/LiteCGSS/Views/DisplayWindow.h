@@ -60,6 +60,7 @@ namespace cgss {
 		void setVsync(bool enable);
 		void setTitle(const char* title);
 		void setFrameRate(unsigned int frameRate);
+		void setScale(double scale);
 
 		template <class View, class ... Args>
 		View addView(Args&& ... args) {
