@@ -1,6 +1,7 @@
 #include <cmath>
 #include "ViewBox.h"
 #include "LoggerViews.h"
+#include "LiteCGSS/Configuration/DisplayWindowSettings.h"
 
 SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::ViewBox)
 
@@ -9,7 +10,7 @@ SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::ViewBox)
 #define LOG_WARN SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Warn, cgss::ViewBox)
 
 cgss::ViewBox::ViewBox(MainEventDispatcher& ed, const DisplayWindowSettings& windowSettings) : 
-	SubObserver<WindowSettingsChangeEvent>(std::bind(&ViewBox::onWindowSettingsChange, this, std::placeholders::_1), ed),
+	SubObserver<WindowSizeChangeEvent>(std::bind(&ViewBox::onWindowSizeChange, this, std::placeholders::_1), ed),
 	m_screenWidth(windowSettings.video.width),
 	m_screenHeight(windowSettings.video.height) {
 	resize(m_screenWidth, m_screenHeight);
@@ -78,11 +79,11 @@ void cgss::ViewBox::moveViewport(float x, float y) {
 	Observable<ViewportChangeEvent>::notifyObservers(event);
 }
 
-bool cgss::ViewBox::onWindowSettingsChange(WindowSettingsChangeEvent& event) {
-	m_screenWidth = event.settings.video.width;
-	m_screenHeight = event.settings.video.height;
+bool cgss::ViewBox::onWindowSizeChange(WindowSizeChangeEvent& event) {
+	m_screenWidth = event.width;
+	m_screenHeight = event.height;
 
-	LOG_INFO << "Window settings have changed to screenwidth = " << m_screenWidth << " screenheight = " << m_screenHeight;
+	LOG_INFO << "Window size has changed to screenwidth = " << m_screenWidth << " screenheight = " << m_screenHeight;
 	return true;
 }
 

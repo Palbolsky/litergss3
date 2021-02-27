@@ -11,14 +11,14 @@ namespace cgss {
 	class DisplayWindowSnapshot {
 	public:
 		DisplayWindowSnapshot(DisplayWindow& window);
-		std::unique_ptr<sf::Texture> takeSnapshot(sf::RenderWindow& window) const;
-		void freeze(sf::RenderWindow& window);
+		std::unique_ptr<sf::Texture> takeSnapshot(const sf::RenderWindow& window) const;
+		void freeze(const sf::RenderWindow& window);
 		void transition(long time, Texture* texture = nullptr);
 		void stop();
 		void draw(sf::RenderWindow& window);
 		void init();
 	private:
-		void takeSnapshotOn(sf::RenderWindow& window, sf::Texture& text) const;
+		void takeSnapshotOn(const sf::RenderWindow& window, sf::Texture& text) const;
 		void transitionBasic(long time);
 		void transitionRGSS(long time, const Texture& bitmap);
 

@@ -20,7 +20,7 @@ cgss::DisplayWindow::DisplayWindow() :
 }
 
 cgss::DisplayWindow::~DisplayWindow() {
-	if (m_gameWindow != nullptr) { stop(); }
+	stop();
 }
 
 void cgss::DisplayWindow::initUserRender() {
@@ -31,46 +31,57 @@ void cgss::DisplayWindow::initUserRender() {
 }
 
 void cgss::DisplayWindow::reload(DisplayWindowSettings settings) {
-	m_settings = settings;
-	sf::Uint32 style = sf::Style::Close | sf::Style::Titlebar;
-	if (settings.fullscreen) {
-		style = sf::Style::Fullscreen;
+	m_settings = std::move(settings);
+	const auto style = m_settings.fullscreen ? sf::Style::Fullscreen : (sf::Style::Close | sf::Style::Titlebar);
+
+	const auto scaledWidth = static_cast<unsigned int>(m_settings.video.width * m_settings.video.scale);
+	const auto scaledHeight = static_cast<unsigned int>(m_settings.video.height * m_settings.video.scale);
+	if (settings.headless) {
+		if (m_gameWindow.isOpen()) {
+			m_gameWindow.close();
+		}
+	} else {
+		m_gameWindow.create(sf::VideoMode { scaledWidth, scaledHeight, m_settings.video.bitsPerPixel }, m_settings.title, style, m_settings.context);
 	}
 
-	auto scaledWidth = static_cast<unsigned int>(settings.video.width * settings.video.scale);
-	auto scaledHeight = static_cast<unsigned int>(settings.video.height * settings.video.scale);
-	m_gameWindow = settings.headless ? std::make_unique<sf::RenderWindow>() : 
-		std::make_unique<sf::RenderWindow>(sf::VideoMode{ scaledWidth, scaledHeight, settings.video.bitsPerPixel }, settings.title, style, settings.context);
-	m_gameWindow->setMouseCursorVisible(settings.visibleMouse);
-	
-	/* VSYNC choice */
-	m_gameWindow->setVerticalSyncEnabled(settings.vSync);
-	if (!settings.vSync) {
-		m_gameWindow->setFramerateLimit(settings.frameRate);
-	}
+	m_gameWindow.setMouseCursorVisible(m_settings.visibleMouse);
+	setVsync(m_settings.vSync);	
 
-	m_draw.screenWidth = settings.video.width;
-	m_draw.screenHeight = settings.video.height;
-	m_draw.smoothScreen = settings.smoothScreen;
-	m_draw.scale = settings.video.scale;
-	m_draw.frameRate = settings.frameRate;
+	m_draw.smoothScreen = m_settings.smoothScreen;
+	m_draw.scale = m_settings.video.scale;
+	m_draw.frameRate = m_settings.frameRate;
+
+	m_snapshot.init();
+
+	if (m_draw.screenWidth != m_settings.video.width || m_draw.screenHeight != m_settings.video.height) {
+		onSizeChanged();
+	}
 
 	LOG_WARN << "Reloading window with parameters screenwidth = " << m_draw.screenWidth << " screenheight = " << m_draw.screenHeight
 		<< " smoothScreen = " << m_draw.smoothScreen << " scale = " << m_draw.scale << " framerate = " << m_draw.frameRate;
+}
+
+void cgss::DisplayWindow::onSizeChanged() {
+	m_draw.screenWidth = m_settings.video.width;
+	m_draw.screenHeight = m_settings.video.height;
 
 	/* Render resize */
 	if (m_draw.renderTexture != nullptr) {
 		m_draw.renderTexture->create(m_draw.screenWidth, m_draw.screenHeight);
 	}
 
-	m_snapshot.init();
-
 	/* Re-init user drawing surface */
 	initUserRender();
 
-	auto we = WindowSettingsChangeEvent{};
-	we.settings = std::move(settings);
-	m_eventDispatcher.Observable<WindowSettingsChangeEvent>::notifyObservers(we);
+	notifyWindowSizeChange();
+}
+
+void cgss::DisplayWindow::notifyWindowSizeChange() {
+	/* This event will help by notifying subscribed viewports */
+	auto we = WindowSizeChangeEvent{};
+	we.width = m_settings.video.width;
+	we.height = m_settings.video.height;
+	m_eventDispatcher.Observable<WindowSizeChangeEvent>::notifyObservers(we);
 }
 
 sf::RenderTarget& cgss::DisplayWindow::configureAndGetRenderTarget(sf::View& defview) {
@@ -79,7 +90,7 @@ sf::RenderTarget& cgss::DisplayWindow::configureAndGetRenderTarget(sf::View& def
 	defview.setCenter(round(m_draw.screenWidth / 2.0f), round(m_draw.screenHeight / 2.0f));
 	
 	// Appying the default view to the Window (used in postProcessing())
-	m_gameWindow->setView(defview);
+	m_gameWindow.setView(defview);
 	
 	// If the m_renderTexture is defined, we use it instead of the m_gameWindow (shader processing)
 	if (m_draw.renderTexture != nullptr) {
@@ -89,32 +100,33 @@ sf::RenderTarget& cgss::DisplayWindow::configureAndGetRenderTarget(sf::View& def
 		m_draw.renderTexture->clear();
 		return *m_draw.renderTexture.get();
 	}
-	return *m_gameWindow;
+	return m_gameWindow;
 }
 
 const cgss::DisplayWindowContextSettings& cgss::DisplayWindow::getContextSettings() const {
-	return m_gameWindow->getSettings();
+	return m_gameWindow.getSettings();
+}
+
+const cgss::DisplayWindowSettings& cgss::DisplayWindow::getSettings() const {
+	return m_settings;
 }
 
 bool cgss::DisplayWindow::isOpen() const {
-	return m_gameWindow != nullptr && m_gameWindow->isOpen();
+	return m_gameWindow.isOpen();
 }
 
 void cgss::DisplayWindow::stop() {
 	m_snapshot.stop();
-
-	/* Close the window */
-	m_gameWindow->close();
-	m_gameWindow = nullptr;
+	m_gameWindow.close();
 }
 
 void cgss::DisplayWindow::draw() {
 	if (!isOpen()) {
 		return;
 	}
-	m_gameWindow->clear();
+	m_gameWindow.clear();
 
-	sf::View defview = m_gameWindow->getDefaultView();
+	sf::View defview = m_gameWindow.getDefaultView();
 	auto& render_target = configureAndGetRenderTarget(defview);
 	
 	// Rendering C++ sprite stack
@@ -122,29 +134,22 @@ void cgss::DisplayWindow::draw() {
 
 	postProcessing();
 
-	m_gameWindow->display();
+	m_gameWindow.display();
 }
 
 bool cgss::DisplayWindow::pollEvent(sf::Event& event) {
-	return m_gameWindow->pollEvent(event);
-}
-
-void cgss::DisplayWindow::initRender() {
-	if (m_draw.renderTexture == nullptr && m_draw.renderState != nullptr) {
-		m_draw.renderTexture = std::make_unique<sf::RenderTexture>();
-		m_draw.renderTexture->create(m_draw.screenWidth, m_draw.screenHeight);
-	}
+	return m_gameWindow.pollEvent(event);
 }
 
 void cgss::DisplayWindow::drawBrightness() {
 	sf::Vertex	vertices[4];
-	sf::Vector2u size = m_gameWindow->getSize();
+	sf::Vector2u size = m_gameWindow.getSize();
 	vertices[0].position = sf::Vector2f(0, 0);
 	vertices[1].position = sf::Vector2f(0, static_cast<float>(size.y));
 	vertices[2].position = sf::Vector2f(static_cast<float>(size.x), 0);
 	vertices[3].position = sf::Vector2f(static_cast<float>(size.x), static_cast<float>(size.y));
 	vertices[0].color = vertices[1].color = vertices[2].color = vertices[3].color = sf::Color(0, 0, 0, 255 - m_draw.brightness);
-	m_gameWindow->draw(vertices, 4, sf::PrimitiveType::TriangleStrip);
+	m_gameWindow.draw(vertices, 4, sf::PrimitiveType::TriangleStrip);
 }
 
 void cgss::DisplayWindow::postProcessing() {
@@ -153,14 +158,14 @@ void cgss::DisplayWindow::postProcessing() {
 		m_draw.renderTexture->display();
 		sf::Sprite sp(m_draw.renderTexture->getTexture());
 		if (m_draw.renderState == nullptr) {
-			m_gameWindow->draw(sp);
+			m_gameWindow.draw(sp);
 		} else {
-			m_gameWindow->draw(sp, *m_draw.renderState);
+			m_gameWindow.draw(sp, *m_draw.renderState);
 		}
 	}
 
 	//Draw the "freeze" texture, if visible
-	m_snapshot.draw(*m_gameWindow);
+	m_snapshot.draw(m_gameWindow);
 
 	// Update the brightness (applied to m_gameWindow)
 	if (m_draw.brightness != 255) {
@@ -172,26 +177,43 @@ void cgss::DisplayWindow::resizeScreen(unsigned int width, unsigned int height) 
 	m_settings.video.width = width;
 	m_settings.video.height = height;
 
-	auto we = WindowSettingsChangeEvent{};
-	we.settings = m_settings;
-	m_eventDispatcher.Observable<WindowSettingsChangeEvent>::notifyObservers(we);
+	const auto scaledWidth = static_cast<unsigned int>(m_settings.video.width * m_settings.video.scale);
+	const auto scaledHeight = static_cast<unsigned int>(m_settings.video.height * m_settings.video.scale);
+	m_gameWindow.setSize(sf::Vector2u { scaledWidth, scaledHeight });
+	
+	onSizeChanged();
+}
 
-	m_gameWindow->setSize(sf::Vector2u { width, height });
+void cgss::DisplayWindow::setTitle(const char* title) {
+	m_settings.title = sf::String { title };
+	m_gameWindow.setTitle(m_settings.title);}
+
+void cgss::DisplayWindow::setVsync(bool enable) {
+	m_settings.vSync = enable;
+	/* VSYNC choice */
+	m_gameWindow.setVerticalSyncEnabled(m_settings.vSync);
+	m_gameWindow.setFramerateLimit(!m_settings.vSync ? m_settings.frameRate : 0);
+}
+
+void cgss::DisplayWindow::setFrameRate(unsigned int frameRate) {
+	m_settings.frameRate = frameRate;
+	m_gameWindow.setFramerateLimit(!m_settings.vSync ? m_settings.frameRate : 0);
 }
 
 void cgss::DisplayWindow::setIcon(const sf::Image& image) {
-	m_gameWindow->setIcon(image.getSize().x, image.getSize().y, image.getPixelsPtr());
+	m_gameWindow.setIcon(image.getSize().x, image.getSize().y, image.getPixelsPtr());
 }
 
 void cgss::DisplayWindow::setShader(sf::RenderStates* shader) {
 	m_draw.renderState = shader;
-	if (shader != nullptr) {
-		initRender();
+	if (m_draw.renderTexture == nullptr && m_draw.renderState != nullptr) {
+		m_draw.renderTexture = std::make_unique<sf::RenderTexture>();
+		m_draw.renderTexture->create(m_draw.screenWidth, m_draw.screenHeight);
 	}
 }
 
 std::unique_ptr<sf::Texture> cgss::DisplayWindow::takeSnapshot() const {
-	return m_snapshot.takeSnapshot(*m_gameWindow);
+	return m_snapshot.takeSnapshot(m_gameWindow);
 }
 
 void cgss::DisplayWindow::transition(long time, Texture* texture) {
@@ -199,6 +221,6 @@ void cgss::DisplayWindow::transition(long time, Texture* texture) {
 }
 
 void cgss::DisplayWindow::freeze() {
-	m_snapshot.freeze(*m_gameWindow);
+	m_snapshot.freeze(m_gameWindow);
 }
 

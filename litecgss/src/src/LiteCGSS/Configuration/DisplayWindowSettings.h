@@ -2,10 +2,9 @@
 #define CGSS_DISPLAY_WINDOW_SETTINGS_H
 
 #include <SFML/System/String.hpp>
-#include <SFML/Window/ContextSettings.hpp>
+#include "DisplayWindowContextSettings.h"
 
 namespace cgss {
-	using DisplayWindowContextSettings = sf::ContextSettings;
 
 	struct DisplayWindowVideoSettings {
 		unsigned int bitsPerPixel = 32;

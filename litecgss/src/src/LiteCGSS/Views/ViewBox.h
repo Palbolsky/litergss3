@@ -4,7 +4,7 @@
 #include <SFML/Graphics/View.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include "LiteCGSS/Events/Patterns/SubObserver.h"
-#include "LiteCGSS/Events/WindowSettingsChangeEvent.h"
+#include "LiteCGSS/Events/WindowSizeChangeEvent.h"
 #include "LiteCGSS/Events/MainEventDispatcher.h"
 #include "LiteCGSS/Events/ViewportChangeEvent.h"
 
@@ -12,7 +12,7 @@ namespace cgss {
 
 	struct DisplayWindowSettings;
 	class ViewBox :
-		private SubObserver<WindowSettingsChangeEvent>,
+		private SubObserver<WindowSizeChangeEvent>,
 		public Observable<ViewportChangeEvent> {
 
 	public:
@@ -50,7 +50,7 @@ namespace cgss {
 		virtual void onResize() {}
 
 	private:
-		bool onWindowSettingsChange(WindowSettingsChangeEvent& event);
+		bool onWindowSizeChange(WindowSizeChangeEvent& event);
 		void updateCenter();
 
 		sf::View m_view;
