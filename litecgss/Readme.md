@@ -83,18 +83,12 @@ De cette façon, nous tirons des bénéfices :
 ### Création d'une fenêtre et attente de la fermeture
 ```cpp
 // Création des settings : fenêtre en 640x480 32bits en windowed sans resize autorisé
-LiteCGSS::DisplayWindowSettings settings(640, 480, 32, false, false);
+cgss::DisplayWindowSettings settings(640, 480, 32, false, false);
 // On active le SYNC (40Hz, 60Hz, 144Hz, 240Hz selon moniteur)
-settings.vsync = true;
-// Pour les applications basés sur les frames, on active le frame balancing à 60FPS
-// Ca permet de skip des frames ou d'en dessiner plus si besoin
-// 0 = pas de fps balancing
-settings.fpsBalancingRate = 60;
-// Pour indiquer si la fenêtre attend le focus pour dessiner les frames (blocage de la fonction update)
-settings.waitFocusToDraw = true;
+settings.vSync = true;
 
 // Création de la fenêtre
-LiteCGSS::DisplayWindow window(settings, "LiteCGSS");
+cgss::DisplayWindow window(settings, "LiteCGSS");
 
 // Main Loop
 while(window.isOpen)
@@ -108,14 +102,14 @@ while(window.isOpen)
 // Init omitted
 
 // Sprite in main Window
-LiteCGSS::Sprite& sprite1 = LiteCGSS::Sprite.create(window);
+cgss::Sprite& sprite1 = cgss::Sprite.create(window);
 
 // Viewport sprite definition
-LiteCGSS::Viewport& viewport = LiteCGSS::Viewport.create(window, 0, 0, 640, 480);
-LiteCGSS::Sprite& sprite2 = LiteCGSS::Sprite.create(viewport);
+cgss::Viewport& viewport = cgss::Viewport.create(window, 0, 0, 640, 480);
+cgss::Sprite& sprite2 = cgss::Sprite.create(viewport);
 
 // Texture loading
-LiteCGSS::Texture& texture = LiteCGSS::Texture.create(window, "image.png");
+cgss::Texture& texture = cgss::Texture.create(window, "image.png");
 
 // Settings of Sprite1
 sprite1.setTexture(texture);
