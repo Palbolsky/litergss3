@@ -1,5 +1,6 @@
 #include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Graphics/RenderStates.h"
+#include "LiteCGSS/Common/NormalizeNumbers.h"
 #include "DisplayWindow.h"
 #include "DisplayWindowSnapshot.h"
 
@@ -30,7 +31,7 @@ void cgss::DisplayWindowSnapshot::init() {
 	m_freezeShader.data().loadShaderFromMemory(GraphicsTransitionFragmentShader, sf::Shader::Type::Fragment);	
 }
 
-void cgss::DisplayWindowSnapshot::freeze(sf::RenderWindow& window) {
+void cgss::DisplayWindowSnapshot::freeze(const sf::RenderWindow& window) {
 	if (m_freezeTexture != nullptr) {
 		return;
 	}
@@ -41,7 +42,7 @@ void cgss::DisplayWindowSnapshot::freeze(sf::RenderWindow& window) {
 	m_freezeSprite->setScale(1.0f / static_cast<float>(m_window.scale()), 1.0f / static_cast<float>(m_window.scale()));
 }
 
-void cgss::DisplayWindowSnapshot::takeSnapshotOn(sf::RenderWindow& window, sf::Texture& text) const {
+void cgss::DisplayWindowSnapshot::takeSnapshotOn(const sf::RenderWindow& window, sf::Texture& text) const {
 	sf::Vector2u sc_sz = window.getSize();
 	int x = 0;
 	int y = 0;
@@ -83,13 +84,6 @@ void cgss::DisplayWindowSnapshot::transitionRGSS(long time, const Texture& bitma
 	}
 }
 
-static inline long normalize_long(long value, long min, long max) {
-	if(value < min)
-		return min;
-	if(value > max)
-		return max;
-	return value;
-}
 
 void cgss::DisplayWindowSnapshot::transition(long time, Texture* texture) {
 	if(m_freezeSprite == nullptr) {
@@ -107,7 +101,7 @@ void cgss::DisplayWindowSnapshot::transition(long time, Texture* texture) {
 	m_freezeTexture = nullptr;
 }
 
-std::unique_ptr<sf::Texture> cgss::DisplayWindowSnapshot::takeSnapshot(sf::RenderWindow& window) const {
+std::unique_ptr<sf::Texture> cgss::DisplayWindowSnapshot::takeSnapshot(const sf::RenderWindow& window) const {
 	auto texture = std::make_unique<sf::Texture>();
 	takeSnapshotOn(window, *texture);
 	return texture;

@@ -1,6 +1,8 @@
 #include <cmath>
 #include "ViewBox.h"
 #include "LoggerViews.h"
+#include "LiteCGSS/Configuration/DisplayWindowSettings.h"
+#include "LiteCGSS/Common/NormalizeNumbers.h"
 
 SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::ViewBox)
 
@@ -9,7 +11,7 @@ SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::ViewBox)
 #define LOG_WARN SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Warn, cgss::ViewBox)
 
 cgss::ViewBox::ViewBox(MainEventDispatcher& ed, const DisplayWindowSettings& windowSettings) : 
-	SubObserver<WindowSettingsChangeEvent>(std::bind(&ViewBox::onWindowSettingsChange, this, std::placeholders::_1), ed),
+	SubObserver<WindowSizeChangeEvent>(std::bind(&ViewBox::onWindowSizeChange, this, std::placeholders::_1), ed),
 	m_screenWidth(windowSettings.video.width),
 	m_screenHeight(windowSettings.video.height) {
 	resize(m_screenWidth, m_screenHeight);
@@ -71,18 +73,22 @@ void cgss::ViewBox::onRenderTarget(sf::RenderTarget& renderTarget, bool copy) co
 void cgss::ViewBox::moveViewport(float x, float y) {
 	const auto sw = static_cast<float>(m_screenWidth);
 	const auto sh = static_cast<float>(m_screenHeight);
-	m_view.setViewport(sf::FloatRect{ x / sw, y / sh, m_view.getSize().x / sw, m_view.getSize().y / sh });
+	m_x = x;
+	m_y = y;
+	m_view.setViewport(sf::FloatRect{ m_x / sw, m_y / sh, m_view.getSize().x / sw, m_view.getSize().y / sh });
 	
 	LOG_DEBUG << "Viewbox " << static_cast<void*>(this) <<  " has been moved to x = " << x << " y = " << y;
 	auto event = ViewportChangeEvent { getRectangleBox() };
 	Observable<ViewportChangeEvent>::notifyObservers(event);
 }
 
-bool cgss::ViewBox::onWindowSettingsChange(WindowSettingsChangeEvent& event) {
-	m_screenWidth = event.settings.video.width;
-	m_screenHeight = event.settings.video.height;
+bool cgss::ViewBox::onWindowSizeChange(WindowSizeChangeEvent& event) {
+	m_screenWidth = event.width;
+	m_screenHeight = event.height;
 
-	LOG_INFO << "Window settings have changed to screenwidth = " << m_screenWidth << " screenheight = " << m_screenHeight;
+	moveViewport(m_x, m_y);
+
+	LOG_INFO << "Window size has changed to screenwidth = " << m_screenWidth << " screenheight = " << m_screenHeight;
 	return true;
 }
 
@@ -102,18 +108,8 @@ float cgss::ViewBox::getHeight() const {
 	return m_view.getSize().y;
 }
 
-static inline double normalize_double(double value, double min, double max) {
-	if (value < min) {
-		return min;
-	}
-	if (value > max) {
-		return max;
-	}
-	return value;
-}
-
 void cgss::ViewBox::setZoom(float zoom) {
-	m_zoom = 1.0 / normalize_double(zoom, 0.001, 1000.0);
+	m_zoom = 1.0 / cgss::normalize_double(zoom, 0.001, 1000.0);
 	m_view.zoom(zoom);
 }
 
