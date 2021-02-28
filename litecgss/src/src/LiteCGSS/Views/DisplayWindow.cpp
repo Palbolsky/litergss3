@@ -12,7 +12,7 @@ SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::DisplayWindow)
 
 cgss::DisplayWindow::DisplayWindow(const DisplayWindowSettings& settings) :
 	m_snapshot{ *this } {
-	reload(settings);
+	reload(settings, true);
 }
 
 cgss::DisplayWindow::DisplayWindow() :
@@ -30,22 +30,29 @@ void cgss::DisplayWindow::initUserRender() {
 	m_userRenderSprite->setTexture(m_userRenderTexture->getTexture());
 }
 
-void cgss::DisplayWindow::reload(DisplayWindowSettings settings) {
+void cgss::DisplayWindow::reload(DisplayWindowSettings settings, bool force) {
+	const auto windowCreateNeeded = 
+		force ||
+		settings.video.bitsPerPixel != m_settings.video.bitsPerPixel ||
+		settings.fullscreen != m_settings.fullscreen;
+	
 	m_settings = std::move(settings);
-	const auto style = m_settings.fullscreen ? sf::Style::Fullscreen : (sf::Style::Close | sf::Style::Titlebar);
 
-	const auto scaledWidth = static_cast<unsigned int>(m_settings.video.width * m_settings.video.scale);
-	const auto scaledHeight = static_cast<unsigned int>(m_settings.video.height * m_settings.video.scale);
 	if (settings.headless) {
-		if (m_gameWindow.isOpen()) {
-			m_gameWindow.close();
-		}
+		m_gameWindow.close();
 	} else {
-		m_gameWindow.create(sf::VideoMode { scaledWidth, scaledHeight, m_settings.video.bitsPerPixel }, m_settings.title, style, m_settings.context);
+		const auto scaledWidth = static_cast<unsigned int>(m_settings.video.width * m_settings.video.scale);
+		const auto scaledHeight = static_cast<unsigned int>(m_settings.video.height * m_settings.video.scale);
+		if (windowCreateNeeded) {
+			const auto style = m_settings.fullscreen ? sf::Style::Fullscreen : (sf::Style::Close | sf::Style::Titlebar);
+			m_gameWindow.create(sf::VideoMode { scaledWidth, scaledHeight, m_settings.video.bitsPerPixel }, m_settings.title, style, m_settings.context);
+		} else {
+			m_gameWindow.setSize(sf::Vector2u { scaledWidth, scaledHeight });
+			m_gameWindow.setTitle(m_settings.title);
+		}
+		m_gameWindow.setMouseCursorVisible(m_settings.visibleMouse);
+		setVsync(m_settings.vSync);
 	}
-
-	m_gameWindow.setMouseCursorVisible(m_settings.visibleMouse);
-	setVsync(m_settings.vSync);	
 
 	m_draw.smoothScreen = m_settings.smoothScreen;
 	m_draw.scale = m_settings.video.scale;
@@ -53,7 +60,8 @@ void cgss::DisplayWindow::reload(DisplayWindowSettings settings) {
 
 	m_snapshot.init();
 
-	if (m_draw.screenWidth != m_settings.video.width || m_draw.screenHeight != m_settings.video.height) {
+	const auto windowSizeChanged = force || m_draw.screenWidth != m_settings.video.width || m_draw.screenHeight != m_settings.video.height;
+	if (windowSizeChanged) {
 		onSizeChanged();
 	}
 
@@ -77,7 +85,7 @@ void cgss::DisplayWindow::onSizeChanged() {
 }
 
 void cgss::DisplayWindow::notifyWindowSizeChange() {
-	/* This event will help by notifying subscribed viewports */
+	/* This event will help by notifying subscribed viewboxes (Viewports / FramedViews / ...) */
 	auto we = WindowSizeChangeEvent{};
 	we.width = m_settings.video.width;
 	we.height = m_settings.video.height;
@@ -121,9 +129,6 @@ void cgss::DisplayWindow::stop() {
 }
 
 void cgss::DisplayWindow::draw() {
-	if (!isOpen()) {
-		return;
-	}
 	m_gameWindow.clear();
 
 	sf::View defview = m_gameWindow.getDefaultView();

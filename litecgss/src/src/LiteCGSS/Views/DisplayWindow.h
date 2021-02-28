@@ -53,7 +53,7 @@ namespace cgss {
 		void setIcon(const sf::Image& image);
 
 		/* Settings related stuff */
-		void reload(DisplayWindowSettings settings);
+		void reload(DisplayWindowSettings settings, bool force = false);
 		const DisplayWindowSettings& getSettings() const;
 		const DisplayWindowContextSettings& getContextSettings() const;
 		void resizeScreen(unsigned int width, unsigned int height);
