@@ -1,6 +1,6 @@
 #include <stdlib.h>
 
-unsigned lodepng_decode32(unsigned char** out, unsigned* w, unsigned* h, const unsigned char* in, size_t insize) {
+unsigned lodepng_decode32(unsigned char** out, unsigned* w, unsigned* h, const unsigned char*, size_t) {
   static const auto bpp = 32;
   *w = 10;
   *h = 10;
@@ -10,18 +10,18 @@ unsigned lodepng_decode32(unsigned char** out, unsigned* w, unsigned* h, const u
   return 0;
 }
 
-unsigned lodepng_decode32_file(unsigned char** out, unsigned* w, unsigned* h, const char* filename) {
+unsigned lodepng_decode32_file(unsigned char** out, unsigned* w, unsigned* h, const char*) {
   return lodepng_decode32(out, w, h, NULL, 0);
 }
 
-unsigned lodepng_encode32_file(const char* filename, const unsigned char* image, unsigned w, unsigned h) {
+unsigned lodepng_encode32_file(const char*, const unsigned char*, unsigned, unsigned) {
   return 0;
 }
 
-unsigned lodepng_encode32(unsigned char** out, size_t* outsize, const unsigned char* image, unsigned w, unsigned h) {
+unsigned lodepng_encode32(unsigned char**, size_t*, const unsigned char*, unsigned, unsigned) {
   return 0;
 }
 
-const char* lodepng_error_text(unsigned code) {
+const char* lodepng_error_text(unsigned) {
   return "";
 }
