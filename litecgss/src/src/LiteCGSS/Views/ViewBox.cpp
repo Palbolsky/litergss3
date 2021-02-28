@@ -73,7 +73,9 @@ void cgss::ViewBox::onRenderTarget(sf::RenderTarget& renderTarget, bool copy) co
 void cgss::ViewBox::moveViewport(float x, float y) {
 	const auto sw = static_cast<float>(m_screenWidth);
 	const auto sh = static_cast<float>(m_screenHeight);
-	m_view.setViewport(sf::FloatRect{ x / sw, y / sh, m_view.getSize().x / sw, m_view.getSize().y / sh });
+	m_x = x;
+	m_y = y;
+	m_view.setViewport(sf::FloatRect{ m_x / sw, m_y / sh, m_view.getSize().x / sw, m_view.getSize().y / sh });
 	
 	LOG_DEBUG << "Viewbox " << static_cast<void*>(this) <<  " has been moved to x = " << x << " y = " << y;
 	auto event = ViewportChangeEvent { getRectangleBox() };
@@ -83,6 +85,8 @@ void cgss::ViewBox::moveViewport(float x, float y) {
 bool cgss::ViewBox::onWindowSizeChange(WindowSizeChangeEvent& event) {
 	m_screenWidth = event.width;
 	m_screenHeight = event.height;
+
+	moveViewport(m_x, m_y);
 
 	LOG_INFO << "Window size has changed to screenwidth = " << m_screenWidth << " screenheight = " << m_screenHeight;
 	return true;

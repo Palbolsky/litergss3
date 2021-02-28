@@ -59,6 +59,8 @@ namespace cgss {
 		bool m_triggerMove = true;
 		bool m_triggerResize = true;
 
+		float m_x = 0.f;
+		float m_y = 0.f;
 		long m_ox = 0;
 		long m_oy = 0;
 		long m_screenWidth = 640;
