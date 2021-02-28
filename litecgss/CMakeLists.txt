@@ -37,7 +37,10 @@ endfunction()
 
 set(OLD_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
 set(BUILD_SHARED_LIBS False)
+
+set(SKALOG_NO_TEST True)
 add_subdirectory(external/skalog)
+
 set(BUILD_SHARED_LIBS ${OLD_BUILD_SHARED_LIBS})
 
 add_subdirectory(src)
