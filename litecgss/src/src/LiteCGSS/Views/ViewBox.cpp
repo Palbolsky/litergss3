@@ -2,6 +2,7 @@
 #include "ViewBox.h"
 #include "LoggerViews.h"
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
+#include "LiteCGSS/Common/NormalizeNumbers.h"
 
 SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::ViewBox)
 
@@ -103,18 +104,8 @@ float cgss::ViewBox::getHeight() const {
 	return m_view.getSize().y;
 }
 
-static inline double normalize_double(double value, double min, double max) {
-	if (value < min) {
-		return min;
-	}
-	if (value > max) {
-		return max;
-	}
-	return value;
-}
-
 void cgss::ViewBox::setZoom(float zoom) {
-	m_zoom = 1.0 / normalize_double(zoom, 0.001, 1000.0);
+	m_zoom = 1.0 / cgss::normalize_double(zoom, 0.001, 1000.0);
 	m_view.zoom(zoom);
 }
 

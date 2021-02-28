@@ -1,5 +1,6 @@
 #include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Graphics/RenderStates.h"
+#include "LiteCGSS/Common/NormalizeNumbers.h"
 #include "DisplayWindow.h"
 #include "DisplayWindowSnapshot.h"
 
@@ -83,13 +84,6 @@ void cgss::DisplayWindowSnapshot::transitionRGSS(long time, const Texture& bitma
 	}
 }
 
-static inline long normalize_long(long value, long min, long max) {
-	if(value < min)
-		return min;
-	if(value > max)
-		return max;
-	return value;
-}
 
 void cgss::DisplayWindowSnapshot::transition(long time, Texture* texture) {
 	if(m_freezeSprite == nullptr) {
