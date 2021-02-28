@@ -1,11 +1,14 @@
 #include <iostream>
 
+#include <SFML/Window/Keyboard.hpp>
 #include "Views/DisplayWindow.h"
 #include "Views/Viewport.h"
 #include "Configuration/DisplayWindowSettings.h"
 #include "Graphics/Sprite.h"
 #include "Graphics/Texture.h"
 #include "Graphics/Loaders/TextureLoader.h"
+
+#include "sample_png.h"
 
 void MemTest() {
 	auto settings = cgss::DisplayWindowSettings{};
@@ -35,7 +38,61 @@ void MemTest() {
 	std::cout << "After mem release" << std::endl;
 }
 
-void ViewTest() {
+static bool g_disposeView = false;
+
+static void HandleEvents(cgss::DisplayWindow& window, cgss::DisplayWindowSettings& settings) {
+	sf::Event event;
+	while (window.pollEvent(event)) {
+		switch(event.type) {
+		case sf::Event::EventType::Closed:
+			window.stop();
+			break;
+		case sf::Event::EventType::KeyPressed:
+			switch (event.key.code) {
+				case sf::Keyboard::F1:
+					if (window.screenHeight() > 15 && window.screenWidth() > 20) {
+						window.resizeScreen(window.screenWidth() - 20, window.screenHeight() - 15);
+						settings.video.height = window.screenHeight();
+						settings.video.width = window.screenWidth();
+					}
+					break;
+				case sf::Keyboard::F2:
+					window.resizeScreen(window.screenWidth() + 20, window.screenHeight() + 15);
+					settings.video.height = window.screenHeight();
+					settings.video.width = window.screenWidth();
+					break;
+				case sf::Keyboard::F3:
+					g_disposeView = true;
+					break;
+				case sf::Keyboard::Escape:
+					window.stop();
+					break;
+				case sf::Keyboard::Enter:
+					if (event.key.alt) {
+						settings.fullscreen = !settings.fullscreen;
+						window.reload(settings);
+					}
+					break;
+				default:
+				break;
+			}
+			break;
+		case sf::Event::EventType::KeyReleased:
+			switch (event.key.code) {
+				case sf::Keyboard::Escape:
+					g_disposeView = false;
+					break;
+				default:
+				break;
+			}
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+static void ViewTest() {
 	auto settings = cgss::DisplayWindowSettings{};
 	settings.video.scale = 1;
 	settings.visibleMouse = true;
@@ -45,7 +102,12 @@ void ViewTest() {
 	auto window = cgss::DisplayWindow{ settings };
 
 	auto viewport = window.addView<cgss::Viewport>();
-	auto texture = cgss::Texture::create(window, LITE_CGSS_PLAYGROUND_DIR "/resources/test.png");
+	std::vector<unsigned char> bitmap = { g_sample_png, g_sample_png + g_sample_png_length };
+	auto loader = cgss::TextureMemoryLoader{std::move(bitmap)};
+	auto texture = cgss::Texture{};
+	if (!texture.load(loader)) {
+		throw std::runtime_error("Failed to load bitmap from memory.");
+	}
 	auto framedView = viewport.addView<cgss::FramedView>();
 
 	auto fillTexture = cgss::Texture{};
@@ -65,9 +127,9 @@ void ViewTest() {
 	auto sprite3 = cgss::Sprite::create(viewport);
 	auto sprite4 = cgss::Sprite::create(framedView);
 	sprite3.setTexture(texture);
-	sprite3.setColor({ 255, 0, 0 });
+	sprite3.setColor({ 255, 120, 120 });
 	//sprite3.move(20, 0);
-	sprite3.move(100, 200);	
+	//sprite3.move(50, 100);	
 	
 	sprite4.setTexture(fillTexture);
 	//sprite4.setZ(0);
@@ -75,33 +137,28 @@ void ViewTest() {
 	auto sprite = cgss::Sprite::create(framedView);
 	sprite.setTexture(texture);
 	sprite.move(50, 100);
-	sprite.setColor({ 0, 255, 0 });
+	sprite.setColor({ 120, 255, 120 });
 
-	/*auto sprite2 = cgss::Sprite::create(window);
+	auto sprite2 = cgss::Sprite::create(window);
 	sprite2.setTexture(texture);
-	sprite2.move(500, 300);
-	sprite2.setColor({255, 128, 128});
-	*/
+	sprite2.move(200, 100);
+	sprite2.setColor({128, 128, 255});
 
-	viewport.moveOrigin(100, 300);
-	//viewport.move(50, 50);
-	//viewport.resize(400, 300);
+	viewport.move(50, 50);
 
 	auto i = 0;
 	{
 
 		while (window.isOpen()) {
 			window.draw();
-			//sprite2.setAngle(sprite2.getAngle() - 1.f);
+			HandleEvents(window, settings);
+
 			sprite.setAngle(sprite.getAngle() + 1.f);
 			
-			if (i == 500) {
+			if (g_disposeView) {
 				framedView.detach();
 			}
 
-			if (i > 1000) {
-				break;
-			}
 			i++;
 		}
 	}

@@ -17,5 +17,5 @@ generate_source_groups("${SOURCES}" "${LITECGSS_ROOT_DIR}\\playground\\src")
 
 add_executable(LiteCGSS_playground ${SOURCES})
 
-set(TARGET_LIBS LiteCGSS_engine)
+set(TARGET_LIBS LiteCGSS_engine sfml-graphics sfml-window sfml-system)
 target_link_libraries(LiteCGSS_playground ${TARGET_LIBS})
