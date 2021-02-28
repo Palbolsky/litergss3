@@ -83,7 +83,7 @@ module Cgss
 
         def self.check_sfml_or_download_and_make_it(sfml_version)
             sfml_dir_env = SfmlInstaller::get_sfml_dir()
-            puts "SFML found from SFML_DIR (#{sfml_dir_env})"
+            puts "SFML check in SFML_DIR (#{sfml_dir_env})"
 
             $INCFLAGS << " -I" + (sfml_dir_env + "/include")
             $LDFLAGS << " -L" + (sfml_dir_env + "/lib")

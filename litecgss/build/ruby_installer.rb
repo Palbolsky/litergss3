@@ -47,8 +47,17 @@ module Cgss
                 system("7z x -y ruby_dev_kit.7z -o\"#{root_dir}/generated\"")
             }
 
+            RubyInstaller::install_msys32("#{root_dir}/generated/#{ruby_installer_version}")
+
+            SystemEnv.notify_all_running_windows()
+            system("gem install rake-compiler")
+        end
+
+        def self.install_msys32(ruby_msys32_path)
+            root_dir = File.expand_path(File.dirname(__FILE__)) + "/.."
             msys2_archive_uri = URI("http://repo.msys2.org/distrib/msys2-i686-latest.tar.xz")
             msys2_archive = root_dir + "/generated/tmp/msys2.tar.xz"
+            FileUtils.mkdir_p (root_dir + '/generated/tmp')
             unless File.exists?(msys2_archive)
                 Downloader.download_or_quit(msys2_archive_uri) do |response|
                     open(msys2_archive, "wb") do |file|
@@ -59,15 +68,13 @@ module Cgss
 
             Dir.chdir(root_dir + "/generated/tmp/") {
                 system("7z x -y msys2.tar.xz")
-                system("7z x -y msys2.tar -o\"#{root_dir}/generated/#{ruby_installer_version}\"")
+                system("7z x -y msys2.tar -o\"#{ruby_msys32_path}\"")
 
-                Dir.chdir("#{root_dir}/generated/#{ruby_installer_version}/msys32/usr/bin") {
+                Dir.chdir("#{ruby_msys32_path}/msys32/usr/bin") {
                     script = File.expand_path("#{root_dir}/build/msys32-mingw-x86-install.ps1").gsub("/", "\\")
                     system("powershell.exe -File \"#{script}\"")
                 }
             }
-            SystemEnv.notify_all_running_windows()
-            system("gem install rake-compiler")
         end
 
         def self.ridk_enable(ridk_script)
@@ -106,13 +113,15 @@ module Cgss
             if SystemEnv::is_windows()
                 ridk_script = find_executable('ridk')
                 if ridk_script.nil?
-                    RubyInstaller.install_ruby_dev_kit(ruby_main_version, ruby_minor_version, architecture)
+                    puts "Please, manually install Ruby #{ruby_main_version}.#{ruby_minor_version} on architecture #{architecture} with devkit provided and try again"
+                    exit 1
+                    #RubyInstaller.install_ruby_dev_kit(ruby_main_version, ruby_minor_version, architecture)
 
-                    ridk_script = find_executable('ridk')
-                    if ridk_script.nil?
-                        puts("Still unable to find ridk, try to restart you CMD.EXE process and ensure you have it in the PATH environment variable. Aborting")
-                        exit 1
-                    end
+                    #ridk_script = find_executable('ridk')
+                    #if ridk_script.nil?
+                    #    puts("Still unable to find ridk, try to restart you CMD.EXE process and ensure you have it in the PATH environment variable. Aborting")
+                    #    exit 1
+                    #end
                 end
                 return ridk_script
             end

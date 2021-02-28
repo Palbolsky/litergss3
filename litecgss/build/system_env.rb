@@ -19,13 +19,14 @@ module Cgss
 
         def self.notify_all_running_windows
             if SystemEnv::is_windows()
-                require 'Win32API'
-                sendMessageTimeout = Win32API.new('user32', 'SendMessageTimeout', 'LLLPLLP', 'L') 
-                hwnd_broadcast = 0xffff
-                wm_settingchange = 0x001A
-                smto_abortifhung = 2
-                result = 0
-                sendMessageTimeout.call(hwnd_broadcast, wm_settingchange, 0, 'Environment', smto_abortifhung, 5000, result) 
+                # Win32API has been removed since Ruby 3.0.0
+                #require 'Win32API'
+                #sendMessageTimeout = Win32API.new('user32', 'SendMessageTimeout', 'LLLPLLP', 'L') 
+                #hwnd_broadcast = 0xffff
+                #wm_settingchange = 0x001A
+                #smto_abortifhung = 2
+                #result = 0
+                #sendMessageTimeout.call(hwnd_broadcast, wm_settingchange, 0, 'Environment', smto_abortifhung, 5000, result) 
                 # In case of PowerShell + Chocolatey
                 system("refreshenv")
             else
