@@ -51,7 +51,7 @@ task :compile, [:type] do |t, args|
     $INCFLAGS << " -I" + (litecgss_root_dir + "/src/src")
     $LDFLAGS << " -L" + (litecgss_root_dir + "/lib")
     
-    extra_args = "-DCGSS_NO_LOGS=Y -DCMAKE_BUILD_TYPE=Release" if args[:type].eql? "release" 
+    extra_args = "-DLITECGSS_NO_TEST=True -DCGSS_NO_LOGS=Y -DCMAKE_BUILD_TYPE=Release" if args[:type].eql? "release" 
 
     puts "Building LiteCGSS in #{litecgss_root_dir}... "
     Dir.chdir(litecgss_root_dir) {
