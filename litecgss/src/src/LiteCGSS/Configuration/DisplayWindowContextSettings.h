@@ -4,7 +4,7 @@
 #include <SFML/Window/ContextSettings.hpp>
 
 namespace cgss {
-    using DisplayWindowContextSettings = sf::ContextSettings;
+	using DisplayWindowContextSettings = sf::ContextSettings;
 }
 
 #endif

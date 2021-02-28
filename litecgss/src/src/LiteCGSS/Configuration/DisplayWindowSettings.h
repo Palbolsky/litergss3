@@ -6,11 +6,28 @@
 
 namespace cgss {
 
+	namespace detail {
+		struct DisplayWindowVideoSettingsData {
+			unsigned int bitsPerPixel = 32;
+			unsigned int width = 320;
+			unsigned int height = 240;
+			double scale = 2.0;
+		};
+	}
+
 	struct DisplayWindowVideoSettings {
-		unsigned int bitsPerPixel = 32;
-		unsigned int width = 320;
-		unsigned int height = 240;
-		double scale = 2.0;
+		DisplayWindowVideoSettings (
+			long bitsPerPixel,
+			long width,
+			long height,
+			double scale);
+		unsigned int bitsPerPixel;
+		unsigned int width;
+		unsigned int height;
+		double scale;
+		DisplayWindowVideoSettings();
+	private:
+		DisplayWindowVideoSettings(detail::DisplayWindowVideoSettingsData source);
 	};
 
 	struct DisplayWindowSettings {
