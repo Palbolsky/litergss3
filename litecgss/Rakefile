@@ -7,8 +7,8 @@ require_relative 'build/builder'
 require 'rake/extensiontask'
 
 CGSS_SFML_VERSION = "2.5.1"
-CGSS_RUBY_VERSION_MAIN = "2.6"
-CGSS_RUBY_VERSION_MINOR = "6"
+CGSS_RUBY_VERSION_MAIN = "3.0"
+CGSS_RUBY_VERSION_MINOR = "0"
 CGSS_ARCHITECTURE = "x86"
 
 litecgss_root_dir = File.expand_path(File.dirname(__FILE__))

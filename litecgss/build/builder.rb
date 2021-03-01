@@ -29,8 +29,12 @@ module Cgss
                 compiler_compiler_pp = find_executable("i686-w64-mingw32-g++")
 
                 if compiler_make.nil? || compiler_compiler.nil? || compiler_compiler_pp.nil?
-                    RubyInstaller.install_ruby_dev_kit(ruby_main_version, ruby_minor_version, architecture)
-                    system("rake configure")
+                    ruby_executable = find_executable("ruby")
+                    puts "Error : you have an actual Ruby version (in #{ruby_executable}) that does not contain devkit."
+                    puts "Please, manually install Ruby #{ruby_main_version}.#{ruby_minor_version} on architecture #{architecture} with devkit provided and try again."
+                    #msys32_install_path = File.expand_path(ruby_executable + "/../..")
+                    #RubyInstaller::install_msys32(msys32_install_path)
+                    #system("rake configure")
                     exit 0
                 end
             else
