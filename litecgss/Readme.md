@@ -140,8 +140,7 @@ Réponse : Le `LiteCGSS` et `LiteRGSS2` prévoient la possibilité d'afficher pl
 # Spécifications techniques
 
 Système de build : `CMake`
-Framework de test : `doctestcpp`
-
+Framework de test : `GoogleTest`
 
 # Compilation
 
