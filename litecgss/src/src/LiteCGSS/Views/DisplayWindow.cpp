@@ -229,6 +229,14 @@ std::unique_ptr<sf::Texture> cgss::DisplayWindow::takeSnapshot() const {
 	return m_snapshot.takeSnapshot(m_gameWindow);
 }
 
+int cgss::DisplayWindow::getX() const {
+	return m_gameWindow.getPosition().x;
+}
+
+int cgss::DisplayWindow::getY() const {
+	return m_gameWindow.getPosition().y;
+}
+
 void cgss::DisplayWindow::transition(long time, Texture* texture) {
 	m_snapshot.transition(time, texture);
 }
@@ -237,3 +245,14 @@ void cgss::DisplayWindow::freeze() {
 	m_snapshot.freeze(m_gameWindow);
 }
 
+void cgss::DisplayWindow::move(int x, int y) {
+	m_gameWindow.setPosition(sf::Vector2i { x, y });
+}
+
+unsigned int cgss::DisplayWindow::DesktopWidth() {
+	return sf::VideoMode::getDesktopMode().width;
+}
+
+unsigned int cgss::DisplayWindow::DesktopHeight() {
+	return sf::VideoMode::getDesktopMode().height;
+}
