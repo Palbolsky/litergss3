@@ -26,6 +26,9 @@ namespace cgss {
 		public SnapshotCapturable {
 
 	public:
+		static unsigned int DesktopWidth();
+		static unsigned int DesktopHeight();
+
 		DisplayWindow(const DisplayWindowSettings& settings);
 		DisplayWindow(DisplayWindow&&) = default;
 		DisplayWindow& operator=(DisplayWindow&&) = delete;
@@ -51,6 +54,7 @@ namespace cgss {
 		void setBrightness(unsigned char brightness) { m_draw.brightness = brightness; }
 		void setShader(sf::RenderStates* shader);
 		void setIcon(const sf::Image& image);
+		void move(int x, int y);
 
 		/* Settings related stuff */
 		void reload(DisplayWindowSettings settings, bool force = false);

@@ -237,3 +237,14 @@ void cgss::DisplayWindow::freeze() {
 	m_snapshot.freeze(m_gameWindow);
 }
 
+void cgss::DisplayWindow::move(int x, int y) {
+	m_gameWindow.setPosition(sf::Vector2i { x, y });
+}
+
+unsigned int cgss::DisplayWindow::DesktopWidth() {
+	return sf::VideoMode::getDesktopMode().width;
+}
+
+unsigned int cgss::DisplayWindow::DesktopHeight() {
+	return sf::VideoMode::getDesktopMode().height;
+}

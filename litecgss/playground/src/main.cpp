@@ -39,6 +39,7 @@ void MemTest() {
 }
 
 static bool g_disposeView = false;
+static sf::Vector2i g_windowPosition { 100, 100 };
 
 static void HandleEvents(cgss::DisplayWindow& window, cgss::DisplayWindowSettings& settings) {
 	sf::Event event;
@@ -63,6 +64,16 @@ static void HandleEvents(cgss::DisplayWindow& window, cgss::DisplayWindowSetting
 					break;
 				case sf::Keyboard::F3:
 					g_disposeView = true;
+					break;
+				case sf::Keyboard::F5:
+					g_windowPosition.x -= 10;
+					g_windowPosition.y -= 10;
+					window.move(g_windowPosition.x, g_windowPosition.y);
+					break;
+				case sf::Keyboard::F6:
+					g_windowPosition.x += 10;
+					g_windowPosition.y += 10;
+					window.move(g_windowPosition.x, g_windowPosition.y);
 					break;
 				case sf::Keyboard::Escape:
 					window.stop();
@@ -99,7 +110,14 @@ static void ViewTest() {
 	settings.video.width = 400;
 	settings.video.height = 300;
 	settings.title = "Playground";
-	auto window = cgss::DisplayWindow{ settings };
+	auto window = cgss::DisplayWindow{ };
+
+	g_windowPosition.x = (cgss::DisplayWindow::DesktopWidth() - settings.video.width) / 2;
+	g_windowPosition.y = (cgss::DisplayWindow::DesktopHeight() - settings.video.height) / 2;
+
+	window.move(g_windowPosition.x, g_windowPosition.y);
+
+	window.reload(std::move(settings), true);
 
 	auto viewport = window.addView<cgss::Viewport>();
 	std::vector<unsigned char> bitmap = { g_sample_png, g_sample_png + g_sample_png_length };
