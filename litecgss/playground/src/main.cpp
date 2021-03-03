@@ -66,14 +66,10 @@ static void HandleEvents(cgss::DisplayWindow& window, cgss::DisplayWindowSetting
 					g_disposeView = true;
 					break;
 				case sf::Keyboard::F5:
-					g_windowPosition.x -= 10;
-					g_windowPosition.y -= 10;
-					window.move(g_windowPosition.x, g_windowPosition.y);
+					window.move(window.getX() - 10, window.getY() - 10);
 					break;
 				case sf::Keyboard::F6:
-					g_windowPosition.x += 10;
-					g_windowPosition.y += 10;
-					window.move(g_windowPosition.x, g_windowPosition.y);
+					window.move(window.getX() + 10, window.getY() + 10);
 					break;
 				case sf::Keyboard::Escape:
 					window.stop();
@@ -112,10 +108,11 @@ static void ViewTest() {
 	settings.title = "Playground";
 	auto window = cgss::DisplayWindow{ };
 
-	g_windowPosition.x = (cgss::DisplayWindow::DesktopWidth() - settings.video.width) / 2;
-	g_windowPosition.y = (cgss::DisplayWindow::DesktopHeight() - settings.video.height) / 2;
-
-	window.move(g_windowPosition.x, g_windowPosition.y);
+	const auto windowPos = sf::Vector2i {
+		static_cast<int>(cgss::DisplayWindow::DesktopWidth() - settings.video.width) / 2,
+		static_cast<int>(cgss::DisplayWindow::DesktopHeight() - settings.video.height) / 2
+	};
+	window.move(windowPos.x, windowPos.y);
 
 	window.reload(std::move(settings), true);
 

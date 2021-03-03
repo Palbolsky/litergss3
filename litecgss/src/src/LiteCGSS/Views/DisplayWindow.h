@@ -41,6 +41,8 @@ namespace cgss {
 		bool smoothScreen() const { return m_draw.smoothScreen; }
 		double scale() const { return m_draw.scale; }
 		auto frameRate() const { return m_draw.frameRate; }
+		int getX() const;
+		int getY() const;
 
 		void stop();
 		bool isOpen() const;
