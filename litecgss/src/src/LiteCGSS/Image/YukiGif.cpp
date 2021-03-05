@@ -1,3 +1,5 @@
+/* Include cstddef first, otherwise libnsgif.hpp won't "compile" */
+#include <cstddef>
 #include <libnsgif.hpp>
 #include "YukiGif.h"
 
