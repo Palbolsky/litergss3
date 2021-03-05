@@ -11,6 +11,9 @@ file(GLOB_RECURSE SOURCES
 	src/*.cpp
 	${LITE_CGSS_EXTERNAL}/lodepng/*.cpp
 	${LITE_CGSS_EXTERNAL}/lodepng/*.h
+	${LITE_CGSS_EXTERNAL}/libnsgif/*.c
+	${LITE_CGSS_EXTERNAL}/libnsgif/*.h
+	${LITE_CGSS_EXTERNAL}/libnsgif/*.hpp
 )
 
 string(REGEX REPLACE "[^;]*CMakeFiles/[^;]+;?" "" SOURCES "${SOURCES}")
@@ -22,4 +25,6 @@ add_library(LiteCGSS_engine ${SOURCES})
 set(TARGET_LIBS skalog sfml-graphics sfml-window sfml-system)
 target_link_libraries(LiteCGSS_engine ${TARGET_LIBS})
 target_include_directories(LiteCGSS_engine
-	PUBLIC ${LITE_CGSS_EXTERNAL}/lodepng PUBLIC ../external/skalog/src/src)
+	PUBLIC ${LITE_CGSS_EXTERNAL}/lodepng
+	PUBLIC ${LITE_CGSS_EXTERNAL}/libnsgif
+	PUBLIC ../external/skalog/src/src)
