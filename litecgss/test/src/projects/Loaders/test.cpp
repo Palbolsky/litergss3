@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
-#include "Graphics/Loaders/ShapeLoader.h"
-#include "Graphics/Loaders/TextureLoader.h"
+#include "Graphics/Serializers/ShapeLoader.h"
 
 TEST(LoaderGroup, Shape) {
 	const auto circleShape = cgss::ShapeLoader::buildCircle(5.4f, 1);
@@ -17,9 +16,9 @@ TEST(LoaderGroup, Shape) {
   Needs X11...
 
 TEST(LoaderGroup, Texture) {
-	auto textureLoader = cgss::TextureFileLoader {"123.png"};
+	auto textureSerializer = cgss::TextureFileSerializer {"123.png"};
 	auto texture = sf::Texture{};
 	auto image = sf::Image{};
-	textureLoader.load(texture, image);
+	textureSerializer.load(texture, image);
 }
 */

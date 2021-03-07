@@ -1,7 +1,8 @@
 #include "Texture.h"
 #include "LiteCGSS/Common/Rectangle.h"
 #include "LiteCGSS/Views/DisplayWindow.h"
-#include "LiteCGSS/Graphics/Loaders/TextureLoader.h"
+#include "LiteCGSS/Graphics/Serializers/TextureSerializer.h"
+#include "LiteCGSS/Image/Image.h"
 
 cgss::Texture::Texture() :
 	m_texture(std::make_shared<sf::Texture>()) {
@@ -10,13 +11,13 @@ cgss::Texture::Texture() :
 cgss::Texture cgss::Texture::create(const DisplayWindow& window, const std::string& filename) {
 	auto result = Texture{};
 	result.m_texture->setSmooth(window.smoothScreen());
-	TextureFileLoader::instantLoad(filename, *result.m_texture, result.m_image);
+	TextureFileSerializeMethod::load(*result.m_texture, filename, result.m_image);
 	return result;
 }
 
 cgss::Texture cgss::Texture::create(const std::string& filename) {
 	auto result = Texture{};
-	TextureFileLoader::instantLoad(filename, *result.m_texture, result.m_image);
+	TextureFileSerializeMethod::load(*result.m_texture, filename, result.m_image);
 	return result;
 }
 
@@ -42,12 +43,16 @@ cgss::Texture cgss::Texture::clone() const {
 	return result;
 }
 
-void cgss::Texture::update(sf::Image* image) {
+void cgss::Texture::update(const sf::Image* image) {
 	if (image != nullptr) {
 		//Explicit copy
 		m_image = *image;
 	}
 	m_texture->update(m_image);
+}
+
+void cgss::Texture::update(const Image& image) {
+	update(&image.m_image);
 }
 
 void cgss::Texture::blit(unsigned long x, unsigned long y, const Texture& srcTexture, const Rectangle& rect) {
@@ -76,14 +81,6 @@ void cgss::Texture::clearRect(long x, long y, unsigned int width, unsigned int h
 	fillRect(x, y, width, height, BLACK_COLOR);
 }
 
-void cgss::Texture::write(TextureSaver& saver) const {
-	saver.save(*m_texture);
-}
-
-std::vector<unsigned char> cgss::Texture::toRawDataPng() const {
-	return TextureMemoryLoader::instantSave(*m_texture);
-}
-
-unsigned int cgss::Texture::toFile(const std::string& filename) const {
-	return TextureFileLoader::instantSave(filename, *m_texture);
+unsigned int cgss::Texture::write(TextureSaver& saver) const {
+	return saver.save(*m_texture);
 }

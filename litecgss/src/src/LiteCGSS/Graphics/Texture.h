@@ -7,14 +7,13 @@
 #include <SFML/Graphics/Image.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include "LiteCGSS/Common/Meta/metadata.h"
+#include "Serializers/TextureLoaderSaver.h"
 
 namespace cgss {
-
 	class Rectangle;
 	class Shape;
 	class DisplayWindow;
-	class TextureLoader;
-	class TextureSaver;
+	class Image;
 
 	class Texture {
 	public:
@@ -25,21 +24,19 @@ namespace cgss {
 		static Texture create(const std::string& filename);
 		static Texture create(sf::Texture texture);
 
-		void update(sf::Image* image = nullptr);
+		void update(const sf::Image* image = nullptr);
+		void update(const Image& image);
 		auto getSize() const { return m_texture->getSize(); }
 
 		void blit(unsigned long x, unsigned long y, const Texture& srcTexture, const Rectangle& rect);
 		void fillRect(long x, long y, unsigned int width, unsigned int height, sf::Color color);
 		void clearRect(long x, long y, unsigned int width, unsigned int height);
 		void setSmooth(bool smooth);
-		
+
 		Texture clone() const;
 
 		bool load(const TextureLoader& loader);
-		void write(TextureSaver& saver) const;
-
-		std::vector<unsigned char> toRawDataPng() const;
-		unsigned int toFile(const std::string& filename) const;
+		unsigned int write(TextureSaver& saver) const;
 
 		bool isLoaded() const { return m_loaded; }
 
