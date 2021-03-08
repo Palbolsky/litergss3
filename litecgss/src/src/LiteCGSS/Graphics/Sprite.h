@@ -13,7 +13,7 @@ namespace cgss {
 	class View;
 	class RenderStates;
 
-	class SpriteItem : 
+	class SpriteItem :
 		public GraphicsStackItem,
 		public ShaderRenderable {
 		friend class Sprite;
@@ -32,7 +32,7 @@ namespace cgss {
 		void updateFromValue(const RenderStatesData* value) override;
 		void setOpacity(std::uint8_t opacity) override;
 	};
-	
+
 	class Sprite :
 		public Drawable<Sprite, SpriteItem>,
 		private Transformable {
@@ -60,7 +60,7 @@ namespace cgss {
 		using Transformable::setInstance;
 		using Transformable::getAngle;
 		using Transformable::setAngle;
-		
+
 		sf::Color getColor() const;
 		void setColor(sf::Color color);
 

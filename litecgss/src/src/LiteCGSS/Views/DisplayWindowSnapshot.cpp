@@ -96,7 +96,7 @@ void cgss::DisplayWindowSnapshot::transition(long time, Texture* texture) {
 	} else {
 		transitionRGSS(time, *texture);
 	}
-	
+
 	m_freezeSprite = nullptr;
 	m_freezeTexture = nullptr;
 }

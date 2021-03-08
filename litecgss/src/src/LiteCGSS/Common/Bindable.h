@@ -20,7 +20,7 @@ namespace cgss {
 			m_destructing = false;
 		}
 
-		Bindable& operator=(Bindable&& bindableElement) {            
+		Bindable& operator=(Bindable&& bindableElement) {
 			bindValue(bindableElement.m_target);
 			bindableElement.m_target = nullptr;
 			return *this;

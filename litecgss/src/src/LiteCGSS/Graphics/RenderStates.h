@@ -9,10 +9,10 @@
 #include "LiteCGSS/Common/Meta/metadata.h"
 
 namespace cgss {
-    
+
 	class RenderStates :
 		public BondElement<RenderStatesData> {
-	private:	
+	private:
 		void updateShader();
 	public:
 		RenderStates() = default;

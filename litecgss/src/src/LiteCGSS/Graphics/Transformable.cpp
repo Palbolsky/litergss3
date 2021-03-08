@@ -1,6 +1,6 @@
 #include "Transformable.h"
 
-cgss::Transformable::Transformable(sf::Transformable& instance) : 
+cgss::Transformable::Transformable(sf::Transformable& instance) :
 	m_instance(&instance) {
 }
 

@@ -34,7 +34,7 @@ namespace cgss {
 		virtual ~Observable() = default;
 
 		void addObserver(ObserverType& obs) {
-			detail::observable::insert_in_container(m_head, &obs);        
+			detail::observable::insert_in_container(m_head, &obs);
 		}
 
 		bool removeObserver(ObserverType& obs) {

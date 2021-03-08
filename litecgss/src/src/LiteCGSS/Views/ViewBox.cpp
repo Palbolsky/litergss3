@@ -76,7 +76,7 @@ void cgss::ViewBox::moveViewport(float x, float y) {
 	m_x = x;
 	m_y = y;
 	m_view.setViewport(sf::FloatRect{ m_x / sw, m_y / sh, m_view.getSize().x / sw, m_view.getSize().y / sh });
-	
+
 	LOG_DEBUG << "Viewbox " << static_cast<void*>(this) <<  " has been moved to x = " << x << " y = " << y;
 	auto event = ViewportChangeEvent { getRectangleBox() };
 	Observable<ViewportChangeEvent>::notifyObservers(event);
@@ -130,7 +130,7 @@ sf::IntRect cgss::ViewBox::getRectangleBox() const {
 	const auto& percentBox = m_view.getViewport();
 	const auto sw = static_cast<float>(m_screenWidth);
 	const auto sh = static_cast<float>(m_screenHeight);
-	return sf::IntRect { 
+	return sf::IntRect {
 		static_cast<int>(percentBox.left * sw),
 		static_cast<int>(percentBox.top * sh),
 		static_cast<int>(percentBox.width * sw),

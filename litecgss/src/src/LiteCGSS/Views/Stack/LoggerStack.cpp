@@ -7,6 +7,6 @@
 #endif
 
 cgss::LoggerStack& cgss::GetLoggerStack() {
-    static LoggerStack logger{ CGSS_LOG_STACK };
-    return logger;
+	static LoggerStack logger{ CGSS_LOG_STACK };
+	return logger;
 }

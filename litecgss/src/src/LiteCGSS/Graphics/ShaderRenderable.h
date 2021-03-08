@@ -5,7 +5,7 @@
 #include "LiteCGSS/Common/Bindable.h"
 
 namespace cgss {
-    using ShaderRenderable = Bindable<RenderStatesData>;
+	using ShaderRenderable = Bindable<RenderStatesData>;
 }
 
 #endif

@@ -11,16 +11,16 @@ cgss::SpriteMapItem::SpriteMapItem(SpriteMap*) {
 }
 
 void cgss::SpriteMapItem::draw(sf::RenderTarget& target) const {
-  SpriteMapItem::drawFast(target);
+	SpriteMapItem::drawFast(target);
 }
 
 void cgss::SpriteMapItem::drawFast(sf::RenderTarget& target) const {
-  LOG_INFO << "Drawing " << m_sprites.size() << " sprites";
-  for (const auto& activableSprite: m_sprites) {
-    if (activableSprite.active) {
-      target.draw(activableSprite.sprite);
-    }
-  }
+	LOG_INFO << "Drawing " << m_sprites.size() << " sprites";
+	for (const auto& activableSprite: m_sprites) {
+		if (activableSprite.active) {
+			target.draw(activableSprite.sprite);
+		}
+	}
 }
 
 void cgss::SpriteMapItem::defineMap(unsigned long tileWidth, unsigned long tileCount) {
@@ -28,7 +28,7 @@ void cgss::SpriteMapItem::defineMap(unsigned long tileWidth, unsigned long tileC
 	LOG_WARN << "Defining SpriteMap tileWidth = " << tileWidth << " tileCount = " << tileCount;
 
 	if (tileCount == 0) {
-   		m_sprites = {};
+	 		m_sprites = {};
 		return;
 	}
 
@@ -42,9 +42,9 @@ void cgss::SpriteMap::defineMap(unsigned long tileWidth, unsigned long tileCount
 void cgss::SpriteMap::setTile(std::size_t index, const sf::IntRect& tile, sf::Texture& texture) {
 	if (index >= m_proxy->m_sprites.size()) {
 		return;
-  }
+	}
 	LOG_DEBUG << "Activate tile index = " << index << " tileRect = " << tile.left << ", " << tile.top << ", " << tile.width << ", " << tile.height;
-  auto& sprite = m_proxy->m_sprites[index];
+	auto& sprite = m_proxy->m_sprites[index];
 	sprite.sprite.setTexture(texture);
 	sprite.sprite.setTextureRect(tile);
 	sprite.active = true;
@@ -53,20 +53,20 @@ void cgss::SpriteMap::setTile(std::size_t index, const sf::IntRect& tile, sf::Te
 void cgss::SpriteMap::setTileRect(std::size_t index, const sf::IntRect& tile) {
 	if (index >= m_proxy->m_sprites.size()) {
 		return;
-  }
+	}
 	m_proxy->m_sprites[index].sprite.setTextureRect(tile);
 }
 
 void cgss::SpriteMap::reset() {
 	LOG_DEBUG << "SpriteMap resetted";
-  	for (auto& sprite : m_proxy->m_sprites) {
+		for (auto& sprite : m_proxy->m_sprites) {
 		sprite.active = false;
 	}
 }
 
 void cgss::SpriteMap::move(float x, float y) {
 	LOG_WARN << "Moving = " << x << ", " << y;
-  unsigned long xIterator = static_cast<unsigned long>(x);
+	unsigned long xIterator = static_cast<unsigned long>(x);
 	for (auto& sprite : m_proxy->m_sprites) {
 		sprite.sprite.setPosition(xIterator, y);
 		xIterator += m_proxy->m_tileWidth;

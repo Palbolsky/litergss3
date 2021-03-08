@@ -31,11 +31,11 @@ void cgss::DisplayWindow::initUserRender() {
 }
 
 void cgss::DisplayWindow::reload(DisplayWindowSettings settings, bool force) {
-	const auto windowCreateNeeded = 
+	const auto windowCreateNeeded =
 		force ||
 		settings.video.bitsPerPixel != m_settings.video.bitsPerPixel ||
 		settings.fullscreen != m_settings.fullscreen;
-	
+
 	m_settings = std::move(settings);
 
 	if (settings.headless) {
@@ -96,10 +96,10 @@ sf::RenderTarget& cgss::DisplayWindow::configureAndGetRenderTarget(sf::View& def
 	// Setting the default view parameters
 	defview.setSize(static_cast<float>(m_draw.screenWidth), static_cast<float>(m_draw.screenHeight));
 	defview.setCenter(round(m_draw.screenWidth / 2.0f), round(m_draw.screenHeight / 2.0f));
-	
+
 	// Appying the default view to the Window (used in postProcessing())
 	m_gameWindow.setView(defview);
-	
+
 	// If the m_renderTexture is defined, we use it instead of the m_gameWindow (shader processing)
 	if (m_draw.renderTexture != nullptr) {
 		// Set the default view
@@ -133,7 +133,7 @@ void cgss::DisplayWindow::draw() {
 
 	sf::View defview = m_gameWindow.getDefaultView();
 	auto& render_target = configureAndGetRenderTarget(defview);
-	
+
 	// Rendering C++ sprite stack
 	drawables().draw(defview, render_target);
 
@@ -185,7 +185,7 @@ void cgss::DisplayWindow::resizeScreen(unsigned int width, unsigned int height) 
 	const auto scaledWidth = static_cast<unsigned int>(m_settings.video.width * m_settings.video.scale);
 	const auto scaledHeight = static_cast<unsigned int>(m_settings.video.height * m_settings.video.scale);
 	m_gameWindow.setSize(sf::Vector2u { scaledWidth, scaledHeight });
-	
+
 	onSizeChanged();
 }
 

@@ -7,6 +7,6 @@
 #endif
 
 cgss::LoggerDrawables& cgss::GetLoggerDrawables() {
-    static LoggerDrawables logger{ CGSS_LOG_DRAWABLES };
-    return logger;
+	static LoggerDrawables logger{ CGSS_LOG_DRAWABLES };
+	return logger;
 }

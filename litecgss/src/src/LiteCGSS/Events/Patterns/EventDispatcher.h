@@ -1,7 +1,6 @@
 #ifndef CGSS_EVENT_DISPATCHER_H
 #define CGSS_EVENT_DISPATCHER_H
 
-
 #include "Observable.h"
 
 namespace cgss {

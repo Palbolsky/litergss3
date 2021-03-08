@@ -6,7 +6,7 @@
 #include <SFML/Graphics/Shader.hpp>
 
 namespace cgss {
-	
+
 	class RenderStatesData {
 	private:
 		sf::RenderStates m_renderStates;
@@ -30,7 +30,7 @@ namespace cgss {
 		void setBlendColorDstFactor(sf::BlendMode::Factor colorDstFactor);
 		void setBlendAlphaSrcFactor(sf::BlendMode::Factor alphaSrcFactor);
 		void setBlendAlphaDstFactor(sf::BlendMode::Factor alphaDstFactor);
-		
+
 		void setBlendColorEquation(sf::BlendMode::Equation colorEquation);
 		void setBlendAlphaEquation(sf::BlendMode::Equation alphaEquation);
 
@@ -38,7 +38,7 @@ namespace cgss {
 		sf::BlendMode::Factor getBlendColorDstFactor() const;
 		sf::BlendMode::Factor getBlendAlphaSrcFactor() const;
 		sf::BlendMode::Factor getBlendAlphaDstFactor() const;
-		
+
 		sf::BlendMode::Equation getBlendColorEquation() const;
 		sf::BlendMode::Equation getBlendAlphaEquation() const;
 
