@@ -73,7 +73,7 @@ namespace cgss {
 		using Transformable::scale;
 		using Transformable::setInstance;
 
-		void move(float x, float y);		
+		void move(float x, float y);
 		void resize(long width, long height);
 		long getWidth() const;
 		long getHeight() const;

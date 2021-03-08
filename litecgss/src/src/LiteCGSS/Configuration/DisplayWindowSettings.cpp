@@ -10,12 +10,12 @@ static cgss::detail::DisplayWindowVideoSettingsData BuildData(
 
 	/* Default video mode */
 	sf::VideoMode vmode(640, 480, 32);
-	
+
 	int bitsPerPixelDefault = 32;
 	long maxWidth = 0xFFFFFF;
 	long maxHeight = 0xFFFFFF;
 	std::vector<sf::VideoMode> modes = sf::VideoMode::getFullscreenModes();
-	
+
 	/* If there's a fullscreen mode */
 	if (modes.size() > 0) {
 		maxWidth = modes[0].width;
@@ -23,7 +23,7 @@ static cgss::detail::DisplayWindowVideoSettingsData BuildData(
 		bitsPerPixelDefault = modes[0].bitsPerPixel;
 		vmode.bitsPerPixel = modes[0].bitsPerPixel;
 	}
-	
+
 	/* Adjust Width */
 	if (width != -1) {
 		vmode.width = cgss::normalize_long(width, 0, maxWidth);
@@ -36,10 +36,10 @@ static cgss::detail::DisplayWindowVideoSettingsData BuildData(
 
 	/* Adjust Scale */
 	const double normalized_scale = scale < 0.0 ? 1.0 : cgss::normalize_double(scale, 0.1, 10);
-	
+
 	/* Adjust Bits per pixel */
 	vmode.bitsPerPixel = (bitsPerPixel != -1) ? bitsPerPixelDefault : cgss::normalize_long(bitsPerPixel, 16, bitsPerPixelDefault);
-	
+
 	return { vmode.bitsPerPixel, vmode.width, vmode.height, normalized_scale };
 }
 

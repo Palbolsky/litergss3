@@ -17,7 +17,7 @@ static ska::PeriodicTracer<cgss::LoggerStack, ska::LogLevel::Debug> DrawableStac
 
 void cgss::DrawableStack::draw(sf::View& defview, sf::RenderTarget& target) const  {
 	DrawableStackTracer.SKA_LOG_PERIODIC_TRACE(LOG_FREQUENCY);
-	for(auto& element: *this) {		
+	for (auto& element: *this) {
 		target.setView(defview);
 		element->tryDraw(target);
 	}
@@ -25,7 +25,7 @@ void cgss::DrawableStack::draw(sf::View& defview, sf::RenderTarget& target) cons
 
 void cgss::DrawableStack::drawFast(sf::RenderTarget& target) const {
 	DrawableStackTracer.SKA_LOG_PERIODIC_TRACE(LOG_FREQUENCY);
-	for(auto& element: *this) {
+	for (auto& element: *this) {
 		element->tryDrawFast(target);
 	}
 }

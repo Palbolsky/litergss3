@@ -28,7 +28,7 @@ namespace cgss {
 		}
 
 		const Value& getValue() const { return m_value; };
-		
+
 		void setValue(Value value) {
 			m_value = std::move(value);
 			if (m_target != nullptr) {
@@ -69,7 +69,7 @@ namespace cgss {
 		}
 
 		template <class Function>
-		void edit(Function&& operate) { 
+		void edit(Function&& operate) {
 			std::forward<Function>(operate)(m_value);
 			if (m_target != nullptr) {
 				m_target->updateFromValue(&m_value);

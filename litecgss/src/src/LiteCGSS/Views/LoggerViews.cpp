@@ -7,6 +7,6 @@
 #endif
 
 cgss::LoggerViews& cgss::GetLoggerViews() {
-    static LoggerViews viewsLogger{ CGSS_LOG_VIEWS };
-    return viewsLogger;
+	static LoggerViews viewsLogger{ CGSS_LOG_VIEWS };
+	return viewsLogger;
 }

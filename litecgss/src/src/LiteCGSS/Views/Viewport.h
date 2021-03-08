@@ -11,9 +11,9 @@
 #include "LiteCGSS/Graphics/RenderStates.h"
 
 namespace cgss {
-	
+
 	class Viewport;
-	class ViewportItem : 
+	class ViewportItem :
 		public GraphicsStackItem,
 		public View,
 		public ViewBox,

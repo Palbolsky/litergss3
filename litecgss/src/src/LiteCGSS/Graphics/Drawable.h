@@ -10,15 +10,15 @@ namespace cgss {
 
 	template <class DrawableOwner, class StackItem>
 	class Drawable {
-		
+
 	public:
 		virtual ~Drawable() = default;
-	
+
 		void detach() {
 			if (m_instanceOwner != nullptr && !m_disposed) {
 				m_instanceOwner->detach();
 				m_disposed = true;
-				onDispose();				
+				onDispose();
 			}
 		}
 
@@ -84,9 +84,9 @@ namespace cgss {
 		Drawable& operator=(const Drawable&) = delete;
 
 		StackItem* m_proxy = nullptr;
-	
+
 		bool hasProxy() const { return m_proxy != nullptr && m_instanceOwner != nullptr; }
-		
+
 		virtual void onDispose() {}
 
 	private:
@@ -101,6 +101,6 @@ namespace cgss {
 		std::shared_ptr<StackItem> m_instanceOwner = nullptr;
 		bool m_disposed = false;
 	};
-	
+
 }
 #endif

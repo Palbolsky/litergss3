@@ -29,7 +29,7 @@ cgss::RenderStatesData* cgss::ViewportItem::getRenderStates() {
 	return m_defaultRenderStates == nullptr ? nullptr : &m_defaultRenderStates->data();
 }
 
-void cgss::ViewportItem::draw(sf::RenderTarget& target) const {	
+void cgss::ViewportItem::draw(sf::RenderTarget& target) const {
 	sf::View originalView = sf::View(target.getView());
 
 	const auto* renderStates = getRenderStates() == nullptr ? nullptr : &getRenderStates()->getRenderStates();
@@ -67,7 +67,7 @@ std::unique_ptr<sf::Texture> cgss::ViewportItem::takeSnapshot() const {
 	render.create(renderView.getSize().x, renderView.getSize().y);
 	renderView.setViewport(sf::FloatRect(0.0f, 0.0f, 1.0f, 1.0f));
 	render.setView(renderView);
-	
+
 	const auto* renderStates = getRenderStates() == nullptr ? nullptr : &getRenderStates()->getRenderStates();
 	if (renderStates) {
 		// Clearing render
@@ -195,12 +195,10 @@ std::unique_ptr<sf::Texture> cgss::Viewport::takeSnapshot() const {
 }
 
 void cgss::Viewport::onDispose() {
-	//std::cerr << "Clearing viewport (explicit dispose)" << std::endl;
 	m_proxy->View::drawables().clear();
 }
 
 cgss::Viewport::~Viewport() {
-	//std::cerr << "Clearing viewport (destructor)" << std::endl;
 	if (hasProxy()) {
 		m_proxy->View::drawables().clear();
 	}

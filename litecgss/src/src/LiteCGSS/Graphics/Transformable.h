@@ -8,7 +8,7 @@ namespace cgss {
 	class Transformable {
 	public:
 		virtual ~Transformable() = default;
-		
+
 		float getX() const;
 		float getY() const;
 
@@ -26,7 +26,7 @@ namespace cgss {
 		void setAngle(float angle);
 
 		void scale(float xScale, float yScale);
-		
+
 		void setInstance(sf::Transformable& instance);
 		Transformable(sf::Transformable& instance);
 	protected:

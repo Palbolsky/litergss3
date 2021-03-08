@@ -9,16 +9,16 @@ namespace cgss {
 	class Texture;
 	class View;
 	class Shape;
-	
+
 	enum class ShapeType {
 		Rectangle,
 		Circle,
 		Convex
 	};
-	
+
 	using ShapeData = std::pair<ShapeType, std::unique_ptr<sf::Shape>>;
-	
-	class ShapeItem : 
+
+	class ShapeItem :
 		public GraphicsStackItem {
 		friend class Shape;
 	private:
@@ -35,7 +35,7 @@ namespace cgss {
 		void updateFromValue(const sf::IntRect* rectangle) override;
 	};
 
-	class Shape : 
+	class Shape :
 		public Drawable<Shape, ShapeItem>,
 		public Transformable {
 	public:

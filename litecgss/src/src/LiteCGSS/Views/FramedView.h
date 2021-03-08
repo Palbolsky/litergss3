@@ -13,9 +13,9 @@
 #include "Viewport.h"
 
 namespace cgss {
-	
+
 	class FramedView;
-	class FramedViewItem : 
+	class FramedViewItem :
 		public GraphicsStackItem,
 		public View,
 		public ViewBox,
@@ -50,7 +50,7 @@ namespace cgss {
 		std::weak_ptr<ViewportItem> m_parent;
 
 		sf::IntRect m_cursorRect;
-		
+
 		// Array that describe how the frame is defined on the window skin (setted by the "setSkin" function member).
 		// Defined this way : [frame_mid_x, frame_mid_y, frame_mid_width, frame_mid_height, contents_ox, contents_oy]
 		// Last 2 elements are optional offset_x and offset_y of right and bottom sides.

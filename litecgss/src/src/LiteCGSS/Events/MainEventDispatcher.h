@@ -6,7 +6,7 @@
 #include "WindowSizeChangeEvent.h"
 
 namespace cgss {
-	using MainEventDispatcher = 
+	using MainEventDispatcher =
 		EventDispatcher<
 			WindowSizeChangeEvent
 		>;

@@ -20,7 +20,7 @@ namespace cgss {
 		ViewBox& operator=(ViewBox&&) noexcept = delete;
 		ViewBox(const ViewBox&) = delete;
 		ViewBox& operator=(const ViewBox&) = delete;
-		
+
 		virtual ~ViewBox() = default;
 
 		void moveOrigin(long ox, long oy);

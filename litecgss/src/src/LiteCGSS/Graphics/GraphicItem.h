@@ -4,13 +4,13 @@
 #include <SFML/Graphics.hpp>
 
 namespace cgss {
-    class GraphicItem {
-    public:
-        GraphicItem() = default;
-        virtual ~GraphicItem() = default;
+	class GraphicItem {
+	public:
+		GraphicItem() = default;
+		virtual ~GraphicItem() = default;
 
-        virtual void draw(sf::RenderTarget& target) const = 0;
-        virtual void drawFast(sf::RenderTarget& target) const = 0;
-    };
+		virtual void draw(sf::RenderTarget& target) const = 0;
+		virtual void drawFast(sf::RenderTarget& target) const = 0;
+	};
 }
 #endif

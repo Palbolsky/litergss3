@@ -3,8 +3,8 @@
 #include "LiteCGSS/Common/Logger.h"
 
 namespace cgss {
-    using LoggerViews = Logger<ska::LogLevel::Debug>;
-    LoggerViews& GetLoggerViews();
+	using LoggerViews = Logger<ska::LogLevel::Debug>;
+	LoggerViews& GetLoggerViews();
 }
 
 #endif

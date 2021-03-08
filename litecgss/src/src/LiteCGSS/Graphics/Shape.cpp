@@ -14,11 +14,11 @@ cgss::ShapeItem::ShapeItem(Shape* owner, ShapeData shape) :
 }
 
 void cgss::ShapeItem::draw(sf::RenderTarget& target) const {
-	target.draw(*m_shape, m_renderStates);	
+	target.draw(*m_shape, m_renderStates);
 }
 
 void cgss::ShapeItem::drawFast(sf::RenderTarget& target) const {
-	target.draw(*m_shape);	
+	target.draw(*m_shape);
 }
 
 void cgss::Shape::setRenderState(sf::RenderStates states) {

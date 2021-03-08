@@ -12,7 +12,7 @@ namespace cgss {
 		template <typename T1, template<typename T2, typename...> class Container, template <typename T2> class ObserverT>
 		friend class Observable;
 
-		explicit Observer(std::function<bool(T&)> handler) : 
+		explicit Observer(std::function<bool(T&)> handler) :
 			m_handler(std::move(handler)) {
 			assert(m_handler != nullptr && "Function cannot be null");
 		}

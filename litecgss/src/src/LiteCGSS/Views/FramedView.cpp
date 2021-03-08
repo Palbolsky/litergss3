@@ -55,7 +55,7 @@ void cgss::FramedViewItem::drawFast(sf::RenderTarget& target) const {
 	if (parentView != nullptr) {
 		drawCalculateView(*parentView, targetView);
 	}
-	
+
 	if (targetView.getViewport().height > 0 && targetView.getViewport().width > 0) {
 		target.setView(targetView);
 		drawables().drawFast(target);
@@ -110,7 +110,7 @@ void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, sf::View& tar
 	// attempt to fix viewport coordinate
 	targetViewport.left += parentViewport.left;
 	targetViewport.top += parentViewport.top;
-	
+
 	// <-
 	// Fix the top/left coordinate of the view in order to make it stay in the viewport
 	float dy = parentViewport.top - targetViewport.top;
@@ -144,7 +144,7 @@ void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, sf::View& tar
 		targetCenter.x -= dx * zoom / 2;
 	}
 
-	LOG_DEBUG << "Calculated view with center = " << targetCenter.x << ", " << targetCenter.y;			
+	LOG_DEBUG << "Calculated view with center = " << targetCenter.x << ", " << targetCenter.y;
 
 	// Set the view
 	targetView.setCenter(targetCenter);
@@ -155,7 +155,7 @@ void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, sf::View& tar
 void cgss::FramedViewItem::updateVertices() {
 	// Checkup part
 	if (m_locked || m_wantedWidth <= 0 || m_wantedHeight <= 0) {
-		LOG_DEBUG << "Invalid FramedViewItem state in updateVertices (" << 
+		LOG_DEBUG << "Invalid FramedViewItem state in updateVertices (" <<
 			"lock = " << (m_locked ? "true" : "false") << " width = " << m_wantedWidth <<  " height = " << m_wantedHeight << ")" ;
 		return;
 	}
@@ -371,12 +371,12 @@ void cgss::FramedViewItem::updateVerticesStretch(long wt, long ht) {
 	sf::Vector2i a(0, 0);
 	sf::Vector2i s(0, 0);
 	sf::IntRect rect;
-	
+
 	if (m_texture == nullptr) {
 		LOG_WARN << "No texture provided in updateVerticesStretch";
 		return;
 	}
-	
+
 	long x = m_x;
 	long y = m_y;
 	long xm = m_windowBuilder[0];
@@ -579,7 +579,7 @@ void cgss::FramedViewItem::allocateVerticesStretch() {
 }
 
 void cgss::FramedViewItem::updateContents() {
-	setCursorRectangle(m_cursorRect);	
+	setCursorRectangle(m_cursorRect);
 }
 
 void cgss::FramedViewItem::updateBackOpacity() {
@@ -655,7 +655,7 @@ void cgss::FramedViewItem::resetPausePosition() {
 void cgss::FramedViewItem::setCursorRectangle(sf::IntRect rect) {
 	setValue(rect);
 	m_cursorRect = std::move(rect);
-	
+
 	if (m_cursor.getTexture() == nullptr) {
 		return;
 	}

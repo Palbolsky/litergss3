@@ -6,7 +6,7 @@
 #include "LiteCGSS/Common/BondElement.h"
 
 namespace cgss {
-	class Rectangle : 
+	class Rectangle :
 		public BondElement<sf::IntRect> {
 	public:
 		Rectangle() = default;
