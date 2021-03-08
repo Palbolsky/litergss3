@@ -60,7 +60,9 @@ void cgss::DisplayWindow::reload(DisplayWindowSettings settings, bool force) {
 
 	m_snapshot.init();
 
-	const auto windowSizeChanged = force || m_draw.screenWidth != m_settings.video.width || m_draw.screenHeight != m_settings.video.height;
+	const auto windowSizeChanged = force ||
+		m_draw.screenWidth != static_cast<long>(m_settings.video.width) ||
+		m_draw.screenHeight != static_cast<long>(m_settings.video.height);
 	if (windowSizeChanged) {
 		onSizeChanged();
 	}
