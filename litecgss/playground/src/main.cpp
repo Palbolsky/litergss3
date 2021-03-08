@@ -6,7 +6,7 @@
 #include "Configuration/DisplayWindowSettings.h"
 #include "Graphics/Sprite.h"
 #include "Graphics/Texture.h"
-#include "Graphics/Loaders/TextureLoader.h"
+#include "Graphics/Serializers/TextureSerializer.h"
 
 #include "sample_png.h"
 
@@ -117,17 +117,16 @@ static void ViewTest() {
 	window.reload(std::move(settings), true);
 
 	auto viewport = window.addView<cgss::Viewport>();
-	std::vector<unsigned char> bitmap = { g_sample_png, g_sample_png + g_sample_png_length };
-	auto loader = cgss::TextureMemoryLoader{std::move(bitmap)};
+	auto serializer = cgss::TextureMemorySerializer{ {g_sample_png, g_sample_png_length} };
 	auto texture = cgss::Texture{};
-	if (!texture.load(loader)) {
+	if (!texture.load(serializer)) {
 		throw std::runtime_error("Failed to load bitmap from memory.");
 	}
 	auto framedView = viewport.addView<cgss::FramedView>();
 
 	auto fillTexture = cgss::Texture{};
-	auto memoryLoader = cgss::TextureEmptyLoader{ 1000, 1000 };
-	fillTexture.load(memoryLoader);
+	auto memorySerializer = cgss::TextureEmptySerializer{ 1000, 1000 };
+	fillTexture.load(memorySerializer);
 	fillTexture.fillRect(0, 0, 1000, 1000, sf::Color::White);
 
 	//Move the INSIDE content (i.e. what is drawn), on SOURCE
