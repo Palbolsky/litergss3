@@ -13,12 +13,17 @@ namespace cgss {
 
 	class Rectangle;
 
+	template <>
+	struct ZGetter<GraphicsStackItemPtr>;
+
 	class GraphicsStackItem :
 		public Bindable<sf::IntRect>,
 		protected GraphicItem {
 
 		template <template <class> class ZAlgo>
 		friend class GraphicsStack;
+
+		friend struct ZGetter<GraphicsStackItemPtr>;
 	private:
 		MainGraphicsStack* m_originStack = nullptr;
 		ZIndex m_priority;
@@ -59,7 +64,7 @@ namespace cgss {
 		}
 
 		static void setZ(GraphicsStackItemPtr& item, long z) {
-			return item->setZ(z);
+			item->m_priority.z = z;
 		}
 	};
 
