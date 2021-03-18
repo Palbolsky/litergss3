@@ -114,9 +114,10 @@ namespace cgss {
 	class Sprite;
 	class Text;
 	class Viewport;
+	class Shape;
 
 	template <>
-	struct ViewAuthorizations<DisplayWindow> : public AuthorizedDrawableSet<Sprite, Text, Viewport, FramedView> {};
+	struct ViewAuthorizations<DisplayWindow> : public AuthorizedDrawableSet<Sprite, Text, Shape, Viewport, FramedView> {};
 }
 
 #endif
