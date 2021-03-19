@@ -52,6 +52,10 @@ float cgss::Text::getRealWidth() const {
 	return m_proxy->m_text.getLocalBounds().width;
 }
 
+float cgss::Text::getRealHeight() const {
+	return m_proxy->m_text.getLocalBounds().height;
+}
+
 const sf::Color& cgss::Text::getFillColor() const {
 	return m_proxy->m_text.getFillColor();
 }

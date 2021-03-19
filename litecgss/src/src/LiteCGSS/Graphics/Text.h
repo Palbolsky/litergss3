@@ -40,6 +40,7 @@ namespace cgss {
 		std::uint8_t getOpacity() const;
 		void setOpacity(std::uint8_t opacity);
 		float getRealWidth() const;
+		float getRealHeight() const;
 		const sf::Color& getFillColor() const;
 		void setFillColor(sf::Color color);
 		const sf::Color& getOutlineColor() const;
