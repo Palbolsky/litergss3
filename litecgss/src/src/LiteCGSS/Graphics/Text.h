@@ -52,7 +52,7 @@ namespace cgss {
 		long getCharacterSize() const;
 		void setCharacterSize(long characterSize);
 		void setString(const sf::String& text);
-		void setFont(sf::Font& font);
+		void setFont(const sf::Font& font);
 
 		void setDrawShadow(bool drawshadow);
 		bool getDrawShadow() const;
