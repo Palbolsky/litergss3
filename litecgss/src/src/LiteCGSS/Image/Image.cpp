@@ -56,7 +56,7 @@ void cgss::Image::fillRect(const sf::Color& color, unsigned int x, unsigned int 
 	const auto y2 = height + y;
 	for (auto yIt = y; yIt < y2; yIt++) {
 		for (auto xIt = x; xIt < x2; xIt++) {
-			m_image.setPixel(xIt, y, color);
+			m_image.setPixel(xIt, yIt, color);
 		}
 	}
 }
