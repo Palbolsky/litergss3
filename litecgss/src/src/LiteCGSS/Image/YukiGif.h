@@ -10,7 +10,7 @@ struct gif_animation;
 namespace cgss {
 	class YukiGif {
 	public:
-		static double FrameDelta;
+		static double& FrameDelta();
 		YukiGif();
 		virtual ~YukiGif();
 

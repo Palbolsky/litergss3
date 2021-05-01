@@ -6,7 +6,10 @@
 #define BYTES_PER_PIXEL 4
 #define MAX_IMAGE_BYTES (48 * 1024 * 1024)
 
-double cgss::YukiGif::FrameDelta = 16.666666666666666;
+double& cgss::YukiGif::FrameDelta() {
+	static double frameDelta = 16.666666666666666;
+	return frameDelta;
+};
 
 //--- LibNgif util functions ---
 static void* bitmap_create(int width, int height) {
@@ -71,7 +74,7 @@ bool cgss::YukiGif::update(sf::Texture& texture) {
 
 		drawOn(texture);
 	}
-	m_counter += FrameDelta;
+	m_counter += FrameDelta();
 	return true;
 }
 
