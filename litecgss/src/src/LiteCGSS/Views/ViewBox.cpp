@@ -33,8 +33,9 @@ void cgss::ViewBox::moveOrigin(long ox, long oy) {
 }
 
 void cgss::ViewBox::updateCenter() {
-	m_view.setCenter(std::roundf(static_cast<float>(m_ox) + m_view.getSize().x / 2.0f),
-		std::roundf(static_cast<float>(m_oy) + m_view.getSize().y / 2.0f));
+	const auto& viewBox = m_view.getSize() / m_zoom;
+	m_view.setCenter(std::roundf(static_cast<float>(m_ox) + viewBox.x / 2.0f),
+		std::roundf(static_cast<float>(m_oy) + viewBox.y / 2.0f));
 }
 
 void cgss::ViewBox::resize(long width, long height) {
@@ -45,14 +46,18 @@ void cgss::ViewBox::resize(long width, long height) {
 	if (height & 1) {
 		height++;
 	}
-	m_view.setSize(static_cast<float>(width), static_cast<float>(height));
+	LOG_INFO << "Size was width = " << m_view.getSize().x << " height = " << m_view.getSize().y;
+	m_view.setSize(static_cast<float>(width) * m_zoom, static_cast<float>(height) * m_zoom);
+	
+	/* Resize the viewport (don't move) */
 	const auto& percentBox = m_view.getViewport();
 	const auto sw = static_cast<float>(m_screenWidth);
 	const auto sh = static_cast<float>(m_screenHeight);
 	moveViewport(percentBox.left * sw, percentBox.top * sh);
+
 	updateCenter();
 
-	LOG_INFO << "Resizing to width = " << width << " height = " << height;
+	LOG_INFO << "Resizing to width = " << m_view.getSize().x << " height = " << m_view.getSize().y;
 
 	if (m_triggerResize) {
 		m_triggerResize = false;
@@ -75,7 +80,8 @@ void cgss::ViewBox::moveViewport(float x, float y) {
 	const auto sh = static_cast<float>(m_screenHeight);
 	m_x = x;
 	m_y = y;
-	m_view.setViewport(sf::FloatRect{ m_x / sw, m_y / sh, m_view.getSize().x / sw, m_view.getSize().y / sh });
+	const auto& viewBox = m_view.getSize() / m_zoom;
+	m_view.setViewport(sf::FloatRect{ m_x / sw, m_y / sh, viewBox.x / sw, viewBox.y / sh });
 
 	LOG_DEBUG << "Viewbox " << static_cast<void*>(this) <<  " has been moved to x = " << x << " y = " << y;
 	auto event = ViewportChangeEvent { getRectangleBox() };
@@ -101,16 +107,18 @@ long cgss::ViewBox::getOy() const {
 }
 
 float cgss::ViewBox::getWidth() const {
-	return m_view.getSize().x;
+	return m_view.getSize().x / m_zoom;
 }
 
 float cgss::ViewBox::getHeight() const {
-	return m_view.getSize().y;
+	return m_view.getSize().y / m_zoom;
 }
 
 void cgss::ViewBox::setZoom(float zoom) {
 	m_zoom = 1.0 / cgss::normalize_double(zoom, 0.001, 1000.0);
-	m_view.zoom(zoom);
+	m_view.reset(sf::FloatRect { getRectangleBox() });
+	m_view.zoom(m_zoom);
+	LOG_DEBUG << "Zoom of " << m_zoom << " transformed width = " << m_view.getSize().x << " height = " << m_view.getSize().y;
 }
 
 float cgss::ViewBox::getZoom() const {
