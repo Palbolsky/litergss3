@@ -41,8 +41,9 @@ namespace cgss {
 		public Loader<TargetObject, LoadArgs ...>,
 		public Saver<TargetObject, SaveArgs ...> {
 	public:
-		MemorySerializer(MemorySerializerData rawData) :
-			m_allocatedMemory(std::move(rawData)) {
+		MemorySerializer(MemorySerializerData rawData, bool shouldFree = true) :
+			m_allocatedMemory(std::move(rawData)),
+			m_shouldFree(shouldFree) {
 		}
 
 		MemorySerializer(const MemorySerializer&) = delete;
@@ -70,10 +71,13 @@ namespace cgss {
 
 	private:
 		void cleanup() {
-			free(m_allocatedMemory.first);
+			if (m_shouldFree) {
+				free(m_allocatedMemory.first);
+			}
 			m_allocatedMemory = { nullptr, 0u };
 		}
 		MemorySerializerData m_allocatedMemory { nullptr, 0u };
+		bool m_shouldFree = true;
 	};
 
 	template <class Serializer, class TargetObject, class Loader>

@@ -27,12 +27,12 @@ static unsigned int TextureLodePngDecode(sf::Texture& texture, const char* rawDa
 }
 
 bool cgss::TextureMemorySerializeMethod::load(sf::Texture& texture, const MemorySerializerData& rawData, sf::Image&) {
-	const bool errorCode = TextureLodePngDecode(texture, reinterpret_cast<const char*>(rawData.first), rawData.second);
-	if (errorCode != 0) {
-		std::cerr << "LodePNG error : " << lodepng_error_text(errorCode) << std::endl;
-		return false;
+	const auto errorCode = TextureLodePngDecode(texture, reinterpret_cast<const char*>(rawData.first), rawData.second);
+	if (errorCode == 0) {
+		return texture.loadFromMemory(rawData.first, rawData.second);
 	}
-	return texture.loadFromMemory(rawData.first, rawData.second);
+	std::cerr << "LodePNG error : " << lodepng_error_text(errorCode) << std::endl;
+	return false;
 }
 
 cgss::MemorySerializerData cgss::TextureMemorySerializeMethod::save(const sf::Texture& texture) {
