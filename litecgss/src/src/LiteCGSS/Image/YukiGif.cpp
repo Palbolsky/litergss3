@@ -9,7 +9,7 @@
 double& cgss::YukiGif::FrameDelta() {
 	static double frameDelta = 16.666666666666666;
 	return frameDelta;
-};
+}
 
 //--- LibNgif util functions ---
 static void* bitmap_create(int width, int height) {

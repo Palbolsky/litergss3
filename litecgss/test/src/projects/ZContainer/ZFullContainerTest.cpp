@@ -37,7 +37,7 @@ TEST(ZFullContainerGroup, Remove) {
 	const auto init = std::vector<cgss::ZIndex> { 0, 0, 1, 1, 2, 3, 3, 4, 5, 6, 18, 20, 30};
 	auto stack = cgss::ZFullContainer<cgss::ZIndex> { init };
 
-	stack.removeOne(cgss::ZIndex { 3 }, [](const cgss::ZIndex& index) {
+	stack.removeOne(cgss::ZIndex { 3 }, [](const cgss::ZIndex&) {
 		return true;
 	});
 
@@ -53,7 +53,7 @@ TEST(ZFullContainerGroup, RemoveUnsorted) {
 
 	// No refresh required after a remove, because : 1 - it's automatically done before, 2 - a remove does not change the order
 	// (the remove operation is performed through binary lookup which require the container to be sorted)
-	stack.removeOne(cgss::ZIndex { 3 }, [](const cgss::ZIndex& index) {
+	stack.removeOne(cgss::ZIndex { 3 }, [](const cgss::ZIndex&) {
 		return true;
 	});
 
