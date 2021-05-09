@@ -25,6 +25,8 @@ endif()
 include_directories(../src/src/LiteCGSS)
 include_directories(../src/src)
 
+link_directories(../lib)
+
 add_definitions(-DLITE_CGSS_TEST_DIR="${LITECGSS_ROOT_DIR}/test")
 
 # Prevent overriding the parent project's compiler/linker

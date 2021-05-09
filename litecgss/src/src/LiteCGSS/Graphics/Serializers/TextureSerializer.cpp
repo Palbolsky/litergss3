@@ -1,5 +1,6 @@
 #include <iostream>
 #include <lodepng.h>
+#include "LiteCGSS/Common/Assets.h"
 #include "TextureSerializer.h"
 
 static unsigned int TextureLodePngDecode(sf::Texture& texture, const char* rawDataOrFilename, long from_memory_size) {
@@ -49,7 +50,33 @@ cgss::MemorySerializerData cgss::TextureMemorySerializeMethod::save(const sf::Te
 	return { out, size };
 }
 
-bool cgss::TextureFileSerializeMethod::load(sf::Texture& texture, const std::string& filename, sf::Image&) {
+bool cgss::TextureEmptySerializeMethod::load(sf::Texture& texture, unsigned int width, unsigned int height, sf::Image& image) {
+	image.create(width, height, sf::Color(0, 0, 0, 0));
+	return texture.loadFromImage(image);
+}
+
+#ifdef LITECGSS_USE_PHYSFS
+bool cgss::TextureAssetSerializeMethod::load(sf::Texture& texture, const std::string& filename, sf::Image&) {
+	if (!AssetFile::exists(filename)) {
+		return texture.loadFromFile(filename.c_str());
+	}
+	try {
+		const auto buffer = AssetFile { filename, "r" }.fullLoad();
+		return texture.loadFromMemory(&buffer[0], buffer.size());
+	} catch (const std::exception& err) {
+		std::cerr << "Error while loading asset \"" << filename << "\" : " << err.what() << std::endl;
+		return false;
+	}
+}
+
+unsigned int cgss::TextureAssetSerializeMethod::save(const sf::Texture& texture, const std::string& filename) {
+	// Currently unsupported in an archive
+	// Should we ?
+	sf::Image img = texture.copyToImage();
+	return lodepng_encode32_file(filename.c_str(), img.getPixelsPtr(), img.getSize().x, img.getSize().y);
+}
+#else
+bool cgss::TextureFilesystemSerializeMethod::load(sf::Texture& texture, const std::string& filename, sf::Image&) {
 	const auto errorCode = TextureLodePngDecode(texture, filename.c_str(), 0);
 	if (errorCode == 0) {
 		return texture.loadFromFile(filename.c_str());
@@ -58,12 +85,8 @@ bool cgss::TextureFileSerializeMethod::load(sf::Texture& texture, const std::str
 	return true;
 }
 
-unsigned int cgss::TextureFileSerializeMethod::save(const sf::Texture& texture, const std::string& filename) {
+unsigned int cgss::TextureFilesystemSerializeMethod::save(const sf::Texture& texture, const std::string& filename) {
 	sf::Image img = texture.copyToImage();
 	return lodepng_encode32_file(filename.c_str(), img.getPixelsPtr(), img.getSize().x, img.getSize().y);
 }
-
-bool cgss::TextureEmptySerializeMethod::load(sf::Texture& texture, unsigned int width, unsigned int height, sf::Image& image) {
-	image.create(width, height, sf::Color(0, 0, 0, 0));
-	return texture.loadFromImage(image);
-}
+#endif

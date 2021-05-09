@@ -6,10 +6,19 @@
 #include "ImageLoaderSaver.h"
 
 namespace cgss {
-	struct ImageFileSerializeMethod {
+#ifdef LITECGSS_USE_PHYSFS
+	struct ImageAssetSerializeMethod {
 		static bool load(sf::Image& image, const std::string& filename);
 		static unsigned int save(const sf::Image& image, const std::string& filename);
 	};
+	using ImageFileSerializeMethod = ImageAssetSerializeMethod;
+#else
+	struct ImageFilesystemSerializeMethod {
+		static bool load(sf::Image& image, const std::string& filename);
+		static unsigned int save(const sf::Image& image, const std::string& filename);
+	};
+	using ImageFileSerializeMethod = ImageFilesystemSerializeMethod;
+#endif
 
 	using ImageFileSerializer = FileSerializer<ImageFileSerializeMethod, sf::Image, ImageLoader, ImageSaver>;
 
