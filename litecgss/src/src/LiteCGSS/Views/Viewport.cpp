@@ -130,7 +130,8 @@ void cgss::Viewport::draw(sf::RenderTarget& target) const {
 }
 
 void cgss::Viewport::bindRenderStates(RenderStates* states) {
-	m_proxy->ShaderRenderable::bindValue(states);
+	LOG_INFO << "Settings render states " << static_cast<const void*>(states);
+	m_proxy->ShaderRenderable::bindValue(states != nullptr ? &states->data() : nullptr);
 }
 
 void cgss::ViewportItem::updateFromValue(const RenderStatesData* renderStatesData) {
