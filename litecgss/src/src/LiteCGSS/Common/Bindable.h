@@ -75,6 +75,42 @@ namespace cgss {
 		bool m_destructing = false;
 		bool m_in = false;
 	};
+
+
+	template<class Value>
+	class MultiBindable {
+	public:
+		MultiBindable() = default;
+		MultiBindable(const MultiBindable&) = delete;
+		MultiBindable& operator=(const MultiBindable&) = delete;
+		MultiBindable(MultiBindable&& bindableElement) noexcept = default;
+		MultiBindable& operator=(MultiBindable&& bindableElement) = default;
+
+		const Value* getValue() const { return m_target; }
+		Value* value() { return m_target; }
+
+		void setValue(Value value) {
+			if (!m_in) {
+				m_in = true;
+				updateFromValue(&value);
+				m_in = false;
+			}
+		}
+
+		void bindValue(Value* element) {
+			if (element != m_target) {
+				m_target = element;
+				updateFromValue(m_target);
+			}
+		}
+
+	protected:
+		virtual void updateFromValue(const Value* value) = 0;
+	private:
+		Value* m_target = nullptr;
+		bool m_in = false;
+	};
+
 }
 
 #endif
