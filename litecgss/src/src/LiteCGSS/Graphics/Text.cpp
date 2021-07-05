@@ -29,9 +29,12 @@ void cgss::TextItem::setOpacity(std::uint8_t opacity) {
 	color.a = opacity;
 	LOG_INFO << "Set opacity (" << static_cast<int>(opacity) << ")";
 	m_text.setFillColor(color);
-	if (m_text.getOutlineThickness() < 1.0f && opacity != 255) {
+	if (m_text.getOutlineThickness() < 1.0f) {
 		color = m_text.getOutlineColor();
-		color.a = opacity / 3;
+    color.a = opacity;
+    if (opacity != 255) {
+		color.a /= 3;
+    }
 		m_text.setOutlineColor(color);
 	}
 }
