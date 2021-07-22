@@ -118,6 +118,7 @@ void cgss::ViewBox::setZoom(float zoom) {
 	m_zoom = 1.0 / cgss::normalize_double(zoom, 0.001, 1000.0);
 	m_view.reset(sf::FloatRect { getRectangleBox() });
 	m_view.zoom(m_zoom);
+	updateCenter();
 	LOG_DEBUG << "Zoom of " << m_zoom << " transformed width = " << m_view.getSize().x << " height = " << m_view.getSize().y;
 }
 
