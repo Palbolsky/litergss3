@@ -64,7 +64,7 @@ std::unique_ptr<sf::Texture> cgss::ViewportItem::takeSnapshot() const {
 	sf::RenderTexture render;
 	sf::Sprite renderSprite;
 	sf::View renderView = ViewBox::clone();
-	render.create(renderView.getSize().x, renderView.getSize().y);
+	render.create(ViewBox::getWidth(), ViewBox::getHeight());
 	renderView.setViewport(sf::FloatRect(0.0f, 0.0f, 1.0f, 1.0f));
 	render.setView(renderView);
 
