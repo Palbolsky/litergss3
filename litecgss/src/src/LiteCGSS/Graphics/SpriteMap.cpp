@@ -66,10 +66,10 @@ void cgss::SpriteMap::reset() {
 
 void cgss::SpriteMap::move(float x, float y) {
 	LOG_WARN << "Moving = " << x << ", " << y;
-	unsigned long xIterator = static_cast<unsigned long>(x);
+	auto xIterator = x;
 	for (auto& sprite : m_proxy->m_sprites) {
 		sprite.sprite.setPosition(xIterator, y);
-		xIterator += m_proxy->m_tileWidth;
+		xIterator += static_cast<float>(m_proxy->m_tileWidth);
 	}
 }
 
