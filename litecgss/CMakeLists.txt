@@ -41,6 +41,13 @@ set(BUILD_SHARED_LIBS False)
 set(SKALOG_NO_TEST True)
 add_subdirectory(external/skalog)
 
+if (LITECGSS_USE_PHYSFS)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DLITECGSS_USE_PHYSFS")
+  set(PHYSFS_BUILD_TEST OFF CACHE INTERNAL "")
+  set(PHYSFS_BUILD_SHARED OFF CACHE INTERNAL "")
+  add_subdirectory(${LITE_CGSS_EXTERNAL}/physfs)
+endif()
+
 set(BUILD_SHARED_LIBS ${OLD_BUILD_SHARED_LIBS})
 
 add_subdirectory(src)

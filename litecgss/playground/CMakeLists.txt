@@ -4,6 +4,8 @@ project(LiteCGSS_playground)
 include_directories(../src/src/LiteCGSS)
 include_directories(../src/src)
 
+link_directories(../lib)
+
 file(GLOB_RECURSE SOURCES
 	src/*.h
 	src/*.cpp

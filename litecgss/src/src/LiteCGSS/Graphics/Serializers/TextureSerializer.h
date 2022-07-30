@@ -7,11 +7,20 @@
 #include "LiteCGSS/Common/Serializer.h"
 
 namespace cgss {
-	struct TextureFileSerializeMethod {
+#ifdef LITECGSS_USE_PHYSFS
+	struct TextureAssetSerializeMethod {
 		static bool load(sf::Texture& texture, const std::string& filename, sf::Image& image);
 		static unsigned int save(const sf::Texture& texture, const std::string& filename);
 	};
-
+	using TextureFileSerializeMethod = TextureAssetSerializeMethod;
+#else
+	struct TextureFilesystemSerializeMethod {
+		static bool load(sf::Texture& texture, const std::string& filename, sf::Image& image);
+		static unsigned int save(const sf::Texture& texture, const std::string& filename);
+	};
+	using TextureFileSerializeMethod = TextureFilesystemSerializeMethod;
+	
+#endif
 	using TextureFileSerializer = FileSerializer<TextureFileSerializeMethod, sf::Texture, TextureLoader, TextureSaver>;
 
 	struct TextureMemorySerializeMethod {

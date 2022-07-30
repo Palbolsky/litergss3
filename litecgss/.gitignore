@@ -33,6 +33,7 @@ external/sfml
 external/skalog
 external/gtest
 external/sfml_src.zip
+_deps
 
 #Tests & playground
 playground/resources/*.png
