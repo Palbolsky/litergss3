@@ -29,3 +29,4 @@ target_include_directories(LiteCGSS_engine
 	PUBLIC ${LITE_CGSS_EXTERNAL}/libnsgif
 	PUBLIC ${FETCHCONTENT_BASE_DIR}/physfs-src/src
 	PUBLIC ../external/skalog/src/src)
+set_property(TARGET physfs-static PROPERTY POSITION_INDEPENDENT_CODE ON)
