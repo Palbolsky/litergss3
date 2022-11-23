@@ -25,6 +25,7 @@ namespace cgss {
 		AssetFile& operator=(AssetFile&& file);
 
 		static bool exists(const std::string& filename);
+		static std::vector<std::string> enumerate(const std::string& directory);
 
 		std::vector<char> load(uint32_t size);
 		std::vector<char> fullLoad();
