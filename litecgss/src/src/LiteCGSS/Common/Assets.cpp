@@ -25,6 +25,30 @@ bool cgss::AssetFile::exists(const std::string& filename) {
 	return PHYSFS_isInit() && PHYSFS_exists(filename.c_str());
 }
 
+std::vector<std::string> cgss::AssetFile::enumerate(const std::string& directory) {
+	if (!PHYSFS_isInit()) {
+		return {};
+	}
+
+	auto result = std::vector<std::string>{};
+	bool to_clear = false;
+	char **list = PHYSFS_enumerateFiles(directory.c_str());
+	char **filename_it;
+	try {
+		for (filename_it = list; *filename_it != NULL; filename_it++) {
+			result.push_back(std::string { *filename_it });
+		}
+	} catch(...) {
+		to_clear = true;
+	}
+	PHYSFS_freeList(list);
+	if (to_clear) {
+		result.clear();
+	}
+
+	return result;
+}
+
 cgss::AssetFile::AssetFile(const std::string& filename, const std::string& mode) :
 	m_mode(computeModeOrThrow(mode)),
 	m_file(openOrThrow(filename, m_mode)) {
@@ -50,7 +74,7 @@ std::vector<char> cgss::AssetFile::load(uint32_t size) {
 	if (m_mode != AssetFileMode::Read) {
 		throw std::runtime_error( "Current file mode does not support reading" );
 	}
-	
+
 	auto buffer = std::vector<char> {};
 	buffer.resize(size);
 	if (PHYSFS_readBytes(m_file, &buffer[0], size) != size && !PHYSFS_eof(m_file)) {
@@ -100,7 +124,7 @@ PHYSFS_file* cgss::AssetFile::openOrThrow(const std::string& filename, AssetFile
 	if (!exists(filename)) {
 		throw std::runtime_error{ "File \"" + filename + "\" does not exist in current PhysFS context"};
 	}
-	
+
 	PHYSFS_file* file = nullptr;
 
 	switch (mode) {
@@ -109,7 +133,7 @@ PHYSFS_file* cgss::AssetFile::openOrThrow(const std::string& filename, AssetFile
 		break;
 	case AssetFileMode::Write: {
 		file = PHYSFS_openWrite(filename.c_str());
-		
+
 		const auto& path = std::filesystem::path(filename).parent_path();
 		if (!path.empty() && path != "/") {
 			if (PHYSFS_mkdir(path.c_str()) == 0) {
