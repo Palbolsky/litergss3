@@ -30,8 +30,12 @@ namespace cgss {
 		static unsigned int DesktopHeight();
 
 		DisplayWindow(const DisplayWindowSettings& settings);
-		DisplayWindow(DisplayWindow&&) = default;
+
+		DisplayWindow(const DisplayWindow&) = delete;
+		DisplayWindow& operator=(DisplayWindow&) = delete;
+		DisplayWindow(DisplayWindow&&) = delete;
 		DisplayWindow& operator=(DisplayWindow&&) = delete;
+
 		DisplayWindow();
 		virtual ~DisplayWindow();
 
