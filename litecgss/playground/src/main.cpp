@@ -22,13 +22,13 @@ void MemTest() {
 	auto viewport = window.addView<cgss::Viewport>();
 	auto texture = cgss::Texture::create(window, LITE_CGSS_PLAYGROUND_DIR "/resources/test.png");
 	viewport.resize(200, 200);
-	
+
 	std::cout << "Before mem alloc" << std::endl;
 	for (std::size_t i = 0; i < 1000000; i++) {
 		auto sprite = cgss::Sprite::create(viewport);
 		sprite.setTexture(texture);
 		if (i%10000 == 0) {
-			std::cout << (i / 10000.f) <<"%" << std::endl; 
+			std::cout << (i / 10000.f) <<"%" << std::endl;
 		}
 	}
 	std::cout << "Drawing..." << std::endl;
@@ -117,7 +117,7 @@ static void ViewTest() {
 	window.reload(std::move(settings), true);
 
 	auto viewport = window.addView<cgss::Viewport>();
-	auto serializer = cgss::TextureMemorySerializer{ {g_sample_png, g_sample_png_length} };
+	auto serializer = cgss::TextureMemorySerializer{ {g_sample_png, g_sample_png_length}, false };
 	auto texture = cgss::Texture{};
 	if (!texture.load(serializer)) {
 		throw std::runtime_error("Failed to load bitmap from memory.");
@@ -143,8 +143,8 @@ static void ViewTest() {
 	sprite3.setTexture(texture);
 	sprite3.setColor({ 255, 120, 120 });
 	//sprite3.move(20, 0);
-	//sprite3.move(50, 100);	
-	
+	//sprite3.move(50, 100);
+
 	sprite4.setTexture(fillTexture);
 	//sprite4.setZ(0);
 
@@ -168,7 +168,7 @@ static void ViewTest() {
 			HandleEvents(window, settings);
 
 			sprite.setAngle(sprite.getAngle() + 1.f);
-			
+
 			if (g_disposeView) {
 				framedView.detach();
 			}

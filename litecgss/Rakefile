@@ -29,18 +29,18 @@ task :configure, [:buildtype] do |t, args|
         Cgss::SfmlInstaller.msvc_check_sfml_or_download_and_make_it(CGSS_SFML_VERSION)
     else
         ridk_script = Cgss::RubyInstaller.detect_ridk_or_download_it(CGSS_RUBY_VERSION_MAIN, CGSS_RUBY_VERSION_MINOR, CGSS_ARCHITECTURE)
-        Cgss::RubyInstaller.ridk_enable(ridk_script)        
+        Cgss::RubyInstaller.ridk_enable(ridk_script)
         Cgss::Builder.check_gnu_compiler(CGSS_RUBY_VERSION_MAIN, CGSS_RUBY_VERSION_MINOR, CGSS_ARCHITECTURE)
         Cgss::SfmlInstaller.check_sfml_or_download_and_make_it(CGSS_SFML_VERSION)
     end
-    
+
 end
 
 desc "Build the project"
 task :compile, [:type] do |t, args|
     buildtype = File.read(litecgss_root_dir + "/generated/build.cache")
     cmake_generator = Cgss::Builder::get_cmake_generator()
-    
+
     ENV["SFML_DIR"] = Cgss::SfmlInstaller::get_sfml_dir()
 
     if !buildtype.eql? "msvc"
@@ -50,12 +50,13 @@ task :compile, [:type] do |t, args|
 
     $INCFLAGS << " -I" + (litecgss_root_dir + "/src/src")
     $LDFLAGS << " -L" + (litecgss_root_dir + "/lib")
-    
-    extra_args = "-DLITECGSS_NO_TEST:BOOL=TRUE -DCGSS_NO_LOGS=Y -DCMAKE_BUILD_TYPE=Release" if args[:type].eql? "release" 
+
+    cmake_build_type = args[:type].eql?("release") ? "Release" : "Debug"
+    extra_args = "-DLITECGSS_NO_TEST:BOOL=TRUE -DCGSS_NO_LOGS=Y" if args[:type].eql? "release"
 
     puts "Building LiteCGSS in #{litecgss_root_dir}... "
     Dir.chdir(litecgss_root_dir) {
-        system("cmake #{cmake_generator} -DBUILD_SHARED_LIBS:BOOL=TRUE -DLITECGSS_USE_PHYSFS:BOOL=TRUE #{extra_args} .")
+        system("cmake #{cmake_generator} -DBUILD_SHARED_LIBS:BOOL=TRUE -DLITECGSS_USE_PHYSFS:BOOL=TRUE #{extra_args} -DCMAKE_BUILD_TYPE=#{cmake_build_type} .")
         system("cmake --build .") or fail "[LiteCGSS] Build failed"
     }
 end
@@ -71,7 +72,7 @@ task :test do
 end
 
 desc "Clean the project"
-task :clean do      
+task :clean do
     puts "Cleaning LiteCGSS in #{litecgss_root_dir}... "
     Dir.chdir(litecgss_root_dir) {
         FileUtils.rm_rf litecgss_root_dir + "/lib"

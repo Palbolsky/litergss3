@@ -41,7 +41,7 @@ namespace cgss {
 		public Loader<TargetObject, LoadArgs ...>,
 		public Saver<TargetObject, SaveArgs ...> {
 	public:
-		MemorySerializer(MemorySerializerData rawData, bool shouldFree = true) :
+		MemorySerializer(MemorySerializerData rawData, bool shouldFree) :
 			m_allocatedMemory(std::move(rawData)),
 			m_shouldFree(shouldFree) {
 		}
