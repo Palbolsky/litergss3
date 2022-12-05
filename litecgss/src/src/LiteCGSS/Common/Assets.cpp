@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <stdexcept>
+#include <optional>
 #include <physfs.h>
 
 #include "Assets.h"
@@ -23,6 +24,34 @@ cgss::AssetFile& cgss::AssetFile::operator<<(const std::string& data) {
 
 bool cgss::AssetFile::exists(const std::string& filename) {
 	return PHYSFS_isInit() && PHYSFS_exists(filename.c_str());
+}
+
+std::optional<cgss::AssetFile::Stat> cgss::AssetFile::stat(const std::string& filename) {
+	if (!PHYSFS_isInit()) {
+		return {};
+	}
+
+	auto raw_result = PHYSFS_Stat {};
+	const auto return_code = PHYSFS_stat(filename.c_str(), &raw_result);
+	if (return_code == 0) {
+		throw std::runtime_error{ PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()) };
+	}
+
+	auto result = Stat {};
+	result.filesize = raw_result.filesize;
+	result.modtime = raw_result.modtime;
+	result.createtime = raw_result.createtime;
+	result.accesstime = raw_result.accesstime;
+	result.readonly = raw_result.readonly;
+	switch (raw_result.filetype) {
+		case PHYSFS_FILETYPE_REGULAR: result.filetype = FileType::Regular; break;
+		case PHYSFS_FILETYPE_DIRECTORY: result.filetype = FileType::Directory; break;
+		case PHYSFS_FILETYPE_SYMLINK: result.filetype = FileType::Symlink; break;
+		case PHYSFS_FILETYPE_OTHER:
+		default: result.filetype = FileType::Other; break;
+	}
+
+	return result;
 }
 
 std::vector<std::string> cgss::AssetFile::enumerate(const std::string& directory) {

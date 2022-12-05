@@ -4,6 +4,8 @@
 #ifdef LITECGSS_USE_PHYSFS
 #include <string>
 #include <vector>
+#include <optional>
+#include <cstdint>
 
 struct PHYSFS_file;
 
@@ -17,6 +19,22 @@ namespace cgss {
 
 	class AssetFile {
 	public:
+		enum class FileType {
+			Regular,
+			Directory,
+			Symlink,
+			Other
+		};
+
+		struct Stat {
+			int64_t filesize;
+			int64_t modtime;
+			int64_t createtime;
+			int64_t accesstime;
+			FileType filetype;
+			bool readonly;
+		};
+
 		AssetFile(const std::string& filename, const std::string& mode);
 		AssetFile(const AssetFile&) = delete;
 		AssetFile(AssetFile&& file);
@@ -25,6 +43,7 @@ namespace cgss {
 		AssetFile& operator=(AssetFile&& file);
 
 		static bool exists(const std::string& filename);
+		static std::optional<Stat> stat(const std::string& filename);
 		static std::vector<std::string> enumerate(const std::string& directory);
 
 		std::vector<char> load(uint32_t size);
