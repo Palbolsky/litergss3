@@ -51,7 +51,9 @@ namespace cgss {
 		void stop();
 		bool isOpen() const;
 		void draw();
-		bool pollEvent(sf::Event& event);
+		bool popEvent(sf::Event& event);
+		void setActive(bool active);
+		void changeEventPolicy(bool polling);
 
 		std::unique_ptr<sf::Texture> takeSnapshot() const override;
 		void freeze();
@@ -101,6 +103,7 @@ namespace cgss {
 		sf::RenderTarget& configureAndGetRenderTarget(sf::View& defview);
 		void postProcessing();
 
+		bool m_eventPolicyPolling = true;
 		MainEventDispatcher m_eventDispatcher {};
 		DisplayWindowSettings m_settings {};
 		sf::RenderWindow m_gameWindow {};
