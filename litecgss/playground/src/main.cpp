@@ -43,7 +43,7 @@ static sf::Vector2i g_windowPosition { 100, 100 };
 
 static void HandleEvents(cgss::DisplayWindow& window, cgss::DisplayWindowSettings& settings) {
 	sf::Event event;
-	while (window.pollEvent(event)) {
+	while (window.popEvent(event)) {
 		switch(event.type) {
 		case sf::Event::EventType::Closed:
 			window.stop();

@@ -130,6 +130,10 @@ void cgss::DisplayWindow::stop() {
 	m_gameWindow.close();
 }
 
+void cgss::DisplayWindow::setActive(bool active) {
+	m_gameWindow.setActive(active);
+}
+
 void cgss::DisplayWindow::draw() {
 	m_gameWindow.clear();
 
@@ -144,8 +148,12 @@ void cgss::DisplayWindow::draw() {
 	m_gameWindow.display();
 }
 
-bool cgss::DisplayWindow::pollEvent(sf::Event& event) {
-	return m_gameWindow.pollEvent(event);
+bool cgss::DisplayWindow::popEvent(sf::Event& event) {
+	return m_eventPolicyPolling ? m_gameWindow.pollEvent(event) : m_gameWindow.waitEvent(event);
+}
+
+void cgss::DisplayWindow::changeEventPolicy(bool polling) {
+	m_eventPolicyPolling = polling;
 }
 
 void cgss::DisplayWindow::drawBrightness() {
