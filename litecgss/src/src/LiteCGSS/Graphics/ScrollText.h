@@ -41,6 +41,7 @@ freely, subject to the following restrictions:
 #include <string>
 #include <limits>
 #include <vector>
+#include <cstdint>
 
 namespace cgss {
 
