@@ -34,13 +34,13 @@ sprite.setTexture(texture);
 // Main loop
 while(true)
 {
-    window.clear(sf::Color::Black);
-    // Draw other stuff
-    // ...
-    // Draw the sprite
-    window.draw(sprite);
-    // Display the result
-    window.display();
+		window.clear(sf::Color::Black);
+		// Draw other stuff
+		// ...
+		// Draw the sprite
+		window.draw(sprite);
+		// Display the result
+		window.display();
 }
 ```
 
@@ -54,7 +54,7 @@ sprite = Sprite.new
 sprite.bitmap = Bitmap.new('image.png')
 # Main loop
 loop do
-  Graphics.update
+	Graphics.update
 end
 ```
 
@@ -93,7 +93,7 @@ cgss::DisplayWindow window(settings, "LiteCGSS");
 // Main Loop
 while(window.isOpen)
 {
-    window.update();
+		window.update();
 }
 ```
 
@@ -122,174 +122,90 @@ sprite2.setMirror(true);
 // Main Loop
 while(window.isOpen)
 {
-    window.update();
+		window.update();
 }
 ```
 
-Question : Pourquoi ne pas utiliser `sf::Texture` ?  
+Question : Pourquoi ne pas utiliser `sf::Texture` ?
 Réponse : Pour pouvoir créer une texture à la manière du `LiteRGSS` et pour pouvoir ajouter des fonctions sans empietter dans le namespace de SFML.
 
-Question : Pourquoi utiliser `.create` ?  
-Réponse : La mémoire doit être géré par le `LiteCGSS` de ce fait une fonction statique `create` est disponible pour toute les entités gérées. Ces entités on nécessairement une fonction `dispose` si l'utilisateur a besoin de s'en débarasser avant que le manager s'en charge.  
-Le manager (DisplayWindow, Viewport, FramedView) libère automatiquement la mémoire des entités auxquelles il est lié lorsqu'il est détruit.  
+Question : Pourquoi utiliser `.create` ?
+Réponse : La mémoire doit être géré par le `LiteCGSS` de ce fait une fonction statique `create` est disponible pour toute les entités gérées. Ces entités on nécessairement une fonction `dispose` si l'utilisateur a besoin de s'en débarasser avant que le manager s'en charge.
+Le manager (DisplayWindow, Viewport, FramedView) libère automatiquement la mémoire des entités auxquelles il est lié lorsqu'il est détruit.
 L'utilisateur est responsable des `DisplayWindow` puis-ce que c'est les entités de plus haut niveau. (Personne d'autre les gère.)
 
 Question : Pourquoi doit-on définir une fenêtre comme entité à un `Sprite` ou un `Viewport`.
 Réponse : Le `LiteCGSS` et `LiteRGSS2` prévoient la possibilité d'afficher plusieurs fenêtre en cas de besoin. Pour le cas des textures, lorsqu'une fenêtre est précisée les settings de la fenêtre sont utilisés pour configurer la texture (smooth).
 
-# Spécifications techniques
+# Technical
 
-Système de build : `CMake`
-Framework de test : `GoogleTest`
+Build system: `CMake`
+Test framework: `GoogleTest`
 
-# Compilation
+## Get the required toolchain (CMake + git + SFML binaries)
 
-Avant tout, je vais supposer que vous avez au moins un "git clone" du projet.
-Pour mon explication, je vais utiliser le répertoire "D:\LiteCGSS" comme répertoire cloné de ce projet.
+__CMake__
 
-Outils requis : 
-* CMake
-* SFML (version x64 ou x86 selon votre choix) et ses libs dynamiques
-* Un compilateur à jour (avec support de C++17)
+`scoop install cmake`, or another method to install CMake and get it in your path.
 
-Concernant SFML, le mieux est de la compiler directement en utilisant CMake. 
-Pour cela, il faut télécharger les sources sur le site officiel. Le lien est ici pour la dernière version en date à ce jour : https://www.sfml-dev.org/download/sfml/2.5.1/index-fr.php
-Ensuite, voici une page récapitulant les étapes de compilation : https://www.sfml-dev.org/tutorials/2.5/compile-with-cmake-fr.php
+__Git__
 
-Ici, je vais faire un résumé par un exemple sous Windows, en utilisant Visual Studio.
-Je prends pour exemple "D:\SFML-2.5.1-x86" pour le répertoire contenant les sources de SFML que je compilerai pour x86.
-Ainsi que "D:\Program Files (x86)\Microsoft Visual Studio\2019\Community\" comme répertoire vers Visual Studio.
+`scoop install git`, or another method to install git and get it in your path.
 
-```
-D:\SFML-2.5.1-x86> call "D:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars32.bat"
-D:\SFML-2.5.1-x86> del CMakeCache.txt
-D:\SFML-2.5.1-x86> cmake -A "Win32" .
--- The C compiler identification is MSVC 19.25.28614.0
--- The CXX compiler identification is MSVC 19.25.28614.0
--- Check for working C compiler: D:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.25.28610/bin/Hostx86/x86/cl.exe
--- Check for working C compiler: D:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.25.28610/bin/Hostx86/x86/cl.exe - works
--- Detecting C compiler ABI info
--- Detecting C compiler ABI info - done
--- Detecting C compile features
--- Detecting C compile features - done
--- Check for working CXX compiler: D:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.25.28610/bin/Hostx86/x86/cl.exe
--- Check for working CXX compiler: D:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.25.28610/bin/Hostx86/x86/cl.exe - works
--- Detecting CXX compiler ABI info
--- Detecting CXX compiler ABI info - done
--- Detecting CXX compile features
--- Detecting CXX compile features - done
--- Looking for sys/types.h
--- Looking for sys/types.h - found
--- Looking for stdint.h
--- Looking for stdint.h - found
--- Looking for stddef.h
--- Looking for stddef.h - found
--- Check size of void*
--- Check size of void* - done
--- Found OpenGL: opengl32
--- Found OpenAL: D:/SFML-2.5.1-x86/extlibs/libs-msvc-universal/x86/openal32.lib
-CMake Warning (dev) at .../cmake/3.17.1/share/cmake-3.17/Modules/FindPackageHandleStandardArgs.cmake:272 (message):
-  The package name passed to `find_package_handle_standard_args` (VORBIS)
-  does not match the name of the calling package (Vorbis).  This can lead to
-  problems in calling code that expects `find_package` result variables
-  (e.g., `_FOUND`) to follow a certain pattern.
-Call Stack (most recent call first):
-  cmake/Modules/FindVorbis.cmake:25 (find_package_handle_standard_args)
-  cmake/Macros.cmake:279 (find_package)
-  src/SFML/Audio/CMakeLists.txt:70 (sfml_find_package)
-This warning is for project developers.  Use -Wno-dev to suppress it.
+__SFML__
 
--- Found VORBIS: D:/SFML-2.5.1-x86/extlibs/libs-msvc-universal/x86/vorbisenc.lib;D:/SFML-2.5.1-x86/extlibs/libs-msvc-universal/x86/vorbisfile.lib;D:/SFML-2.5.1-x86/extlibs/libs-msvc-universal/x86/vorbis.lib;D:/SFML-2.5.1-x86/extlibs/libs-msvc-universal/x86/ogg.lib        
--- Found FLAC: D:/SFML-2.5.1-x86/extlibs/libs-msvc-universal/x86/flac.lib
--- Configuring done
--- Generating done
--- Build files have been written to: D:/SFML-2.5.1-x86
-```
+Two choices here:
+- You compile SFML from the sources.
+After that, you can provide a "SFML_DIR" variable in your environment variables to locate the SFML root dir and make it detected by your system
+- You use precompiled SFML binaries.
+	- On Windows: if you use mingw compatible env like msys2, you can use `pacman -S mingw-w64-i686-sfml` to install it.
+	- On Linux: `sudo apt install libsfml-dev` should do the trick
+	- On MacOS: there should be some SFML dev package that you can install with `homebrew`
 
-A cette étape, les fichiers nécessaires à la compilation de SFML (en x86 avec MSVC) sont générés.
+## Get projects from Gitlab
 
-Etape optionnelle : nous allons maintenant paramétrer SFML afin d'ajuster ses options de compilation.
-Pour cela, le plus simple (et le plus abordable) est d'utiliser "cmake-gui" :
+- Extract this actual repository of LiteCGSS with `git clone https://gitlab.com/NuriYuri/litecgss.git` into the directory of your choice
 
-```
-D:\SFML-2.5.1-x86> cmake-gui
-```
+- LiteRGSS2 automatically embeds skalog as git submodule. To keep everything functional, you have to init all submodules recursively by typing
+		`git submodule update --recursive --init`
 
-Une fenêtre s'ouvre.
-Mettre en dossier de code source "D:/SFML-2.5.1-x86" (le dossier contenant le code téléchargé sur le site sfml-dev, dans lequel nous avons déjà généré les fichiers CMake)
-Mettre en dossier de sortie pour les binaires le dossier de votre choix ("D:/SFML-2.5.1-x86-out" pour moi par exemple)
-Cliquez ensuite sur "Configure".
-Il est possible que l'on vous redemande le générateur : sélectionner votre version de Visual Studio.
-Dans la partie architecture, renseigner "Win32" pour du x86
-Une fois le projet configuré, vous pouvez modifier les valeurs utilisées par SFML.
-Je vous conseille notamment de décocher "SFML_BUILD_EXAMPLES" et "SFML_BUILD_DOC".
-Cliquez ensuite à nouveau sur "Configure" puis "Generate". Tout se déroule en principe avec succès.
-Fin de l'étape optionnelle.
+## Build the LiteCGSS
 
-Maintenant, nous allons lancer la compilation de SFML.
-```
-D:\SFML-2.5.1-x86> cmake --build .
-```
-La compilation s'effectue et permet d'obtenir en sortie diverses bibliothèques dynamiques, qui seront utilisées entre autre lors du linkage de notre LiteCGSS, mais aussi lors de son exécution.
+__Compilation__
 
-Placez-vous ensuite dans le répertoire racine du projet LiteCGSS, et effectuez une opération similaire :
-```
-D:\LiteCGSS> call "D:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars32.bat"
-D:\LiteCGSS> del CMakeCache.txt
-D:\LiteCGSS> cmake -A"Win32" .
--- The C compiler identification is MSVC 19.25.28614.0
--- The CXX compiler identification is MSVC 19.25.28614.0
--- Check for working C compiler: D:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.25.28610/bin/Hostx86/x86/cl.exe
--- Check for working C compiler: D:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.25.28610/bin/Hostx86/x86/cl.exe - works
--- Detecting C compiler ABI info
--- Detecting C compiler ABI info - done
--- Detecting C compile features
--- Detecting C compile features - done
--- Check for working CXX compiler: D:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.25.28610/bin/Hostx86/x86/cl.exe
--- Check for working CXX compiler: D:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.25.28610/bin/Hostx86/x86/cl.exe - works
--- Detecting CXX compiler ABI info
--- Detecting CXX compiler ABI info - done
--- Detecting CXX compile features
--- Detecting CXX compile features - done
-CMake Error at CMakeLists.txt:16 (find_package):
-  By not providing "FindSFML.cmake" in CMAKE_MODULE_PATH this project has
-  asked CMake to find a package configuration file provided by "SFML", but
-  CMake did not find one.
+Two ways:
 
-  Could not find a package configuration file provided by "SFML" (requested
-  version 2) with any of the following names:
+### Using CMake
 
-    SFMLConfig.cmake
-    sfml-config.cmake
+Go back to LiteCGSS root folder.
+	Configure your project with
+		`cmake -G $YOUR_CMAKE_GENERATOR .`
 
-  Add the installation prefix of "SFML" to CMAKE_PREFIX_PATH or set
-  "SFML_DIR" to a directory containing one of the above files.  If "SFML"
-  provides a separate development package or SDK, be sure it has been
-  installed.
+_Extra options (CMake variables):_
+
+`LITECGSS_NO_TEST`: Toggle (True/False) no-test builds
+
+`LITECGSS_USE_PHYSFS`: Build the assets management with PhysFS lib if it's defined
+
+`CGSS_NO_LOGS`: Logs won't show anywhere if it's defined
 
 
--- Configuring incomplete, errors occurred!
-See also "D:/LiteCGSS/CMakeFiles/CMakeOutput.log".
-See also "D:/LiteCGSS/CMakeFiles/CMakeError.log".
-```
-Comme vous pouvez le voir, on nous demande d'expliciter le répertoire d'installation de SFML.
-On peut par exemple créer la variable "SFML_DIR" pointant vers le répertoire "D:\SFML-2.5.1-x86".
-Le mieux est de directement la modifier au niveau des variables d'environnement.
-Une fois la variable renseignée, on peut relancer la configuration :
+Example of a valid CMake configuration:
 
-```
-D:\LiteCGSS> cmake .
--- Found SFML 2.5.1 in D:/SFML-2.5.1-x86-out
--- Configuring done
--- Generating done
--- Build files have been written to: D:/LiteCGSS
-```
-Félicitations, LiteCGSS est correctement configuré et (enfin !) prêt à être compilé !
+`cmake -G "MinGW Makefiles" -DLITECGSS_NO_TEST=True -DCGSS_NO_LOGS=True .`
 
-Nous pouvons terminer en lançant la compilation :
-```
-D:\LiteCGSS> cmake --build .
-```
-Tout devrait maintenant compiler avec succès.
-Maintenant, concernant l'exécution des binaires utilisant le LiteCGSS : cela nécessite les libs dynamiques créées lors de la compilation de SFML.
-Le plus simple est donc de copier / coller les DLL contenues dans le répertoire "D:\SFML-2.5.1-x86\lib\Debug" pour une target "Debug" ou simplement "D:\SFML-2.5.1-x86\lib" pour une target "Release" et de les placer à côté des exécutables.
+Then, build your project by typing
+		`cmake --build .`
+
+### Using Rake
+
+Ensure you have the Ruby dev kit toolchain by typing `ridk enable`
+
+Go back to LiteCGSS root folder. First you have to configure (only the first time you build) the whole project. For that, type `rake configure`
+
+This time we will use the ruby rake compiler toolchain, by simply typing
+		`rake clean; rake compile`
+
+_Extra options (Environment variables):_
+
+`LITECGSS_CMAKE_GENERATOR`: allow you to select a specific CMake Generator if defined
