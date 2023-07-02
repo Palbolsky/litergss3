@@ -35,3 +35,6 @@ target_include_directories(LiteCGSS_engine
 	PUBLIC ${LITE_CGSS_EXTERNAL}/libnsgif
 	${LITECGSS_PHYSFS_TARGET_INCLUDE_DIR}
 	PUBLIC ../external/skalog/src/src)
+if (NOT BUILD_SHARED_LIBS)
+	set_property(TARGET LiteCGSS_engine PROPERTY POSITION_INDEPENDENT_CODE ON)
+endif()
