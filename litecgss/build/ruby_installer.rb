@@ -11,7 +11,7 @@ module Cgss
             if SystemEnv::is_windows()
                 ridk_script = find_executable('ridk')
                 if ridk_script.nil?
-                    puts("Unable to find ridk, please run 'rake configure' to setup a working environment")
+                    puts("Unable to find ridk, please install ruby with devkit")
                     exit 1
                 end
                 return ridk_script
@@ -19,16 +19,5 @@ module Cgss
             return nil
         end
 
-        def self.check_ridk(ruby_main_version, ruby_minor_version, architecture)
-            if SystemEnv::is_windows()
-                ridk_script = find_executable('ridk')
-                if ridk_script.nil?
-                    puts("Unable to find ridk, please run 'rake configure' to setup a working environment")
-                    exit 1
-                end
-                return ridk_script
-            end
-            return nil
-        end
     end
 end

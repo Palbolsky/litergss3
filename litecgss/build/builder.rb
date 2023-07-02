@@ -12,7 +12,7 @@ module Cgss
             if generator.empty? && Cgss::SystemEnv::is_windows()
               generator = "MinGW Makefiles"
             end
-            return "-G \"" + generator + "\""
+            return generator.empty? ? "" : "-G \"" + generator + "\""
         end
 
         def self.check_gnu_compiler()

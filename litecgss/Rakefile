@@ -11,6 +11,7 @@ litecgss_root_dir = File.expand_path(File.dirname(__FILE__))
 desc "Build the project"
 task :compile, [:type] do |t, args|
     Cgss::Builder.cmake_guard()
+    Cgss::RubyInstaller.ridk_guard()
     Cgss::Builder.check_gnu_compiler()
     sfml_dir_env = Cgss::SfmlInstaller.check_sfml()
     if sfml_dir_env && !sfml_dir_env.empty?
