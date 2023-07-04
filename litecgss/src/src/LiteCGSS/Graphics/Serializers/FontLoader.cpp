@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
 #include "LiteCGSS/Common/Assets.h"
 #include "FontLoader.h"
 

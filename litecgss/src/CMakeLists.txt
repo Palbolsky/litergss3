@@ -22,11 +22,19 @@ generate_source_groups("${SOURCES}" "${LITECGSS_ROOT_DIR}")
 
 add_library(LiteCGSS_engine ${SOURCES})
 
-set(TARGET_LIBS skalog sfml-graphics sfml-window sfml-system physfs)
+set(TARGET_LIBS skalog sfml-graphics sfml-window sfml-system)
+if (LITECGSS_USE_PHYSFS)
+	set(TARGET_LIBS ${TARGET_LIBS} physfs)
+	set_property(TARGET physfs-static PROPERTY POSITION_INDEPENDENT_CODE ON)
+	set(LITECGSS_PHYSFS_TARGET_INCLUDE_DIR 	PUBLIC ${FETCHCONTENT_BASE_DIR}/physfs-src/src)
+endif()
+
 target_link_libraries(LiteCGSS_engine ${TARGET_LIBS})
 target_include_directories(LiteCGSS_engine
 	PUBLIC ${LITE_CGSS_EXTERNAL}/lodepng
 	PUBLIC ${LITE_CGSS_EXTERNAL}/libnsgif
-	PUBLIC ${FETCHCONTENT_BASE_DIR}/physfs-src/src
+	${LITECGSS_PHYSFS_TARGET_INCLUDE_DIR}
 	PUBLIC ../external/skalog/src/src)
-set_property(TARGET physfs-static PROPERTY POSITION_INDEPENDENT_CODE ON)
+if (NOT BUILD_SHARED_LIBS)
+	set_property(TARGET LiteCGSS_engine PROPERTY POSITION_INDEPENDENT_CODE ON)
+endif()

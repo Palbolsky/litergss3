@@ -164,8 +164,17 @@ PHYSFS_file* cgss::AssetFile::openOrThrow(const std::string& filename, AssetFile
 		file = PHYSFS_openWrite(filename.c_str());
 
 		const auto& path = std::filesystem::path(filename).parent_path();
-		if (!path.empty() && path != "/") {
-			if (PHYSFS_mkdir(path.c_str()) == 0) {
+		std::string finalPath;
+
+#if defined(_WIN32) || defined(WIN32)
+		const auto& wPath = path.wstring();
+		finalPath = std::string(wPath.begin(), wPath.end());
+#else
+		finalPath = path.c_str();
+#endif
+
+		if (!finalPath.empty() && finalPath != "/") {
+			if (PHYSFS_mkdir(finalPath.c_str()) == 0) {
 				throw std::runtime_error{ PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()) };
 			}
 		}
