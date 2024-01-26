@@ -35,37 +35,37 @@ freely, subject to the following restrictions:
 
 // Add an underline or strikethrough line to the vertex array
 static void addLine(sf::VertexArray& vertices, float lineLength, float lineTop, const sf::Color& color, float offset, float thickness, float outlineThickness = 0) {
-	float top = std::floor(lineTop + offset - (thickness / 2) + 0.5f);
-	float bottom = top + std::floor(thickness + 0.5f);
+  const float top    = std::floor(lineTop + offset - (thickness / 2) + 0.5f);
+  const float bottom = top + std::floor(thickness + 0.5f);
 
-	vertices.append(sf::Vertex(sf::Vector2f(-outlineThickness, top - outlineThickness), color, sf::Vector2f(1, 1)));
-	vertices.append(sf::Vertex(sf::Vector2f(lineLength + outlineThickness, top - outlineThickness), color, sf::Vector2f(1, 1)));
-	vertices.append(sf::Vertex(sf::Vector2f(-outlineThickness, bottom + outlineThickness), color, sf::Vector2f(1, 1)));
-	vertices.append(sf::Vertex(sf::Vector2f(-outlineThickness, bottom + outlineThickness), color, sf::Vector2f(1, 1)));
-	vertices.append(sf::Vertex(sf::Vector2f(lineLength + outlineThickness, top - outlineThickness), color, sf::Vector2f(1, 1)));
-	vertices.append(sf::Vertex(sf::Vector2f(lineLength + outlineThickness, bottom + outlineThickness), color, sf::Vector2f(1, 1)));
+  vertices.append(sf::Vertex(sf::Vector2f(-outlineThickness, top - outlineThickness), color, sf::Vector2f(1, 1)));
+  vertices.append(sf::Vertex(sf::Vector2f(lineLength + outlineThickness, top - outlineThickness), color, sf::Vector2f(1, 1)));
+  vertices.append(sf::Vertex(sf::Vector2f(-outlineThickness, bottom + outlineThickness), color, sf::Vector2f(1, 1)));
+  vertices.append(sf::Vertex(sf::Vector2f(-outlineThickness, bottom + outlineThickness), color, sf::Vector2f(1, 1)));
+  vertices.append(sf::Vertex(sf::Vector2f(lineLength + outlineThickness, top - outlineThickness), color, sf::Vector2f(1, 1)));
+  vertices.append(sf::Vertex(sf::Vector2f(lineLength + outlineThickness, bottom + outlineThickness), color, sf::Vector2f(1, 1)));
 }
 
 // Add a glyph quad to the vertex array
-static void addGlyphQuad(sf::VertexArray& vertices, sf::Vector2f position, const sf::Color& color, const sf::Glyph& glyph, float italicShear, float outlineThickness = 0) {
-	static constexpr const float padding = 0.0;
+static void addGlyphQuad(sf::VertexArray& vertices, sf::Vector2f position, const sf::Color& color, const sf::Glyph& glyph, float italicShear) {
+  const float padding = 1.0;
 
-	float left = glyph.bounds.left;
-	float top = glyph.bounds.top;
-	float right = glyph.bounds.left + glyph.bounds.width;
-	float bottom = glyph.bounds.top + glyph.bounds.height;
+  const float left   = glyph.bounds.left - padding;
+  const float top    = glyph.bounds.top - padding;
+  const float right  = glyph.bounds.left + glyph.bounds.width + padding;
+  const float bottom = glyph.bounds.top + glyph.bounds.height + padding;
 
-	float u1 = static_cast<float>(glyph.textureRect.left) - padding;
-	float v1 = static_cast<float>(glyph.textureRect.top) - padding;
-	float u2 = static_cast<float>(glyph.textureRect.left + glyph.textureRect.width) + padding;
-	float v2 = static_cast<float>(glyph.textureRect.top + glyph.textureRect.height) + padding;
+  const float u1 = static_cast<float>(glyph.textureRect.left) - padding;
+  const float v1 = static_cast<float>(glyph.textureRect.top) - padding;
+  const float u2 = static_cast<float>(glyph.textureRect.left + glyph.textureRect.width) + padding;
+  const float v2 = static_cast<float>(glyph.textureRect.top + glyph.textureRect.height) + padding;
 
-	vertices.append(sf::Vertex(sf::Vector2f(position.x + left - italicShear * top - outlineThickness, position.y + top - outlineThickness), color, sf::Vector2f(u1, v1)));
-	vertices.append(sf::Vertex(sf::Vector2f(position.x + right - italicShear * top - outlineThickness, position.y + top - outlineThickness), color, sf::Vector2f(u2, v1)));
-	vertices.append(sf::Vertex(sf::Vector2f(position.x + left - italicShear * bottom - outlineThickness, position.y + bottom - outlineThickness), color, sf::Vector2f(u1, v2)));
-	vertices.append(sf::Vertex(sf::Vector2f(position.x + left - italicShear * bottom - outlineThickness, position.y + bottom - outlineThickness), color, sf::Vector2f(u1, v2)));
-	vertices.append(sf::Vertex(sf::Vector2f(position.x + right - italicShear * top - outlineThickness, position.y + top - outlineThickness), color, sf::Vector2f(u2, v1)));
-	vertices.append(sf::Vertex(sf::Vector2f(position.x + right - italicShear * bottom - outlineThickness, position.y + bottom - outlineThickness), color, sf::Vector2f(u2, v2)));
+  vertices.append(sf::Vertex(sf::Vector2f(position.x + left - italicShear * top, position.y + top), color, sf::Vector2f(u1, v1)));
+  vertices.append(sf::Vertex(sf::Vector2f(position.x + right - italicShear * top, position.y + top), color, sf::Vector2f(u2, v1)));
+  vertices.append(sf::Vertex(sf::Vector2f(position.x + left - italicShear * bottom, position.y + bottom), color, sf::Vector2f(u1, v2)));
+  vertices.append(sf::Vertex(sf::Vector2f(position.x + left - italicShear * bottom, position.y + bottom), color, sf::Vector2f(u1, v2)));
+  vertices.append(sf::Vertex(sf::Vector2f(position.x + right - italicShear * top, position.y + top), color, sf::Vector2f(u2, v1)));
+  vertices.append(sf::Vertex(sf::Vector2f(position.x + right - italicShear * bottom, position.y + bottom), color, sf::Vector2f(u2, v2)));
 }
 
 cgss::ScrollText::ScrollText() :
@@ -96,6 +96,9 @@ void cgss::ScrollText::setString(const sf::String& string) {
 	if (m_string != string) {
 		m_string = string;
 		m_geometryNeedUpdate = true;
+		if (m_font != nullptr && !m_smooth) {
+			const_cast<sf::Texture*>(&m_font->getTexture(m_characterSize))->setSmooth(false);
+		}
 	}
 }
 
@@ -248,31 +251,29 @@ sf::Vector2f cgss::ScrollText::findCharacterPos(std::size_t index) const {
 	}
 
 	// Adjust the index if it's out of range
-	if (index > m_string.getSize()) {
-		index = m_string.getSize();
-	}
+	if (index > m_string.getSize()) index = m_string.getSize();
 
 	// Precompute the variables needed by the algorithm
-	bool  isBold = m_style & Bold;
-	float whitespaceWidth = m_font->getGlyph(L' ', m_characterSize, isBold).advance;
-	float letterSpacing = (whitespaceWidth / 3.f) * (m_letterSpacingFactor - 1.f);
+	const bool  isBold = m_style & Bold;
+	float whitespaceWidth = m_font->getGlyph(U' ', m_characterSize, isBold).advance;
+	const float letterSpacing = (whitespaceWidth / 3.f) * (m_letterSpacingFactor - 1.f);
 	whitespaceWidth += letterSpacing;
-	float lineSpacing = m_lineHeight * m_lineSpacingFactor;
+	const float lineSpacing = m_lineHeight * m_lineSpacingFactor;
 
 	sf::Vector2f position;
-	sf::Uint32 prevChar = 0;
+	std::uint32_t prevChar = 0;
 	for (std::size_t i = 0; i < index; ++i) {
-		sf::Uint32 curChar = m_string[i];
+		const std::uint32_t curChar = m_string[i];
 
 		// Apply the kerning offset
-		position.x += m_font->getKerning(prevChar, curChar, m_characterSize);
+		position.x += m_font->getKerning(prevChar, curChar, m_characterSize, isBold);
 		prevChar = curChar;
 
 		// Handle special characters
 		switch (curChar) {
-		case ' ':  position.x += whitespaceWidth;			 continue;
-		case '\t': position.x += whitespaceWidth * 4;		 continue;
-		case '\n': position.y += lineSpacing; position.x = 0; continue;
+		case U' ':  position.x += whitespaceWidth;			 continue;
+		case U'\t': position.x += whitespaceWidth * 4;		 continue;
+		case U'\n': position.y += lineSpacing; position.x = 0; continue;
 		}
 
 		// For regular characters, add the advance offset of the glyph
@@ -299,14 +300,16 @@ void cgss::ScrollText::draw(sf::RenderTarget& target, sf::RenderStates states) c
 	if (m_font) {
 		ensureGeometryUpdate();
 
-		states.transform *= getTransform();
-		states.texture = &m_font->getTexture(m_characterSize);
+    sf::RenderStates statesCopy(states);
+	
+		statesCopy.transform *= getTransform();
+		statesCopy.texture = &m_font->getTexture(m_characterSize);
 
 		// Only draw the outline if there is something to draw
 		if (m_outlineThickness != 0 || m_drawShadow) {
-			target.draw(m_outlineVertices, states);
+			target.draw(m_outlineVertices, statesCopy);
 		}
-		target.draw(m_vertices, states);
+		target.draw(m_vertices, statesCopy);
 	}
 }
 
@@ -317,18 +320,18 @@ sf::Uint32 cgss::ScrollText::getTextWidth(const sf::String& string) const {
 	}
 
 	// Compute values related to the text style
-	bool  isBold = m_style & Bold;
-	float italicShear = (m_style & Italic) ? 0.209f : 0.f; // 12 degrees in radians
+	const bool  isBold = m_style & Bold;
+	const float italicShear = (m_style & Italic) ? 0.209f : 0.f; // 12 degrees in radians
 
 															// Compute the location of the strike through dynamically
 															// We use the center point of the lowercase 'x' glyph as the reference
 															// We reuse the underline thickness as the thickness of the strike through as well
 
 	// Precompute the variables needed by the algorithm
-	float whitespaceWidth = m_font->getGlyph(L' ', m_characterSize, isBold).advance;
-	float letterSpacing = (whitespaceWidth / 3.f) * (m_letterSpacingFactor - 1.f);
+	float whitespaceWidth = m_font->getGlyph(U' ', m_characterSize, isBold).advance;
+	const float letterSpacing = (whitespaceWidth / 3.f) * (m_letterSpacingFactor - 1.f);
 	whitespaceWidth += letterSpacing;
-	float lineSpacing = m_lineHeight * m_lineSpacingFactor;
+	const float lineSpacing = m_lineHeight * m_lineSpacingFactor;
 	float x = 0.f;
 	float y = static_cast<float>(m_characterSize);
 
@@ -342,19 +345,19 @@ sf::Uint32 cgss::ScrollText::getTextWidth(const sf::String& string) const {
 		sf::Uint32 curChar = string[i];
 
 		// Apply the kerning offset
-		x += m_font->getKerning(prevChar, curChar, m_characterSize);
+		x += m_font->getKerning(prevChar, curChar, m_characterSize, isBold);
 		prevChar = curChar;
 
 		// Handle special characters
-		if ((curChar == L' ') || (curChar == L'\n') || (curChar == L'\t')) {
+		if ((curChar == U' ') || (curChar == U'\n') || (curChar == U'\t')) {
 			// Update the current bounds (min coordinates)
 			minX = std::min(minX, x);
 			minY = std::min(minY, y);
 
 			switch (curChar) {
-			case L' ':  x += whitespaceWidth;	 break;
-			case L'\t': x += whitespaceWidth * 4; break;
-			case L'\n': y += lineSpacing; x = 0;  break;
+			case U' ':  x += whitespaceWidth;	 break;
+			case U'\t': x += whitespaceWidth * 4; break;
+			case U'\n': y += lineSpacing; x = 0;  break;
 			}
 
 			// Update the current bounds (max coordinates)
@@ -409,14 +412,10 @@ sf::Uint32 cgss::ScrollText::getTextWidth(const sf::String& string) const {
 }
 
 void cgss::ScrollText::ensureGeometryUpdate() const {
-	if (!m_font) {
-		return;
-	}
+	if (!m_font) return;
 
 	// Do nothing, if geometry has not changed and the font texture has not changed
-	if (!m_geometryNeedUpdate && &m_font->getTexture(m_characterSize) == m_fontTextureRef) {
-		return;
-	}
+	if (!m_geometryNeedUpdate && &m_font->getTexture(m_characterSize) == m_fontTextureRef) return;
 
 	// Save the current fonts texture id
 	m_fontTextureRef = &m_font->getTexture(m_characterSize);
@@ -430,29 +429,27 @@ void cgss::ScrollText::ensureGeometryUpdate() const {
 	m_bounds = sf::FloatRect();
 
 	// No text: nothing to draw
-	if (m_string.isEmpty()) {
-		return;
-	}
+	if (m_string.isEmpty()) return;
 
 	// Compute values related to the text style
-	bool  isBold = m_style & Bold;
-	bool  isUnderlined = m_style & Underlined;
-	bool  isStrikeThrough = m_style & StrikeThrough;
-	float italicShear = (m_style & Italic) ? 0.209f : 0.f; // 12 degrees in radians
-	float underlineOffset = m_font->getUnderlinePosition(m_characterSize);
-	float underlineThickness = m_font->getUnderlineThickness(m_characterSize);
+	const bool  isBold = m_style & Bold;
+	const bool  isUnderlined = m_style & Underlined;
+	const bool  isStrikeThrough = m_style & StrikeThrough;
+	const float italicShear = (m_style & Italic) ? 0.209f : 0.f; // 12 degrees in radians
+	const float underlineOffset = m_font->getUnderlinePosition(m_characterSize);
+	const float underlineThickness = m_font->getUnderlineThickness(m_characterSize);
 
 	// Compute the location of the strike through dynamically
 	// We use the center point of the lowercase 'x' glyph as the reference
 	// We reuse the underline thickness as the thickness of the strike through as well
-	sf::FloatRect xBounds = m_font->getGlyph(L'x', m_characterSize, isBold).bounds;
-	float strikeThroughOffset = xBounds.top + xBounds.height / 2.f;
+	sf::FloatRect xBounds = m_font->getGlyph(U'x', m_characterSize, isBold).bounds;
+	const float strikeThroughOffset = xBounds.top + xBounds.height / 2.f;
 
 	// Precompute the variables needed by the algorithm
-	float whitespaceWidth = m_font->getGlyph(L' ', m_characterSize, isBold).advance;
-	float letterSpacing = (whitespaceWidth / 3.f) * (m_letterSpacingFactor - 1.f);
+	float whitespaceWidth = m_font->getGlyph(U' ', m_characterSize, isBold).advance;
+	const float letterSpacing = (whitespaceWidth / 3.f) * (m_letterSpacingFactor - 1.f);
 	whitespaceWidth += letterSpacing;
-	float lineSpacing = m_lineHeight * m_lineSpacingFactor;
+	const float lineSpacing = m_lineHeight * m_lineSpacingFactor;
 	float x = 0.f;
 	float y = static_cast<float>(m_characterSize);
 
@@ -461,17 +458,19 @@ void cgss::ScrollText::ensureGeometryUpdate() const {
 	float minY = static_cast<float>(m_characterSize);
 	float maxX = 0.f;
 	float maxY = 0.f;
-	sf::Uint32 prevChar = 0;
+	std::uint32_t prevChar = 0;
 
 	for (std::size_t i = 0; i < m_string.getSize() && i < m_numberCharsToDraw; ++i) {
-		sf::Uint32 curChar = m_string[i];
+		std::uint32_t curChar = m_string[i];
+
+		// Skip the \r char to avoid weird graphical issues
+    if (curChar == U'\r') continue;
 
 		// Apply the kerning offset
-		x += m_font->getKerning(prevChar, curChar, m_characterSize);
-		prevChar = curChar;
+		x += m_font->getKerning(prevChar, curChar, m_characterSize, isBold);
 
 		// If we're using the underlined style and there's a new line, draw a line
-		if (isUnderlined && (curChar == L'\n')) {
+		if (isUnderlined && (curChar == U'\n' && prevChar != U'\n')) {
 			addLine(m_vertices, x, y, m_fillColor, underlineOffset, underlineThickness);
 
 			if (m_outlineThickness != 0) {
@@ -480,7 +479,7 @@ void cgss::ScrollText::ensureGeometryUpdate() const {
 		}
 
 		// If we're using the strike through style and there's a new line, draw a line across all characters
-		if (isStrikeThrough && (curChar == L'\n'))  {
+		if (isStrikeThrough && (curChar == U'\n' && prevChar != U'\n'))  {
 			addLine(m_vertices, x, y, m_fillColor, strikeThroughOffset, underlineThickness);
 
 			if (m_outlineThickness != 0) {
@@ -488,16 +487,18 @@ void cgss::ScrollText::ensureGeometryUpdate() const {
 			}
 		}
 
+		prevChar = curChar;
+
 		// Handle special characters
-		if ((curChar == L' ') || (curChar == L'\n') || (curChar == L'\t')) {
+		if ((curChar == U' ') || (curChar == U'\n') || (curChar == U'\t')) {
 			// Update the current bounds (min coordinates)
 			minX = std::min(minX, x);
 			minY = std::min(minY, y);
 
 			switch (curChar) {
-			case L' ':  x += whitespaceWidth;	 break;
-			case L'\t': x += whitespaceWidth * 4; break;
-			case L'\n': y += lineSpacing; x = 0;  break;
+			case U' ':  x += whitespaceWidth;	 break;
+			case U'\t': x += whitespaceWidth * 4; break;
+			case U'\n': y += lineSpacing; x = 0;  break;
 			}
 
 			// Update the current bounds (max coordinates)
@@ -517,22 +518,10 @@ void cgss::ScrollText::ensureGeometryUpdate() const {
 			addGlyphQuad(m_outlineVertices, sf::Vector2f(x, y + 1), m_outlineColor, glyph, italicShear);
 		} else if (m_outlineThickness != 0) {
 			// Apply the outline
-
 			const sf::Glyph& glyph = m_font->getGlyph(curChar, m_characterSize, isBold, m_outlineThickness);
 
-			float left = glyph.bounds.left;
-			float top = glyph.bounds.top;
-			float right = glyph.bounds.left + glyph.bounds.width;
-			float bottom = glyph.bounds.top + glyph.bounds.height;
-
 			// Add the outline glyph to the vertices
-			addGlyphQuad(m_outlineVertices, sf::Vector2f(x, y), m_outlineColor, glyph, italicShear, m_outlineThickness);
-
-			// Update the current bounds with the outlined glyph bounds
-			minX = std::min(minX, x + left - italicShear * bottom - m_outlineThickness);
-			maxX = std::max(maxX, x + right - italicShear * top - m_outlineThickness);
-			minY = std::min(minY, y + top - m_outlineThickness);
-			maxY = std::max(maxY, y + bottom - m_outlineThickness);
+			addGlyphQuad(m_outlineVertices, sf::Vector2f(x, y), m_outlineColor, glyph, italicShear);
 		}
 
 		// Extract the current glyph's description
@@ -542,20 +531,28 @@ void cgss::ScrollText::ensureGeometryUpdate() const {
 		addGlyphQuad(m_vertices, sf::Vector2f(x, y), m_fillColor, glyph, italicShear);
 
 		// Update the current bounds with the non outlined glyph bounds
-		if (m_drawShadow || m_outlineThickness == 0) {
-			float left = glyph.bounds.left;
-			float top = glyph.bounds.top;
-			float right = glyph.bounds.left + glyph.bounds.width;
-			float bottom = glyph.bounds.top + glyph.bounds.height;
+		float left = glyph.bounds.left;
+		float top = glyph.bounds.top;
+		float right = glyph.bounds.left + glyph.bounds.width;
+		float bottom = glyph.bounds.top + glyph.bounds.height;
 
-			minX = std::min(minX, x + left - italicShear * bottom);
-			maxX = std::max(maxX, x + right - italicShear * top);
-			minY = std::min(minY, y + top);
-			maxY = std::max(maxY, y + bottom);
-		}
+		minX = std::min(minX, x + left - italicShear * bottom);
+		maxX = std::max(maxX, x + right - italicShear * top);
+		minY = std::min(minY, y + top);
+		maxY = std::max(maxY, y + bottom);
 
 		// Advance to the next character
 		x += glyph.advance + letterSpacing;
+	}
+
+	// If we're using outline, update the current bounds
+	if (m_outlineThickness != 0)
+	{
+			const float outline = std::abs(std::ceil(m_outlineThickness));
+			minX -= outline;
+			maxX += outline;
+			minY -= outline;
+			maxY += outline;
 	}
 
 	// If we're using the underlined style, add the last line

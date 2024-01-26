@@ -30,10 +30,9 @@ static unsigned int TextureLodePngDecode(sf::Texture& texture, const char* rawDa
 bool cgss::TextureMemorySerializeMethod::load(sf::Texture& texture, const MemorySerializerData& rawData, sf::Image&) {
 	const auto errorCode = TextureLodePngDecode(texture, reinterpret_cast<const char*>(rawData.first), rawData.second);
 	if (errorCode == 0) {
-		return texture.loadFromMemory(rawData.first, rawData.second);
+		return true;
 	}
-	std::cerr << "LodePNG error : " << lodepng_error_text(errorCode) << std::endl;
-	return false;
+	return texture.loadFromMemory(rawData.first, rawData.second);
 }
 
 cgss::MemorySerializerData cgss::TextureMemorySerializeMethod::save(const sf::Texture& texture) {
@@ -79,10 +78,9 @@ unsigned int cgss::TextureAssetSerializeMethod::save(const sf::Texture& texture,
 bool cgss::TextureFilesystemSerializeMethod::load(sf::Texture& texture, const std::string& filename, sf::Image&) {
 	const auto errorCode = TextureLodePngDecode(texture, filename.c_str(), 0);
 	if (errorCode == 0) {
-		return texture.loadFromFile(filename.c_str());
+		return true;
 	}
-	std::cerr << "LodePNG error : " <<  lodepng_error_text(errorCode) << std::endl;
-	return true;
+	return texture.loadFromFile(filename.c_str());
 }
 
 unsigned int cgss::TextureFilesystemSerializeMethod::save(const sf::Texture& texture, const std::string& filename) {
