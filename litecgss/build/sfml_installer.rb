@@ -16,6 +16,8 @@ module Cgss
 
         def self.check_sfml()
             sfml_dir_env = SfmlInstaller::get_sfml_dir()
+            $INCFLAGS << " -I'" + (sfml_dir_env + "/include'")
+            $LDFLAGS << " -L'" + (sfml_dir_env + "/lib'")
 
             sfml_graphics_dir = have_library('sfml-graphics')
             sfml_window_dir = have_library('sfml-window')

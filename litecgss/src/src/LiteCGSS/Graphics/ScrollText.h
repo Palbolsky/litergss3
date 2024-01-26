@@ -100,12 +100,12 @@ namespace cgss {
 		unsigned int m_characterSize;
 		float m_letterSpacingFactor = 1.f;
 		float m_lineSpacingFactor = 1.f;
-		sf::Uint32 m_style;
-		sf::Color m_fillColor;
-		sf::Color m_outlineColor;
+		sf::Uint32 m_style{Regular};
+		sf::Color m_fillColor{sf::Color::White};
+		sf::Color m_outlineColor{sf::Color::Black};
 		float m_outlineThickness = 0.f;
-		mutable sf::VertexArray m_vertices;
-		mutable sf::VertexArray m_outlineVertices;
+		mutable sf::VertexArray m_vertices{sf::PrimitiveType::Triangles};
+		mutable sf::VertexArray m_outlineVertices{sf::PrimitiveType::Triangles};
 		mutable sf::FloatRect m_bounds;
 		mutable bool m_geometryNeedUpdate;
 		mutable const sf::Texture* m_fontTextureRef = nullptr;
