@@ -13,11 +13,7 @@ task :compile, [:type] do |t, args|
     Cgss::Builder.cmake_guard()
     Cgss::RubyInstaller.ridk_guard()
     Cgss::Builder.check_gnu_compiler()
-    sfml_dir_env = Cgss::SfmlInstaller.check_sfml()
-    if sfml_dir_env && !sfml_dir_env.empty?
-      $INCFLAGS << " -I'" + (sfml_dir_env + "/include'")
-      $LDFLAGS << " -L'" + (sfml_dir_env + "/lib'")
-    end
+    Cgss::SfmlInstaller.setup_flags
 
     $INCFLAGS << " -I'" + (litecgss_root_dir + "/src/src'")
     $LDFLAGS << " -L'" + (litecgss_root_dir + "/lib'")
