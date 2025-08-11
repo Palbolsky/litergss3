@@ -1,102 +1,149 @@
+#include <sstream>
+#include <fstream>
+#include <iostream>
+
 #include <SFML/Graphics/BlendMode.hpp>
 #include "RenderStatesData.h"
 
+bool cgss::RenderStatesData::SHADERS_ENABLED = true;
+
 cgss::RenderStatesData::RenderStatesData() :
-	m_shadersEnabled(sf::Shader::isAvailable()) {
-	updateShader();
+	m_renderStates(std::make_unique<sf::RenderStates>()),
+	m_shadersEnabled(true) {
+}
+
+void cgss::RenderStatesData::enableShaders(bool enable) {
+	SHADERS_ENABLED = enable;
+}
+
+bool cgss::RenderStatesData::enabledShaders() {
+	return SHADERS_ENABLED;
 }
 
 void cgss::RenderStatesData::warnIfShadersNotAvailable() {
-	if (!sf::Shader::isAvailable()) {
+	if (SHADERS_ENABLED && !sf::Shader::isAvailable()) {
 		std::string m_lastError = "Shaders are not available :(";
 		//TODO
 	}
 }
 
 void cgss::RenderStatesData::updateShader() {
-	if (m_shadersEnabled && m_shader == nullptr) {
-		m_shader = std::make_unique<sf::Shader>();
-		m_renderStates.shader = m_shader.get();
-	} else if (!m_shadersEnabled && m_shader != nullptr) {
-		m_renderStates.shader = nullptr;
+	if (!m_shadersEnabled) {
 		m_shader = nullptr;
 	}
+
+	m_renderStates->shader = m_shader.get();
+}
+
+bool cgss::RenderStatesData::isAvailable() {
+	return SHADERS_ENABLED && sf::Shader::isAvailable();
 }
 
 void cgss::RenderStatesData::enableShader(bool enable) {
 	if (enable) {
 		warnIfShadersNotAvailable();
 	}
-	m_shadersEnabled = enable && sf::Shader::isAvailable();
+	m_shadersEnabled = enable && isAvailable();
 	updateShader();
 }
 
 void cgss::RenderStatesData::setBlendColorSrcFactor(sf::BlendMode::Factor colorSrcFactor) {
-	m_renderStates.blendMode.colorSrcFactor = std::move(colorSrcFactor);
+	m_renderStates->blendMode.colorSrcFactor = std::move(colorSrcFactor);
 }
 
 void cgss::RenderStatesData::setBlendColorDstFactor(sf::BlendMode::Factor colorDstFactor) {
-	m_renderStates.blendMode.colorDstFactor = std::move(colorDstFactor);
+	m_renderStates->blendMode.colorDstFactor = std::move(colorDstFactor);
 }
 
 void cgss::RenderStatesData::setBlendAlphaSrcFactor(sf::BlendMode::Factor alphaSrcFactor) {
-	m_renderStates.blendMode.alphaSrcFactor = std::move(alphaSrcFactor);
+	m_renderStates->blendMode.alphaSrcFactor = std::move(alphaSrcFactor);
 }
 
 void cgss::RenderStatesData::setBlendAlphaDstFactor(sf::BlendMode::Factor alphaDstFactor) {
-	m_renderStates.blendMode.alphaDstFactor = std::move(alphaDstFactor);
+	m_renderStates->blendMode.alphaDstFactor = std::move(alphaDstFactor);
 }
 
 void cgss::RenderStatesData::setBlendColorEquation(sf::BlendMode::Equation colorEquation) {
-	m_renderStates.blendMode.colorEquation = colorEquation;
+	m_renderStates->blendMode.colorEquation = colorEquation;
 }
 
 void cgss::RenderStatesData::setBlendAlphaEquation(sf::BlendMode::Equation alphaEquation) {
-	m_renderStates.blendMode.alphaEquation = alphaEquation;
+	m_renderStates->blendMode.alphaEquation = alphaEquation;
 }
 
 sf::BlendMode::Factor cgss::RenderStatesData::getBlendColorSrcFactor() const {
-	return m_renderStates.blendMode.colorSrcFactor;
+	return m_renderStates->blendMode.colorSrcFactor;
 }
 
 sf::BlendMode::Factor cgss::RenderStatesData::getBlendColorDstFactor() const {
-	return m_renderStates.blendMode.colorDstFactor;
+	return m_renderStates->blendMode.colorDstFactor;
 }
 
 sf::BlendMode::Factor cgss::RenderStatesData::getBlendAlphaSrcFactor() const {
-	return m_renderStates.blendMode.alphaSrcFactor;
+	return m_renderStates->blendMode.alphaSrcFactor;
 }
 
 sf::BlendMode::Factor cgss::RenderStatesData::getBlendAlphaDstFactor() const {
-	return m_renderStates.blendMode.alphaDstFactor;
+	return m_renderStates->blendMode.alphaDstFactor;
 }
 
 sf::BlendMode::Equation cgss::RenderStatesData::getBlendColorEquation() const {
-	return m_renderStates.blendMode.colorEquation;
+	return m_renderStates->blendMode.colorEquation;
 }
 
 sf::BlendMode::Equation cgss::RenderStatesData::getBlendAlphaEquation() const {
-	return m_renderStates.blendMode.alphaEquation;
+	return m_renderStates->blendMode.alphaEquation;
 }
 
 bool cgss::RenderStatesData::loadShaderFromMemory(const std::string &shader, sf::Shader::Type type) {
-	if (m_shader != nullptr) {
-		return m_shader->loadFromMemory(shader, type);
+	if (!isAvailable()) {
+		return false;
 	}
-	return false;
+	if (m_shader == nullptr) {
+		m_shader = std::make_unique<sf::Shader>();
+	}
+	const bool success = m_shader->loadFromMemory(shader, type);
+	enableShader(success);
+	if (!success) {
+		std::cerr << "Shader content:" << std::endl << shader << std::endl;
+		return false;
+	}
+	return true;
 }
 
 bool cgss::RenderStatesData::loadShaderFromMemory(const std::string& vertexShader, const std::string& fragmentShader) {
-	if (m_shader != nullptr) {
-		return m_shader->loadFromMemory(vertexShader, fragmentShader);
+	if (!isAvailable()) {
+		return false;
 	}
-	return false;
+	if (m_shader == nullptr) {
+		m_shader = std::make_unique<sf::Shader>();
+	}
+	const bool success = m_shader->loadFromMemory(vertexShader, fragmentShader);
+	enableShader(success);
+	if (!success) {
+		std::cerr << "Vertex shader content:" << std::endl << vertexShader << std::endl;
+		std::cerr << "Fragment shader content:" << std::endl << fragmentShader << std::endl;
+		return false;
+	}
+	return true;
 }
 
 bool cgss::RenderStatesData::loadShaderFromMemory(const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader) {
-	if (m_shader != nullptr && sf::Shader::isGeometryAvailable()) {
-		return m_shader->loadFromMemory(vertexShader, geometryShader, fragmentShader);
+	if (sf::Shader::isGeometryAvailable() && isAvailable()) {
+		if (m_shader == nullptr) {
+			m_shader = std::make_unique<sf::Shader>();
+		}
+		const bool success = m_shader->loadFromMemory(vertexShader, geometryShader, fragmentShader);
+		enableShader(success);
+		if (!success) {
+			std::cerr << "Vertex shader content:" << std::endl << vertexShader << std::endl;
+			std::cerr << "Geometry shader content:" << std::endl << geometryShader << std::endl;
+			std::cerr << "Fragment shader content:" << std::endl << fragmentShader << std::endl;
+			return false;
+		}
+		return true;
 	}
+	enableShader(false);
 	return false;
 }
 
@@ -202,14 +249,10 @@ void cgss::RenderStatesData::setShaderUniformArray(const std::string& name, cons
 	}
 }
 
-bool cgss::RenderStatesData::enabled() const {
+bool cgss::RenderStatesData::enabledShader() const {
 	return m_shadersEnabled;
 }
 
 const sf::RenderStates& cgss::RenderStatesData::getRenderStates() const {
-	return m_renderStates;
-}
-
-sf::RenderStates& cgss::RenderStatesData::getRenderStates() {
-	return m_renderStates;
+	return *m_renderStates;
 }

@@ -20,7 +20,12 @@ void cgss::SpriteItem::drawFast(sf::RenderTarget& target) const {
 }
 
 void cgss::Sprite::bindRenderStates(RenderStates* renderStates) {
-	m_proxy->ShaderRenderable::bindValue(renderStates != nullptr ? &renderStates->data() : nullptr);
+	if (renderStates != nullptr) {
+		renderStates->data().setShaderUniform("texture", sf::Shader::CurrentTexture);
+		m_proxy->ShaderRenderable::bindValue(&renderStates->data());
+	} else {
+		m_proxy->ShaderRenderable::bindValue(nullptr);
+	}
 }
 
 void cgss::Sprite::setMirror(bool mirror) {

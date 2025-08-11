@@ -129,13 +129,16 @@ void cgss::Viewport::draw(sf::RenderTarget& target) const {
 	m_proxy->draw(target);
 }
 
-void cgss::Viewport::bindRenderStates(RenderStates* states) {
-	LOG_INFO << "Settings render states " << static_cast<const void*>(states);
-	m_proxy->ShaderRenderable::bindValue(states != nullptr ? &states->data() : nullptr);
+void cgss::Viewport::bindRenderStates(RenderStates* renderStates) {
+	if (renderStates != nullptr) {
+		renderStates->data().setShaderUniform("texture", sf::Shader::CurrentTexture);
+		m_proxy->ShaderRenderable::bindValue(&renderStates->data());
+	} else {
+		m_proxy->ShaderRenderable::bindValue(nullptr);
+	}
 }
 
 void cgss::ViewportItem::updateFromValue(const RenderStatesData* renderStatesData) {
-	LOG_INFO << "Updating render states " << static_cast<const void*>(renderStatesData);
 	if (renderStatesData != nullptr) {
 		m_defaultRenderStates = std::make_unique<RenderStates>();
 	} else {

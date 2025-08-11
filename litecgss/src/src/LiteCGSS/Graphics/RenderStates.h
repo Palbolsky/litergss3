@@ -24,6 +24,7 @@ namespace cgss {
 
 		static bool areShadersEnabled();
 		static bool areGeometryShadersEnabled();
+		static void enableShaders(bool enable);
 
 		RenderStatesData& data() { return value(); }
 	};

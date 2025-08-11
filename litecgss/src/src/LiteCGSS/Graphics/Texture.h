@@ -2,6 +2,7 @@
 #define CGSS_TEXTURE_H
 
 #include <vector>
+#include <array>
 #include <memory>
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/Image.hpp>
@@ -14,6 +15,8 @@ namespace cgss {
 	class Shape;
 	class DisplayWindow;
 	class Image;
+
+	using TextureFactorNpot = std::array<double, 2>;
 
 	class Texture {
 	public:
@@ -47,7 +50,15 @@ namespace cgss {
 		sf::Texture& raw() { return *m_texture.get(); }
 		const sf::Texture& raw() const { return *m_texture.get(); }
 
+		TextureFactorNpot factorNpot() const {
+			return {
+                static_cast<double>(m_texture->getSize().x) / getNpotSize(m_texture->getSize().x),
+                static_cast<double>(m_texture->getSize().y) / getNpotSize(m_texture->getSize().y)
+            };
+		}
+
 	private:
+		static unsigned int getNpotSize(unsigned int size);
 		bool hasImage() const { return m_image.getSize().x != 0; };
 
 		bool m_loaded = false;

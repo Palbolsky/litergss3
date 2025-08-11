@@ -9,9 +9,6 @@ module Cgss
 
         def self.get_cmake_generator()
             generator = ENV["LITECGSS_CMAKE_GENERATOR"] || ""
-            if generator.empty? && Cgss::SystemEnv::is_windows()
-              generator = "MinGW Makefiles"
-            end
             return generator.empty? ? "" : "-G \"" + generator + "\""
         end
 

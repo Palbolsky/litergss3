@@ -27,8 +27,9 @@ void cgss::DisplayWindowSnapshot::init() {
 		"  }" \
 		"  gl_FragColor = frag;" \
 		"}";
-
-	m_freezeShader.data().loadShaderFromMemory(GraphicsTransitionFragmentShader, sf::Shader::Type::Fragment);	
+	if (m_rgssTransition) {
+		m_freezeShader.data().loadShaderFromMemory(GraphicsTransitionFragmentShader, sf::Shader::Type::Fragment);
+	}
 }
 
 void cgss::DisplayWindowSnapshot::freeze(const sf::RenderWindow& window) {
