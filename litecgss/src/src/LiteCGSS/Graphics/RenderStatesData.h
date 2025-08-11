@@ -9,11 +9,14 @@ namespace cgss {
 
 	class RenderStatesData {
 	private:
-		sf::RenderStates m_renderStates;
-		std::unique_ptr<sf::Shader> m_shader;
+		std::unique_ptr<sf::RenderStates> m_renderStates {};
+		std::unique_ptr<sf::Shader> m_shader {};
 		bool m_shadersEnabled = false;
 
+		static bool SHADERS_ENABLED;
+
 		void updateShader();
+		static bool isAvailable();
 	public:
 		RenderStatesData();
 		RenderStatesData(RenderStatesData&&) = default;
@@ -22,9 +25,12 @@ namespace cgss {
 		RenderStatesData& operator=(RenderStatesData&&) = default;
 		virtual ~RenderStatesData() = default;
 
+		static void enableShaders(bool enable);
+		static bool enabledShaders();
+
 		void enableShader(bool enable);
 		void warnIfShadersNotAvailable();
-		bool enabled() const;
+		bool enabledShader() const;
 
 		void setBlendColorSrcFactor(sf::BlendMode::Factor colorSrcFactor);
 		void setBlendColorDstFactor(sf::BlendMode::Factor colorDstFactor);
@@ -66,7 +72,6 @@ namespace cgss {
 		void setShaderUniformArray(const std::string& name, const float* scalarArray, std::size_t length);
 
 		const sf::RenderStates& getRenderStates() const;
-		sf::RenderStates& getRenderStates();
 	};
 }
 

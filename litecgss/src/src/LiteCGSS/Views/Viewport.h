@@ -22,6 +22,8 @@ namespace cgss {
 	private:
 		void setupFullWindowView(sf::RenderTarget& target) const;
 		void scaleRenderSpriteToViewport() const;
+		const RenderStatesData* getRenderStates() const;
+		RenderStatesData* getRenderStates();
 
 		DisplayWindowUserData m_windowData;
 
@@ -40,8 +42,6 @@ namespace cgss {
 		sf::IntRect getViewportBox() const;
 		std::unique_ptr<sf::Texture> takeSnapshot() const;
 
-		const RenderStatesData* getRenderStates() const;
-		RenderStatesData* getRenderStates();
 	};
 
 	struct DisplayWindowSettings;

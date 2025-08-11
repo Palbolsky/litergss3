@@ -12,11 +12,13 @@ SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::DisplayWindow)
 
 cgss::DisplayWindow::DisplayWindow(const DisplayWindowSettings& settings) :
 	m_snapshot{ *this } {
+	initUserRender();
 	reload(settings, true);
 }
 
 cgss::DisplayWindow::DisplayWindow() :
 	m_snapshot{ *this } {
+	initUserRender();
 }
 
 cgss::DisplayWindow::~DisplayWindow() {
@@ -157,13 +159,15 @@ void cgss::DisplayWindow::changeEventPolicy(bool polling) {
 }
 
 void cgss::DisplayWindow::drawBrightness() {
-	sf::Vertex	vertices[4];
-	sf::Vector2u size = m_gameWindow.getSize();
-	vertices[0].position = sf::Vector2f(0, 0);
-	vertices[1].position = sf::Vector2f(0, static_cast<float>(size.y));
-	vertices[2].position = sf::Vector2f(static_cast<float>(size.x), 0);
-	vertices[3].position = sf::Vector2f(static_cast<float>(size.x), static_cast<float>(size.y));
-	vertices[0].color = vertices[1].color = vertices[2].color = vertices[3].color = sf::Color(0, 0, 0, 255 - m_draw.brightness);
+	const auto size = m_gameWindow.getSize();
+	const auto color = sf::Color(0, 0, 0, 255 - m_draw.brightness);
+	const sf::Vertex vertices[4] = {
+		sf::Vertex { sf::Vector2f(0, 0), color, sf::Vector2f(0, 0) },
+		sf::Vertex { sf::Vector2f(0, static_cast<float>(size.y)), color, sf::Vector2f(0, 0) },
+		sf::Vertex { sf::Vector2f(static_cast<float>(size.x), 0), color, sf::Vector2f(0, 0) },
+		sf::Vertex { sf::Vector2f(static_cast<float>(size.x), static_cast<float>(size.y)), color, sf::Vector2f(0, 0) }
+	};
+	LOG_INFO << "Drawing brightness " << static_cast<int>(m_draw.brightness) << " on window size " << size.x << ", " << size.y;
 	m_gameWindow.draw(vertices, 4, sf::PrimitiveType::TriangleStrip);
 }
 
@@ -227,12 +231,29 @@ void cgss::DisplayWindow::setIcon(const sf::Image& image) {
 	m_gameWindow.setIcon(image.getSize().x, image.getSize().y, image.getPixelsPtr());
 }
 
-void cgss::DisplayWindow::setShader(sf::RenderStates* shader) {
-	m_draw.renderState = shader;
+void cgss::DisplayWindow::setShader(const sf::RenderStates* renderStates) {
+	m_draw.renderState = renderStates;
 	if (m_draw.renderTexture == nullptr && m_draw.renderState != nullptr) {
 		m_draw.renderTexture = std::make_unique<sf::RenderTexture>();
 		m_draw.renderTexture->create(m_draw.screenWidth, m_draw.screenHeight);
 	}
+}
+
+void cgss::DisplayWindow::bindRenderStates(RenderStates* renderStates) {
+	if (renderStates != nullptr) {
+		renderStates->data().setShaderUniform("texture", sf::Shader::CurrentTexture);
+		ShaderRenderable::bindValue(&renderStates->data());
+		setShader(&renderStates->data().getRenderStates());
+	} else {
+		ShaderRenderable::bindValue(nullptr);
+		setShader(nullptr);
+	}
+	LOG_INFO << "Binding render states " << &renderStates->data();
+}
+
+void cgss::DisplayWindow::updateFromValue(const RenderStatesData* renderStatesData) {
+	LOG_INFO << "Updating render states " << renderStatesData;
+	setShader(renderStatesData == nullptr ? nullptr : &renderStatesData->getRenderStates());
 }
 
 std::unique_ptr<sf::Texture> cgss::DisplayWindow::takeSnapshot() const {

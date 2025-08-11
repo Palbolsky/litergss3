@@ -1,6 +1,5 @@
 require 'fileutils'
 require 'mkmf.rb'
-require_relative 'downloader'
 require_relative 'system_env'
 
 module Cgss

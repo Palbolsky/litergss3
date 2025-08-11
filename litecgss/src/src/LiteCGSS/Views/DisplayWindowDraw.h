@@ -7,7 +7,7 @@
 
 namespace cgss {
 	struct DisplayWindowDrawData {
-		sf::RenderStates* renderState = nullptr;
+		const sf::RenderStates* renderState = nullptr;
 		std::unique_ptr<sf::RenderTexture> renderTexture = nullptr;
 		unsigned long frameRate = 60;
 		unsigned char brightness = 255;

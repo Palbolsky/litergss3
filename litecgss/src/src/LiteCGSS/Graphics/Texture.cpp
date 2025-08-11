@@ -84,3 +84,11 @@ void cgss::Texture::clearRect(long x, long y, unsigned int width, unsigned int h
 unsigned int cgss::Texture::write(TextureSaver& saver) const {
 	return saver.save(*m_texture);
 }
+
+unsigned int cgss::Texture::getNpotSize(unsigned int size) {
+	unsigned int powerOfTwo = 1;
+	while (powerOfTwo < size) {
+		powerOfTwo *= 2;
+	}
+	return powerOfTwo;
+}

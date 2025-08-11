@@ -23,7 +23,8 @@ namespace cgss {
 	struct DisplayWindowSettings;
 	class DisplayWindow :
 		public View,
-		public SnapshotCapturable {
+		public SnapshotCapturable,
+		public ShaderRenderable {
 
 	public:
 		static unsigned int DesktopWidth();
@@ -60,7 +61,7 @@ namespace cgss {
 		void transition(long time, Texture* texture = nullptr);
 
 		void setBrightness(unsigned char brightness) { m_draw.brightness = brightness; }
-		void setShader(sf::RenderStates* shader);
+		void bindRenderStates(RenderStates* states);
 		void setIcon(const sf::Image& image);
 		void move(int x, int y);
 
@@ -102,6 +103,8 @@ namespace cgss {
 		void drawBrightness();
 		sf::RenderTarget& configureAndGetRenderTarget(sf::View& defview);
 		void postProcessing();
+		void setShader(const sf::RenderStates* shader);
+		void updateFromValue(const RenderStatesData* renderStatesData) override;
 
 		bool m_eventPolicyPolling = true;
 		MainEventDispatcher m_eventDispatcher {};

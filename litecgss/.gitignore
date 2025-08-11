@@ -7,6 +7,11 @@ Makefile
 **/*.dir
 *.dir
 
+#Ninja
+.ninja_deps
+.ninja_log
+build.ninja
+
 #Editors
 *.vcxproj
 *.filters

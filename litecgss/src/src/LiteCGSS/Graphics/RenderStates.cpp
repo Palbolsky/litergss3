@@ -1,9 +1,13 @@
 #include "RenderStates.h"
 
 bool cgss::RenderStates::areGeometryShadersEnabled() {
-	return sf::Shader::isGeometryAvailable();
+	return cgss::RenderStatesData::enabledShaders() && sf::Shader::isGeometryAvailable();
 }
 
 bool cgss::RenderStates::areShadersEnabled() {
-	return sf::Shader::isAvailable();
+	return cgss::RenderStatesData::enabledShaders() && sf::Shader::isAvailable();
+}
+
+void cgss::RenderStates::enableShaders(bool enable) {
+	cgss::RenderStatesData::enableShaders(enable);
 }
