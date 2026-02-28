@@ -4,7 +4,7 @@
 
 1. Download Ruby with Devkit (version 3.4.x, 32 bits)
 2. Download Raylib (for Windows: raylib-5.5_win32_mingw-w64)
-3. Extract raylib in vendor folder
+3. Extract raylib in vendor folder (if it doesn't exist, create it)
 
 ## Compilation
 
