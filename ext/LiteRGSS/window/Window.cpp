@@ -3,10 +3,10 @@
 
 VALUE rb_cWindow = Qnil;
 
-static int base_width  = 640;
-static int base_height = 480;
+int base_width  = 640;
+int base_height = 480;
+double window_scale = 1.0; // scale par défaut
 
-//open_window(width=640, height=480, title="LiteRGSS", scale=1)
 VALUE rb_Window_open(int argc, VALUE* argv, VALUE self)
 {
     VALUE width, height, title, scale;
@@ -15,11 +15,12 @@ VALUE rb_Window_open(int argc, VALUE* argv, VALUE self)
     base_width  = RTEST(width)  ? NUM2INT(width)  : 640;
     base_height = RTEST(height) ? NUM2INT(height) : 480;
 
-    const char* t = RTEST(title) ? StringValueCStr(title) : "LiteRGSS";
-    double      s = RTEST(scale) ? NUM2DBL(scale)         : 1.0;
+    window_scale = RTEST(scale) ? NUM2DBL(scale) : 1.0;
 
-    int w = (int)(base_width  * s);
-    int h = (int)(base_height * s);
+    int w = (int)(base_width * window_scale);
+    int h = (int)(base_height * window_scale);
+
+    const char* t = RTEST(title) ? StringValueCStr(title) : "LiteRGSS";
 
     raylib::InitWindow(w, h, t);
     return self;
@@ -27,9 +28,9 @@ VALUE rb_Window_open(int argc, VALUE* argv, VALUE self)
 
 VALUE rb_Window_scale(VALUE self, VALUE scale)
 {
-    double s = NUM2DBL(scale);
-    int w = (int)(base_width  * s);
-    int h = (int)(base_height * s);
+    window_scale = NUM2DBL(scale);
+    int w = (int)(base_width * window_scale);
+    int h = (int)(base_height * window_scale);
     raylib::SetWindowSize(w, h);
     return self;
 }

@@ -2,6 +2,7 @@
 #include "LiteRGSS.h"
 #include "RubyValue.h"
 #include "Viewport.h"
+#include "window/Window.h"
 
 using raylib::Matrix;
 #include "rlgl.h"
@@ -41,6 +42,11 @@ static void check_disposed(ViewportData* vp)
 {
     if (vp->disposed)
         rb_raise(rb_eRuntimeError, "Viewport is disposed");
+}
+
+static float get_window_scale()
+{
+    return (float)window_scale;
 }
 
 // --- Methods ---
@@ -117,13 +123,20 @@ VALUE rb_Viewport_beginDraw(VALUE self)
     if (vp->disposed || !vp->visible)
         return self;
 
-    raylib::BeginScissorMode(vp->x, vp->y, vp->width, vp->height);
+    float scale = get_window_scale();
 
-    // A retirer un jour 
-    raylib::DrawRectangle(vp->x, vp->y, vp->width, vp->height, raylib::WHITE);
-    
+    int scaled_x      = (int)(vp->x * scale);
+    int scaled_y      = (int)(vp->y * scale);
+    int scaled_width  = (int)(vp->width * scale);
+    int scaled_height = (int)(vp->height * scale);
+
+    raylib::BeginScissorMode(scaled_x, scaled_y, scaled_width, scaled_height);
+
+    raylib::DrawRectangle(scaled_x, scaled_y, scaled_width, scaled_height, raylib::WHITE);
+
     rlPushMatrix();
-    rlTranslatef((float)(-vp->ox), (float)(-vp->oy), 0.0f);
+    rlTranslatef(-vp->ox * scale, -vp->oy * scale, 0.0f);
+    rlScalef(scale * vp->zoom, scale * vp->zoom, 1.0f);
 
     return self;
 }
