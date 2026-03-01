@@ -1,101 +1,88 @@
 # test_color.rb
-# Test Color class creation, getters, setters, equality and serialization
+require 'minitest/autorun'
 require_relative '../build/lib/LiteRGSS'
 
-puts "=== Test Color ==="
+class TestColor < Minitest::Test
+  def test_default_constructor
+    c = LiteRGSS::Color.new
+    assert_equal 255, c.red
+    assert_equal 255, c.green
+    assert_equal 255, c.blue
+    assert_equal 255, c.alpha
+  end
 
-# --- Default constructor ---
-puts "\n[Default constructor]"
-c = LiteRGSS::Color.new
-puts "Default = #{c.inspect}"
-raise "Default r wrong" unless c.red   == 255
-raise "Default g wrong" unless c.green == 255
-raise "Default b wrong" unless c.blue  == 255
-raise "Default a wrong" unless c.alpha == 255
+  def test_constructor_with_values
+    c = LiteRGSS::Color.new(100, 150, 200, 50)
+    assert_equal 100, c.red
+    assert_equal 150, c.green
+    assert_equal 200, c.blue
+    assert_equal 50,  c.alpha
+  end
 
-# --- Constructor with values ---
-puts "\n[Constructor with values]"
-c = LiteRGSS::Color.new(100, 150, 200, 50)
-puts "Color(100, 150, 200, 50) = #{c.inspect}"
-raise "r wrong" unless c.red   == 100
-raise "g wrong" unless c.green == 150
-raise "b wrong" unless c.blue  == 200
-raise "a wrong" unless c.alpha == 50
+  def test_partial_constructor
+    c = LiteRGSS::Color.new(10, 20)
+    assert_equal 10,  c.red
+    assert_equal 20,  c.green
+    assert_equal 255, c.blue
+    assert_equal 255, c.alpha
+  end
 
-# --- Partial constructor ---
-puts "\n[Partial constructor]"
-c = LiteRGSS::Color.new(10, 20)
-puts "Color(10, 20) = #{c.inspect}"
-raise "r wrong" unless c.red   == 10
-raise "g wrong" unless c.green == 20
-raise "b wrong" unless c.blue  == 255
-raise "a wrong" unless c.alpha == 255
+  def test_setters
+    c = LiteRGSS::Color.new
+    c.red   = 10
+    c.green = 20
+    c.blue  = 30
+    c.alpha = 40
+    assert_equal 10, c.red
+    assert_equal 20, c.green
+    assert_equal 30, c.blue
+    assert_equal 40, c.alpha
+  end
 
-# --- Setters ---
-puts "\n[Setters]"
-c = LiteRGSS::Color.new
-c.red   = 10
-c.green = 20
-c.blue  = 30
-c.alpha = 40
-puts "After setters = #{c.inspect}"
-raise "red= wrong"   unless c.red   == 10
-raise "green= wrong" unless c.green == 20
-raise "blue= wrong"  unless c.blue  == 30
-raise "alpha= wrong" unless c.alpha == 40
+  def test_set_method
+    c = LiteRGSS::Color.new
+    c.set(1, 2, 3, 4)
+    assert_equal 1, c.red
+    assert_equal 2, c.green
+    assert_equal 3, c.blue
+    assert_equal 4, c.alpha
+  end
 
-# --- set method ---
-puts "\n[set method]"
-c = LiteRGSS::Color.new
-c.set(1, 2, 3, 4)
-puts "After set(1, 2, 3, 4) = #{c.inspect}"
-raise "set r wrong" unless c.red   == 1
-raise "set g wrong" unless c.green == 2
-raise "set b wrong" unless c.blue  == 3
-raise "set a wrong" unless c.alpha == 4
+  def test_clamp_out_of_range
+    c = LiteRGSS::Color.new(999, -50, 300, -1)
+    assert_equal 255, c.red
+    assert_equal 0,   c.green
+    assert_equal 255, c.blue
+    assert_equal 0,   c.alpha
+  end
 
-# --- Clamp ---
-puts "\n[Clamp out of range values]"
-c = LiteRGSS::Color.new(999, -50, 300, -1)
-puts "Color(999, -50, 300, -1) = #{c.inspect}"
-raise "clamp r wrong" unless c.red   == 255
-raise "clamp g wrong" unless c.green == 0
-raise "clamp b wrong" unless c.blue  == 255
-raise "clamp a wrong" unless c.alpha == 0
+  def test_equality
+    a = LiteRGSS::Color.new(10, 20, 30, 40)
+    b = LiteRGSS::Color.new(10, 20, 30, 40)
+    c = LiteRGSS::Color.new(1,  2,  3,  4)
+    assert_equal a, b
+    refute_equal a, c
+    assert a.eql?(b)
+  end
 
-# --- Equality ---
-puts "\n[Equality]"
-a = LiteRGSS::Color.new(10, 20, 30, 40)
-b = LiteRGSS::Color.new(10, 20, 30, 40)
-c = LiteRGSS::Color.new(1,  2,  3,  4)
-raise "== should be true"  unless a == b
-raise "== should be false" if     a == c
-raise "eql? wrong"         unless a.eql?(b)
-puts "Equality OK"
+  def test_copy
+    original = LiteRGSS::Color.new(10, 20, 30, 40)
+    copy     = original.dup
+    assert_equal original.red,   copy.red
+    assert_equal original.green, copy.green
+    assert_equal original.blue,  copy.blue
+    assert_equal original.alpha, copy.alpha
+    copy.red = 99
+    refute_equal 99, original.red
+  end
 
-# --- initialize_copy ---
-puts "\n[Copy]"
-original = LiteRGSS::Color.new(10, 20, 30, 40)
-copy     = original.dup
-raise "copy r wrong" unless copy.red   == original.red
-raise "copy g wrong" unless copy.green == original.green
-raise "copy b wrong" unless copy.blue  == original.blue
-raise "copy a wrong" unless copy.alpha == original.alpha
-copy.red = 99
-raise "copy should be independent" if original.red == 99
-puts "Copy OK"
-
-# --- Serialization ---
-puts "\n[Serialization]"
-original = LiteRGSS::Color.new(10, 20, 30, 40)
-dump     = original._dump(0)
-restored = LiteRGSS::Color._load(dump)
-puts "Original = #{original.inspect}"
-puts "Restored = #{restored.inspect}"
-raise "restore r wrong" unless restored.red   == original.red
-raise "restore g wrong" unless restored.green == original.green
-raise "restore b wrong" unless restored.blue  == original.blue
-raise "restore a wrong" unless restored.alpha == original.alpha
-puts "Serialization OK"
-
-puts "\n=== OK ==="
+  def test_serialization
+    original = LiteRGSS::Color.new(10, 20, 30, 40)
+    dump     = original._dump(0)
+    restored = LiteRGSS::Color._load(dump)
+    assert_equal original.red,   restored.red
+    assert_equal original.green, restored.green
+    assert_equal original.blue,  restored.blue
+    assert_equal original.alpha, restored.alpha
+  end
+end
