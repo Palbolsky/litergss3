@@ -22,17 +22,19 @@ static const rb_data_type_t viewport_type = {
     RUBY_TYPED_FREE_IMMEDIATELY
 };
 
-static VALUE viewport_alloc(VALUE klass)
-{
-    auto* vp = new ViewportData();
-    return TypedData_Wrap_Struct(klass, &viewport_type, vp);
-}
+// --- Helper functions ---
 
-static ViewportData* get_viewport(VALUE self)
+ViewportData* get_viewport(VALUE self)
 {
     ViewportData* vp;
     TypedData_Get_Struct(self, ViewportData, &viewport_type, vp);
     return vp;
+}
+
+static VALUE viewport_alloc(VALUE klass)
+{
+    auto* vp = new ViewportData();
+    return TypedData_Wrap_Struct(klass, &viewport_type, vp);
 }
 
 static void check_disposed(ViewportData* vp)
@@ -41,9 +43,8 @@ static void check_disposed(ViewportData* vp)
         rb_raise(rb_eRuntimeError, "Viewport is disposed");
 }
 
+// --- Methods ---
 
-
-// initialize(x, y, width, height)
 VALUE rb_Viewport_Initialize(int argc, VALUE* argv, VALUE self)
 {
     VALUE x, y, w, h;
@@ -73,88 +74,18 @@ VALUE rb_Viewport_Copy(VALUE self)
     return self;
 }
 
-
-VALUE rb_Viewport_getOX(VALUE self)
-{
-    check_disposed(get_viewport(self));
-    return INT2NUM(get_viewport(self)->ox);
-}
-
-VALUE rb_Viewport_setOX(VALUE self, VALUE val)
-{
-    check_disposed(get_viewport(self));
-    get_viewport(self)->ox = NUM2INT(val);
-    return val;
-}
-
-VALUE rb_Viewport_getOY(VALUE self)
-{
-    check_disposed(get_viewport(self));
-    return INT2NUM(get_viewport(self)->oy);
-}
-
-VALUE rb_Viewport_setOY(VALUE self, VALUE val)
-{
-    check_disposed(get_viewport(self));
-    get_viewport(self)->oy = NUM2INT(val);
-    return val;
-}
-
-
-VALUE rb_Viewport_getVisible(VALUE self)
-{
-    check_disposed(get_viewport(self));
-    return get_viewport(self)->visible ? Qtrue : Qfalse;
-}
-
-VALUE rb_Viewport_setVisible(VALUE self, VALUE val)
-{
-    check_disposed(get_viewport(self));
-    get_viewport(self)->visible = RTEST(val);
-    return val;
-}
-
-
-VALUE rb_Viewport_getZ(VALUE self)
-{
-    check_disposed(get_viewport(self));
-    return INT2NUM(get_viewport(self)->z);
-}
-
-VALUE rb_Viewport_setZ(VALUE self, VALUE val)
-{
-    check_disposed(get_viewport(self));
-    get_viewport(self)->z = NUM2INT(val);
-    return val;
-}
-
-
-VALUE rb_Viewport_getZoom(VALUE self)
-{
-    check_disposed(get_viewport(self));
-    return DBL2NUM(get_viewport(self)->zoom);
-}
-
-VALUE rb_Viewport_setZoom(VALUE self, VALUE val)
-{
-    check_disposed(get_viewport(self));
-    get_viewport(self)->zoom = (float)NUM2DBL(val);
-    return val;
-}
-
-
-VALUE rb_Viewport_getAngle(VALUE self)
-{
-    check_disposed(get_viewport(self));
-    return DBL2NUM(get_viewport(self)->angle);
-}
-
-VALUE rb_Viewport_setAngle(VALUE self, VALUE val)
-{
-    check_disposed(get_viewport(self));
-    get_viewport(self)->angle = (float)(NUM2INT(val) % 360);
-    return val;
-}
+VALUE rb_Viewport_getOX(VALUE self) { check_disposed(get_viewport(self)); return INT2NUM(get_viewport(self)->ox); }
+VALUE rb_Viewport_setOX(VALUE self, VALUE val) { check_disposed(get_viewport(self)); get_viewport(self)->ox = NUM2INT(val); return val; }
+VALUE rb_Viewport_getOY(VALUE self) { check_disposed(get_viewport(self)); return INT2NUM(get_viewport(self)->oy); }
+VALUE rb_Viewport_setOY(VALUE self, VALUE val) { check_disposed(get_viewport(self)); get_viewport(self)->oy = NUM2INT(val); return val; }
+VALUE rb_Viewport_getVisible(VALUE self) { check_disposed(get_viewport(self)); return get_viewport(self)->visible ? Qtrue : Qfalse; }
+VALUE rb_Viewport_setVisible(VALUE self, VALUE val) { check_disposed(get_viewport(self)); get_viewport(self)->visible = RTEST(val); return val; }
+VALUE rb_Viewport_getZ(VALUE self) { check_disposed(get_viewport(self)); return INT2NUM(get_viewport(self)->z); }
+VALUE rb_Viewport_setZ(VALUE self, VALUE val) { check_disposed(get_viewport(self)); get_viewport(self)->z = NUM2INT(val); return val; }
+VALUE rb_Viewport_getZoom(VALUE self) { check_disposed(get_viewport(self)); return DBL2NUM(get_viewport(self)->zoom); }
+VALUE rb_Viewport_setZoom(VALUE self, VALUE val) { check_disposed(get_viewport(self)); get_viewport(self)->zoom = (float)NUM2DBL(val); return val; }
+VALUE rb_Viewport_getAngle(VALUE self) { check_disposed(get_viewport(self)); return DBL2NUM(get_viewport(self)->angle); }
+VALUE rb_Viewport_setAngle(VALUE self, VALUE val) { check_disposed(get_viewport(self)); get_viewport(self)->angle = (float)(NUM2INT(val) % 360); return val; }
 
 VALUE rb_Viewport_getRect(VALUE self)
 {
@@ -186,10 +117,10 @@ VALUE rb_Viewport_beginDraw(VALUE self)
     if (vp->disposed || !vp->visible)
         return self;
 
+    raylib::ClearBackground(raylib::WHITE);
     raylib::BeginScissorMode(vp->x, vp->y, vp->width, vp->height);
     rlPushMatrix();
     rlTranslatef((float)(vp->x - vp->ox), (float)(vp->y - vp->oy), 0.0f);
-
     return self;
 }
 
@@ -199,6 +130,8 @@ VALUE rb_Viewport_endDraw(VALUE self)
     raylib::EndScissorMode();
     return self;
 }
+
+// --- Init ---
 
 void Init_Viewport()
 {

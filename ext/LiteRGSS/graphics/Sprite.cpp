@@ -4,6 +4,7 @@
 #include "common/Normalize.h"
 #include "Sprite.h"
 #include "Image.h"
+#include "Viewport.h"
 
 VALUE rb_cSprite = Qnil;
 
@@ -313,7 +314,12 @@ VALUE rb_Sprite_getViewport(VALUE self)
 VALUE rb_Sprite_draw(VALUE self)
 {
     auto* s = get_sprite(self);
-    if (s->disposed || !s->visible || s->texture == nullptr) return self;
+    if (s->rViewport != Qnil)
+    {
+        auto* vp = get_viewport(s->rViewport);
+        if (vp->disposed || !vp->visible)
+            return self;
+    }
 
     raylib::Rectangle src = {
         (float)s->src_x,

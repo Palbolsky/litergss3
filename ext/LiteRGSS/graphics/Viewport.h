@@ -6,7 +6,6 @@
 void Init_Viewport();
 extern VALUE rb_cViewport;
 
-// Viewport data: position, size, origin offset, visibility, z-order
 struct ViewportData
 {
     int x      = 0;
@@ -21,5 +20,7 @@ struct ViewportData
     bool visible = true;
     bool disposed = false;
 };
+
+ViewportData* get_viewport(VALUE self);
 
 #endif

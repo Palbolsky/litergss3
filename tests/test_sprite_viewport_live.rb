@@ -24,7 +24,7 @@ puts "Image rect: #{img.rect.inspect}"
 
 # --- Viewport ---
 puts "\n[Viewport]"
-vp = LiteRGSS::Viewport.new(0, 0, 640, 480)
+vp = LiteRGSS::Viewport.new(0, 0, 320, 240)
 puts "Viewport: #{vp.rect.inspect}"
 
 # --- Sprite ---
