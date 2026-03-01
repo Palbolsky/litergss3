@@ -6,6 +6,7 @@
 
 void Init_Color();
 extern VALUE rb_cColor;
+extern const rb_data_type_t color_type; // expose for other files
 
 struct ColorData
 {
@@ -19,5 +20,13 @@ struct ColorData
         return r == other.r && g == other.g && b == other.b && a == other.a;
     }
 };
+
+// Helper to extract ColorData from any Ruby Color value
+inline ColorData* get_color_data(VALUE color)
+{
+    ColorData* cd;
+    TypedData_Get_Struct(color, ColorData, &color_type, cd);
+    return cd;
+}
 
 #endif

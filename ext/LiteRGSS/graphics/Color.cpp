@@ -12,7 +12,7 @@ static void color_free(void* ptr)
 }
 
 // TypedData descriptor for ColorData (replaces deprecated Data_Wrap_Struct)
-static const rb_data_type_t color_type = {
+const rb_data_type_t color_type = {
     "ColorData",
     { nullptr, color_free, nullptr },
     nullptr, nullptr,
