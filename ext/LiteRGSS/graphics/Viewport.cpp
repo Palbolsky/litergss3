@@ -117,10 +117,14 @@ VALUE rb_Viewport_beginDraw(VALUE self)
     if (vp->disposed || !vp->visible)
         return self;
 
-    raylib::ClearBackground(raylib::WHITE);
     raylib::BeginScissorMode(vp->x, vp->y, vp->width, vp->height);
+
+    // A retirer un jour 
+    raylib::DrawRectangle(vp->x, vp->y, vp->width, vp->height, raylib::WHITE);
+    
     rlPushMatrix();
-    rlTranslatef((float)(vp->x - vp->ox), (float)(vp->y - vp->oy), 0.0f);
+    rlTranslatef((float)(-vp->ox), (float)(-vp->oy), 0.0f);
+
     return self;
 }
 
