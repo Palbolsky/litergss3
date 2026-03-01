@@ -2,6 +2,8 @@
 # Interactive - press keys, close window to exit
 require_relative '../build/lib/LiteRGSS'
 
+Keyboard = LiteRGSS::Inputs::Keyboard
+
 puts "=== Test Keyboard Live ==="
 
 window = LiteRGSS::Window.new
@@ -10,67 +12,67 @@ puts "Window opened"
 
 KEYBOARD_KEYS = {
 # Letters
-"A" => LiteRGSS::Keyboard::A, "B" => LiteRGSS::Keyboard::B,
-"C" => LiteRGSS::Keyboard::C, "D" => LiteRGSS::Keyboard::D,
-"E" => LiteRGSS::Keyboard::E, "F" => LiteRGSS::Keyboard::F,
-"G" => LiteRGSS::Keyboard::G, "H" => LiteRGSS::Keyboard::H,
-"I" => LiteRGSS::Keyboard::I, "J" => LiteRGSS::Keyboard::J,
-"K" => LiteRGSS::Keyboard::K, "L" => LiteRGSS::Keyboard::L,
-"M" => LiteRGSS::Keyboard::M, "N" => LiteRGSS::Keyboard::N,
-"O" => LiteRGSS::Keyboard::O, "P" => LiteRGSS::Keyboard::P,
-"Q" => LiteRGSS::Keyboard::Q, "R" => LiteRGSS::Keyboard::R,
-"S" => LiteRGSS::Keyboard::S, "T" => LiteRGSS::Keyboard::T,
-"U" => LiteRGSS::Keyboard::U, "V" => LiteRGSS::Keyboard::V,
-"W" => LiteRGSS::Keyboard::W, "X" => LiteRGSS::Keyboard::X,
-"Y" => LiteRGSS::Keyboard::Y, "Z" => LiteRGSS::Keyboard::Z,
+"A" => Keyboard::A, "B" => Keyboard::B,
+"C" => Keyboard::C, "D" => Keyboard::D,
+"E" => Keyboard::E, "F" => Keyboard::F,
+"G" => Keyboard::G, "H" => Keyboard::H,
+"I" => Keyboard::I, "J" => Keyboard::J,
+"K" => Keyboard::K, "L" => Keyboard::L,
+"M" => Keyboard::M, "N" => Keyboard::N,
+"O" => Keyboard::O, "P" => Keyboard::P,
+"Q" => Keyboard::Q, "R" => Keyboard::R,
+"S" => Keyboard::S, "T" => Keyboard::T,
+"U" => Keyboard::U, "V" => Keyboard::V,
+"W" => Keyboard::W, "X" => Keyboard::X,
+"Y" => Keyboard::Y, "Z" => Keyboard::Z,
 # Numbers
-"Zero"  => LiteRGSS::Keyboard::Zero,  "One"   => LiteRGSS::Keyboard::One,
-"Two"   => LiteRGSS::Keyboard::Two,   "Three" => LiteRGSS::Keyboard::Three,
-"Four"  => LiteRGSS::Keyboard::Four,  "Five"  => LiteRGSS::Keyboard::Five,
-"Six"   => LiteRGSS::Keyboard::Six,   "Seven" => LiteRGSS::Keyboard::Seven,
-"Eight" => LiteRGSS::Keyboard::Eight, "Nine"  => LiteRGSS::Keyboard::Nine,
+"Zero"  => Keyboard::Zero,  "One"   => Keyboard::One,
+"Two"   => Keyboard::Two,   "Three" => Keyboard::Three,
+"Four"  => Keyboard::Four,  "Five"  => Keyboard::Five,
+"Six"   => Keyboard::Six,   "Seven" => Keyboard::Seven,
+"Eight" => Keyboard::Eight, "Nine"  => Keyboard::Nine,
 # Special
-"Space"     => LiteRGSS::Keyboard::Space,
-"Escape"    => LiteRGSS::Keyboard::Escape,
-"Enter"     => LiteRGSS::Keyboard::Enter,
-"Tab"       => LiteRGSS::Keyboard::Tab,
-"Backspace" => LiteRGSS::Keyboard::Backspace,
-"Insert"    => LiteRGSS::Keyboard::Insert,
-"Delete"    => LiteRGSS::Keyboard::Delete,
+"Space"     => Keyboard::Space,
+"Escape"    => Keyboard::Escape,
+"Enter"     => Keyboard::Enter,
+"Tab"       => Keyboard::Tab,
+"Backspace" => Keyboard::Backspace,
+"Insert"    => Keyboard::Insert,
+"Delete"    => Keyboard::Delete,
 # Arrows
-"Right" => LiteRGSS::Keyboard::Right, "Left" => LiteRGSS::Keyboard::Left,
-"Down"  => LiteRGSS::Keyboard::Down,  "Up"   => LiteRGSS::Keyboard::Up,
+"Right" => Keyboard::Right, "Left" => Keyboard::Left,
+"Down"  => Keyboard::Down,  "Up"   => Keyboard::Up,
 # Navigation
-"PageUp"   => LiteRGSS::Keyboard::PageUp,
-"PageDown" => LiteRGSS::Keyboard::PageDown,
-"Home"     => LiteRGSS::Keyboard::Home,
-"End"      => LiteRGSS::Keyboard::End,
+"PageUp"   => Keyboard::PageUp,
+"PageDown" => Keyboard::PageDown,
+"Home"     => Keyboard::Home,
+"End"      => Keyboard::End,
 # Modifiers
-"LShift"   => LiteRGSS::Keyboard::LShift,
-"LControl" => LiteRGSS::Keyboard::LControl,
-"LAlt"     => LiteRGSS::Keyboard::LAlt,
-"RShift"   => LiteRGSS::Keyboard::RShift,
-"RControl" => LiteRGSS::Keyboard::RControl,
-"RAlt"     => LiteRGSS::Keyboard::RAlt,
+"LShift"   => Keyboard::LShift,
+"LControl" => Keyboard::LControl,
+"LAlt"     => Keyboard::LAlt,
+"RShift"   => Keyboard::RShift,
+"RControl" => Keyboard::RControl,
+"RAlt"     => Keyboard::RAlt,
 # F keys
-"F1"  => LiteRGSS::Keyboard::F1,  "F2"  => LiteRGSS::Keyboard::F2,
-"F3"  => LiteRGSS::Keyboard::F3,  "F4"  => LiteRGSS::Keyboard::F4,
-"F5"  => LiteRGSS::Keyboard::F5,  "F6"  => LiteRGSS::Keyboard::F6,
-"F7"  => LiteRGSS::Keyboard::F7,  "F8"  => LiteRGSS::Keyboard::F8,
-"F9"  => LiteRGSS::Keyboard::F9,  "F10" => LiteRGSS::Keyboard::F10,
-"F11" => LiteRGSS::Keyboard::F11, "F12" => LiteRGSS::Keyboard::F12,
+"F1"  => Keyboard::F1,  "F2"  => Keyboard::F2,
+"F3"  => Keyboard::F3,  "F4"  => Keyboard::F4,
+"F5"  => Keyboard::F5,  "F6"  => Keyboard::F6,
+"F7"  => Keyboard::F7,  "F8"  => Keyboard::F8,
+"F9"  => Keyboard::F9,  "F10" => Keyboard::F10,
+"F11" => Keyboard::F11, "F12" => Keyboard::F12,
 # Numpad
-"Numpad0" => LiteRGSS::Keyboard::Numpad0, "Numpad1" => LiteRGSS::Keyboard::Numpad1,
-"Numpad2" => LiteRGSS::Keyboard::Numpad2, "Numpad3" => LiteRGSS::Keyboard::Numpad3,
-"Numpad4" => LiteRGSS::Keyboard::Numpad4, "Numpad5" => LiteRGSS::Keyboard::Numpad5,
-"Numpad6" => LiteRGSS::Keyboard::Numpad6, "Numpad7" => LiteRGSS::Keyboard::Numpad7,
-"Numpad8" => LiteRGSS::Keyboard::Numpad8, "Numpad9" => LiteRGSS::Keyboard::Numpad9,
-"NumpadDecimal"  => LiteRGSS::Keyboard::NumpadDecimal,
-"NumpadDivide"   => LiteRGSS::Keyboard::NumpadDivide,
-"NumpadMultiply" => LiteRGSS::Keyboard::NumpadMultiply,
-"NumpadMinus"    => LiteRGSS::Keyboard::NumpadMinus,
-"NumpadPlus"     => LiteRGSS::Keyboard::NumpadPlus,
-"NumpadEnter"    => LiteRGSS::Keyboard::NumpadEnter,
+"Numpad0" => Keyboard::Numpad0, "Numpad1" => Keyboard::Numpad1,
+"Numpad2" => Keyboard::Numpad2, "Numpad3" => Keyboard::Numpad3,
+"Numpad4" => Keyboard::Numpad4, "Numpad5" => Keyboard::Numpad5,
+"Numpad6" => Keyboard::Numpad6, "Numpad7" => Keyboard::Numpad7,
+"Numpad8" => Keyboard::Numpad8, "Numpad9" => Keyboard::Numpad9,
+"NumpadDecimal"  => Keyboard::NumpadDecimal,
+"NumpadDivide"   => Keyboard::NumpadDivide,
+"NumpadMultiply" => Keyboard::NumpadMultiply,
+"NumpadMinus"    => Keyboard::NumpadMinus,
+"NumpadPlus"     => Keyboard::NumpadPlus,
+"NumpadEnter"    => Keyboard::NumpadEnter,
 }
 
 key_pressed = {}
@@ -80,7 +82,7 @@ until window.should_close?
   window.update
   
   KEYBOARD_KEYS.each do |name, key|
-    is_down = LiteRGSS::Keyboard.press?(key)
+    is_down = Keyboard.press?(key)
     if is_down && !key_pressed[name]
       puts "Key pressed:  #{name}"
       key_pressed[name] = true

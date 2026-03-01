@@ -1,5 +1,5 @@
 #include "RaylibWrapper.h"
-#include "LiteRGSS.h"
+#include "Inputs.h"
 #include "RubyValue.h"
 
 // Returns the number of touch points currently active
@@ -26,9 +26,9 @@ VALUE rb_Touch_getId(VALUE self, VALUE index)
 
 void Init_Touch()
 {
-    VALUE rb_mTouch = rb_define_module_under(rb_mLiteRGSS, "Touch");
+    VALUE rb_mTouch = rb_define_module_under(rb_mInputs, "Touch");
 
-    rb_define_module_function(rb_mTouch, "count",        _rbf rb_Touch_count,       0);
-    rb_define_module_function(rb_mTouch, "position",     _rbf rb_Touch_getPosition, 1);
-    rb_define_module_function(rb_mTouch, "id",           _rbf rb_Touch_getId,       1);
+    rb_define_module_function(rb_mTouch, "count", _rbf rb_Touch_count, 0);
+    rb_define_module_function(rb_mTouch, "position", _rbf rb_Touch_getPosition, 1);
+    rb_define_module_function(rb_mTouch, "id", _rbf rb_Touch_getId, 1);
 }

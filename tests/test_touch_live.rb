@@ -3,6 +3,9 @@
 # On Android, each finger gets its own touch point.
 require_relative '../build/lib/LiteRGSS'
 
+Touch = LiteRGSS::Inputs::Touch
+Mouse = LiteRGSS::Inputs::Mouse
+
 puts "=== Test Touch Live ==="
 puts "Desktop: click/move mouse to simulate touch point 0"
 puts "Android: use multiple fingers to see multiple touch points"
@@ -18,7 +21,7 @@ puts "\n[Close the window to exit]"
 until window.should_close?
   window.update
   
-  count = LiteRGSS::Touch.count
+  count = Touch.count
   
   if count > 0
     # Real touch (Android)
@@ -28,16 +31,16 @@ until window.should_close?
     end
     
     count.times do |i|
-      pos = LiteRGSS::Touch.position(i)
-      id  = LiteRGSS::Touch.id(i)
+      pos = Touch.position(i)
+      id  = Touch.id(i)
       puts "  Touch [#{i}] id=#{id} pos=#{pos.inspect}"
     end
   else
     # Desktop fallback: simulate touch with mouse left button
-    is_down = LiteRGSS::Mouse.press?(LiteRGSS::Mouse::Left)
+    is_down = Mouse.press?(Mouse::Left)
     
     if is_down
-      pos = LiteRGSS::Mouse.position
+      pos = Mouse.position
       puts "  Touch [0] id=0 pos=#{pos.inspect} (mouse fallback)"
       mouse_pressed = true
     elsif mouse_pressed

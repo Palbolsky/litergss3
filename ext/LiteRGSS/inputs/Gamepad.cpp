@@ -1,4 +1,4 @@
-#include "LiteRGSS.h"
+#include "Inputs.h"
 #include "Gamepad.h"
 
 VALUE rb_Gamepad_connected(VALUE self, VALUE id)
@@ -67,7 +67,7 @@ VALUE rb_Gamepad_set_vibration(VALUE self, VALUE id, VALUE leftMotor, VALUE righ
 
 void Init_Gamepad()
 {
-    VALUE rb_mGamepad = rb_define_module_under(rb_mLiteRGSS, "Gamepad");
+    VALUE rb_mGamepad = rb_define_module_under(rb_mInputs, "Gamepad");
 
     // rb_define_const(rb_mGamepad, "COUNT", LONG2NUM(4));
     // rb_define_const(rb_mGamepad, "BUTTON_COUNT", LONG2NUM(18));
