@@ -4,7 +4,7 @@ require_relative '../build/lib/LiteRGSS'
 
 puts "=== Test Image Live ==="
 
-SAMPLE_IMAGE = File.join(__dir__, "game.png")
+SAMPLE_IMAGE = File.join(__dir__, "assets/game.png")
 
 # --- Create from scratch ---
 puts "\n[Create empty 64x64]"

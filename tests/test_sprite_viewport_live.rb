@@ -4,7 +4,7 @@ require_relative '../build/lib/LiteRGSS'
 
 puts "=== Test Sprite + Viewport + Image Live ==="
 
-SAMPLE_IMAGE = File.join(__dir__, "game.png")
+SAMPLE_IMAGE = File.join(__dir__, "assets/game.png")
 
 window = LiteRGSS::Window.new
 window.open_window(640, 480, "Sprite + Viewport + Image - Close me to exit")

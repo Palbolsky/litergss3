@@ -4,7 +4,7 @@ require_relative '../build/lib/LiteRGSS'
 
 puts "=== Test Window Live ==="
 
-ICON_PATH = File.join(__dir__, "game.png")
+ICON_PATH = File.join(__dir__, "assets/game.png")
 
 window = LiteRGSS::Window.new
 window.open_window(640, 480, "Test Loop - Close me to exit")

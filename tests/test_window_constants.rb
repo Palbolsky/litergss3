@@ -50,7 +50,7 @@ class TestWindow < Minitest::Test
   end
   
   def test_set_icon_existing_file
-    icon_path = File.join(__dir__, "game.png")
+    icon_path = File.join(__dir__, "assets/game.png")
     skip "No icon.png found in test directory" unless File.exist?(icon_path)
     @window.open_window
     @window.set_icon(icon_path)

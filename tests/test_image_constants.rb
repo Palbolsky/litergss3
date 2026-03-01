@@ -3,7 +3,7 @@ require_relative '../build/lib/LiteRGSS'
 
 class TestImage < Minitest::Test
   
-  SAMPLE_IMAGE = File.join(__dir__, "game.png")
+  SAMPLE_IMAGE = File.join(__dir__, "assets/game.png")
   
   # --- initialize ---
   
