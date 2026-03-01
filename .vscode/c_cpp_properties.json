@@ -5,6 +5,7 @@
       "includePath": [
         "${workspaceFolder}/**",
         "${workspaceFolder}/vendor/raylib/include/**",
+        "G:/Ruby34/msys32/mingw32/include/**",
         "G:/Ruby34/include/ruby-3.4.0/**"
       ],
       "defines": ["_DEBUG", "UNICODE", "_UNICODE"],

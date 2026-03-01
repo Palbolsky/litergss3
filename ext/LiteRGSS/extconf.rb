@@ -14,8 +14,11 @@ abort "raylib.h not found" unless File.exist?(File.join(raylib_include, 'raylib.
 abort "libraylib.a not found" unless File.exist?(File.join(raylib_lib, 'libraylib.a'))
 
 have_library('raylib')
-$LDFLAGS << ' -lraylib -lopengl32 -lgdi32 -lwinmm'
-$CXXFLAGS << ' -std=c++17'
+$LDFLAGS << " -lraylib -lopengl32 -lgdi32 -lwinmm"
+
+puts "C++ Compiler is #{CONFIG['CXX']}"
+
+$CXXFLAGS << " -std=c++17 -Wall "
 
 src_dir = __dir__
 
