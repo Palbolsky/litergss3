@@ -33,9 +33,7 @@ void Init_Mouse()
     VALUE rb_mMouse = rb_define_module_under(rb_mLiteRGSS, "Mouse");
 
     rb_define_const(rb_mMouse, "Left",            INT2NUM(raylib::MOUSE_BUTTON_LEFT));
-    rb_define_const(rb_mMouse, "LEFT",            INT2NUM(raylib::MOUSE_BUTTON_LEFT));
     rb_define_const(rb_mMouse, "Right",           INT2NUM(raylib::MOUSE_BUTTON_RIGHT));
-    rb_define_const(rb_mMouse, "RIGHT",           INT2NUM(raylib::MOUSE_BUTTON_RIGHT));
     rb_define_const(rb_mMouse, "Middle",          INT2NUM(raylib::MOUSE_BUTTON_MIDDLE));
     rb_define_const(rb_mMouse, "XButton1",        INT2NUM(raylib::MOUSE_BUTTON_EXTRA));
     rb_define_const(rb_mMouse, "XButton2",        INT2NUM(raylib::MOUSE_BUTTON_FORWARD));
