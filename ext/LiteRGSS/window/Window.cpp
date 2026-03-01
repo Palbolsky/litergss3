@@ -6,7 +6,7 @@ VALUE rb_cWindow = Qnil;
 static int base_width  = 640;
 static int base_height = 480;
 
-// open_window(width=640, height=480, title="LiteRGSS", scale=1)
+//open_window(width=640, height=480, title="LiteRGSS", scale=1)
 VALUE rb_Window_open(int argc, VALUE* argv, VALUE self)
 {
     VALUE width, height, title, scale;
