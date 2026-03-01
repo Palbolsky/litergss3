@@ -1,6 +1,7 @@
 #include "LiteRGSS.h"
 #include "window/Window.h"
 #include "inputs/Inputs.h"
+#include "graphics/Graphics.h"
 
 VALUE rb_mLiteRGSS = Qnil;
 VALUE rb_mConfig   = Qnil;
@@ -16,5 +17,6 @@ extern "C"
 
     Init_Window();
     Init_Inputs();
+    Init_Graphics();
   }
 }

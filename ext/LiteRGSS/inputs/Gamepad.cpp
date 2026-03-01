@@ -104,5 +104,5 @@ void Init_Gamepad()
     rb_define_module_function(rb_mGamepad, "axis_position", _rbf rb_Gamepad_axis_position, 2);
     rb_define_module_function(rb_mGamepad, "update", _rbf rb_Gamepad_update, 0);
     rb_define_module_function(rb_mGamepad, "name", _rbf rb_Gamepad_name, 1);
-    rb_define_module_function(rb_mGamepad, "vibration", _rbf rb_Gamepad_set_vibration, 4);
+    rb_define_module_function(rb_mGamepad, "set_vibration", _rbf rb_Gamepad_set_vibration, 4);
 }
