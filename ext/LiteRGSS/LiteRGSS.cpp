@@ -1,6 +1,7 @@
 #include "LiteRGSS.h"
 #include "window/Window.h"
 #include "inputs/Mouse.h"
+#include "inputs/Keyboard.h"
 
 VALUE rb_mLiteRGSS = Qnil;
 VALUE rb_mConfig = Qnil;
@@ -16,5 +17,6 @@ extern "C"
 
     Init_Window();
     Init_Mouse();
+    Init_Keyboard();
   }
 }
