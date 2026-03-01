@@ -1,5 +1,6 @@
 #include "LiteRGSS.h"
-#include "Window.h"
+#include "window/Window.h"
+#include "inputs/Mouse.h"
 
 VALUE rb_mLiteRGSS = Qnil;
 VALUE rb_mConfig = Qnil;
@@ -14,5 +15,6 @@ extern "C"
     rb_eRGSSError = rb_define_class_under(rb_mLiteRGSS, "Error", rb_eStandardError);
 
     Init_Window();
+    Init_Mouse();
   }
 }
