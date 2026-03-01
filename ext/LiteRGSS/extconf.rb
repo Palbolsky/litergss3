@@ -14,19 +14,16 @@ abort "raylib.h not found" unless File.exist?(File.join(raylib_include, 'raylib.
 abort "libraylib.a not found" unless File.exist?(File.join(raylib_lib, 'libraylib.a'))
 
 have_library('raylib')
-$LDFLAGS << " -lraylib -lopengl32 -lgdi32 -lwinmm"
-
-puts "C++ Compiler is #{CONFIG['CXX']}"
-
-$CXXFLAGS << " -std=c++17 -Wall "
+$LDFLAGS << ' -lraylib -lopengl32 -lgdi32 -lwinmm'
+$CXXFLAGS << ' -std=c++17'
 
 src_dir = __dir__
 
 Dir.glob("#{src_dir}/**/").each do |subdir|
-  next if subdir == src_dir + '/'
-  rel = subdir.sub(src_dir + '/', '')
-  $VPATH << "$(srcdir)/#{rel}"
-  $INCFLAGS << " -I#{subdir}"
+next if subdir == src_dir + '/'
+rel = subdir.sub(src_dir + '/', '')
+$VPATH << "$(srcdir)/#{rel}"
+$INCFLAGS << " -I#{subdir}"
 end
 
 $srcs = Dir.glob("#{src_dir}/**/*.cpp").map { |f| f.sub(src_dir + '/', '') }.sort

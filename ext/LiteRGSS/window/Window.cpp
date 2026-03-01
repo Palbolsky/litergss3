@@ -3,7 +3,6 @@
 
 VALUE rb_cWindow = Qnil;
 
-// Store base size to allow rescaling
 static int base_width  = 640;
 static int base_height = 480;
 
@@ -26,7 +25,6 @@ VALUE rb_Window_open(int argc, VALUE* argv, VALUE self)
     return self;
 }
 
-// scale_window(scale) - rescale the window keeping the base size
 VALUE rb_Window_scale(VALUE self, VALUE scale)
 {
     double s = NUM2DBL(scale);
@@ -36,7 +34,6 @@ VALUE rb_Window_scale(VALUE self, VALUE scale)
     return self;
 }
 
-// resize_screen(width, height) - change the base size and resize the window
 VALUE rb_Window_resizeScreen(VALUE self, VALUE width, VALUE height)
 {
     base_width  = NUM2INT(width);
@@ -45,14 +42,28 @@ VALUE rb_Window_resizeScreen(VALUE self, VALUE width, VALUE height)
     return self;
 }
 
-// set_title(title)
 VALUE rb_Window_setTitle(VALUE self, VALUE title)
 {
     raylib::SetWindowTitle(StringValueCStr(title));
     return self;
 }
 
-// set_vsync(enabled)
+VALUE rb_Window_setIcon(VALUE self, VALUE path)
+{
+    const char* filepath = StringValueCStr(path);
+    raylib::Image icon = raylib_LoadImage(filepath);
+
+    if (icon.data == nullptr)
+    {
+        rb_raise(rb_eRuntimeError, "Failed to load icon: %s", filepath);
+        return self;
+    }
+
+    raylib::SetWindowIcon(icon);
+    raylib_UnloadImage(icon);
+    return self;
+}
+
 VALUE rb_Window_setVsync(VALUE self, VALUE enabled)
 {
     if (RTEST(enabled))
@@ -62,39 +73,33 @@ VALUE rb_Window_setVsync(VALUE self, VALUE enabled)
     return self;
 }
 
-// set_fps(fps)
 VALUE rb_Window_setFps(VALUE self, VALUE fps)
 {
     raylib::SetTargetFPS(NUM2INT(fps));
     return self;
 }
 
-// get_x() - window position x
 VALUE rb_Window_getX(VALUE self)
 {
     return INT2NUM(raylib::GetWindowPosition().x);
 }
 
-// get_y() - window position y
 VALUE rb_Window_getY(VALUE self)
 {
     return INT2NUM(raylib::GetWindowPosition().y);
 }
 
-// move(x, y) - move the window to position
 VALUE rb_Window_move(VALUE self, VALUE x, VALUE y)
 {
     raylib::SetWindowPosition(NUM2INT(x), NUM2INT(y));
     return self;
 }
 
-// desktop_width() - get the desktop screen width
 VALUE rb_Window_desktopWidth(VALUE self)
 {
     return INT2NUM(raylib::GetMonitorWidth(raylib::GetCurrentMonitor()));
 }
 
-// desktop_height() - get the desktop screen height
 VALUE rb_Window_desktopHeight(VALUE self)
 {
     return INT2NUM(raylib::GetMonitorHeight(raylib::GetCurrentMonitor()));
@@ -126,6 +131,7 @@ void Init_Window()
     rb_define_method(rb_cWindow, "scale_window",   _rbf rb_Window_scale,          1);
     rb_define_method(rb_cWindow, "resize_screen",  _rbf rb_Window_resizeScreen,   2);
     rb_define_method(rb_cWindow, "set_title",      _rbf rb_Window_setTitle,       1);
+    rb_define_method(rb_cWindow, "set_icon",       _rbf rb_Window_setIcon,        1);
     rb_define_method(rb_cWindow, "set_vsync",      _rbf rb_Window_setVsync,       1);
     rb_define_method(rb_cWindow, "set_fps",        _rbf rb_Window_setFps,         1);
     rb_define_method(rb_cWindow, "x",              _rbf rb_Window_getX,           0);
