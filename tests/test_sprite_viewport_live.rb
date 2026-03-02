@@ -7,7 +7,7 @@ puts "=== Test Sprite + Viewport + Image Live ==="
 SAMPLE_IMAGE = File.join(__dir__, "assets/game.png")
 
 window = LiteRGSS::Window.new
-window.open_window(640, 480, "Sprite + Viewport + Image - Close me to exit")
+window.open_window(640, 480, "Sprite + Viewport + Image - Close me to exit", 2)
 puts "Window opened"
 
 # --- Image ---
@@ -33,11 +33,25 @@ sprite = LiteRGSS::Sprite.new(vp)
 sprite.bitmap = img
 sprite.x         = 10
 sprite.y         = 10
+sprite.z         = 10
 sprite.visible   = true
 sprite.src_rect  = [0, 0, img.width, img.height]
 puts "Sprite at #{sprite.x}, #{sprite.y}"
 puts "Sprite src_rect: #{sprite.src_rect.inspect}"
 puts "Sprite viewport: #{sprite.viewport.inspect}"
+
+# --- Sprite ---
+puts "\n[Sprite2]"
+sprite2 = LiteRGSS::Sprite.new(vp)
+sprite2.bitmap = img
+sprite2.x         = 50
+sprite2.y         = 50
+sprite2.z         = 1
+sprite2.visible   = true
+sprite2.src_rect  = [0, 0, img.width, img.height]
+puts "Sprite at #{sprite2.x}, #{sprite2.y}"
+puts "Sprite src_rect: #{sprite2.src_rect.inspect}"
+puts "Sprite viewport: #{sprite2.viewport.inspect}"
 
 # --- Controls info ---
 puts "\n[Controls]"
@@ -122,6 +136,7 @@ until window.should_close?
   # Draw
   vp.begin_draw
   sprite.draw if sprite.visible
+  sprite2.draw if sprite2.visible
   vp.end_draw
   
   window.present
