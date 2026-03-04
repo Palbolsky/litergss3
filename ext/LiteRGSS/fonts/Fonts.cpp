@@ -1,6 +1,6 @@
 #include <iostream>
 #include <vector>
-#include "../common/Normalize.h"
+#include <LiteCGSS2/Common/NormalizeNumbers.h>
 #include "LiteRGSS.h"
 #include "Color.h"
 #include "Fonts.h"
@@ -26,7 +26,7 @@ VALUE rb_Fonts_clear_all(VALUE self)
 
 VALUE rb_Fonts_load_font(VALUE self, VALUE id, VALUE str)
 {
-    unsigned long position = normalize_long(rb_num2long(id), 0, 255);
+    unsigned long position = cgss::normalize_long(rb_num2long(id), 0, 255);
     rb_check_type(str, T_STRING);
     while (rb_Fonts_font_tbl.size() <= position)
     {

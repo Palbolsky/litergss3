@@ -1,4 +1,4 @@
-#include "RaylibWrapper.h"
+#include <LiteCGSS2/Common/RaylibWrapper.h>
 #include "Inputs.h"
 #include "RubyValue.h"
 

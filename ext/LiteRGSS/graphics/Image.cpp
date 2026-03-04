@@ -1,7 +1,7 @@
-#include "RaylibWrapper.h"
+#include <LiteCGSS2/Common/RaylibWrapper.h>
 #include "LiteRGSS.h"
 #include "RubyValue.h"
-#include "common/Normalize.h"
+#include <LiteCGSS2/Common/NormalizeNumbers.h>
 #include "Color.h"
 #include "Image.h"
 
@@ -251,7 +251,7 @@ VALUE rb_Image_createMask(VALUE self, VALUE color, VALUE alpha)
     auto *img = get_image(self);
     ColorData *cd = get_color_data(color);
     raylib::Color mask_color = {cd->r, cd->g, cd->b, cd->a};
-    uint8_t target_alpha = (uint8_t)normalize_long(NUM2LONG(alpha), 0, 255);
+    uint8_t target_alpha = (uint8_t)cgss::normalize_long(NUM2LONG(alpha), 0, 255);
 
     for (int py = 0; py < img->height(); py++)
     {

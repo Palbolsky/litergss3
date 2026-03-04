@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <functional>
 #include "RubyValue.h"
-#include "./common/meta/metadata.h"
+#include <LiteCGSS2/Common/Meta/metadata.h>
 #include <type_traits>
 
 extern VALUE rb_eRGSSError;
@@ -131,7 +131,7 @@ namespace rb
 		auto *result = GetPtr<T>(self);
 		if constexpr (has_instance_method<T>::value)
 		{
-			/* Here we ensure that if it is a LiteCGSS binding, it has been correctly initialized
+			/* Here we ensure that if it is a LiteCGSS2 binding, it has been correctly initialized
 			   (In order to avoid throwing C++ exception when accessing a badly initialized object) */
 			if (result == nullptr || result->instance() == nullptr)
 			{

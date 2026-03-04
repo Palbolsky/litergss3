@@ -2,7 +2,7 @@
 #define Fonts_H
 
 #include "RubyValue.h"
-#include "RaylibWrapper.h"
+#include <LiteCGSS2/Common/RaylibWrapper.h>
 
 VALUE rb_Fonts_get_outline_color(VALUE self, VALUE id);
 VALUE rb_Fonts_get_shadow_color(VALUE self, VALUE id);

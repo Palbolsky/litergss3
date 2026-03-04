@@ -1,7 +1,7 @@
-#include "RaylibWrapper.h"
+#include <LiteCGSS2/Common/RaylibWrapper.h>
 #include "LiteRGSS.h"
 #include "RubyValue.h"
-#include "common/Normalize.h"
+#include <LiteCGSS2/Common/NormalizeNumbers.h>
 #include "Color.h"
 
 VALUE rb_cColor = Qnil;
@@ -38,13 +38,13 @@ VALUE rb_Color_Initialize(int argc, VALUE *argv, VALUE self)
     rb_scan_args(argc, argv, "04", &red, &green, &blue, &alpha);
     auto *color = get_color(self);
     if (RTEST(red))
-        color->r = (uint8_t)normalize_long(RB_NUM2LONG(red), 0, 255);
+        color->r = (uint8_t)cgss::normalize_long(RB_NUM2LONG(red), 0, 255);
     if (RTEST(green))
-        color->g = (uint8_t)normalize_long(RB_NUM2LONG(green), 0, 255);
+        color->g = (uint8_t)cgss::normalize_long(RB_NUM2LONG(green), 0, 255);
     if (RTEST(blue))
-        color->b = (uint8_t)normalize_long(RB_NUM2LONG(blue), 0, 255);
+        color->b = (uint8_t)cgss::normalize_long(RB_NUM2LONG(blue), 0, 255);
     if (RTEST(alpha))
-        color->a = (uint8_t)normalize_long(RB_NUM2LONG(alpha), 0, 255);
+        color->a = (uint8_t)cgss::normalize_long(RB_NUM2LONG(alpha), 0, 255);
     return self;
 }
 
@@ -63,25 +63,25 @@ VALUE rb_Color_getAlpha(VALUE self) { return rb_int2inum(get_color(self)->a); }
 
 VALUE rb_Color_setRed(VALUE self, VALUE v)
 {
-    get_color(self)->r = (uint8_t)normalize_long(RB_NUM2LONG(v), 0, 255);
+    get_color(self)->r = (uint8_t)cgss::normalize_long(RB_NUM2LONG(v), 0, 255);
     return self;
 }
 
 VALUE rb_Color_setGreen(VALUE self, VALUE v)
 {
-    get_color(self)->g = (uint8_t)normalize_long(RB_NUM2LONG(v), 0, 255);
+    get_color(self)->g = (uint8_t)cgss::normalize_long(RB_NUM2LONG(v), 0, 255);
     return self;
 }
 
 VALUE rb_Color_setBlue(VALUE self, VALUE v)
 {
-    get_color(self)->b = (uint8_t)normalize_long(RB_NUM2LONG(v), 0, 255);
+    get_color(self)->b = (uint8_t)cgss::normalize_long(RB_NUM2LONG(v), 0, 255);
     return self;
 }
 
 VALUE rb_Color_setAlpha(VALUE self, VALUE v)
 {
-    get_color(self)->a = (uint8_t)normalize_long(RB_NUM2LONG(v), 0, 255);
+    get_color(self)->a = (uint8_t)cgss::normalize_long(RB_NUM2LONG(v), 0, 255);
     return self;
 }
 

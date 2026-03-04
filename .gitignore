@@ -1,5 +1,52 @@
 # Build
-build/
+/build
 
 # Raylib
-vendor/raylib/
+vendor/raylib
+
+# Other things
+.vscode
+*.code-workspace
+*.directory
+
+# LiteCGSS2
+
+#CMake
+**/CMakeFiles
+CMakeFiles
+cmake_install.cmake
+CMakeCache.txt
+Makefile
+**/*.dir
+*.dir
+
+#Ninja
+.ninja_deps
+.ninja_log
+build.ninja
+
+#Editors
+*.vcxproj
+*.filters
+*.user
+*.sln
+.vs
+*/.vs
+.vscode
+
+#Generated
+**/lib
+lib
+**/bin
+bin
+**/Debug
+**/Release
+**.a
+*.log
+generated/
+\#*
+
+#External
+external/skalog
+external/gtest
+_deps

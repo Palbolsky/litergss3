@@ -1,7 +1,7 @@
-#include "RaylibWrapper.h"
+#include <LiteCGSS2/Common/RaylibWrapper.h>
 #include "LiteRGSS.h"
 #include "RubyValue.h"
-#include "common/Normalize.h"
+#include <LiteCGSS2/Common/NormalizeNumbers.h>
 #include "Sprite.h"
 #include "Image.h"
 #include "Viewport.h"
@@ -277,7 +277,7 @@ VALUE rb_Sprite_getOpacity(VALUE self)
 VALUE rb_Sprite_setOpacity(VALUE self, VALUE v)
 {
     check_disposed(get_sprite(self));
-    get_sprite(self)->opacity = (uint8_t)normalize_long(RB_NUM2LONG(v), 0, 255);
+    get_sprite(self)->opacity = (uint8_t)cgss::normalize_long(RB_NUM2LONG(v), 0, 255);
     return v;
 }
 

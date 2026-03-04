@@ -18,12 +18,44 @@ spec = Gem::Specification.new do |s|
   s.required_ruby_version = '>= 3.0.0'
 end
 
+Gem::PackageTask.new(spec) do |pkg|
+end
+
 Rake::ExtensionTask.new(ext_name, spec) do |ext|
   # cross compilation requires a cross compile toolchain
   ext.cross_compile = true
   ext.cross_platform = ['x86-mingw32']
   ext.lib_dir = 'build/lib'
   ext.tmp_dir = 'build/tmp'
+end
+
+desc "Configure the project by checking / setting up a working environment"
+task :configure do |t, args|
+  require_relative 'external/litecgss2/build/system_env'
+  require_relative 'external/litecgss2/build/ruby_installer'
+
+  litecgss_root_dir = File.expand_path(File.dirname(__FILE__)) + "/external/litecgss2"
+  Dir.chdir(litecgss_root_dir) {
+    system("rake configure")
+  }
+
+  Dir.chdir(litecgss_root_dir) {
+    system("rake clean")
+    extra_args = '--enable-debug '
+    if enable_config('physfs')
+      extra_args += '--enable-physfs '
+    end
+    system("rake compile -- #{extra_args}")
+  }
+end
+
+desc "Build the project, in release mode"
+task :release do
+  litecgss_root_dir = File.expand_path(File.dirname(__FILE__)) + "/external/litecgss2"
+  Dir.chdir(litecgss_root_dir) {
+    system("rake release")
+  }
+  Rake::Task[:compile].invoke()
 end
 
 desc "Clean the project"

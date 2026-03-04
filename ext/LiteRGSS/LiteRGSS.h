@@ -2,7 +2,7 @@
 #define LiteRGSS_H
 
 #include "RubyValue.h"
-#include "RaylibWrapper.h"
+#include <LiteCGSS2/Common/RaylibWrapper.h>
 
 extern VALUE rb_mLiteRGSS;
 extern VALUE rb_mConfig;

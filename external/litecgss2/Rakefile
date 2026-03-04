@@ -1,0 +1,60 @@
+require 'fileutils'
+require_relative 'build/system_env'
+require_relative 'build/ruby_installer'
+require_relative 'build/raylib_installer'
+require_relative 'build/builder'
+
+require 'rake/extensiontask'
+
+litecgss_root_dir = File.expand_path(File.dirname(__FILE__))
+
+desc "Build the project"
+task :compile, [:type] do |t, args|
+    Cgss::Builder.cmake_guard()
+    Cgss::RubyInstaller.ridk_guard()
+    Cgss::Builder.check_gnu_compiler()
+    Cgss::RaylibInstaller.setup_flags
+
+    $INCFLAGS << " -I'" + (litecgss_root_dir + "/src/src'")
+    $LDFLAGS << " -L'" + (litecgss_root_dir + "/lib'")
+
+    cmake_build_type = args[:type].eql?("release") ? "Release" : "Debug"
+    extra_args = "-DLITECGSS_NO_TEST:BOOL=TRUE -DCGSS_NO_LOGS=Y" if args[:type].eql? "release"
+    cmake_generator = Cgss::Builder::get_cmake_generator()
+    puts cmake_generator
+
+    puts "Building LiteCGSS2 in #{litecgss_root_dir}... "
+    Dir.chdir(litecgss_root_dir) {
+        if enable_config('physfs')
+          extra_args = "" if !extra_args
+          extra_args = extra_args + " -DLITECGSS_USE_PHYSFS:BOOL=TRUE "
+        end
+        cmake_configure_cmd = "cmake #{cmake_generator} -DBUILD_SHARED_LIBS:BOOL=FALSE #{extra_args} -DCMAKE_BUILD_TYPE=#{cmake_build_type} ."
+        puts "CMake configuration:"
+        puts cmake_configure_cmd
+        system(cmake_configure_cmd)
+        system("cmake --build .") or fail "[LiteCGSS2] Build failed"
+    }
+end
+
+desc "Build the project, in release mode"
+task :release do
+    Rake::Task[:compile].invoke("release")
+end
+
+desc "Start unit-tests"
+task :test do
+    system(litecgss_root_dir + "/bin/LiteCGSS_test") or fail "[LiteCGSS] Tests failed"
+end
+
+desc "Clean the project"
+task :clean do
+    puts "Cleaning LiteCGSS in #{litecgss_root_dir}... "
+    Dir.chdir(litecgss_root_dir) {
+        FileUtils.rm_rf litecgss_root_dir + "/lib"
+        FileUtils.rm_rf litecgss_root_dir + "/bin"
+        FileUtils.rm_rf litecgss_root_dir + "/src/CMakeFiles"
+        FileUtils.rm_rf "CMakeFiles"
+        File.delete("CMakeCache.txt") if File.exist? 'CMakeCache.txt'
+    }
+end
