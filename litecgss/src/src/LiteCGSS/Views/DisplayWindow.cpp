@@ -1,5 +1,6 @@
 #include <cmath>
 #include <cassert>
+#include <thread>
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
 #include "DisplayWindow.h"
 #include "LoggerViews.h"
@@ -10,15 +11,34 @@ SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::DisplayWindow)
 #define LOG_INFO SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info, cgss::DisplayWindow)
 #define LOG_WARN SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Warn, cgss::DisplayWindow)
 
+#ifdef CGSS_WINDOW_PRESERVATION
+static sf::RenderWindow& sharedGameWindow() {
+	static sf::RenderWindow instance;
+	return instance;
+}
+#endif
+
 cgss::DisplayWindow::DisplayWindow(const DisplayWindowSettings& settings) :
+#ifdef CGSS_WINDOW_PRESERVATION
+	m_gameWindow(sharedGameWindow()),
+#endif
 	m_snapshot{ *this } {
+#ifdef CGSS_WINDOW_PRESERVATION
+	reload(settings, true);
+#else
 	initUserRender();
 	reload(settings, true);
+#endif
 }
 
 cgss::DisplayWindow::DisplayWindow() :
+#ifdef CGSS_WINDOW_PRESERVATION
+	m_gameWindow(sharedGameWindow()),
+#endif
 	m_snapshot{ *this } {
+#ifndef CGSS_WINDOW_PRESERVATION
 	initUserRender();
+#endif
 }
 
 cgss::DisplayWindow::~DisplayWindow() {
@@ -33,21 +53,63 @@ void cgss::DisplayWindow::initUserRender() {
 }
 
 void cgss::DisplayWindow::reload(DisplayWindowSettings settings, bool force) {
+	if (force) {
+		// During initialization (force=true), no draw loop is running yet,
+		// so we apply immediately on the current thread.
+		applyReload(std::move(settings), force);
+	} else {
+		// Defer to the draw thread to avoid cross-thread OpenGL context issues
+		// (critical on Android where GL ES contexts are strictly thread-bound).
+		std::lock_guard<std::mutex> lock(m_pendingReloadMutex);
+		m_pendingReloadSettings = std::move(settings);
+		m_pendingReloadForce = false;
+	}
+}
+
+void cgss::DisplayWindow::applyPendingReload() {
+	std::optional<DisplayWindowSettings> settings;
+	bool force = false;
+	{
+		std::lock_guard<std::mutex> lock(m_pendingReloadMutex);
+		if (!m_pendingReloadSettings.has_value()) {
+			return;
+		}
+		settings = std::move(m_pendingReloadSettings);
+		force = m_pendingReloadForce;
+		m_pendingReloadSettings.reset();
+	}
+	applyReload(std::move(*settings), force);
+}
+
+void cgss::DisplayWindow::applyReload(DisplayWindowSettings settings, bool force) {
 	const auto windowCreateNeeded =
 		force ||
 		settings.video.bitsPerPixel != m_settings.video.bitsPerPixel ||
 		settings.fullscreen != m_settings.fullscreen;
 
+	LOG_DEBUG << "applyReload: force=" << force << " windowCreateNeeded=" << windowCreateNeeded;
+
 	m_settings = std::move(settings);
 
-	if (settings.headless) {
+	if (m_settings.headless) {
 		m_gameWindow.close();
 	} else {
 		const auto scaledWidth = static_cast<unsigned int>(m_settings.video.width * m_settings.video.scale);
 		const auto scaledHeight = static_cast<unsigned int>(m_settings.video.height * m_settings.video.scale);
 		if (windowCreateNeeded) {
-			const auto style = m_settings.fullscreen ? sf::Style::Fullscreen : (sf::Style::Close | sf::Style::Titlebar);
-			m_gameWindow.create(sf::VideoMode { scaledWidth, scaledHeight, m_settings.video.bitsPerPixel }, m_settings.title, style, m_settings.context);
+#ifdef CGSS_WINDOW_PRESERVATION
+			if (m_gameWindow.isOpen()) {
+				// Window already exists (shared static), just update settings.
+				// Don't call setSize() — on Android the native window is always fullscreen,
+				// and setSize() would desync SFML's internal size from the actual surface.
+				LOG_WARN << "Reusing existing window instead of recreating";
+				m_gameWindow.setTitle(m_settings.title);
+			} else
+#endif
+			{
+				const auto style = m_settings.fullscreen ? sf::Style::Fullscreen : (sf::Style::Close | sf::Style::Titlebar);
+				m_gameWindow.create(sf::VideoMode { scaledWidth, scaledHeight, m_settings.video.bitsPerPixel }, m_settings.title, style, m_settings.context);
+			}
 		} else {
 			m_gameWindow.setSize(sf::Vector2u { scaledWidth, scaledHeight });
 			m_gameWindow.setTitle(m_settings.title);
@@ -129,7 +191,15 @@ bool cgss::DisplayWindow::isOpen() const {
 
 void cgss::DisplayWindow::stop() {
 	m_snapshot.stop();
+#ifdef CGSS_WINDOW_PRESERVATION
+	// Don't close the shared window — just clear drawables.
+	// The GL context stays valid so member destructors can clean up GL resources safely.
+	drawables().clear();
+	m_gameWindow.clear();
+	m_gameWindow.display();
+#else
 	m_gameWindow.close();
+#endif
 }
 
 void cgss::DisplayWindow::setActive(bool active) {
@@ -137,6 +207,7 @@ void cgss::DisplayWindow::setActive(bool active) {
 }
 
 void cgss::DisplayWindow::draw() {
+	applyPendingReload();
 	m_gameWindow.clear();
 
 	sf::View defview = m_gameWindow.getDefaultView();
@@ -205,7 +276,8 @@ void cgss::DisplayWindow::resizeScreen(unsigned int width, unsigned int height) 
 
 void cgss::DisplayWindow::setTitle(const char* title) {
 	m_settings.title = sf::String { title };
-	m_gameWindow.setTitle(m_settings.title);}
+	m_gameWindow.setTitle(m_settings.title);
+}
 
 void cgss::DisplayWindow::setVsync(bool enable) {
 	m_settings.vSync = enable;

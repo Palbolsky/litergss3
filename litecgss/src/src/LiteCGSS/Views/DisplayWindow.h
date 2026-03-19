@@ -2,6 +2,8 @@
 #define CGSS_DISPLAY_WINDOW_H
 
 #include <memory>
+#include <mutex>
+#include <optional>
 
 #include <SFML/Graphics/Image.hpp>
 
@@ -96,6 +98,8 @@ namespace cgss {
 		DisplayWindowUserData buildUserData() {
 			return { m_eventDispatcher, m_settings, m_userRenderSprite, m_userRenderTexture };
 		}
+		void applyReload(DisplayWindowSettings settings, bool force);
+		void applyPendingReload();
 		void onSizeChanged();
 		void notifyWindowSizeChange();
 
@@ -109,9 +113,14 @@ namespace cgss {
 		bool m_eventPolicyPolling = true;
 		MainEventDispatcher m_eventDispatcher {};
 		DisplayWindowSettings m_settings {};
-		sf::RenderWindow m_gameWindow {};
+		sf::RenderWindow m_ownedGameWindow {};
+		sf::RenderWindow& m_gameWindow = m_ownedGameWindow;
 		DisplayWindowSnapshot m_snapshot;
 		DisplayWindowDrawData m_draw;
+
+		std::mutex m_pendingReloadMutex;
+		std::optional<DisplayWindowSettings> m_pendingReloadSettings;
+		bool m_pendingReloadForce = false;
 
 		/* The user render sprite and texture belong to the window and are only used by children element on the window.
 			As of today, only viewports use this. The use of render sprite and texture is to be used as the target view of
