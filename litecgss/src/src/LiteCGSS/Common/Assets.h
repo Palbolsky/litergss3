@@ -54,12 +54,15 @@ namespace cgss {
 		void seek(uint64_t position);
 		int64_t tell() const;
 
+		const std::string& path() const;
+
 		void close();
 
 		virtual ~AssetFile();
 	private:
 		AssetFileMode m_mode = AssetFileMode::Closed;
 		PHYSFS_file* m_file = nullptr;
+		std::string m_path;
 
 		void cleanup();
 		static PHYSFS_file* openOrThrow(const std::string& filename, AssetFileMode mode);

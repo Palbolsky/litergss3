@@ -80,7 +80,8 @@ std::vector<std::string> cgss::AssetFile::enumerate(const std::string& directory
 
 cgss::AssetFile::AssetFile(const std::string& filename, const std::string& mode) :
 	m_mode(computeModeOrThrow(mode)),
-	m_file(openOrThrow(filename, m_mode)) {
+	m_file(openOrThrow(filename, m_mode)),
+	m_path(filename) {
 }
 
 cgss::AssetFile::AssetFile(AssetFile&& file) {
@@ -90,9 +91,14 @@ cgss::AssetFile::AssetFile(AssetFile&& file) {
 cgss::AssetFile& cgss::AssetFile::operator=(AssetFile&& file) {
 	cleanup();
 	m_file = file.m_file;
+	m_path = std::move(file.m_path);
 	file.m_file = nullptr;
 	file.m_mode = AssetFileMode::Closed;
 	return *this;
+}
+
+const std::string& cgss::AssetFile::path() const {
+	return m_path;
 }
 
 void cgss::AssetFile::close() {
