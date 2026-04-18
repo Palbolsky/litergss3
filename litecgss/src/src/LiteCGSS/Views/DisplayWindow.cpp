@@ -1,6 +1,10 @@
 #include <cmath>
 #include <cassert>
 #include <thread>
+#include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Graphics/RenderTexture.hpp>
+#include <SFML/Graphics/Sprite.hpp>
+#include <SFML/Window/Event.hpp>
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
 #include "DisplayWindow.h"
 #include "LoggerViews.h"
@@ -21,6 +25,9 @@ static sf::RenderWindow& sharedGameWindow() {
 cgss::DisplayWindow::DisplayWindow(const DisplayWindowSettings& settings) :
 #ifdef CGSS_WINDOW_PRESERVATION
 	m_gameWindow(sharedGameWindow()),
+#else
+	m_ownedGameWindow(std::make_unique<sf::RenderWindow>()),
+	m_gameWindow(*m_ownedGameWindow),
 #endif
 	m_snapshot{ *this },
 	m_userRenderSprite(std::make_unique<sf::Sprite>()),
@@ -36,6 +43,9 @@ cgss::DisplayWindow::DisplayWindow(const DisplayWindowSettings& settings) :
 cgss::DisplayWindow::DisplayWindow() :
 #ifdef CGSS_WINDOW_PRESERVATION
 	m_gameWindow(sharedGameWindow()),
+#else
+	m_ownedGameWindow(std::make_unique<sf::RenderWindow>()),
+	m_gameWindow(*m_ownedGameWindow),
 #endif
 	m_snapshot{ *this },
 	m_userRenderSprite(std::make_unique<sf::Sprite>()),
@@ -48,6 +58,11 @@ cgss::DisplayWindow::DisplayWindow() :
 cgss::DisplayWindow::~DisplayWindow() {
 	stop();
 }
+
+cgss::DisplayWindowDrawData::DisplayWindowDrawData() = default;
+cgss::DisplayWindowDrawData::~DisplayWindowDrawData() = default;
+cgss::DisplayWindowDrawData::DisplayWindowDrawData(DisplayWindowDrawData&&) noexcept = default;
+cgss::DisplayWindowDrawData& cgss::DisplayWindowDrawData::operator=(DisplayWindowDrawData&&) noexcept = default;
 
 void cgss::DisplayWindow::initUserRender() {
 	m_userRenderTexture->create(m_draw.screenWidth, m_draw.screenHeight);

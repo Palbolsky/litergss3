@@ -1,3 +1,8 @@
+#include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Graphics/RenderTexture.hpp>
+#include <SFML/Graphics/Sprite.hpp>
+#include <SFML/Graphics/Texture.hpp>
+#include <SFML/Graphics/Color.hpp>
 #include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Graphics/RenderStates.h"
 #include "LiteCGSS/Common/NormalizeNumbers.h"
@@ -7,6 +12,8 @@
 cgss::DisplayWindowSnapshot::DisplayWindowSnapshot(DisplayWindow& window) :
 	m_window(window) {
 }
+
+cgss::DisplayWindowSnapshot::~DisplayWindowSnapshot() = default;
 
 void cgss::DisplayWindowSnapshot::init() {
 	static constexpr const char* GraphicsTransitionFragmentShader = \

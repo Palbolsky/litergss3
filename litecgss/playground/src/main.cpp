@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include "Views/DisplayWindow.h"
 #include "Views/Viewport.h"

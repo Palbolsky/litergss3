@@ -6,7 +6,14 @@
 #include <optional>
 
 #include <SFML/Graphics/Image.hpp>
-#include <SFML/Graphics/RenderWindow.hpp>
+
+namespace sf {
+	class RenderWindow;
+	class Event;
+	class Sprite;
+	class RenderTexture;
+	class Texture;
+}
 
 #include "View.h"
 #include "ViewAuthorizations.h"
@@ -114,8 +121,12 @@ namespace cgss {
 		bool m_eventPolicyPolling = true;
 		MainEventDispatcher m_eventDispatcher {};
 		DisplayWindowSettings m_settings {};
-		sf::RenderWindow m_ownedGameWindow {};
-		sf::RenderWindow& m_gameWindow = m_ownedGameWindow;
+		/* m_ownedGameWindow holds the owned window; m_gameWindow is the bound reference
+			(either to the owned one, or to a shared static one in the CGSS_WINDOW_PRESERVATION
+			case — see DisplayWindow.cpp ctors). Declaration order matters: m_ownedGameWindow
+			must come before m_gameWindow so it is constructed first. */
+		std::unique_ptr<sf::RenderWindow> m_ownedGameWindow;
+		sf::RenderWindow& m_gameWindow;
 		DisplayWindowSnapshot m_snapshot;
 		DisplayWindowDrawData m_draw;
 
