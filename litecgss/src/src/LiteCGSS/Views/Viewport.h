@@ -1,8 +1,8 @@
 #ifndef CGSS_VIEWPORT_H
 #define CGSS_VIEWPORT_H
 #include <optional>
-#include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/Texture.hpp>
+#include "LiteCGSS/Graphics/DrawState.h"
 #include "LiteCGSS/Graphics/ShaderRenderable.h"
 #include "SnapshotCapturable.h"
 #include "View.h"
@@ -30,7 +30,7 @@ namespace cgss {
 
 		DisplayWindowUserData m_windowData;
 
-		std::optional<sf::RenderStates> m_renderStates;
+		std::optional<cgss::DrawState> m_renderStates;
 		std::unique_ptr<RenderStates> m_defaultRenderStates;
 
 		double m_wantedOx = 0;

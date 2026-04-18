@@ -6,11 +6,11 @@
 #include <cstddef>
 
 #include "LiteCGSS/Graphics/BlendMode.h"
+#include "LiteCGSS/Graphics/DrawState.h"
 #include "LiteCGSS/Graphics/Glsl.h"
 #include "LiteCGSS/Graphics/ShaderType.h"
 
 namespace sf {
-	class RenderStates;
 	class Shader;
 	class Texture;
 }
@@ -21,7 +21,7 @@ namespace cgss {
 
 	class RenderStatesData {
 	private:
-		std::unique_ptr<sf::RenderStates> m_renderStates {};
+		cgss::DrawState m_drawState {};
 		std::unique_ptr<sf::Shader> m_shader {};
 		bool m_shadersEnabled = false;
 
@@ -83,7 +83,7 @@ namespace cgss {
 
 		void setShaderUniformArray(const std::string& name, const float* scalarArray, std::size_t length);
 
-		const sf::RenderStates& getRenderStates() const;
+		const cgss::DrawState& getRenderStates() const;
 	};
 }
 

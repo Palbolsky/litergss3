@@ -250,7 +250,7 @@ void cgss::DisplayWindow::postProcessing() {
 		if (m_draw.renderState == nullptr) {
 			m_gameWindow.draw(sp);
 		} else {
-			m_gameWindow.draw(sp, *m_draw.renderState);
+			m_gameWindow.draw(sp, m_draw.renderState->raw());
 		}
 	}
 
@@ -303,7 +303,7 @@ void cgss::DisplayWindow::setIcon(const sf::Image& image) {
 	m_gameWindow.setIcon(image.getSize().x, image.getSize().y, image.getPixelsPtr());
 }
 
-void cgss::DisplayWindow::setShader(const sf::RenderStates* renderStates) {
+void cgss::DisplayWindow::setShader(const cgss::DrawState* renderStates) {
 	m_draw.renderState = renderStates;
 	if (m_draw.renderTexture == nullptr && m_draw.renderState != nullptr) {
 		m_draw.renderTexture = std::make_unique<sf::RenderTexture>();

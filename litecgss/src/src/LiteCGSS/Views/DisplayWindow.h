@@ -108,7 +108,7 @@ namespace cgss {
 		void drawBrightness();
 		cgss::RenderTarget configureAndGetRenderTarget(cgss::Camera& defview);
 		void postProcessing();
-		void setShader(const sf::RenderStates* shader);
+		void setShader(const cgss::DrawState* shader);
 		void updateFromValue(const RenderStatesData* renderStatesData) override;
 
 		bool m_eventPolicyPolling = true;

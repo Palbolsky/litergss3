@@ -18,14 +18,14 @@ cgss::ShapeItem::ShapeItem(Shape* owner, ShapeData shape) :
 }
 
 void cgss::ShapeItem::draw(cgss::RenderTarget& target) const {
-	target.raw().draw(*m_shape, m_renderStates);
+	target.raw().draw(*m_shape, m_renderStates.raw());
 }
 
 void cgss::ShapeItem::drawFast(cgss::RenderTarget& target) const {
 	target.raw().draw(*m_shape);
 }
 
-void cgss::Shape::setRenderState(sf::RenderStates states) {
+void cgss::Shape::setRenderState(cgss::DrawState states) {
 	m_proxy->m_renderStates = std::move(states);
 }
 

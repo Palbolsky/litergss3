@@ -18,7 +18,7 @@ void cgss::SpriteItem::draw(cgss::RenderTarget& target) const {
 void cgss::SpriteItem::updateFromValue(const RenderStatesData*) {}
 
 void cgss::SpriteItem::drawFast(cgss::RenderTarget& target) const {
-	target.raw().draw(m_sprite, ShaderRenderable::getValue() == nullptr ? sf::RenderStates::Default : ShaderRenderable::getValue()->getRenderStates());
+	target.raw().draw(m_sprite, ShaderRenderable::getValue() == nullptr ? sf::RenderStates::Default : ShaderRenderable::getValue()->getRenderStates().raw());
 }
 
 void cgss::Sprite::bindRenderStates(RenderStates* renderStates) {

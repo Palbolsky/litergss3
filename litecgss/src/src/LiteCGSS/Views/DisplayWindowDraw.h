@@ -6,8 +6,10 @@
 #include <SFML/Graphics/RenderTexture.hpp>
 
 namespace cgss {
+	class DrawState;
+
 	struct DisplayWindowDrawData {
-		const sf::RenderStates* renderState = nullptr;
+		const cgss::DrawState* renderState = nullptr;
 		std::unique_ptr<sf::RenderTexture> renderTexture = nullptr;
 		unsigned long frameRate = 60;
 		unsigned char brightness = 255;

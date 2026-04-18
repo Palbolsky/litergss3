@@ -119,7 +119,7 @@ void cgss::DisplayWindowSnapshot::draw(sf::RenderWindow& window) {
 	// Display transition sprite
 	if (m_freezeSprite != nullptr) {
 		if (m_rgssTransition) {
-			window.draw(*m_freezeSprite, m_freezeShader.data().getRenderStates());
+			window.draw(*m_freezeSprite, m_freezeShader.data().getRenderStates().raw());
 		} else {
 			window.draw(*m_freezeSprite);
 		}

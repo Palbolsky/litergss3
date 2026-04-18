@@ -57,7 +57,7 @@ void cgss::ViewportItem::draw(cgss::RenderTarget& target) const {
 		setupFullWindowView(target);
 
 		// Draw the result
-		target.raw().draw(*m_windowData.userRenderSprite, *renderStates);
+		target.raw().draw(*m_windowData.userRenderSprite, renderStates->raw());
 	} else {
 		ViewBox::onRenderTarget(target, false);
 		drawables().drawFast(target);
@@ -90,7 +90,7 @@ std::unique_ptr<sf::Texture> cgss::ViewportItem::takeSnapshot() const {
 
 		// Draw the result
 		render.clear(sf::Color::Transparent);
-		render.draw(renderSprite, *renderStates);
+		render.draw(renderSprite, renderStates->raw());
 		render.display();
 	} else {
 		render.clear(sf::Color::Transparent);

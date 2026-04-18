@@ -3,11 +3,11 @@
 #include <memory>
 #include <SFML/Graphics/Shape.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
-#include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/System/Vector2.hpp>
 #include "LiteCGSS/Graphics/Drawable.h"
+#include "LiteCGSS/Graphics/DrawState.h"
 #include "LiteCGSS/Graphics/Transformable.h"
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
@@ -34,7 +34,7 @@ namespace cgss {
 		ShapeType m_type = ShapeType::Rectangle;
 		sf::RectangleShape m_defaultShape;
 
-		sf::RenderStates m_renderStates = sf::RenderStates::Default;
+		cgss::DrawState m_renderStates {};
 	public:
 		ShapeItem(Shape* owner, ShapeData shape);
 		void draw(cgss::RenderTarget& target) const override;
@@ -53,7 +53,7 @@ namespace cgss {
 		Shape& operator=(Shape&&) = default;
 		virtual ~Shape() = default;
 
-		void setRenderState(sf::RenderStates states);
+		void setRenderState(cgss::DrawState states);
 		void setTexture(Texture* texture, bool resetRect = false);
 
 		cgss::IntRect getRectangle() const;

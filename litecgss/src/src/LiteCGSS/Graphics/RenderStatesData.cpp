@@ -13,7 +13,6 @@
 bool cgss::RenderStatesData::SHADERS_ENABLED = true;
 
 cgss::RenderStatesData::RenderStatesData() :
-	m_renderStates(std::make_unique<sf::RenderStates>()),
 	m_shadersEnabled(true) {
 }
 
@@ -41,7 +40,7 @@ void cgss::RenderStatesData::updateShader() {
 		m_shader = nullptr;
 	}
 
-	m_renderStates->shader = m_shader.get();
+	m_drawState.raw().shader = m_shader.get();
 }
 
 bool cgss::RenderStatesData::isAvailable() {
@@ -57,51 +56,51 @@ void cgss::RenderStatesData::enableShader(bool enable) {
 }
 
 void cgss::RenderStatesData::setBlendColorSrcFactor(cgss::BlendFactor colorSrcFactor) {
-	m_renderStates->blendMode.colorSrcFactor = cgss::internal::toSf(colorSrcFactor);
+	m_drawState.raw().blendMode.colorSrcFactor = cgss::internal::toSf(colorSrcFactor);
 }
 
 void cgss::RenderStatesData::setBlendColorDstFactor(cgss::BlendFactor colorDstFactor) {
-	m_renderStates->blendMode.colorDstFactor = cgss::internal::toSf(colorDstFactor);
+	m_drawState.raw().blendMode.colorDstFactor = cgss::internal::toSf(colorDstFactor);
 }
 
 void cgss::RenderStatesData::setBlendAlphaSrcFactor(cgss::BlendFactor alphaSrcFactor) {
-	m_renderStates->blendMode.alphaSrcFactor = cgss::internal::toSf(alphaSrcFactor);
+	m_drawState.raw().blendMode.alphaSrcFactor = cgss::internal::toSf(alphaSrcFactor);
 }
 
 void cgss::RenderStatesData::setBlendAlphaDstFactor(cgss::BlendFactor alphaDstFactor) {
-	m_renderStates->blendMode.alphaDstFactor = cgss::internal::toSf(alphaDstFactor);
+	m_drawState.raw().blendMode.alphaDstFactor = cgss::internal::toSf(alphaDstFactor);
 }
 
 void cgss::RenderStatesData::setBlendColorEquation(cgss::BlendEquation colorEquation) {
-	m_renderStates->blendMode.colorEquation = cgss::internal::toSf(colorEquation);
+	m_drawState.raw().blendMode.colorEquation = cgss::internal::toSf(colorEquation);
 }
 
 void cgss::RenderStatesData::setBlendAlphaEquation(cgss::BlendEquation alphaEquation) {
-	m_renderStates->blendMode.alphaEquation = cgss::internal::toSf(alphaEquation);
+	m_drawState.raw().blendMode.alphaEquation = cgss::internal::toSf(alphaEquation);
 }
 
 cgss::BlendFactor cgss::RenderStatesData::getBlendColorSrcFactor() const {
-	return cgss::internal::fromSf(m_renderStates->blendMode.colorSrcFactor);
+	return cgss::internal::fromSf(m_drawState.raw().blendMode.colorSrcFactor);
 }
 
 cgss::BlendFactor cgss::RenderStatesData::getBlendColorDstFactor() const {
-	return cgss::internal::fromSf(m_renderStates->blendMode.colorDstFactor);
+	return cgss::internal::fromSf(m_drawState.raw().blendMode.colorDstFactor);
 }
 
 cgss::BlendFactor cgss::RenderStatesData::getBlendAlphaSrcFactor() const {
-	return cgss::internal::fromSf(m_renderStates->blendMode.alphaSrcFactor);
+	return cgss::internal::fromSf(m_drawState.raw().blendMode.alphaSrcFactor);
 }
 
 cgss::BlendFactor cgss::RenderStatesData::getBlendAlphaDstFactor() const {
-	return cgss::internal::fromSf(m_renderStates->blendMode.alphaDstFactor);
+	return cgss::internal::fromSf(m_drawState.raw().blendMode.alphaDstFactor);
 }
 
 cgss::BlendEquation cgss::RenderStatesData::getBlendColorEquation() const {
-	return cgss::internal::fromSf(m_renderStates->blendMode.colorEquation);
+	return cgss::internal::fromSf(m_drawState.raw().blendMode.colorEquation);
 }
 
 cgss::BlendEquation cgss::RenderStatesData::getBlendAlphaEquation() const {
-	return cgss::internal::fromSf(m_renderStates->blendMode.alphaEquation);
+	return cgss::internal::fromSf(m_drawState.raw().blendMode.alphaEquation);
 }
 
 bool cgss::RenderStatesData::loadShaderFromMemory(const std::string &shader, cgss::ShaderType type) {
@@ -262,6 +261,6 @@ bool cgss::RenderStatesData::enabledShader() const {
 	return m_shadersEnabled;
 }
 
-const sf::RenderStates& cgss::RenderStatesData::getRenderStates() const {
-	return *m_renderStates;
+const cgss::DrawState& cgss::RenderStatesData::getRenderStates() const {
+	return m_drawState;
 }
