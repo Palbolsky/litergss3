@@ -1,11 +1,16 @@
 #ifndef CGSS_SPRITEMAP_H
 #define CGSS_SPRITEMAP_H
+#include <memory>
+#include <vector>
 #include "LiteCGSS/Graphics/Drawable.h"
 #include "LiteCGSS/Graphics/Transformable.h"
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
-#include <SFML/Graphics/Sprite.hpp>
-#include <SFML/Graphics/Texture.hpp>
+
+namespace sf {
+	class Sprite;
+	class Texture;
+}
 
 namespace cgss {
 	class Texture;
@@ -18,8 +23,15 @@ namespace cgss {
 		friend class SpriteMap;
 	private:
 		struct ActivableSprite {
-			sf::Sprite sprite;
+			std::unique_ptr<sf::Sprite> sprite;
 			bool active = false;
+
+			ActivableSprite();
+			~ActivableSprite();
+			ActivableSprite(ActivableSprite&&) noexcept;
+			ActivableSprite& operator=(ActivableSprite&&) noexcept;
+			ActivableSprite(const ActivableSprite&) = delete;
+			ActivableSprite& operator=(const ActivableSprite&) = delete;
 		};
 
 		std::vector<ActivableSprite> m_sprites;

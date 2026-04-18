@@ -1,5 +1,6 @@
 #include <cstring>
 #include <SFML/Graphics/RenderTarget.hpp>
+#include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/View.hpp>
 #include "LoggerViews.h"
 #include "FramedView.h"
@@ -24,8 +25,12 @@ cgss::FramedViewItem::FramedViewItem(FramedView*, MainEventDispatcher& eventDisp
 	ViewBox(eventDispatcher, windowSettings),
 	SubObserver<ViewportChangeEvent>(std::bind(&FramedViewItem::onViewportChange, this, std::placeholders::_1), *this),
 	m_windowData(std::move(windowData)),
+	m_pause(std::make_unique<sf::Sprite>()),
+	m_cursor(std::make_unique<sf::Sprite>()),
 	m_parent(std::move(parent)) {
 }
+
+cgss::FramedViewItem::~FramedViewItem() = default;
 
 bool cgss::FramedViewItem::onViewportChange(cgss::ViewportChangeEvent& event) {
 	if (m_bondRectViewport == nullptr) {
@@ -65,12 +70,12 @@ void cgss::FramedViewItem::drawFast(cgss::RenderTarget& target) const {
 	}
 
 	/* Draw cursor & reset view */
-	target.raw().draw(m_cursor);
+	target.raw().draw(*m_cursor);
 	target.raw().setView(originalView);
 
 	if (m_paused) {
 		/* Draw pause */
-		target.raw().draw(m_pause);
+		target.raw().draw(*m_pause);
 	}
 }
 
@@ -510,32 +515,32 @@ void cgss::FramedViewItem::calculateVerticesStretch(long x, long y, long line, l
 }
 
 void cgss::FramedViewItem::updatePauseSprite() {
-	if (m_pause.getTexture() == nullptr) {
+	if (m_pause->getTexture() == nullptr) {
 		return;
 	}
 
 	long v = m_counter / 16;
-	sf::Vector2u size = m_pause.getTexture()->getSize();
+	sf::Vector2u size = m_pause->getTexture()->getSize();
 	size.x /= 2;
 	size.y /= 2;
-	m_pause.setTextureRect(sf::IntRect(
+	m_pause->setTextureRect(sf::IntRect(
 		(v & 0x01) == 1 ? size.x : 0,
 		(v & 0x02) == 2 ? size.y : 0,
 		size.x,
 		size.y
 	));
-	sf::Color col = m_pause.getColor();
+	sf::Color col = m_pause->getColor();
 	col.a = m_opacity;
-	m_pause.setColor(col);
+	m_pause->setColor(col);
 }
 
 void cgss::FramedViewItem::updateCursorSprite() {
-	if (m_cursor.getTexture() == nullptr) {
+	if (m_cursor->getTexture() == nullptr) {
 		return;
 	}
 
 	long v = m_counter;
-	sf::Color col = m_cursor.getColor();
+	sf::Color col = m_cursor->getColor();
 	col.a = m_opacity;
 	if (v > 64) {
 		v -= 64;
@@ -543,7 +548,7 @@ void cgss::FramedViewItem::updateCursorSprite() {
 	} else {
 		col.a = static_cast<sf::Uint8>((m_active ? 255 - 2 * v : 128) * col.a / 255);
 	}
-	m_cursor.setColor(col);
+	m_cursor->setColor(col);
 }
 
 void cgss::FramedViewItem::allocateVerticesBlt(long delta_w, long nb2, long delta_h, long nb4) {
@@ -647,24 +652,24 @@ cgss::IntRect cgss::FramedViewItem::getCursorRectangle() const {
 }
 
 void cgss::FramedViewItem::resetPausePosition() {
-	auto size = m_pause.getTexture() == nullptr ? sf::Vector2u{} : m_pause.getTexture()->getSize();
+	auto size = m_pause->getTexture() == nullptr ? sf::Vector2u{} : m_pause->getTexture()->getSize();
 	float pause_x = m_pauseX.has_value() ? static_cast<float>(m_pauseX.value()) : (m_wantedWidth - size.x) / 2.F;
 	float pause_y = m_pauseY.has_value() ? static_cast<float>(m_pauseY.value()) : (m_wantedHeight - size.y) / 2.F;
 	pause_x += m_x;
 	pause_y += m_y;
-	m_pause.setPosition(sf::Vector2f(pause_x, pause_y));
+	m_pause->setPosition(sf::Vector2f(pause_x, pause_y));
 }
 
 void cgss::FramedViewItem::setCursorRectangle(cgss::IntRect rect) {
 	setValue(rect);
 	m_cursorRect = std::move(rect);
 
-	if (m_cursor.getTexture() == nullptr) {
+	if (m_cursor->getTexture() == nullptr) {
 		return;
 	}
-	sf::Vector2f size = static_cast<sf::Vector2f>(m_cursor.getTexture()->getSize());
-	m_cursor.setScale(sf::Vector2f(m_cursorRect.width / size.x, m_cursorRect.height / size.y));
-	m_cursor.setPosition(sf::Vector2f(static_cast<float>(m_cursorRect.left), static_cast<float>(m_cursorRect.top)));
+	sf::Vector2f size = static_cast<sf::Vector2f>(m_cursor->getTexture()->getSize());
+	m_cursor->setScale(sf::Vector2f(m_cursorRect.width / size.x, m_cursorRect.height / size.y));
+	m_cursor->setPosition(sf::Vector2f(static_cast<float>(m_cursorRect.left), static_cast<float>(m_cursorRect.top)));
 }
 
 void cgss::FramedViewItem::updateContentsOpacity() {
@@ -674,7 +679,7 @@ void cgss::FramedViewItem::updateContentsOpacity() {
 }
 
 void cgss::FramedViewItem::setPauseSkin(sf::Texture& texture) {
-	m_pause.setTexture(texture);
+	m_pause->setTexture(texture);
 	resetPausePosition();
 	updatePauseSprite();
 }
@@ -695,7 +700,7 @@ bool cgss::FramedViewItem::isPaused() const {
 }
 
 void cgss::FramedViewItem::setCursorSkin(sf::Texture& texture) {
-	m_cursor.setTexture(texture);
+	m_cursor->setTexture(texture);
 	setCursorRectangle(m_cursorRect);
 	updateCursorSprite();
 }

@@ -126,9 +126,10 @@ namespace cgss {
 		/* The user render sprite and texture belong to the window and are only used by children element on the window.
 			As of today, only viewports use this. The use of render sprite and texture is to be used as the target view of
 			children viewports (when render states, so shaders, are enabled).
+			Initialized in the constructor (sf:: types must remain complete in the .cpp only).
 		*/
-		std::unique_ptr<sf::Sprite> m_userRenderSprite = std::make_unique<sf::Sprite>();
-		std::unique_ptr<sf::RenderTexture> m_userRenderTexture = std::make_unique<sf::RenderTexture>();
+		std::unique_ptr<sf::Sprite> m_userRenderSprite;
+		std::unique_ptr<sf::RenderTexture> m_userRenderTexture;
 	};
 
 	class Sprite;

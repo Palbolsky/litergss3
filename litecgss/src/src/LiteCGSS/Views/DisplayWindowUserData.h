@@ -2,9 +2,12 @@
 #define CGSS_DISPLAY_WINDOW_USER_DATA_H
 #include <memory>
 
-#include <SFML/Graphics/Sprite.hpp>
-#include <SFML/Graphics/RenderTexture.hpp>
 #include "LiteCGSS/Events/MainEventDispatcher.h"
+
+namespace sf {
+	class Sprite;
+	class RenderTexture;
+}
 
 namespace cgss {
 	class DisplayWindow;

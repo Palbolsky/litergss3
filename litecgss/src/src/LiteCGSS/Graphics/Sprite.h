@@ -2,14 +2,17 @@
 #define CGSS_SPRITE_H
 
 #include <memory>
-#include <SFML/Graphics/Sprite.hpp>
-#include <SFML/Graphics/Texture.hpp>
 #include "LiteCGSS/Graphics/Drawable.h"
 #include "LiteCGSS/Graphics/Transformable.h"
 #include "LiteCGSS/Graphics/ShaderRenderable.h"
 #include "LiteCGSS/Common/Color.h"
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
+
+namespace sf {
+	class Sprite;
+	class Texture;
+}
 
 namespace cgss {
 	class Texture;
@@ -22,14 +25,14 @@ namespace cgss {
 		public ShaderRenderable {
 		friend class Sprite;
 	private:
-		sf::Sprite m_sprite;
+		std::unique_ptr<sf::Sprite> m_sprite;
 		std::shared_ptr<sf::Texture> m_linkedTexture = nullptr;
 		bool m_mirror = false;
 		float m_wantedX = 0;
 		float m_wantedY = 0;
 	public:
 		SpriteItem(Sprite* owner);
-		virtual ~SpriteItem() = default;
+		virtual ~SpriteItem();
 		void draw(cgss::RenderTarget& target) const override;
 		void drawFast(cgss::RenderTarget& target) const override;
 		void updateFromValue(const cgss::IntRect* rectangle) override;

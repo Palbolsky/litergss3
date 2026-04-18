@@ -22,7 +22,9 @@ cgss::DisplayWindow::DisplayWindow(const DisplayWindowSettings& settings) :
 #ifdef CGSS_WINDOW_PRESERVATION
 	m_gameWindow(sharedGameWindow()),
 #endif
-	m_snapshot{ *this } {
+	m_snapshot{ *this },
+	m_userRenderSprite(std::make_unique<sf::Sprite>()),
+	m_userRenderTexture(std::make_unique<sf::RenderTexture>()) {
 #ifdef CGSS_WINDOW_PRESERVATION
 	reload(settings, true);
 #else
@@ -35,7 +37,9 @@ cgss::DisplayWindow::DisplayWindow() :
 #ifdef CGSS_WINDOW_PRESERVATION
 	m_gameWindow(sharedGameWindow()),
 #endif
-	m_snapshot{ *this } {
+	m_snapshot{ *this },
+	m_userRenderSprite(std::make_unique<sf::Sprite>()),
+	m_userRenderTexture(std::make_unique<sf::RenderTexture>()) {
 #ifndef CGSS_WINDOW_PRESERVATION
 	initUserRender();
 #endif

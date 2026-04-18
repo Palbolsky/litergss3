@@ -1,8 +1,8 @@
 #ifndef CGSS_FRAMED_VIEW_H
 #define CGSS_FRAMED_VIEW_H
+#include <memory>
 #include <optional>
 #include <array>
-#include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/VertexArray.hpp>
 #include <SFML/Graphics/Rect.hpp>
 #include <SFML/System/Vector2.hpp>
@@ -11,6 +11,10 @@
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Graphics/Drawable.h"
+
+namespace sf {
+	class Sprite;
+}
 
 #include "LiteCGSS/Events/MainEventDispatcher.h"
 #include "LiteCGSS/Events/Patterns/SubObserver.h"
@@ -43,8 +47,8 @@ namespace cgss {
 		DisplayWindowUserData m_windowData;
 		std::vector<sf::VertexArray> m_vertices;
 		sf::Texture* m_texture = nullptr;
-		sf::Sprite m_pause;
-		sf::Sprite m_cursor;
+		std::unique_ptr<sf::Sprite> m_pause;
+		std::unique_ptr<sf::Sprite> m_cursor;
 
 		long m_counter = 0;
 
@@ -90,6 +94,7 @@ namespace cgss {
 
 	public:
 		FramedViewItem(FramedView* owner, MainEventDispatcher& eventDispatcher, DisplayWindowUserData windowData, const DisplayWindowSettings& windowSettings, std::weak_ptr<ViewportItem> parent = {});
+		~FramedViewItem();
 		FramedViewItem(FramedViewItem&&) noexcept = delete;
 		FramedViewItem& operator=(FramedViewItem&&) noexcept = delete;
 		FramedViewItem(const FramedViewItem&) = delete;
