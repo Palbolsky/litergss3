@@ -1,8 +1,8 @@
 #ifndef CGSS_VIEWPORT_H
 #define CGSS_VIEWPORT_H
 #include <optional>
-#include <SFML/Graphics/Texture.hpp>
 #include "LiteCGSS/Graphics/DrawState.h"
+#include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Graphics/ShaderRenderable.h"
 #include "SnapshotCapturable.h"
 #include "View.h"
@@ -43,7 +43,7 @@ namespace cgss {
 		void updateFromValue(const cgss::IntRect* rectangle) override;
 		void updateFromValue(const RenderStatesData* renderStatesData) override;
 		cgss::IntRect getViewportBox() const;
-		std::unique_ptr<sf::Texture> takeSnapshot() const;
+		std::unique_ptr<cgss::Texture> takeSnapshot() const;
 
 	};
 
@@ -62,7 +62,7 @@ namespace cgss {
 		virtual ~Viewport();
 
 		void bindRenderStates(RenderStates* states);
-		std::unique_ptr<sf::Texture> takeSnapshot() const override;
+		std::unique_ptr<cgss::Texture> takeSnapshot() const override;
 		void drawFast(cgss::RenderTarget& target) const override;
 		void draw(cgss::RenderTarget& target) const override;
 		void sortZ();

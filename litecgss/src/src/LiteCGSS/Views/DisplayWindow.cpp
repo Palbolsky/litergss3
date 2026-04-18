@@ -6,6 +6,7 @@
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Window/Event.hpp>
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
+#include "LiteCGSS/Configuration/Internal/SfContextSettingsConv.h"
 #include "DisplayWindow.h"
 #include "LoggerViews.h"
 
@@ -122,12 +123,16 @@ void cgss::DisplayWindow::applyReload(DisplayWindowSettings settings, bool force
 				// Don't call setSize() — on Android the native window is always fullscreen,
 				// and setSize() would desync SFML's internal size from the actual surface.
 				LOG_WARN << "Reusing existing window instead of recreating";
-				m_gameWindow.setTitle(m_settings.title);
+				m_gameWindow.setTitle(sf::String::fromUtf8(m_settings.title.begin(), m_settings.title.end()));
 			} else
 #endif
 			{
 				const auto style = m_settings.fullscreen ? sf::Style::Fullscreen : (sf::Style::Close | sf::Style::Titlebar);
-				m_gameWindow.create(sf::VideoMode { scaledWidth, scaledHeight, m_settings.video.bitsPerPixel }, m_settings.title, style, m_settings.context);
+				m_gameWindow.create(
+					sf::VideoMode { scaledWidth, scaledHeight, m_settings.video.bitsPerPixel },
+					sf::String::fromUtf8(m_settings.title.begin(), m_settings.title.end()),
+					style,
+					cgss::internal::toSf(m_settings.context));
 			}
 		} else {
 			m_gameWindow.setSize(sf::Vector2u { scaledWidth, scaledHeight });
@@ -196,8 +201,8 @@ cgss::RenderTarget cgss::DisplayWindow::configureAndGetRenderTarget(cgss::Camera
 	return cgss::RenderTarget{m_gameWindow};
 }
 
-const cgss::DisplayWindowContextSettings& cgss::DisplayWindow::getContextSettings() const {
-	return m_gameWindow.getSettings();
+cgss::DisplayWindowContextSettings cgss::DisplayWindow::getContextSettings() const {
+	return cgss::internal::fromSf(m_gameWindow.getSettings());
 }
 
 const cgss::DisplayWindowSettings& cgss::DisplayWindow::getSettings() const {
@@ -240,8 +245,8 @@ void cgss::DisplayWindow::draw() {
 	m_gameWindow.display();
 }
 
-bool cgss::DisplayWindow::popEvent(sf::Event& event) {
-	return m_eventPolicyPolling ? m_gameWindow.pollEvent(event) : m_gameWindow.waitEvent(event);
+bool cgss::DisplayWindow::popEvent(cgss::Event& event) {
+	return m_eventPolicyPolling ? m_gameWindow.pollEvent(event.raw()) : m_gameWindow.waitEvent(event.raw());
 }
 
 void cgss::DisplayWindow::changeEventPolicy(bool polling) {
@@ -294,8 +299,8 @@ void cgss::DisplayWindow::resizeScreen(unsigned int width, unsigned int height) 
 }
 
 void cgss::DisplayWindow::setTitle(const char* title) {
-	m_settings.title = sf::String { title };
-	m_gameWindow.setTitle(m_settings.title);
+	m_settings.title = title;
+	m_gameWindow.setTitle(sf::String::fromUtf8(m_settings.title.begin(), m_settings.title.end()));
 }
 
 void cgss::DisplayWindow::setVsync(bool enable) {
@@ -318,8 +323,9 @@ void cgss::DisplayWindow::setScale(double scale) {
 	m_gameWindow.setSize(sf::Vector2u { scaledWidth, scaledHeight });
 }
 
-void cgss::DisplayWindow::setIcon(const sf::Image& image) {
-	m_gameWindow.setIcon(image.getSize().x, image.getSize().y, image.getPixelsPtr());
+void cgss::DisplayWindow::setIcon(const cgss::Image& image) {
+	const auto& raw = image.raw();
+	m_gameWindow.setIcon(raw.getSize().x, raw.getSize().y, raw.getPixelsPtr());
 }
 
 void cgss::DisplayWindow::setShader(const cgss::DrawState* renderStates) {
@@ -347,7 +353,7 @@ void cgss::DisplayWindow::updateFromValue(const RenderStatesData* renderStatesDa
 	setShader(renderStatesData == nullptr ? nullptr : &renderStatesData->getRenderStates());
 }
 
-std::unique_ptr<sf::Texture> cgss::DisplayWindow::takeSnapshot() const {
+std::unique_ptr<cgss::Texture> cgss::DisplayWindow::takeSnapshot() const {
 	return m_snapshot.takeSnapshot(m_gameWindow);
 }
 

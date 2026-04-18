@@ -1,7 +1,11 @@
 #include <cstring>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/Sprite.hpp>
+#include <SFML/Graphics/Texture.hpp>
+#include <SFML/Graphics/VertexArray.hpp>
+#include <SFML/Graphics/Rect.hpp>
 #include <SFML/Graphics/View.hpp>
+#include <SFML/System/Vector2.hpp>
 #include "LoggerViews.h"
 #include "FramedView.h"
 #include "Viewport.h"
@@ -52,8 +56,9 @@ void cgss::FramedViewItem::draw(cgss::RenderTarget& target) const {
 
 void cgss::FramedViewItem::drawFast(cgss::RenderTarget& target) const {
 	/* Draw window */
+	sf::Texture* rawTexture = m_texture != nullptr ? &m_texture->raw() : nullptr;
 	for (auto& vertice : m_vertices) {
-		target.raw().draw(vertice, m_texture);
+		target.raw().draw(*vertice, rawTexture);
 	}
 
 	/* draw internal */
@@ -475,7 +480,7 @@ void cgss::FramedViewItem::updateVerticesStretch(long wt, long ht) {
 }
 
 void cgss::FramedViewItem::calculateVertices(long x, long y, long line, long cell, sf::Vector2i& a, sf::IntRect& rect) {
-	auto& vertArr = m_vertices[line];
+	auto& vertArr = *m_vertices[line];
 	int i = cell * 6;
 	if (cell < 0) {
 		i += vertArr.getVertexCount();
@@ -495,7 +500,7 @@ void cgss::FramedViewItem::calculateVertices(long x, long y, long line, long cel
 }
 
 void cgss::FramedViewItem::calculateVerticesStretch(long x, long y, long line, long cell, sf::Vector2i& s, sf::Vector2i& a, sf::IntRect& rect) {
-	auto& vertArr = m_vertices[line];
+	auto& vertArr = *m_vertices[line];
 	int i = cell * 6;
 	if (cell < 0) {
 		i += vertArr.getVertexCount();
@@ -571,13 +576,17 @@ void cgss::FramedViewItem::allocateVerticesBlt(long delta_w, long nb2, long delt
 	// Delete the vertices if the number of line is different
 	// Alloction of the vertex Arrays (if no vertices or different lines)
 	if (m_vertices.empty() || nb4 != static_cast<long>(m_vertices.size())) {
-		m_vertices = nb4 == 0 ? std::vector<sf::VertexArray>{} : std::vector<sf::VertexArray>(nb4);
+		m_vertices.clear();
+		m_vertices.reserve(nb4);
+		for (long i = 0; i < nb4; ++i) {
+			m_vertices.push_back(std::make_unique<sf::VertexArray>());
+		}
 	}
 
 	for (auto& vertice : m_vertices) {
-		vertice.setPrimitiveType(sf::Triangles);
-		if (nb2 != static_cast<long>(vertice.getVertexCount())) {
-			vertice.resize(nb2);
+		vertice->setPrimitiveType(sf::Triangles);
+		if (nb2 != static_cast<long>(vertice->getVertexCount())) {
+			vertice->resize(nb2);
 		}
 	}
 }
@@ -594,10 +603,10 @@ void cgss::FramedViewItem::updateBackOpacity() {
 	sf::Color col = sf::Color::White;
 	col.a = m_opacity * m_backOpacity / 255;
 	if (!m_vertices.empty()) {
-		std::size_t num_vertices = m_vertices[0].getVertexCount();
+		std::size_t num_vertices = m_vertices[0]->getVertexCount();
 		for (auto& vertArr : m_vertices) {
 			for (std::size_t j = 0; j < num_vertices; j++) {
-				vertArr[j].color = col;
+				(*vertArr)[j].color = col;
 			}
 		}
 	}
@@ -678,8 +687,8 @@ void cgss::FramedViewItem::updateContentsOpacity() {
 	drawables().updateContentsOpacity(opacity);
 }
 
-void cgss::FramedViewItem::setPauseSkin(sf::Texture& texture) {
-	m_pause->setTexture(texture);
+void cgss::FramedViewItem::setPauseSkin(cgss::Texture& texture) {
+	m_pause->setTexture(texture.raw());
 	resetPausePosition();
 	updatePauseSprite();
 }
@@ -699,8 +708,8 @@ bool cgss::FramedViewItem::isPaused() const {
 	return m_paused;
 }
 
-void cgss::FramedViewItem::setCursorSkin(sf::Texture& texture) {
-	m_cursor->setTexture(texture);
+void cgss::FramedViewItem::setCursorSkin(cgss::Texture& texture) {
+	m_cursor->setTexture(texture.raw());
 	setCursorRectangle(m_cursorRect);
 	updateCursorSprite();
 }
@@ -752,13 +761,13 @@ uint8_t cgss::FramedViewItem::getContentsOpacity() const {
 	return m_contentOpacity;
 }
 
-void cgss::FramedViewItem::setSkin(sf::Texture* skin) {
+void cgss::FramedViewItem::setSkin(cgss::Texture* skin) {
 	m_texture = skin;
 	LOG_INFO << "Skin set";
 	updateVertices();
 }
 
-sf::Texture* cgss::FramedViewItem::getSkin() const {
+cgss::Texture* cgss::FramedViewItem::getSkin() const {
 	return m_texture;
 }
 
@@ -816,15 +825,15 @@ bool cgss::FramedView::isActive() const {
 	return m_proxy->isActive();
 }
 
-void cgss::FramedView::setSkin(sf::Texture* skin) {
+void cgss::FramedView::setSkin(cgss::Texture* skin) {
 	return m_proxy->setSkin(skin);
 }
 
-sf::Texture* cgss::FramedView::getSkin() const {
+cgss::Texture* cgss::FramedView::getSkin() const {
 	return m_proxy->getSkin();
 }
 
-void cgss::FramedView::setPauseSkin(sf::Texture& texture) {
+void cgss::FramedView::setPauseSkin(cgss::Texture& texture) {
 	m_proxy->setPauseSkin(texture);
 }
 
@@ -832,7 +841,7 @@ void cgss::FramedView::setPausePosition(float x, float y) {
 	m_proxy->setPausePosition(x, y);
 }
 
-void cgss::FramedView::setCursorSkin(sf::Texture& texture) {
+void cgss::FramedView::setCursorSkin(cgss::Texture& texture) {
 	m_proxy->setCursorSkin(texture);
 }
 

@@ -5,16 +5,14 @@
 #include <mutex>
 #include <optional>
 
-#include <SFML/Graphics/Image.hpp>
-
 namespace sf {
 	class RenderWindow;
-	class Event;
 	class Sprite;
 	class RenderTexture;
 	class Texture;
 }
 
+#include "LiteCGSS/Events/Event.h"
 #include "View.h"
 #include "ViewAuthorizations.h"
 #include "DisplayWindowDraw.h"
@@ -22,6 +20,7 @@ namespace sf {
 #include "DisplayWindowUserData.h"
 #include "FramedView.h"
 #include "SnapshotCapturable.h"
+#include "LiteCGSS/Image/Image.h"
 
 #include "LiteCGSS/Events/MainEventDispatcher.h"
 #include "LiteCGSS/Events/Patterns/SubObserver.h"
@@ -62,23 +61,23 @@ namespace cgss {
 		void stop();
 		bool isOpen() const;
 		void draw();
-		bool popEvent(sf::Event& event);
+		bool popEvent(cgss::Event& event);
 		void setActive(bool active);
 		void changeEventPolicy(bool polling);
 
-		std::unique_ptr<sf::Texture> takeSnapshot() const override;
+		std::unique_ptr<cgss::Texture> takeSnapshot() const override;
 		void freeze();
 		void transition(long time, Texture* texture = nullptr);
 
 		void setBrightness(unsigned char brightness) { m_draw.brightness = brightness; }
 		void bindRenderStates(RenderStates* states);
-		void setIcon(const sf::Image& image);
+		void setIcon(const cgss::Image& image);
 		void move(int x, int y);
 
 		/* Settings related stuff */
 		void reload(DisplayWindowSettings settings, bool force = false);
 		const DisplayWindowSettings& getSettings() const;
-		const DisplayWindowContextSettings& getContextSettings() const;
+		DisplayWindowContextSettings getContextSettings() const;
 		void resizeScreen(unsigned int width, unsigned int height);
 		void setVsync(bool enable);
 		void setTitle(const char* title);

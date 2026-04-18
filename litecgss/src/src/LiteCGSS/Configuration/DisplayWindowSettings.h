@@ -1,7 +1,7 @@
 #ifndef CGSS_DISPLAY_WINDOW_SETTINGS_H
 #define CGSS_DISPLAY_WINDOW_SETTINGS_H
 
-#include <SFML/System/String.hpp>
+#include <string>
 #include "DisplayWindowContextSettings.h"
 
 namespace cgss {
@@ -35,7 +35,8 @@ namespace cgss {
 		DisplayWindowVideoSettings video {};
 		DisplayWindowContextSettings context {};
 		bool smoothScreen = false;
-		sf::String title;
+		/* UTF-8 encoded title. */
+		std::string title;
 		unsigned int frameRate = 60;
 		bool vSync = false;
 		bool fullscreen = false;

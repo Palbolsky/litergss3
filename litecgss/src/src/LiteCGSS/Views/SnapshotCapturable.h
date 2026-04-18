@@ -3,17 +3,15 @@
 
 #include <memory>
 
-namespace sf {
-	class Texture;
-}
-
 namespace cgss {
+	class Texture;
+
 	class SnapshotCapturable {
 	public:
 		SnapshotCapturable() = default;
 		virtual ~SnapshotCapturable() = default;
 
-		virtual std::unique_ptr<sf::Texture> takeSnapshot() const = 0;
+		virtual std::unique_ptr<cgss::Texture> takeSnapshot() const = 0;
 	};
 }
 

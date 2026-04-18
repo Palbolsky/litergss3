@@ -1,5 +1,6 @@
 #include <cmath>
 #include <SFML/Graphics/RenderTarget.hpp>
+#include <SFML/System/String.hpp>
 #include "LiteCGSS/Common/Internal/SfColorConv.h"
 #include "LoggerDrawables.h"
 #include "Text.h"
@@ -86,11 +87,11 @@ void cgss::Text::setOutlineThickness(float outlineThickness) {
 	m_proxy->m_text.setOutlineThickness(outlineThickness);
 }
 
-sf::Uint32 cgss::Text::getStyle() const {
+std::uint32_t cgss::Text::getStyle() const {
 	return m_proxy->m_text.getStyle();
 }
 
-void cgss::Text::setStyle(sf::Uint32 style) {
+void cgss::Text::setStyle(std::uint32_t style) {
 	LOG_INFO << "Set style (" << style << ")";
 	m_proxy->m_text.setStyle(style);
 }
@@ -103,12 +104,12 @@ bool cgss::Text::getDrawShadow() const {
 	return m_proxy->m_text.getDrawShadow();
 }
 
-void cgss::Text::setNumCharToDraw(sf::Uint32 num) {
+void cgss::Text::setNumCharToDraw(std::uint32_t num) {
 	m_proxy->m_text.setNumCharToDraw(num);
 	m_proxy->updateAlign();
 }
 
-sf::Uint32 cgss::Text::getNumCharToDraw() const {
+std::uint32_t cgss::Text::getNumCharToDraw() const {
 	return m_proxy->m_text.getNumCharToDraw();
 }
 
@@ -116,8 +117,8 @@ void cgss::Text::setLineHeight(float height) {
 	m_proxy->m_text.setLineHeight(height);
 }
 
-sf::Uint32 cgss::Text::getTextWidth(const sf::String& string) const {
-	return m_proxy->m_text.getTextWidth(string);
+std::uint32_t cgss::Text::getTextWidth(const std::string& string) const {
+	return m_proxy->m_text.getTextWidth(sf::String::fromUtf8(string.begin(), string.end()));
 }
 
 void cgss::Text::setSmooth(bool smooth) {
@@ -193,9 +194,9 @@ void cgss::Text::setCharacterSize(long characterSize) {
 	m_proxy->updateAlign();
 }
 
-void cgss::Text::setString(const sf::String& text) {
-	LOG_INFO << "Set text string " << text.toAnsiString();
-	m_proxy->m_text.setString(text);
+void cgss::Text::setString(const std::string& text) {
+	LOG_INFO << "Set text string " << text;
+	m_proxy->m_text.setString(sf::String::fromUtf8(text.begin(), text.end()));
 	m_proxy->updateAlign();
 }
 

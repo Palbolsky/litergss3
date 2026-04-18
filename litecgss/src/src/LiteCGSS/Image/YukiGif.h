@@ -6,11 +6,9 @@
 
 struct gif_animation;
 
-namespace sf {
-	class Texture;
-}
-
 namespace cgss {
+	class Texture;
+
 	class YukiGif {
 	public:
 		static double& FrameDelta();
@@ -18,9 +16,9 @@ namespace cgss {
 		virtual ~YukiGif();
 
 		bool load(const char* rawMemory, std::size_t size);
-		void drawOn(sf::Texture& texture) const;
+		void drawOn(cgss::Texture& texture) const;
 
-		bool update(sf::Texture& texture);
+		bool update(cgss::Texture& texture);
 
 		unsigned int width() const;
 		unsigned int height() const;

@@ -3,13 +3,13 @@
 #include <memory>
 #include <vector>
 #include "LiteCGSS/Graphics/Drawable.h"
+#include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Graphics/Transformable.h"
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
 
 namespace sf {
 	class Sprite;
-	class Texture;
 }
 
 namespace cgss {
@@ -55,7 +55,7 @@ namespace cgss {
 		SpriteMap& operator=(SpriteMap&&) = default;
 
 		void defineMap(unsigned long tileWidth, unsigned long tileCount);
-		void setTile(std::size_t index, const cgss::IntRect& tile, sf::Texture& texture);
+		void setTile(std::size_t index, const cgss::IntRect& tile, cgss::Texture& texture);
 		void setTileRect(std::size_t index, const cgss::IntRect& tile);
 		void move(float x, float y);
 		void moveOrigin(float ox, float oy);

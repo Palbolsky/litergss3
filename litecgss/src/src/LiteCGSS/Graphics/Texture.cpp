@@ -68,16 +68,14 @@ cgss::Texture cgss::Texture::clone() const {
 	return result;
 }
 
-void cgss::Texture::update(const sf::Image* image) {
-	if (image != nullptr) {
-		//Explicit copy
-		*m_image = *image;
-	}
+void cgss::Texture::update() {
 	m_texture->update(*m_image);
 }
 
 void cgss::Texture::update(const Image& image) {
-	update(&image.m_image);
+	// Explicit copy from the provided cgss::Image's backing sf::Image.
+	*m_image = *image.m_image;
+	m_texture->update(*m_image);
 }
 
 void cgss::Texture::blit(unsigned long x, unsigned long y, const Texture& srcTexture, const Rectangle& rect) {

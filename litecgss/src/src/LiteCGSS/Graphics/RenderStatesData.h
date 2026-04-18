@@ -12,7 +12,6 @@
 
 namespace sf {
 	class Shader;
-	class Texture;
 }
 
 namespace cgss {
@@ -78,7 +77,7 @@ namespace cgss {
 		void setShaderUniform(const std::string& name, const cgss::Glsl::Bvec4& vector);
 		void setShaderUniform(const std::string& name, const cgss::Glsl::Mat3& matrix);
 		void setShaderUniform(const std::string& name, const cgss::Glsl::Mat4& matrix);
-		void setShaderUniform(const std::string& name, const sf::Texture& texture);
+		void setShaderUniform(const std::string& name, const cgss::Texture& texture);
 		void setShaderUniform(const std::string& name, cgss::CurrentTextureType);
 
 		void setShaderUniformArray(const std::string& name, const float* scalarArray, std::size_t length);

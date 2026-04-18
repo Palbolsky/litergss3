@@ -34,7 +34,7 @@ namespace cgss {
 		static Texture create(const std::string& filename);
 		static Texture create(sf::Texture texture);
 
-		void update(const sf::Image* image = nullptr);
+		void update();
 		void update(const Image& image);
 
 		struct Size { unsigned int x; unsigned int y; };

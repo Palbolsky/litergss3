@@ -8,6 +8,7 @@
 #include "LiteCGSS/Common/Rectangle.h"
 #include "LiteCGSS/Common/Internal/SfRectConv.h"
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
+#include "LiteCGSS/Graphics/Texture.h"
 #include "LoggerViews.h"
 
 SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::ViewportItem)
@@ -67,7 +68,7 @@ void cgss::ViewportItem::draw(cgss::RenderTarget& target) const {
 	target.raw().setView(originalView);
 }
 
-std::unique_ptr<sf::Texture> cgss::ViewportItem::takeSnapshot() const {
+std::unique_ptr<cgss::Texture> cgss::ViewportItem::takeSnapshot() const {
 	sf::RenderTexture render;
 	sf::Sprite renderSprite;
 	cgss::Camera renderView = ViewBox::clone();
@@ -99,7 +100,7 @@ std::unique_ptr<sf::Texture> cgss::ViewportItem::takeSnapshot() const {
 		render.display();
 	}
 
-	return std::make_unique<sf::Texture>(render.getTexture());
+	return std::make_unique<cgss::Texture>(cgss::Texture::create(sf::Texture(render.getTexture())));
 }
 
 void cgss::ViewportItem::setupFullWindowView(cgss::RenderTarget& target) const {
@@ -202,7 +203,7 @@ void cgss::Viewport::setZoom(float zoom) {
 	m_proxy->setZoom(zoom);
 }
 
-std::unique_ptr<sf::Texture> cgss::Viewport::takeSnapshot() const {
+std::unique_ptr<cgss::Texture> cgss::Viewport::takeSnapshot() const {
 	return m_proxy->takeSnapshot();
 }
 

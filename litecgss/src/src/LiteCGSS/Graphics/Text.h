@@ -1,5 +1,7 @@
 #ifndef CGSS_TEXT_H
 #define CGSS_TEXT_H
+#include <string>
+#include <cstdint>
 #include "LiteCGSS/Graphics/Font.h"
 #include "LiteCGSS/Graphics/ScrollText.h"
 #include "LiteCGSS/Graphics/Drawable.h"
@@ -49,19 +51,19 @@ namespace cgss {
 		void setOutlineColor(cgss::Color color);
 		float getOutlineThickness() const;
 		void setOutlineThickness(float outlineThickness);
-		sf::Uint32 getStyle() const;
-		void setStyle(sf::Uint32 style);
+		std::uint32_t getStyle() const;
+		void setStyle(std::uint32_t style);
 		void setAlign(uint8_t align);
 		long getCharacterSize() const;
 		void setCharacterSize(long characterSize);
-		void setString(const sf::String& text);
+		void setString(const std::string& text);
 		void setFont(const cgss::Font& font);
 
 		void setDrawShadow(bool drawshadow);
 		bool getDrawShadow() const;
-		void setNumCharToDraw(sf::Uint32 num);
-		sf::Uint32 getNumCharToDraw() const;
-		sf::Uint32 getTextWidth(const sf::String& string) const;
+		void setNumCharToDraw(std::uint32_t num);
+		std::uint32_t getNumCharToDraw() const;
+		std::uint32_t getTextWidth(const std::string& string) const;
 		void setSmooth(bool smooth);
 		bool getSmooth() const;
 

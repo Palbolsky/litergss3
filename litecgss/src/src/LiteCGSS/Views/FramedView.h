@@ -3,7 +3,11 @@
 #include <memory>
 #include <optional>
 #include <array>
-#include <SFML/Graphics/VertexArray.hpp>
+#include <vector>
+// sf::IntRect / sf::Vector2i are typedefs of sf::Rect<int> / sf::Vector2<int> —
+// not forward-declarable as plain classes. Included here because they appear
+// only in private method signatures below; consumers see no sf:: type in the
+// public API of this header.
 #include <SFML/Graphics/Rect.hpp>
 #include <SFML/System/Vector2.hpp>
 #include "View.h"
@@ -14,6 +18,7 @@
 
 namespace sf {
 	class Sprite;
+	class VertexArray;
 }
 
 #include "LiteCGSS/Events/MainEventDispatcher.h"
@@ -45,8 +50,10 @@ namespace cgss {
 		void updateContentsOpacity();
 
 		DisplayWindowUserData m_windowData;
-		std::vector<sf::VertexArray> m_vertices;
-		sf::Texture* m_texture = nullptr;
+		/* Vertex arrays for the 9-slice window skin. Held via unique_ptr so that
+			sf::VertexArray only needs to be forward-declared in this header. */
+		std::vector<std::unique_ptr<sf::VertexArray>> m_vertices;
+		cgss::Texture* m_texture = nullptr;
 		std::unique_ptr<sf::Sprite> m_pause;
 		std::unique_ptr<sf::Sprite> m_cursor;
 
@@ -124,16 +131,16 @@ namespace cgss {
 		void active(bool active);
 		bool isActive() const;
 
-		void setSkin(sf::Texture* skin);
-		sf::Texture* getSkin() const;
+		void setSkin(cgss::Texture* skin);
+		cgss::Texture* getSkin() const;
 
 		long getPauseX() const;
 		long getPauseY() const;
 
-		void setPauseSkin(sf::Texture& texture);
+		void setPauseSkin(cgss::Texture& texture);
 		void setPausePosition(float x, float y);
 
-		void setCursorSkin(sf::Texture& texture);
+		void setCursorSkin(cgss::Texture& texture);
 		void setCursorRectangle(cgss::IntRect position);
 
 		void bindRectangleViewport(Rectangle* output);
@@ -189,16 +196,16 @@ namespace cgss {
 		void active(bool active);
 		bool isActive() const;
 
-		void setSkin(sf::Texture* skin);
-		sf::Texture* getSkin() const;
+		void setSkin(cgss::Texture* skin);
+		cgss::Texture* getSkin() const;
 
 		long getPauseX() const;
 		long getPauseY() const;
 
-		void setPauseSkin(sf::Texture& texture);
+		void setPauseSkin(cgss::Texture& texture);
 		void setPausePosition(float x, float y);
 
-		void setCursorSkin(sf::Texture& texture);
+		void setCursorSkin(cgss::Texture& texture);
 		void setCursorRectangle(cgss::IntRect position);
 		void setBuilder(std::array<long, 6> windowBuilder);
 		void setBuilder(std::array<long, 8> windowBuilder);

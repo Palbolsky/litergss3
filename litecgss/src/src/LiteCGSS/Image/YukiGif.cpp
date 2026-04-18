@@ -3,6 +3,7 @@
 #include <libnsgif.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include "YukiGif.h"
+#include "LiteCGSS/Graphics/Texture.h"
 
 #define BYTES_PER_PIXEL 4
 #define MAX_IMAGE_BYTES (48 * 1024 * 1024)
@@ -55,11 +56,11 @@ cgss::YukiGif::~YukiGif() {
 	gif_finalise(m_gif.get());
 }
 
-void cgss::YukiGif::drawOn(sf::Texture& texture) const {
-	texture.update(reinterpret_cast<sf::Uint8*>(m_gif->frame_image), m_gif->width, m_gif->height, 0, 0);
+void cgss::YukiGif::drawOn(cgss::Texture& texture) const {
+	texture.raw().update(reinterpret_cast<sf::Uint8*>(m_gif->frame_image), m_gif->width, m_gif->height, 0, 0);
 }
 
-bool cgss::YukiGif::update(sf::Texture& texture) {
+bool cgss::YukiGif::update(cgss::Texture& texture) {
 	if (((m_gif->frames[m_frame].frame_delay * 10) <= m_counter) ||
 		(m_frame == 0 && m_counter == 0)) {
 		if (m_frame != 0 || m_counter != 0) {

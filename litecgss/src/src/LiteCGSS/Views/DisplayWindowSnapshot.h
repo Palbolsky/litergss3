@@ -23,7 +23,7 @@ namespace cgss {
 		DisplayWindowSnapshot& operator=(DisplayWindowSnapshot&&) = delete;
 		DisplayWindowSnapshot(const DisplayWindowSnapshot&) = delete;
 		DisplayWindowSnapshot& operator=(const DisplayWindowSnapshot&) = delete;
-		std::unique_ptr<sf::Texture> takeSnapshot(const sf::RenderWindow& window) const;
+		std::unique_ptr<cgss::Texture> takeSnapshot(const sf::RenderWindow& window) const;
 		void freeze(const sf::RenderWindow& window);
 		void transition(long time, Texture* texture = nullptr);
 		void stop();

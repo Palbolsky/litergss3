@@ -1,51 +1,61 @@
+#include <SFML/Graphics/Image.hpp>
 #include "LiteCGSS/Common/Rectangle.h"
 #include "LiteCGSS/Common/Internal/SfColorConv.h"
 #include "LiteCGSS/Common/Internal/SfRectConv.h"
 #include "Serializers/ImageSerializer.h"
 #include "Image.h"
 
-cgss::Image::Image(const Image& image) {
+cgss::Image::Image() : m_image(std::make_unique<sf::Image>()) {}
+
+cgss::Image::~Image() = default;
+
+cgss::Image::Image(const Image& image) :
+	m_image(std::make_unique<sf::Image>()) {
 	*this = image;
 }
 
+cgss::Image::Image(Image&& image) noexcept = default;
+
 cgss::Image& cgss::Image::operator=(const Image& image) {
-	m_image.create(image.m_image.getSize().x, image.m_image.getSize().y, image.m_image.getPixelsPtr());
+	m_image->create(image.m_image->getSize().x, image.m_image->getSize().y, image.m_image->getPixelsPtr());
 	return *this;
 }
 
+cgss::Image& cgss::Image::operator=(Image&& image) noexcept = default;
+
 cgss::Image cgss::Image::create(const std::string& filename) {
 	auto image = cgss::Image {};
-	ImageFileSerializeMethod::load(image.m_image, filename);
+	ImageFileSerializeMethod::load(*image.m_image, filename);
 	return image;
 }
 
 cgss::Image cgss::Image::create(const char* rawMemory, std::size_t rawMemorySize) {
 	auto image = cgss::Image {};
 	const MemorySerializerData data {reinterpret_cast<unsigned char*>(const_cast<char*>(rawMemory)), rawMemorySize};
-	ImageMemorySerializeMethod::load(image.m_image, data);
+	ImageMemorySerializeMethod::load(*image.m_image, data);
 	return image;
 }
 
 bool cgss::Image::load(const ImageLoader& loader) {
-	return loader.load(m_image);
+	return loader.load(*m_image);
 }
 
 unsigned int cgss::Image::width() const {
-	return m_image.getSize().x;
+	return m_image->getSize().x;
 }
 
 unsigned int cgss::Image::height() const {
-	return m_image.getSize().y;
+	return m_image->getSize().y;
 }
 
 cgss::IntRect cgss::Image::box() const {
-	const auto size = m_image.getSize();
+	const auto size = m_image->getSize();
 	return cgss::IntRect {0, 0, static_cast<int>(size.x), static_cast<int>(size.y) };
 }
 
-void cgss::Image::blit(const sf::Image& source, unsigned int x, unsigned int y, const Rectangle& rect, bool applyAlpha) {
-	m_image.copy(
-		source,
+void cgss::Image::blit(const Image& source, unsigned int x, unsigned int y, const Rectangle& rect, bool applyAlpha) {
+	m_image->copy(
+		*source.m_image,
 		x,
 		y,
 		cgss::internal::toSf(rect.getValue()),
@@ -59,38 +69,38 @@ void cgss::Image::fillRect(const cgss::Color& color, unsigned int x, unsigned in
 	const auto y2 = height + y;
 	for (auto yIt = y; yIt < y2; yIt++) {
 		for (auto xIt = x; xIt < x2; xIt++) {
-			m_image.setPixel(xIt, yIt, sfColor);
+			m_image->setPixel(xIt, yIt, sfColor);
 		}
 	}
 }
 
 unsigned int cgss::Image::write(ImageSaver& saver) const {
-	return saver.save(m_image);
+	return saver.save(*m_image);
 }
 
 std::optional<cgss::Color> cgss::Image::getPixel(unsigned int x, unsigned int y) const {
-	const auto& size = m_image.getSize();
+	const auto& size = m_image->getSize();
 	if (x < size.x && y < size.y) {
-		return cgss::internal::fromSf(m_image.getPixel(x, y));
+		return cgss::internal::fromSf(m_image->getPixel(x, y));
 	}
 	return {};
 }
 
 bool cgss::Image::setPixel(unsigned int x, unsigned int y, const cgss::Color& color) {
-	const auto& size = m_image.getSize();
+	const auto& size = m_image->getSize();
 	if (x < size.x && y < size.y) {
-		m_image.setPixel(x, y, cgss::internal::toSf(color));
+		m_image->setPixel(x, y, cgss::internal::toSf(color));
 		return true;
 	}
 	return false;
 }
 
-void cgss::Image::stretchBlit(const sf::Image& imageSource, const Rectangle& destinationRect, const Rectangle& sourceRect, bool mixedAlpha) {
+void cgss::Image::stretchBlit(const Image& imageSource, const Rectangle& destinationRect, const Rectangle& sourceRect, bool mixedAlpha) {
 	const auto& dest = destinationRect.getValue();
 	const auto& src = sourceRect.getValue();
 
-	const auto& sourceImageSize = imageSource.getSize();
-	const auto& destinationImageSize = m_image.getSize();
+	const auto& sourceImageSize = imageSource.m_image->getSize();
+	const auto& destinationImageSize = m_image->getSize();
 
 	for (int y = 0; y < dest.height; y++) {
 		const auto d_y = y + dest.top;
@@ -111,8 +121,8 @@ void cgss::Image::stretchBlit(const sf::Image& imageSource, const Rectangle& des
 			if (s_x < 0) { continue; }
 
 			if (mixedAlpha) {
-				auto srcColor = imageSource.getPixel(s_x, s_y);
-				const auto destColor = m_image.getPixel(d_x, d_y);
+				auto srcColor = imageSource.m_image->getPixel(s_x, s_y);
+				const auto destColor = m_image->getPixel(d_x, d_y);
 				if (destColor.a > 0) {
 					unsigned char mina = 255 - srcColor.a;
 					srcColor.r = (srcColor.r * srcColor.a + destColor.r * mina) / 255;
@@ -120,14 +130,18 @@ void cgss::Image::stretchBlit(const sf::Image& imageSource, const Rectangle& des
 					srcColor.b = (srcColor.b * srcColor.a + destColor.b * mina) / 255;
 					srcColor.a += (destColor.a * mina / 255);
 				}
-				m_image.setPixel(d_x, d_y, srcColor);
+				m_image->setPixel(d_x, d_y, srcColor);
 			} else {
-				m_image.setPixel(d_x, d_y, imageSource.getPixel(s_x, s_y));
+				m_image->setPixel(d_x, d_y, imageSource.m_image->getPixel(s_x, s_y));
 			}
 		}
 	}
 }
 
 void cgss::Image::createMaskFromColor(cgss::Color color, unsigned char alpha) {
-	m_image.createMaskFromColor(cgss::internal::toSf(color), alpha);
+	m_image->createMaskFromColor(cgss::internal::toSf(color), alpha);
+}
+
+const sf::Image& cgss::Image::raw() const noexcept {
+	return *m_image;
 }

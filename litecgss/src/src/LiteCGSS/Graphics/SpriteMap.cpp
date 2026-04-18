@@ -50,13 +50,13 @@ void cgss::SpriteMap::defineMap(unsigned long tileWidth, unsigned long tileCount
 	m_proxy->defineMap(tileWidth, tileCount);
 }
 
-void cgss::SpriteMap::setTile(std::size_t index, const cgss::IntRect& tile, sf::Texture& texture) {
+void cgss::SpriteMap::setTile(std::size_t index, const cgss::IntRect& tile, cgss::Texture& texture) {
 	if (index >= m_proxy->m_sprites.size()) {
 		return;
 	}
 	LOG_DEBUG << "Activate tile index = " << index << " tileRect = " << tile.left << ", " << tile.top << ", " << tile.width << ", " << tile.height;
 	auto& sprite = m_proxy->m_sprites[index];
-	sprite.sprite->setTexture(texture);
+	sprite.sprite->setTexture(texture.raw());
 	sprite.sprite->setTextureRect(cgss::internal::toSf(tile));
 	sprite.active = true;
 }

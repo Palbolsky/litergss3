@@ -9,6 +9,7 @@
 
 #include "RenderStatesData.h"
 #include "LiteCGSS/Graphics/Internal/SfShaderConv.h"
+#include "LiteCGSS/Graphics/Texture.h"
 
 bool cgss::RenderStatesData::SHADERS_ENABLED = true;
 
@@ -245,9 +246,9 @@ void cgss::RenderStatesData::setShaderUniform(const std::string& name, cgss::Cur
 	}
 }
 
-void cgss::RenderStatesData::setShaderUniform(const std::string& name, const sf::Texture& texture) {
+void cgss::RenderStatesData::setShaderUniform(const std::string& name, const cgss::Texture& texture) {
 	if (m_shader != nullptr) {
-		m_shader->setUniform(name, texture);
+		m_shader->setUniform(name, texture.raw());
 	}
 }
 

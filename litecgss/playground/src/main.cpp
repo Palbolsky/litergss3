@@ -43,14 +43,15 @@ static bool g_disposeView = false;
 static sf::Vector2i g_windowPosition { 100, 100 };
 
 static void HandleEvents(cgss::DisplayWindow& window, cgss::DisplayWindowSettings& settings) {
-	sf::Event event;
+	cgss::Event event;
 	while (window.popEvent(event)) {
-		switch(event.type) {
+		const auto& raw = event.raw();
+		switch(raw.type) {
 		case sf::Event::EventType::Closed:
 			window.stop();
 			break;
 		case sf::Event::EventType::KeyPressed:
-			switch (event.key.code) {
+			switch (raw.key.code) {
 				case sf::Keyboard::F1:
 					if (window.screenHeight() > 15 && window.screenWidth() > 20) {
 						window.resizeScreen(window.screenWidth() - 20, window.screenHeight() - 15);
@@ -76,7 +77,7 @@ static void HandleEvents(cgss::DisplayWindow& window, cgss::DisplayWindowSetting
 					window.stop();
 					break;
 				case sf::Keyboard::Enter:
-					if (event.key.alt) {
+					if (raw.key.alt) {
 						settings.fullscreen = !settings.fullscreen;
 						window.reload(settings);
 					}
@@ -86,7 +87,7 @@ static void HandleEvents(cgss::DisplayWindow& window, cgss::DisplayWindowSetting
 			}
 			break;
 		case sf::Event::EventType::KeyReleased:
-			switch (event.key.code) {
+			switch (raw.key.code) {
 				case sf::Keyboard::Escape:
 					g_disposeView = false;
 					break;
