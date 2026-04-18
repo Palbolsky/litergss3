@@ -199,7 +199,7 @@ void cgss::Text::setString(const sf::String& text) {
 	m_proxy->updateAlign();
 }
 
-void cgss::Text::setFont(const sf::Font& font) {
-	LOG_INFO << "Set font (family = " << font.getInfo().family << ")";
-	m_proxy->m_text.setFont(font);
+void cgss::Text::setFont(const cgss::Font& font) {
+	LOG_INFO << "Set font (family = " << font.raw().getInfo().family << ")";
+	m_proxy->m_text.setFont(font.raw());
 }

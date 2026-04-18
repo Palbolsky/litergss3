@@ -1,5 +1,6 @@
 #ifndef CGSS_TEXT_H
 #define CGSS_TEXT_H
+#include "LiteCGSS/Graphics/Font.h"
 #include "LiteCGSS/Graphics/ScrollText.h"
 #include "LiteCGSS/Graphics/Drawable.h"
 #include "LiteCGSS/Graphics/Transformable.h"
@@ -54,7 +55,7 @@ namespace cgss {
 		long getCharacterSize() const;
 		void setCharacterSize(long characterSize);
 		void setString(const sf::String& text);
-		void setFont(const sf::Font& font);
+		void setFont(const cgss::Font& font);
 
 		void setDrawShadow(bool drawshadow);
 		bool getDrawShadow() const;

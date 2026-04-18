@@ -2,11 +2,12 @@
 #define CGSS_FONT_LOADER_H
 
 #include <string>
-#include <SFML/Graphics/Font.hpp>
 
 namespace cgss {
+	class Font;
+
 	struct FontLoaderMethod {
-		static bool load(sf::Font& font, const std::string& filename);
+		static bool load(cgss::Font& font, const std::string& filename);
 	};
 }
 
