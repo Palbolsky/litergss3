@@ -1,4 +1,5 @@
 #include "LiteCGSS/Common/Rectangle.h"
+#include "LiteCGSS/Common/Internal/SfColorConv.h"
 #include "LiteCGSS/Common/Internal/SfRectConv.h"
 #include "Serializers/ImageSerializer.h"
 #include "Image.h"
@@ -52,12 +53,13 @@ void cgss::Image::blit(const sf::Image& source, unsigned int x, unsigned int y, 
 	);
 }
 
-void cgss::Image::fillRect(const sf::Color& color, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
+void cgss::Image::fillRect(const cgss::Color& color, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
+	const auto sfColor = cgss::internal::toSf(color);
 	const auto x2 = width + x;
 	const auto y2 = height + y;
 	for (auto yIt = y; yIt < y2; yIt++) {
 		for (auto xIt = x; xIt < x2; xIt++) {
-			m_image.setPixel(xIt, yIt, color);
+			m_image.setPixel(xIt, yIt, sfColor);
 		}
 	}
 }
@@ -66,18 +68,18 @@ unsigned int cgss::Image::write(ImageSaver& saver) const {
 	return saver.save(m_image);
 }
 
-std::optional<sf::Color> cgss::Image::getPixel(unsigned int x, unsigned int y) const {
+std::optional<cgss::Color> cgss::Image::getPixel(unsigned int x, unsigned int y) const {
 	const auto& size = m_image.getSize();
 	if (x < size.x && y < size.y) {
-		return m_image.getPixel(x, y);
+		return cgss::internal::fromSf(m_image.getPixel(x, y));
 	}
 	return {};
 }
 
-bool cgss::Image::setPixel(unsigned int x, unsigned int y, const sf::Color& color) {
+bool cgss::Image::setPixel(unsigned int x, unsigned int y, const cgss::Color& color) {
 	const auto& size = m_image.getSize();
 	if (x < size.x && y < size.y) {
-		m_image.setPixel(x, y, color);
+		m_image.setPixel(x, y, cgss::internal::toSf(color));
 		return true;
 	}
 	return false;
@@ -126,6 +128,6 @@ void cgss::Image::stretchBlit(const sf::Image& imageSource, const Rectangle& des
 	}
 }
 
-void cgss::Image::createMaskFromColor(sf::Color color, unsigned char alpha) {
-	m_image.createMaskFromColor(color, alpha);
+void cgss::Image::createMaskFromColor(cgss::Color color, unsigned char alpha) {
+	m_image.createMaskFromColor(cgss::internal::toSf(color), alpha);
 }

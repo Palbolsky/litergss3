@@ -3,6 +3,7 @@
 #include <SFML/Graphics/Color.hpp>
 #include "Texture.h"
 #include "LiteCGSS/Common/Rectangle.h"
+#include "LiteCGSS/Common/Internal/SfColorConv.h"
 #include "LiteCGSS/Common/Internal/SfRectConv.h"
 #include "LiteCGSS/Views/DisplayWindow.h"
 #include "LiteCGSS/Graphics/Serializers/TextureSerializer.h"
@@ -85,7 +86,8 @@ void cgss::Texture::blit(unsigned long x, unsigned long y, const Texture& srcTex
 	}
 }
 
-void cgss::Texture::fillRect(long x, long y, unsigned int width, unsigned int height, sf::Color color) {
+void cgss::Texture::fillRect(long x, long y, unsigned int width, unsigned int height, cgss::Color color) {
+	const auto sfColor = cgss::internal::toSf(color);
 	const long xStart = x < 0 ? 0 : x;
 	const long xEnd = x + width;
 
@@ -94,15 +96,14 @@ void cgss::Texture::fillRect(long x, long y, unsigned int width, unsigned int he
 
 	for (long yIt = yStart; yIt < yEnd; yIt++) {
 		for (long xIt = xStart; xIt < xEnd; xIt++) {
-			m_image->setPixel(xIt, yIt, color);
+			m_image->setPixel(xIt, yIt, sfColor);
 		}
 	}
 	update();
 }
 
 void cgss::Texture::clearRect(long x, long y, unsigned int width, unsigned int height) {
-	static const auto BLACK_COLOR = sf::Color{0, 0, 0, 0};
-	fillRect(x, y, width, height, BLACK_COLOR);
+	fillRect(x, y, width, height, cgss::Colors::Transparent);
 }
 
 unsigned int cgss::Texture::write(TextureSaver& saver) const {

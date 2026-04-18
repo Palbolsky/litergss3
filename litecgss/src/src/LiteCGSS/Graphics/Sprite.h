@@ -4,10 +4,10 @@
 #include <memory>
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Texture.hpp>
-#include <SFML/Graphics/Color.hpp>
 #include "LiteCGSS/Graphics/Drawable.h"
 #include "LiteCGSS/Graphics/Transformable.h"
 #include "LiteCGSS/Graphics/ShaderRenderable.h"
+#include "LiteCGSS/Common/Color.h"
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
 
@@ -65,8 +65,8 @@ namespace cgss {
 		using Transformable::getAngle;
 		using Transformable::setAngle;
 
-		sf::Color getColor() const;
-		void setColor(sf::Color color);
+		cgss::Color getColor() const;
+		void setColor(cgss::Color color);
 
 		void bindRenderStates(RenderStates* renderStates);
 		void setTexture(Texture& texture, bool resetRect = false);

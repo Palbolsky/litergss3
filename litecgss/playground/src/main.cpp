@@ -127,7 +127,7 @@ static void ViewTest() {
 	auto fillTexture = cgss::Texture{};
 	auto memorySerializer = cgss::TextureEmptySerializer{ 1000, 1000 };
 	fillTexture.load(memorySerializer);
-	fillTexture.fillRect(0, 0, 1000, 1000, sf::Color::White);
+	fillTexture.fillRect(0, 0, 1000, 1000, cgss::Colors::White);
 
 	//Move the INSIDE content (i.e. what is drawn), on SOURCE
 	framedView.moveOrigin(60, 50);

@@ -3,6 +3,7 @@
 #include "LiteCGSS/Graphics/ScrollText.h"
 #include "LiteCGSS/Graphics/Drawable.h"
 #include "LiteCGSS/Graphics/Transformable.h"
+#include "LiteCGSS/Common/Color.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
 
 namespace cgss {
@@ -41,10 +42,10 @@ namespace cgss {
 		void setOpacity(std::uint8_t opacity);
 		float getRealWidth() const;
 		float getRealHeight() const;
-		const sf::Color& getFillColor() const;
-		void setFillColor(sf::Color color);
-		const sf::Color& getOutlineColor() const;
-		void setOutlineColor(sf::Color color);
+		cgss::Color getFillColor() const;
+		void setFillColor(cgss::Color color);
+		cgss::Color getOutlineColor() const;
+		void setOutlineColor(cgss::Color color);
 		float getOutlineThickness() const;
 		void setOutlineThickness(float outlineThickness);
 		sf::Uint32 getStyle() const;

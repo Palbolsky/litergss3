@@ -4,6 +4,7 @@
 #include "RenderStates.h"
 #include "Texture.h"
 #include "LiteCGSS/Common/Rectangle.h"
+#include "LiteCGSS/Common/Internal/SfColorConv.h"
 #include "LiteCGSS/Common/Internal/SfRectConv.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
 
@@ -44,8 +45,8 @@ void cgss::Sprite::horizontalFlip() {
 	setTextureRect(cgss::internal::fromSf(rect));
 }
 
-sf::Color cgss::Sprite::getColor() const {
-	return m_proxy->m_sprite.getColor();
+cgss::Color cgss::Sprite::getColor() const {
+	return cgss::internal::fromSf(m_proxy->m_sprite.getColor());
 }
 
 float cgss::Sprite::getX() const {
@@ -62,8 +63,8 @@ void cgss::Sprite::move(float x, float y) {
 	Transformable::move(x, y);
 }
 
-void cgss::Sprite::setColor(sf::Color color) {
-	m_proxy->m_sprite.setColor(std::move(color));
+void cgss::Sprite::setColor(cgss::Color color) {
+	m_proxy->m_sprite.setColor(cgss::internal::toSf(color));
 }
 
 void cgss::SpriteItem::setOpacity(std::uint8_t opacity) {

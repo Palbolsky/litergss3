@@ -4,6 +4,7 @@
 #include <SFML/Graphics/ConvexShape.hpp>
 #include "Shape.h"
 #include "LiteCGSS/Common/Rectangle.h"
+#include "LiteCGSS/Common/Internal/SfColorConv.h"
 #include "LiteCGSS/Common/Internal/SfRectConv.h"
 #include "Texture.h"
 
@@ -131,20 +132,20 @@ void cgss::Shape::setPoint(const std::size_t index, float x, float y) {
 	}
 }
 
-sf::Color cgss::Shape::getFillColor() const {
-	return m_proxy->m_shape->getFillColor();
+cgss::Color cgss::Shape::getFillColor() const {
+	return cgss::internal::fromSf(m_proxy->m_shape->getFillColor());
 }
 
-void cgss::Shape::setFillColor(sf::Color color){
-	return m_proxy->m_shape->setFillColor(color);
+void cgss::Shape::setFillColor(cgss::Color color){
+	return m_proxy->m_shape->setFillColor(cgss::internal::toSf(color));
 }
 
-sf::Color cgss::Shape::getOutlineColor() const {
-	return m_proxy->m_shape->getOutlineColor();
+cgss::Color cgss::Shape::getOutlineColor() const {
+	return cgss::internal::fromSf(m_proxy->m_shape->getOutlineColor());
 }
 
-void cgss::Shape::setOutlineColor(sf::Color color) {
-	return m_proxy->m_shape->setOutlineColor(color);
+void cgss::Shape::setOutlineColor(cgss::Color color) {
+	return m_proxy->m_shape->setOutlineColor(cgss::internal::toSf(color));
 }
 
 float cgss::Shape::getOutlineThickness() const {

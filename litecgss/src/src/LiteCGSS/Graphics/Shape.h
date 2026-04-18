@@ -4,11 +4,11 @@
 #include <SFML/Graphics/Shape.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Texture.hpp>
-#include <SFML/Graphics/Color.hpp>
 #include <SFML/System/Vector2.hpp>
 #include "LiteCGSS/Graphics/Drawable.h"
 #include "LiteCGSS/Graphics/DrawState.h"
 #include "LiteCGSS/Graphics/Transformable.h"
+#include "LiteCGSS/Common/Color.h"
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
 
@@ -68,11 +68,11 @@ namespace cgss {
 		sf::Vector2f getPoint(const std::size_t index) const;
 		void setPoint(const std::size_t index, float x, float y);
 
-		sf::Color getFillColor() const;
-		void setFillColor(sf::Color color);
+		cgss::Color getFillColor() const;
+		void setFillColor(cgss::Color color);
 
-		sf::Color getOutlineColor() const;
-		void setOutlineColor(sf::Color color);
+		cgss::Color getOutlineColor() const;
+		void setOutlineColor(cgss::Color color);
 
 		float getOutlineThickness() const;
 		void setOutlineThickness(float thickness) const;
