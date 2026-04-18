@@ -1,6 +1,7 @@
 /* Include cstddef first, otherwise libnsgif.hpp won't "compile" */
 #include <cstddef>
 #include <libnsgif.hpp>
+#include <SFML/Graphics/Texture.hpp>
 #include "YukiGif.h"
 
 #define BYTES_PER_PIXEL 4

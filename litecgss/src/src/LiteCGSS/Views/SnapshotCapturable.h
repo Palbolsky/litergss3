@@ -2,7 +2,10 @@
 #define CGSS_SNAPSHOT_CAPTURABLE_H
 
 #include <memory>
-#include <SFML/Graphics/Texture.hpp>
+
+namespace sf {
+	class Texture;
+}
 
 namespace cgss {
 	class SnapshotCapturable {

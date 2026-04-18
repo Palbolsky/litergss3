@@ -3,9 +3,12 @@
 
 #include <cstddef>
 #include <memory>
-#include <SFML/Graphics/Texture.hpp>
 
 struct gif_animation;
+
+namespace sf {
+	class Texture;
+}
 
 namespace cgss {
 	class YukiGif {
