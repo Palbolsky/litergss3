@@ -4,6 +4,7 @@
 #include "RenderStates.h"
 #include "Texture.h"
 #include "LiteCGSS/Common/Rectangle.h"
+#include "LiteCGSS/Common/Internal/SfRectConv.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
 
 cgss::SpriteItem::SpriteItem(Sprite* owner) {
@@ -40,7 +41,7 @@ void cgss::Sprite::horizontalFlip() {
 	auto rect = m_proxy->m_sprite.getTextureRect();
 	rect.left += rect.width;
 	rect.width = -rect.width;
-	setTextureRect(rect);
+	setTextureRect(cgss::internal::fromSf(rect));
 }
 
 sf::Color cgss::Sprite::getColor() const {
@@ -75,24 +76,26 @@ void cgss::Sprite::setTexture(Texture& texture, bool resetRect) {
 	m_proxy->m_linkedTexture = texture.ref();
 	m_proxy->m_sprite.setTexture(*m_proxy->m_linkedTexture.get(), resetRect);
 	if (resetRect) {
-		m_proxy->GraphicsStackItem::setValue(m_proxy->m_sprite.getTextureRect());
+		m_proxy->GraphicsStackItem::setValue(cgss::internal::fromSf(m_proxy->m_sprite.getTextureRect()));
 	}
 }
 
-void cgss::SpriteItem::updateFromValue(const sf::IntRect* rectangle) {
+void cgss::SpriteItem::updateFromValue(const cgss::IntRect* rectangle) {
 	auto textureSize = m_sprite.getTexture() == nullptr ? sf::Vector2u{} : m_sprite.getTexture()->getSize();
-	auto tmpRectangle = rectangle == nullptr ? sf::IntRect{0, 0, static_cast<int>(textureSize.x), static_cast<int>(textureSize.y) } : *rectangle;
+	auto tmpRectangle = rectangle == nullptr
+		? cgss::IntRect{0, 0, static_cast<int>(textureSize.x), static_cast<int>(textureSize.y)}
+		: *rectangle;
 	if (m_mirror) {
 		tmpRectangle.left += tmpRectangle.width;
 		tmpRectangle.width = -tmpRectangle.width;
 	}
-	m_sprite.setTextureRect(std::move(tmpRectangle));
+	m_sprite.setTextureRect(cgss::internal::toSf(tmpRectangle));
 }
 
-void cgss::Sprite::setTextureRect(sf::IntRect rectangle) {
+void cgss::Sprite::setTextureRect(cgss::IntRect rectangle) {
 	m_proxy->GraphicsStackItem::setValue(std::move(rectangle));
 }
 
-const sf::IntRect& cgss::Sprite::getTextureRect() const {
-	return m_proxy->m_sprite.getTextureRect();
+cgss::IntRect cgss::Sprite::getTextureRect() const {
+	return cgss::internal::fromSf(m_proxy->m_sprite.getTextureRect());
 }

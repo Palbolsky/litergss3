@@ -1,11 +1,11 @@
 #ifndef CGSS_GRAPHICS_STACK_ITEM_H
 #define CGSS_GRAPHICS_STACK_ITEM_H
 #include <memory>
-#include <SFML/Graphics/Rect.hpp>
 #include "GraphicItem.h"
 #include "GraphicsStackItemPtr.h"
 #include "LiteCGSS/Common/BondElement.h"
 #include "LiteCGSS/Common/Bindable.h"
+#include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Views/Stack/MainGraphicsStack.h"
 #include "LiteCGSS/Views/Stack/ZGetter.h"
 #include "ZIndex.h"
@@ -18,7 +18,7 @@ namespace cgss {
 	struct ZGetter<GraphicsStackItemPtr>;
 
 	class GraphicsStackItem :
-		public Bindable<sf::IntRect>,
+		public Bindable<cgss::IntRect>,
 		protected GraphicItem {
 
 		template <template <class> class ZAlgo>
@@ -43,7 +43,7 @@ namespace cgss {
 
 		virtual ~GraphicsStackItem();
 
-		void updateFromValue(const sf::IntRect*) override {};
+		void updateFromValue(const cgss::IntRect*) override {};
 		virtual void setOpacity(std::uint8_t) {};
 
 		void detach();

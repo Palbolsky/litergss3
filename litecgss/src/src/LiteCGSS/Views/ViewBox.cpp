@@ -118,7 +118,8 @@ float cgss::ViewBox::getHeight() const {
 
 void cgss::ViewBox::setZoom(float zoom) {
 	m_zoom = 1.0 / cgss::normalize_double(zoom, 0.001, 1000.0);
-	m_view.raw().reset(sf::FloatRect { getRectangleBox() });
+	const auto rect = getRectangleBox();
+	m_view.raw().reset(sf::FloatRect(rect.left, rect.top, rect.width, rect.height));
 	m_view.raw().zoom(m_zoom);
 	updateCenter();
   m_view.raw().setRotation(m_angle);
@@ -138,11 +139,11 @@ float cgss::ViewBox::getAngle() const {
 	return m_angle;
 }
 
-sf::IntRect cgss::ViewBox::getRectangleBox() const {
+cgss::IntRect cgss::ViewBox::getRectangleBox() const {
 	const auto& percentBox = m_view.raw().getViewport();
 	const auto sw = static_cast<float>(m_screenWidth);
 	const auto sh = static_cast<float>(m_screenHeight);
-	return sf::IntRect {
+	return cgss::IntRect {
 		static_cast<int>(percentBox.left * sw),
 		static_cast<int>(percentBox.top * sh),
 		static_cast<int>(percentBox.width * sw),

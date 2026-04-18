@@ -5,6 +5,7 @@
 #include "FramedView.h"
 #include "Viewport.h"
 #include "LiteCGSS/Common/Rectangle.h"
+#include "LiteCGSS/Common/Internal/SfRectConv.h"
 
 SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::FramedViewItem)
 
@@ -77,7 +78,7 @@ void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, cgss::Camera&
 	// TODO : can be based on event system ? when parent viewport is moved / resized.
 	LOG_DEBUG << "Draw calculate view";
 
-	const sf::IntRect parentViewport = parent.getViewportBox();
+	const cgss::IntRect parentViewport = parent.getViewportBox();
 	float zoom = parent.getZoom();
 
 	const auto vx0 = parentViewport.width / 2.f - (parentViewport.width / 2.f) / zoom; // <- When vp.zoom = 0.5, zoom = 2
@@ -641,7 +642,7 @@ bool cgss::FramedViewItem::isLocked() const {
 	return m_locked;
 }
 
-const sf::IntRect& cgss::FramedViewItem::getCursorRectangle() const {
+cgss::IntRect cgss::FramedViewItem::getCursorRectangle() const {
 	return m_cursorRect;
 }
 
@@ -654,7 +655,7 @@ void cgss::FramedViewItem::resetPausePosition() {
 	m_pause.setPosition(sf::Vector2f(pause_x, pause_y));
 }
 
-void cgss::FramedViewItem::setCursorRectangle(sf::IntRect rect) {
+void cgss::FramedViewItem::setCursorRectangle(cgss::IntRect rect) {
 	setValue(rect);
 	m_cursorRect = std::move(rect);
 
@@ -830,7 +831,7 @@ void cgss::FramedView::setCursorSkin(sf::Texture& texture) {
 	m_proxy->setCursorSkin(texture);
 }
 
-void cgss::FramedView::setCursorRectangle(sf::IntRect position) {
+void cgss::FramedView::setCursorRectangle(cgss::IntRect position) {
 	m_proxy->setCursorRectangle(std::move(position));
 }
 
@@ -882,8 +883,8 @@ void cgss::FramedView::setBuilder(std::array<long, 8> windowBuilder) {
 	m_proxy->setBuilder(windowBuilder);
 }
 
-void cgss::FramedViewItem::updateFromValue(const sf::IntRect* rectangle) {
-	setCursorRectangle(rectangle == nullptr ? sf::IntRect{} : *rectangle);
+void cgss::FramedViewItem::updateFromValue(const cgss::IntRect* rectangle) {
+	setCursorRectangle(rectangle == nullptr ? cgss::IntRect{} : *rectangle);
 }
 
 long cgss::FramedView::getPauseX() const {
@@ -894,11 +895,11 @@ long cgss::FramedView::getPauseY() const {
 	return m_proxy->getPauseY();
 }
 
-const sf::IntRect& cgss::FramedView::getCursorRectangle() const {
+cgss::IntRect cgss::FramedView::getCursorRectangle() const {
 	return m_proxy->getCursorRectangle();
 }
 
-sf::IntRect cgss::FramedView::getViewportBox() const {
+cgss::IntRect cgss::FramedView::getViewportBox() const {
 	return m_proxy->getRectangleBox();
 }
 

@@ -5,6 +5,7 @@
 #include <SFML/Graphics/Color.hpp>
 #include "Viewport.h"
 #include "LiteCGSS/Common/Rectangle.h"
+#include "LiteCGSS/Common/Internal/SfRectConv.h"
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
 #include "LoggerViews.h"
 
@@ -155,11 +156,11 @@ void cgss::ViewportItem::updateFromValue(const RenderStatesData* renderStatesDat
 void cgss::ViewportItem::scaleRenderSpriteToViewport() const {
 	assert (m_windowData.userRenderSprite != nullptr);
 	const auto viewportBox = getViewportBox();
-	m_windowData.userRenderSprite->setTextureRect(viewportBox);
+	m_windowData.userRenderSprite->setTextureRect(cgss::internal::toSf(viewportBox));
 	m_windowData.userRenderSprite->setPosition(viewportBox.left, viewportBox.top);
 }
 
-void cgss::ViewportItem::updateFromValue(const sf::IntRect* rectanglePtr) {
+void cgss::ViewportItem::updateFromValue(const cgss::IntRect* rectanglePtr) {
 	auto rectangle = rectanglePtr == nullptr ? getRectangleBox() : *rectanglePtr;
 
 	LOG_INFO << "View " << static_cast<void*>(this) << " updated with rect x = " << rectangle.left << " y = " << rectangle.top << " width = " << rectangle.width << " height = " << rectangle.height;
@@ -168,11 +169,11 @@ void cgss::ViewportItem::updateFromValue(const sf::IntRect* rectanglePtr) {
 	ViewBox::moveViewport(rectangle.left, rectangle.top);
 }
 
-void cgss::Viewport::setRectangle(sf::IntRect rectangle) {
+void cgss::Viewport::setRectangle(cgss::IntRect rectangle) {
 	m_proxy->GraphicsStackItem::setValue(std::move(rectangle));
 }
 
-sf::IntRect cgss::ViewportItem::getViewportBox() const {
+cgss::IntRect cgss::ViewportItem::getViewportBox() const {
 	const auto* boundRectangle = GraphicsStackItem::getValue();
 	if (boundRectangle != nullptr) {
 		return *boundRectangle;
@@ -180,7 +181,7 @@ sf::IntRect cgss::ViewportItem::getViewportBox() const {
 	return getRectangleBox();
 }
 
-sf::IntRect cgss::Viewport::getViewportBox() const {
+cgss::IntRect cgss::Viewport::getViewportBox() const {
 	return m_proxy->getViewportBox();
 }
 

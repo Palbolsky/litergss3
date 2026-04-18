@@ -1,7 +1,7 @@
 #ifndef CGSS_INNER_VIEW_H
 #define CGSS_INNER_VIEW_H
 
-#include <SFML/Graphics/Rect.hpp>
+#include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Graphics/Camera.h"
 #include "LiteCGSS/Graphics/RenderTarget.h"
 #include "LiteCGSS/Events/Patterns/SubObserver.h"
@@ -43,7 +43,7 @@ namespace cgss {
 		float getHeight() const;
 		cgss::Camera clone() const { return m_view; }
 		void moveViewport(float x, float y);
-		sf::IntRect getRectangleBox() const;
+		cgss::IntRect getRectangleBox() const;
 
 		void onRenderTarget(cgss::RenderTarget& renderTarget, bool copy = false) const;
 

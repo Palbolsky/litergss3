@@ -1,5 +1,6 @@
 #include <SFML/Graphics/RenderTarget.hpp>
 #include "SpriteMap.h"
+#include "LiteCGSS/Common/Internal/SfRectConv.h"
 #include "LoggerDrawables.h"
 
 SKA_LOGC_CONFIG(ska::LogLevel::Error, cgss::SpriteMapItem)
@@ -40,22 +41,22 @@ void cgss::SpriteMap::defineMap(unsigned long tileWidth, unsigned long tileCount
 	m_proxy->defineMap(tileWidth, tileCount);
 }
 
-void cgss::SpriteMap::setTile(std::size_t index, const sf::IntRect& tile, sf::Texture& texture) {
+void cgss::SpriteMap::setTile(std::size_t index, const cgss::IntRect& tile, sf::Texture& texture) {
 	if (index >= m_proxy->m_sprites.size()) {
 		return;
 	}
 	LOG_DEBUG << "Activate tile index = " << index << " tileRect = " << tile.left << ", " << tile.top << ", " << tile.width << ", " << tile.height;
 	auto& sprite = m_proxy->m_sprites[index];
 	sprite.sprite.setTexture(texture);
-	sprite.sprite.setTextureRect(tile);
+	sprite.sprite.setTextureRect(cgss::internal::toSf(tile));
 	sprite.active = true;
 }
 
-void cgss::SpriteMap::setTileRect(std::size_t index, const sf::IntRect& tile) {
+void cgss::SpriteMap::setTileRect(std::size_t index, const cgss::IntRect& tile) {
 	if (index >= m_proxy->m_sprites.size()) {
 		return;
 	}
-	m_proxy->m_sprites[index].sprite.setTextureRect(tile);
+	m_proxy->m_sprites[index].sprite.setTextureRect(cgss::internal::toSf(tile));
 }
 
 void cgss::SpriteMap::reset() {

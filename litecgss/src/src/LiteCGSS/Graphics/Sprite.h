@@ -5,10 +5,10 @@
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/Color.hpp>
-#include <SFML/Graphics/Rect.hpp>
 #include "LiteCGSS/Graphics/Drawable.h"
 #include "LiteCGSS/Graphics/Transformable.h"
 #include "LiteCGSS/Graphics/ShaderRenderable.h"
+#include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
 
 namespace cgss {
@@ -32,7 +32,7 @@ namespace cgss {
 		virtual ~SpriteItem() = default;
 		void draw(cgss::RenderTarget& target) const override;
 		void drawFast(cgss::RenderTarget& target) const override;
-		void updateFromValue(const sf::IntRect* rectangle) override;
+		void updateFromValue(const cgss::IntRect* rectangle) override;
 		void updateFromValue(const RenderStatesData* value) override;
 		void setOpacity(std::uint8_t opacity) override;
 	};
@@ -70,8 +70,8 @@ namespace cgss {
 
 		void bindRenderStates(RenderStates* renderStates);
 		void setTexture(Texture& texture, bool resetRect = false);
-		void setTextureRect(sf::IntRect rectangle);
-		const sf::IntRect& getTextureRect() const;
+		void setTextureRect(cgss::IntRect rectangle);
+		cgss::IntRect getTextureRect() const;
 		void setMirror(bool mirror);
 	};
 

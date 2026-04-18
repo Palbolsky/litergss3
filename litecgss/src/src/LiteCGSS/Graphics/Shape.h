@@ -6,10 +6,10 @@
 #include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/Color.hpp>
-#include <SFML/Graphics/Rect.hpp>
 #include <SFML/System/Vector2.hpp>
 #include "LiteCGSS/Graphics/Drawable.h"
 #include "LiteCGSS/Graphics/Transformable.h"
+#include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
 
 namespace cgss {
@@ -39,7 +39,7 @@ namespace cgss {
 		ShapeItem(Shape* owner, ShapeData shape);
 		void draw(cgss::RenderTarget& target) const override;
 		void drawFast(cgss::RenderTarget& target) const override;
-		void updateFromValue(const sf::IntRect* rectangle) override;
+		void updateFromValue(const cgss::IntRect* rectangle) override;
 	};
 
 	class Shape :
@@ -56,8 +56,8 @@ namespace cgss {
 		void setRenderState(sf::RenderStates states);
 		void setTexture(Texture* texture, bool resetRect = false);
 
-		sf::IntRect getRectangle() const;
-		void setRectangle(sf::IntRect rectangle);
+		cgss::IntRect getRectangle() const;
+		void setRectangle(cgss::IntRect rectangle);
 
 		std::size_t getPointCount() const;
 		void setPointCount(std::size_t pointCount) const;

@@ -1,4 +1,5 @@
 #include "LiteCGSS/Common/Rectangle.h"
+#include "LiteCGSS/Common/Internal/SfRectConv.h"
 #include "Serializers/ImageSerializer.h"
 #include "Image.h"
 
@@ -36,9 +37,9 @@ unsigned int cgss::Image::height() const {
 	return m_image.getSize().y;
 }
 
-sf::IntRect cgss::Image::box() const {
+cgss::IntRect cgss::Image::box() const {
 	const auto size = m_image.getSize();
-	return sf::IntRect {0, 0, static_cast<int>(size.x), static_cast<int>(size.y) };
+	return cgss::IntRect {0, 0, static_cast<int>(size.x), static_cast<int>(size.y) };
 }
 
 void cgss::Image::blit(const sf::Image& source, unsigned int x, unsigned int y, const Rectangle& rect, bool applyAlpha) {
@@ -46,7 +47,7 @@ void cgss::Image::blit(const sf::Image& source, unsigned int x, unsigned int y, 
 		source,
 		x,
 		y,
-		rect.getValue(),
+		cgss::internal::toSf(rect.getValue()),
 		applyAlpha
 	);
 }

@@ -8,6 +8,7 @@
 #include <SFML/System/Vector2.hpp>
 #include "View.h"
 #include "ViewAuthorizations.h"
+#include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Graphics/Drawable.h"
 
@@ -53,7 +54,7 @@ namespace cgss {
 
 		std::weak_ptr<ViewportItem> m_parent;
 
-		sf::IntRect m_cursorRect;
+		cgss::IntRect m_cursorRect;
 
 		// Array that describe how the frame is defined on the window skin (setted by the "setSkin" function member).
 		// Defined this way : [frame_mid_x, frame_mid_y, frame_mid_width, frame_mid_height, contents_ox, contents_oy]
@@ -128,10 +129,10 @@ namespace cgss {
 		void setPausePosition(float x, float y);
 
 		void setCursorSkin(sf::Texture& texture);
-		void setCursorRectangle(sf::IntRect position);
+		void setCursorRectangle(cgss::IntRect position);
 
 		void bindRectangleViewport(Rectangle* output);
-		const sf::IntRect& getCursorRectangle() const;
+		cgss::IntRect getCursorRectangle() const;
 
 		void stretch(bool stretch);
 		bool isStretched() const;
@@ -140,7 +141,7 @@ namespace cgss {
 		void setBuilder(std::array<long, 8> windowBuilder);
 
 		void move(float x, float y);
-		void updateFromValue(const sf::IntRect* rectangle) override;
+		void updateFromValue(const cgss::IntRect* rectangle) override;
 	};
 
 	class FramedView :
@@ -193,17 +194,17 @@ namespace cgss {
 		void setPausePosition(float x, float y);
 
 		void setCursorSkin(sf::Texture& texture);
-		void setCursorRectangle(sf::IntRect position);
+		void setCursorRectangle(cgss::IntRect position);
 		void setBuilder(std::array<long, 6> windowBuilder);
 		void setBuilder(std::array<long, 8> windowBuilder);
 
-		const sf::IntRect& getCursorRectangle() const;
+		cgss::IntRect getCursorRectangle() const;
 
 		void stretch(bool stretch);
 		bool isStretched() const;
 
 		void update();
-		sf::IntRect getViewportBox() const;
+		cgss::IntRect getViewportBox() const;
 		long getOx() const;
 		long getOy() const;
 

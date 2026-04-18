@@ -2,10 +2,10 @@
 #define CGSS_SPRITEMAP_H
 #include "LiteCGSS/Graphics/Drawable.h"
 #include "LiteCGSS/Graphics/Transformable.h"
+#include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Texture.hpp>
-#include <SFML/Graphics/Rect.hpp>
 
 namespace cgss {
 	class Texture;
@@ -43,8 +43,8 @@ namespace cgss {
 		SpriteMap& operator=(SpriteMap&&) = default;
 
 		void defineMap(unsigned long tileWidth, unsigned long tileCount);
-		void setTile(std::size_t index, const sf::IntRect& tile, sf::Texture& texture);
-		void setTileRect(std::size_t index, const sf::IntRect& tile);
+		void setTile(std::size_t index, const cgss::IntRect& tile, sf::Texture& texture);
+		void setTileRect(std::size_t index, const cgss::IntRect& tile);
 		void move(float x, float y);
 		void moveOrigin(float ox, float oy);
 		void setTileScale(float scale);

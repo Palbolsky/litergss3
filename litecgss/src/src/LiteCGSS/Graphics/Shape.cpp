@@ -4,6 +4,7 @@
 #include <SFML/Graphics/ConvexShape.hpp>
 #include "Shape.h"
 #include "LiteCGSS/Common/Rectangle.h"
+#include "LiteCGSS/Common/Internal/SfRectConv.h"
 #include "Texture.h"
 
 cgss::ShapeItem::ShapeItem(Shape* owner, ShapeData shape) :
@@ -35,15 +36,15 @@ void cgss::Shape::setTexture(Texture* texture, bool resetRect) {
 	}
 
 	if (resetRect) {
-		m_proxy->setValue(m_proxy->m_shape->getTextureRect());
+		m_proxy->setValue(cgss::internal::fromSf(m_proxy->m_shape->getTextureRect()));
 	}
 }
 
-sf::IntRect cgss::Shape::getRectangle() const {
-	return m_proxy->m_shape->getTextureRect();
+cgss::IntRect cgss::Shape::getRectangle() const {
+	return cgss::internal::fromSf(m_proxy->m_shape->getTextureRect());
 }
 
-void cgss::Shape::setRectangle(sf::IntRect rectangle) {
+void cgss::Shape::setRectangle(cgss::IntRect rectangle) {
 	m_proxy->setValue(std::move(rectangle));
 }
 
@@ -154,6 +155,6 @@ void cgss::Shape::setOutlineThickness(float thickness) const {
 	return m_proxy->m_shape->setOutlineThickness(thickness);
 }
 
-void cgss::ShapeItem::updateFromValue(const sf::IntRect* rectangle) {
-	m_shape->setTextureRect(rectangle == nullptr ? sf::IntRect{} : *rectangle);
+void cgss::ShapeItem::updateFromValue(const cgss::IntRect* rectangle) {
+	m_shape->setTextureRect(rectangle == nullptr ? sf::IntRect{} : cgss::internal::toSf(*rectangle));
 }

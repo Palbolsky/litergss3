@@ -3,14 +3,14 @@
 #include "Common/Rectangle.h"
 
 struct BindableToRectangle :
-	public cgss::Bindable<sf::IntRect> {
-	MOCK_METHOD(void, updateFromValue, (const sf::IntRect* ptr), (override));
-	const sf::IntRect* getValue() const { return cgss::Bindable<sf::IntRect>::getValue(); }
+	public cgss::Bindable<cgss::IntRect> {
+	MOCK_METHOD(void, updateFromValue, (const cgss::IntRect* ptr), (override));
+	const cgss::IntRect* getValue() const { return cgss::Bindable<cgss::IntRect>::getValue(); }
 };
 
 TEST(RectangleGroup, Init) {
 	auto rectangle = cgss::Rectangle {};
-	const auto defaultRect = sf::IntRect{};
+	const auto defaultRect = cgss::IntRect{};
 	EXPECT_EQ(static_cast<const cgss::Rectangle&>(rectangle).getValue(), defaultRect);
 }
 
@@ -18,28 +18,28 @@ TEST(RectangleGroup, SetX) {
 	auto rectangle = cgss::Rectangle{};
 
 	rectangle.setX(1);
-	EXPECT_EQ(static_cast<const cgss::Rectangle&>(rectangle).getValue(), (sf::IntRect{1, 0, 0, 0}));
+	EXPECT_EQ(static_cast<const cgss::Rectangle&>(rectangle).getValue(), (cgss::IntRect{1, 0, 0, 0}));
 }
 
 TEST(RectangleGroup, SetY) {
 	auto rectangle = cgss::Rectangle{};
 
 	rectangle.setY(1);
-	EXPECT_EQ(static_cast<const cgss::Rectangle&>(rectangle).getValue(), (sf::IntRect{0, 1, 0, 0}));
+	EXPECT_EQ(static_cast<const cgss::Rectangle&>(rectangle).getValue(), (cgss::IntRect{0, 1, 0, 0}));
 }
 
 TEST(RectangleGroup, SetWidth) {
 	auto rectangle = cgss::Rectangle{};
 
 	rectangle.setWidth(1);
-	EXPECT_EQ(static_cast<const cgss::Rectangle&>(rectangle).getValue(), (sf::IntRect{0, 0, 1, 0}));
+	EXPECT_EQ(static_cast<const cgss::Rectangle&>(rectangle).getValue(), (cgss::IntRect{0, 0, 1, 0}));
 }
 
 TEST(RectangleGroup, SetHeight) {
 	auto rectangle = cgss::Rectangle{};
 
 	rectangle.setHeight(1);
-	EXPECT_EQ(static_cast<const cgss::Rectangle&>(rectangle).getValue(), (sf::IntRect{0, 0, 0, 1}));
+	EXPECT_EQ(static_cast<const cgss::Rectangle&>(rectangle).getValue(), (cgss::IntRect{0, 0, 0, 1}));
 }
 
 TEST(RectangleGroup, BindableSetX) {
@@ -48,7 +48,7 @@ TEST(RectangleGroup, BindableSetX) {
 	rectangle.bind(&bindable);
 	EXPECT_CALL(bindable, updateFromValue(&static_cast<const cgss::Rectangle&>(rectangle).getValue())).Times(1);
 	rectangle.setX(1);
-	EXPECT_EQ(*static_cast<const BindableToRectangle&>(bindable).getValue(), (sf::IntRect{1, 0, 0, 0}));
+	EXPECT_EQ(*static_cast<const BindableToRectangle&>(bindable).getValue(), (cgss::IntRect{1, 0, 0, 0}));
 }
 
 TEST(RectangleGroup, BindableSetY) {
@@ -57,7 +57,7 @@ TEST(RectangleGroup, BindableSetY) {
 	rectangle.bind(&bindable);
 	EXPECT_CALL(bindable, updateFromValue(&static_cast<const cgss::Rectangle&>(rectangle).getValue())).Times(1);
 	rectangle.setY(1);
-	EXPECT_EQ(*static_cast<const BindableToRectangle&>(bindable).getValue(), (sf::IntRect{0, 1, 0, 0}));
+	EXPECT_EQ(*static_cast<const BindableToRectangle&>(bindable).getValue(), (cgss::IntRect{0, 1, 0, 0}));
 }
 
 TEST(RectangleGroup, BindableSetWidth) {
@@ -66,7 +66,7 @@ TEST(RectangleGroup, BindableSetWidth) {
 	rectangle.bind(&bindable);
 	EXPECT_CALL(bindable, updateFromValue(&static_cast<const cgss::Rectangle&>(rectangle).getValue())).Times(1);
 	rectangle.setWidth(1);
-	EXPECT_EQ(*static_cast<const BindableToRectangle&>(bindable).getValue(), (sf::IntRect{0, 0, 1, 0}));
+	EXPECT_EQ(*static_cast<const BindableToRectangle&>(bindable).getValue(), (cgss::IntRect{0, 0, 1, 0}));
 }
 
 TEST(RectangleGroup, BindableSetHeight) {
@@ -75,5 +75,5 @@ TEST(RectangleGroup, BindableSetHeight) {
 	rectangle.bind(&bindable);
 	EXPECT_CALL(bindable, updateFromValue(&static_cast<const cgss::Rectangle&>(rectangle).getValue())).Times(1);
 	rectangle.setHeight(1);
-	EXPECT_EQ(*static_cast<const BindableToRectangle&>(bindable).getValue(), (sf::IntRect{0, 0, 0, 1}));
+	EXPECT_EQ(*static_cast<const BindableToRectangle&>(bindable).getValue(), (cgss::IntRect{0, 0, 0, 1}));
 }

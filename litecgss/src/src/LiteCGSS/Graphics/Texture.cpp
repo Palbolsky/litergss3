@@ -1,5 +1,6 @@
 #include "Texture.h"
 #include "LiteCGSS/Common/Rectangle.h"
+#include "LiteCGSS/Common/Internal/SfRectConv.h"
 #include "LiteCGSS/Views/DisplayWindow.h"
 #include "LiteCGSS/Graphics/Serializers/TextureSerializer.h"
 #include "LiteCGSS/Image/Image.h"
@@ -57,7 +58,7 @@ void cgss::Texture::update(const Image& image) {
 
 void cgss::Texture::blit(unsigned long x, unsigned long y, const Texture& srcTexture, const Rectangle& rect) {
 	if(hasImage()) {
-		m_image.copy(srcTexture.m_image, x, y, rect.getValue());
+		m_image.copy(srcTexture.m_image, x, y, cgss::internal::toSf(rect.getValue()));
 	}
 }
 

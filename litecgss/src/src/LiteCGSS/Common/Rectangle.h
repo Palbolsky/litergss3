@@ -1,13 +1,13 @@
 #ifndef CGSS_RECTANGLE_H
 #define CGSS_RECTANGLE_H
 
-#include <SFML/Graphics/Rect.hpp>
+#include "IntRect.h"
 #include "Meta/metadata.h"
 #include "LiteCGSS/Common/BondElement.h"
 
 namespace cgss {
 	class Rectangle :
-		public BondElement<sf::IntRect> {
+		public BondElement<cgss::IntRect> {
 	public:
 		Rectangle() = default;
 		virtual ~Rectangle() = default;

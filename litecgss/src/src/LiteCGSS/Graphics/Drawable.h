@@ -1,8 +1,8 @@
 #ifndef CGSS_DRAWABLE_H
 #define CGSS_DRAWABLE_H
 #include <memory>
-#include <SFML/Graphics/Rect.hpp>
 #include "GraphicsStackItem.h"
+#include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Views/Stack/DrawableStack.h"
 
 namespace cgss {
@@ -42,7 +42,7 @@ namespace cgss {
 		}
 
 		void bindRectangle(Rectangle* rectangle) {
-			m_instanceOwner->Bindable<sf::IntRect>::bindValue(rectangle);
+			m_instanceOwner->Bindable<cgss::IntRect>::bindValue(rectangle);
 		}
 
 		template <class View, class ... Args>

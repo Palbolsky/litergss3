@@ -5,7 +5,7 @@
 #include <optional>
 #include <SFML/Graphics/Image.hpp>
 #include <SFML/Graphics/Color.hpp>
-#include <SFML/Graphics/Rect.hpp>
+#include "LiteCGSS/Common/IntRect.h"
 #include "Serializers/ImageLoaderSaver.h"
 
 namespace cgss {
@@ -33,7 +33,7 @@ namespace cgss {
 
 		unsigned int width() const;
 		unsigned int height() const;
-		sf::IntRect box() const;
+		cgss::IntRect box() const;
 		std::optional<sf::Color> getPixel(unsigned int x, unsigned int y) const;
 		bool setPixel(unsigned int x, unsigned int y, const sf::Color& color);
 

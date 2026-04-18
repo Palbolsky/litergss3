@@ -3,13 +3,13 @@
 #include <optional>
 #include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/Texture.hpp>
-#include <SFML/Graphics/Rect.hpp>
 #include "LiteCGSS/Graphics/ShaderRenderable.h"
 #include "SnapshotCapturable.h"
 #include "View.h"
 #include "ViewAuthorizations.h"
 #include "ViewBox.h"
 #include "DisplayWindowUserData.h"
+#include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
 #include "LiteCGSS/Graphics/RenderStates.h"
 
@@ -40,9 +40,9 @@ namespace cgss {
 		void drawFast(cgss::RenderTarget& target) const override { draw(target); }
 		void draw(cgss::RenderTarget& target) const override;
 
-		void updateFromValue(const sf::IntRect* rectangle) override;
+		void updateFromValue(const cgss::IntRect* rectangle) override;
 		void updateFromValue(const RenderStatesData* renderStatesData) override;
-		sf::IntRect getViewportBox() const;
+		cgss::IntRect getViewportBox() const;
 		std::unique_ptr<sf::Texture> takeSnapshot() const;
 
 	};
@@ -70,8 +70,8 @@ namespace cgss {
 		void moveOrigin(long ox, long oy);
 		void move(float x, float y);
 		void resize(long width, long height);
-		void setRectangle(sf::IntRect rectangle);
-		sf::IntRect getViewportBox() const;
+		void setRectangle(cgss::IntRect rectangle);
+		cgss::IntRect getViewportBox() const;
 
 		long getOx() const;
 		long getOy() const;
