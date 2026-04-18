@@ -1,4 +1,5 @@
 #include <cassert>
+#include <SFML/Graphics/RenderTarget.hpp>
 #include "Sprite.h"
 #include "RenderStates.h"
 #include "Texture.h"
@@ -9,14 +10,14 @@ cgss::SpriteItem::SpriteItem(Sprite* owner) {
 	owner->setInstance(m_sprite);
 }
 
-void cgss::SpriteItem::draw(sf::RenderTarget& target) const {
+void cgss::SpriteItem::draw(cgss::RenderTarget& target) const {
 	SpriteItem::drawFast(target);
 }
 
 void cgss::SpriteItem::updateFromValue(const RenderStatesData*) {}
 
-void cgss::SpriteItem::drawFast(sf::RenderTarget& target) const {
-	target.draw(m_sprite, ShaderRenderable::getValue() == nullptr ? sf::RenderStates::Default : ShaderRenderable::getValue()->getRenderStates());
+void cgss::SpriteItem::drawFast(cgss::RenderTarget& target) const {
+	target.raw().draw(m_sprite, ShaderRenderable::getValue() == nullptr ? sf::RenderStates::Default : ShaderRenderable::getValue()->getRenderStates());
 }
 
 void cgss::Sprite::bindRenderStates(RenderStates* renderStates) {

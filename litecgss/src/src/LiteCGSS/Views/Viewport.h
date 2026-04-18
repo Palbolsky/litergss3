@@ -1,6 +1,9 @@
 #ifndef CGSS_VIEWPORT_H
 #define CGSS_VIEWPORT_H
 #include <optional>
+#include <SFML/Graphics/RenderStates.hpp>
+#include <SFML/Graphics/Texture.hpp>
+#include <SFML/Graphics/Rect.hpp>
 #include "LiteCGSS/Graphics/ShaderRenderable.h"
 #include "SnapshotCapturable.h"
 #include "View.h"
@@ -20,7 +23,7 @@ namespace cgss {
 		public ShaderRenderable {
 		friend class Viewport;
 	private:
-		void setupFullWindowView(sf::RenderTarget& target) const;
+		void setupFullWindowView(cgss::RenderTarget& target) const;
 		void scaleRenderSpriteToViewport() const;
 		const RenderStatesData* getRenderStates() const;
 		RenderStatesData* getRenderStates();
@@ -34,8 +37,8 @@ namespace cgss {
 		double m_wantedOy = 0;
 	public:
 		ViewportItem(Viewport* owner, MainEventDispatcher& eventDispatcher, DisplayWindowUserData windowData, const DisplayWindowSettings& windowSettings);
-		void drawFast(sf::RenderTarget& target) const override { draw(target); }
-		void draw(sf::RenderTarget& target) const override;
+		void drawFast(cgss::RenderTarget& target) const override { draw(target); }
+		void draw(cgss::RenderTarget& target) const override;
 
 		void updateFromValue(const sf::IntRect* rectangle) override;
 		void updateFromValue(const RenderStatesData* renderStatesData) override;
@@ -60,8 +63,8 @@ namespace cgss {
 
 		void bindRenderStates(RenderStates* states);
 		std::unique_ptr<sf::Texture> takeSnapshot() const override;
-		void drawFast(sf::RenderTarget& target) const override;
-		void draw(sf::RenderTarget& target) const override;
+		void drawFast(cgss::RenderTarget& target) const override;
+		void draw(cgss::RenderTarget& target) const override;
 		void sortZ();
 
 		void moveOrigin(long ox, long oy);

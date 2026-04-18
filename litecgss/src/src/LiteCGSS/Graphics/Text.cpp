@@ -1,4 +1,5 @@
 #include <cmath>
+#include <SFML/Graphics/RenderTarget.hpp>
 #include "LoggerDrawables.h"
 #include "Text.h"
 
@@ -12,12 +13,12 @@ cgss::TextItem::TextItem(Text* owner) {
 	owner->setInstance(m_text);
 }
 
-void cgss::TextItem::draw(sf::RenderTarget& target) const {
+void cgss::TextItem::draw(cgss::RenderTarget& target) const {
 	drawFast(target);
 }
 
-void cgss::TextItem::drawFast(sf::RenderTarget& target) const {
-	target.draw(m_text);
+void cgss::TextItem::drawFast(cgss::RenderTarget& target) const {
+	target.raw().draw(m_text);
 }
 
 std::uint8_t cgss::Text::getOpacity() const {

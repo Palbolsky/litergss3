@@ -158,23 +158,23 @@ void cgss::DisplayWindow::notifyWindowSizeChange() {
 	m_eventDispatcher.Observable<WindowSizeChangeEvent>::notifyObservers(we);
 }
 
-sf::RenderTarget& cgss::DisplayWindow::configureAndGetRenderTarget(sf::View& defview) {
+cgss::RenderTarget cgss::DisplayWindow::configureAndGetRenderTarget(cgss::Camera& defview) {
 	// Setting the default view parameters
-	defview.setSize(static_cast<float>(m_draw.screenWidth), static_cast<float>(m_draw.screenHeight));
-	defview.setCenter(round(m_draw.screenWidth / 2.0f), round(m_draw.screenHeight / 2.0f));
+	defview.raw().setSize(static_cast<float>(m_draw.screenWidth), static_cast<float>(m_draw.screenHeight));
+	defview.raw().setCenter(round(m_draw.screenWidth / 2.0f), round(m_draw.screenHeight / 2.0f));
 
 	// Appying the default view to the Window (used in postProcessing())
-	m_gameWindow.setView(defview);
+	m_gameWindow.setView(defview.raw());
 
 	// If the m_renderTexture is defined, we use it instead of the m_gameWindow (shader processing)
 	if (m_draw.renderTexture != nullptr) {
 		// Set the default view
-		m_draw.renderTexture->setView(defview);
+		m_draw.renderTexture->setView(defview.raw());
 		// It's not cleard so we perform the clear operation
 		m_draw.renderTexture->clear();
-		return *m_draw.renderTexture.get();
+		return cgss::RenderTarget{*m_draw.renderTexture.get()};
 	}
-	return m_gameWindow;
+	return cgss::RenderTarget{m_gameWindow};
 }
 
 const cgss::DisplayWindowContextSettings& cgss::DisplayWindow::getContextSettings() const {
@@ -210,8 +210,8 @@ void cgss::DisplayWindow::draw() {
 	applyPendingReload();
 	m_gameWindow.clear();
 
-	sf::View defview = m_gameWindow.getDefaultView();
-	auto& render_target = configureAndGetRenderTarget(defview);
+	cgss::Camera defview{m_gameWindow.getDefaultView()};
+	auto render_target = configureAndGetRenderTarget(defview);
 
 	// Rendering C++ sprite stack
 	drawables().draw(defview, render_target);

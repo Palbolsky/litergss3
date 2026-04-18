@@ -1,8 +1,9 @@
 #ifndef CGSS_INNER_VIEW_H
 #define CGSS_INNER_VIEW_H
 
-#include <SFML/Graphics/View.hpp>
-#include <SFML/Graphics/RenderTarget.hpp>
+#include <SFML/Graphics/Rect.hpp>
+#include "LiteCGSS/Graphics/Camera.h"
+#include "LiteCGSS/Graphics/RenderTarget.h"
 #include "LiteCGSS/Events/Patterns/SubObserver.h"
 #include "LiteCGSS/Events/WindowSizeChangeEvent.h"
 #include "LiteCGSS/Events/MainEventDispatcher.h"
@@ -40,11 +41,11 @@ namespace cgss {
 		long getScreenHeight() const { return m_screenHeight; }
 		float getWidth() const;
 		float getHeight() const;
-		sf::View clone() const { return m_view; }
+		cgss::Camera clone() const { return m_view; }
 		void moveViewport(float x, float y);
 		sf::IntRect getRectangleBox() const;
 
-		void onRenderTarget(sf::RenderTarget& renderTarget, bool copy = false) const;
+		void onRenderTarget(cgss::RenderTarget& renderTarget, bool copy = false) const;
 
 		virtual void onMove() {}
 		virtual void onResize() {}
@@ -53,8 +54,8 @@ namespace cgss {
 		bool onWindowSizeChange(WindowSizeChangeEvent& event);
 		void updateCenter();
 
-		sf::View m_view;
-		mutable sf::View m_copy;
+		cgss::Camera m_view;
+		mutable cgss::Camera m_copy;
 
 		bool m_triggerMove = true;
 		bool m_triggerResize = true;

@@ -1,4 +1,7 @@
 #include <cassert>
+#include <SFML/Graphics/RenderTarget.hpp>
+#include <SFML/Graphics/CircleShape.hpp>
+#include <SFML/Graphics/ConvexShape.hpp>
 #include "Shape.h"
 #include "LiteCGSS/Common/Rectangle.h"
 #include "Texture.h"
@@ -13,12 +16,12 @@ cgss::ShapeItem::ShapeItem(Shape* owner, ShapeData shape) :
 	owner->setInstance(m_shape ? *m_shape : m_defaultShape);
 }
 
-void cgss::ShapeItem::draw(sf::RenderTarget& target) const {
-	target.draw(*m_shape, m_renderStates);
+void cgss::ShapeItem::draw(cgss::RenderTarget& target) const {
+	target.raw().draw(*m_shape, m_renderStates);
 }
 
-void cgss::ShapeItem::drawFast(sf::RenderTarget& target) const {
-	target.draw(*m_shape);
+void cgss::ShapeItem::drawFast(cgss::RenderTarget& target) const {
+	target.raw().draw(*m_shape);
 }
 
 void cgss::Shape::setRenderState(sf::RenderStates states) {

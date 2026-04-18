@@ -1,6 +1,7 @@
 #ifndef CGSS_GRAPHICS_STACK_ITEM_H
 #define CGSS_GRAPHICS_STACK_ITEM_H
 #include <memory>
+#include <SFML/Graphics/Rect.hpp>
 #include "GraphicItem.h"
 #include "GraphicsStackItemPtr.h"
 #include "LiteCGSS/Common/BondElement.h"
@@ -50,8 +51,8 @@ namespace cgss {
 		const ZIndex& getZ() const { return m_priority; }
 		void setZ(long z);
 
-		void tryDraw(sf::RenderTarget& target) const;
-		void tryDrawFast(sf::RenderTarget& target) const;
+		void tryDraw(cgss::RenderTarget& target) const;
+		void tryDrawFast(cgss::RenderTarget& target) const;
 
 		void setVisible(bool value) { m_visible = value; };
 		bool isVisible() const { return m_visible; };

@@ -1,3 +1,5 @@
+#include <SFML/Graphics/RenderTarget.hpp>
+#include <SFML/Graphics/View.hpp>
 #include "DrawableStack.h"
 #include "LiteCGSS/Graphics/Text.h"
 #include "LiteCGSS/Graphics/Sprite.h"
@@ -15,15 +17,15 @@ SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::DrawableStack)
 #define LOG_FREQUENCY 300
 static ska::PeriodicTracer<cgss::LoggerStack, ska::LogLevel::Debug> DrawableStackTracer = { cgss::GetLoggerStack() };
 
-void cgss::DrawableStack::draw(sf::View& defview, sf::RenderTarget& target) const  {
+void cgss::DrawableStack::draw(cgss::Camera& defview, cgss::RenderTarget& target) const  {
 	DrawableStackTracer.SKA_LOG_PERIODIC_TRACE(LOG_FREQUENCY);
 	for (auto& element: *this) {
-		target.setView(defview);
+		target.raw().setView(defview.raw());
 		element->tryDraw(target);
 	}
 }
 
-void cgss::DrawableStack::drawFast(sf::RenderTarget& target) const {
+void cgss::DrawableStack::drawFast(cgss::RenderTarget& target) const {
 	DrawableStackTracer.SKA_LOG_PERIODIC_TRACE(LOG_FREQUENCY);
 	for (auto& element: *this) {
 		element->tryDrawFast(target);

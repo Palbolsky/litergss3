@@ -1,3 +1,4 @@
+#include <SFML/Graphics/RenderTarget.hpp>
 #include "SpriteMap.h"
 #include "LoggerDrawables.h"
 
@@ -10,15 +11,15 @@ SKA_LOGC_CONFIG(ska::LogLevel::Error, cgss::SpriteMapItem)
 cgss::SpriteMapItem::SpriteMapItem(SpriteMap*) {
 }
 
-void cgss::SpriteMapItem::draw(sf::RenderTarget& target) const {
+void cgss::SpriteMapItem::draw(cgss::RenderTarget& target) const {
 	SpriteMapItem::drawFast(target);
 }
 
-void cgss::SpriteMapItem::drawFast(sf::RenderTarget& target) const {
+void cgss::SpriteMapItem::drawFast(cgss::RenderTarget& target) const {
 	LOG_INFO << "Drawing " << m_sprites.size() << " sprites";
 	for (const auto& activableSprite: m_sprites) {
 		if (activableSprite.active) {
-			target.draw(activableSprite.sprite);
+			target.raw().draw(activableSprite.sprite);
 		}
 	}
 }

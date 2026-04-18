@@ -1,6 +1,7 @@
 #ifndef CGSS_DRAWABLE_H
 #define CGSS_DRAWABLE_H
 #include <memory>
+#include <SFML/Graphics/Rect.hpp>
 #include "GraphicsStackItem.h"
 #include "LiteCGSS/Views/Stack/DrawableStack.h"
 

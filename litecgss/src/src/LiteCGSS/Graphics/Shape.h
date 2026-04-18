@@ -1,6 +1,13 @@
 #ifndef CGSS_SHAPE_H
 #define CGSS_SHAPE_H
 #include <memory>
+#include <SFML/Graphics/Shape.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
+#include <SFML/Graphics/RenderStates.hpp>
+#include <SFML/Graphics/Texture.hpp>
+#include <SFML/Graphics/Color.hpp>
+#include <SFML/Graphics/Rect.hpp>
+#include <SFML/System/Vector2.hpp>
 #include "LiteCGSS/Graphics/Drawable.h"
 #include "LiteCGSS/Graphics/Transformable.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
@@ -30,8 +37,8 @@ namespace cgss {
 		sf::RenderStates m_renderStates = sf::RenderStates::Default;
 	public:
 		ShapeItem(Shape* owner, ShapeData shape);
-		void draw(sf::RenderTarget& target) const override;
-		void drawFast(sf::RenderTarget& target) const override;
+		void draw(cgss::RenderTarget& target) const override;
+		void drawFast(cgss::RenderTarget& target) const override;
 		void updateFromValue(const sf::IntRect* rectangle) override;
 	};
 

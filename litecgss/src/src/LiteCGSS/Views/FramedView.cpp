@@ -1,4 +1,6 @@
 #include <cstring>
+#include <SFML/Graphics/RenderTarget.hpp>
+#include <SFML/Graphics/View.hpp>
 #include "LoggerViews.h"
 #include "FramedView.h"
 #include "Viewport.h"
@@ -38,40 +40,40 @@ void cgss::FramedViewItem::bindRectangleViewport(Rectangle* output) {
 	m_bondRectViewport = output;
 }
 
-void cgss::FramedViewItem::draw(sf::RenderTarget& target) const {
+void cgss::FramedViewItem::draw(cgss::RenderTarget& target) const {
 	drawFast(target);
 }
 
-void cgss::FramedViewItem::drawFast(sf::RenderTarget& target) const {
+void cgss::FramedViewItem::drawFast(cgss::RenderTarget& target) const {
 	/* Draw window */
 	for (auto& vertice : m_vertices) {
-		target.draw(vertice, m_texture);
+		target.raw().draw(vertice, m_texture);
 	}
 
 	/* draw internal */
 	auto targetView = ViewBox::clone();
-	auto originalView = sf::View{ target.getView() };
+	auto originalView = sf::View{ target.raw().getView() };
 	auto parentView = m_parent.lock();
 	if (parentView != nullptr) {
 		drawCalculateView(*parentView, targetView);
 	}
 
-	if (targetView.getViewport().height > 0 && targetView.getViewport().width > 0) {
-		target.setView(targetView);
+	if (targetView.raw().getViewport().height > 0 && targetView.raw().getViewport().width > 0) {
+		target.raw().setView(targetView.raw());
 		drawables().drawFast(target);
 	}
 
 	/* Draw cursor & reset view */
-	target.draw(m_cursor);
-	target.setView(originalView);
+	target.raw().draw(m_cursor);
+	target.raw().setView(originalView);
 
 	if (m_paused) {
 		/* Draw pause */
-		target.draw(m_pause);
+		target.raw().draw(m_pause);
 	}
 }
 
-void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, sf::View& targetView) const {
+void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, cgss::Camera& targetView) const {
 	// TODO : can be based on event system ? when parent viewport is moved / resized.
 	LOG_DEBUG << "Draw calculate view";
 
@@ -81,9 +83,9 @@ void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, sf::View& tar
 	const auto vx0 = parentViewport.width / 2.f - (parentViewport.width / 2.f) / zoom; // <- When vp.zoom = 0.5, zoom = 2
 	const auto vy0 = parentViewport.height / 2.f - (parentViewport.height / 2.f) / zoom;
 
-	sf::Vector2f targetCenter = sf::Vector2f(targetView.getCenter());
-	sf::Vector2f targetSize = sf::Vector2f(targetView.getSize());
-	sf::FloatRect targetViewport = sf::FloatRect(targetView.getViewport());
+	sf::Vector2f targetCenter = sf::Vector2f(targetView.raw().getCenter());
+	sf::Vector2f targetSize = sf::Vector2f(targetView.raw().getSize());
+	sf::FloatRect targetViewport = sf::FloatRect(targetView.raw().getViewport());
 
 	const auto sw = ViewBox::getScreenWidth();
 	const auto sh = ViewBox::getScreenHeight();
@@ -147,9 +149,9 @@ void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, sf::View& tar
 	LOG_DEBUG << "Calculated view with center = " << targetCenter.x << ", " << targetCenter.y;
 
 	// Set the view
-	targetView.setCenter(targetCenter);
-	targetView.setSize(targetSize);
-	targetView.setViewport(sf::FloatRect(targetViewport.left / sw, targetViewport.top / sh, targetViewport.width / sw, targetViewport.height / sh));
+	targetView.raw().setCenter(targetCenter);
+	targetView.raw().setSize(targetSize);
+	targetView.raw().setViewport(sf::FloatRect(targetViewport.left / sw, targetViewport.top / sh, targetViewport.width / sw, targetViewport.height / sh));
 }
 
 void cgss::FramedViewItem::updateVertices() {
@@ -840,11 +842,11 @@ bool cgss::FramedView::isStretched() const {
 	return m_proxy->isStretched();
 }
 
-void cgss::FramedView::draw(sf::RenderTarget& target) const {
+void cgss::FramedView::draw(cgss::RenderTarget& target) const {
 	m_proxy->drawFast(target);
 }
 
-void cgss::FramedView::drawFast(sf::RenderTarget& target) const {
+void cgss::FramedView::drawFast(cgss::RenderTarget& target) const {
 	m_proxy->draw(target);
 }
 

@@ -1,4 +1,8 @@
 #include <cmath>
+#include <SFML/Graphics/RenderTarget.hpp>
+#include <SFML/Graphics/RenderTexture.hpp>
+#include <SFML/Graphics/View.hpp>
+#include <SFML/Graphics/Color.hpp>
 #include "Viewport.h"
 #include "LiteCGSS/Common/Rectangle.h"
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
@@ -29,13 +33,14 @@ cgss::RenderStatesData* cgss::ViewportItem::getRenderStates() {
 	return m_defaultRenderStates == nullptr ? nullptr : &m_defaultRenderStates->data();
 }
 
-void cgss::ViewportItem::draw(sf::RenderTarget& target) const {
-	sf::View originalView = sf::View(target.getView());
+void cgss::ViewportItem::draw(cgss::RenderTarget& target) const {
+	sf::View originalView = sf::View(target.raw().getView());
 
 	const auto* renderStates = getRenderStates() == nullptr ? nullptr : &getRenderStates()->getRenderStates();
 	if (renderStates) {
 		// Loading Target view
-		ViewBox::onRenderTarget(*m_windowData.userRenderTexture, true);
+		cgss::RenderTarget userRenderTarget{*m_windowData.userRenderTexture};
+		ViewBox::onRenderTarget(userRenderTarget, true);
 
 		// Prepare texture destination dimensions
 		scaleRenderSpriteToViewport();
@@ -44,29 +49,30 @@ void cgss::ViewportItem::draw(sf::RenderTarget& target) const {
 		m_windowData.userRenderTexture->clear(sf::Color::Transparent);
 
 		// Drawing sprites
-		drawables().drawFast(*m_windowData.userRenderTexture);
+		drawables().drawFast(userRenderTarget);
 		m_windowData.userRenderTexture->display();
 
 		// Reset the target view
 		setupFullWindowView(target);
 
 		// Draw the result
-		target.draw(*m_windowData.userRenderSprite, *renderStates);
+		target.raw().draw(*m_windowData.userRenderSprite, *renderStates);
 	} else {
 		ViewBox::onRenderTarget(target, false);
 		drawables().drawFast(target);
 	}
 
-	target.setView(originalView);
+	target.raw().setView(originalView);
 }
 
 std::unique_ptr<sf::Texture> cgss::ViewportItem::takeSnapshot() const {
 	sf::RenderTexture render;
 	sf::Sprite renderSprite;
-	sf::View renderView = ViewBox::clone();
+	cgss::Camera renderView = ViewBox::clone();
+	cgss::RenderTarget renderTarget{render};
 	render.create(ViewBox::getWidth(), ViewBox::getHeight());
-	renderView.setViewport(sf::FloatRect(0.0f, 0.0f, 1.0f, 1.0f));
-	render.setView(renderView);
+	renderView.raw().setViewport(sf::FloatRect(0.0f, 0.0f, 1.0f, 1.0f));
+	render.setView(renderView.raw());
 
 	const auto* renderStates = getRenderStates() == nullptr ? nullptr : &getRenderStates()->getRenderStates();
 	if (renderStates) {
@@ -74,7 +80,7 @@ std::unique_ptr<sf::Texture> cgss::ViewportItem::takeSnapshot() const {
 		render.clear(sf::Color::Transparent);
 
 		// Drawing sprites
-		drawables().drawFast(render);
+		drawables().drawFast(renderTarget);
 		render.display();
 
 		sf::Texture copy = sf::Texture(render.getTexture());
@@ -87,20 +93,20 @@ std::unique_ptr<sf::Texture> cgss::ViewportItem::takeSnapshot() const {
 		render.display();
 	} else {
 		render.clear(sf::Color::Transparent);
-		drawables().drawFast(render);
+		drawables().drawFast(renderTarget);
 		render.display();
 	}
 
 	return std::make_unique<sf::Texture>(render.getTexture());
 }
 
-void cgss::ViewportItem::setupFullWindowView(sf::RenderTarget& target) const {
+void cgss::ViewportItem::setupFullWindowView(cgss::RenderTarget& target) const {
 	long height = getScreenHeight();
 	long width = getScreenWidth();
-	sf::View defview = target.getDefaultView();
+	sf::View defview = target.raw().getDefaultView();
 	defview.setSize(static_cast<float>(width), static_cast<float>(height));
 	defview.setCenter(round(width / 2.0f), round(height / 2.0f));
-	target.setView(defview);
+	target.raw().setView(defview);
 }
 
 void cgss::Viewport::sortZ() {
@@ -121,11 +127,11 @@ void cgss::Viewport::resize(long width, long height) {
 	m_proxy->resize(width, height);
 }
 
-void cgss::Viewport::drawFast(sf::RenderTarget& target) const {
+void cgss::Viewport::drawFast(cgss::RenderTarget& target) const {
 	m_proxy->drawFast(target);
 }
 
-void cgss::Viewport::draw(sf::RenderTarget& target) const {
+void cgss::Viewport::draw(cgss::RenderTarget& target) const {
 	m_proxy->draw(target);
 }
 

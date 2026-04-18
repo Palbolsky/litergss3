@@ -2,6 +2,10 @@
 #define CGSS_SPRITE_H
 
 #include <memory>
+#include <SFML/Graphics/Sprite.hpp>
+#include <SFML/Graphics/Texture.hpp>
+#include <SFML/Graphics/Color.hpp>
+#include <SFML/Graphics/Rect.hpp>
 #include "LiteCGSS/Graphics/Drawable.h"
 #include "LiteCGSS/Graphics/Transformable.h"
 #include "LiteCGSS/Graphics/ShaderRenderable.h"
@@ -26,8 +30,8 @@ namespace cgss {
 	public:
 		SpriteItem(Sprite* owner);
 		virtual ~SpriteItem() = default;
-		void draw(sf::RenderTarget& target) const override;
-		void drawFast(sf::RenderTarget& target) const override;
+		void draw(cgss::RenderTarget& target) const override;
+		void drawFast(cgss::RenderTarget& target) const override;
 		void updateFromValue(const sf::IntRect* rectangle) override;
 		void updateFromValue(const RenderStatesData* value) override;
 		void setOpacity(std::uint8_t opacity) override;

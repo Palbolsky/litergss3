@@ -2,7 +2,8 @@
 #define CGSS_DRAWABLE_STACK_H
 
 #include <cstdint>
-#include <SFML/Graphics.hpp>
+#include "LiteCGSS/Graphics/RenderTarget.h"
+#include "LiteCGSS/Graphics/Camera.h"
 #include "GraphicsStack.h"
 #include "MainGraphicsStack.h"
 
@@ -11,8 +12,8 @@ namespace cgss {
 		public MainGraphicsStack {
 	public:
 		using MainGraphicsStack::MainGraphicsStack;
-		void draw(sf::View& defview, sf::RenderTarget& target) const;
-		void drawFast(sf::RenderTarget& target) const;
+		void draw(cgss::Camera& defview, cgss::RenderTarget& target) const;
+		void drawFast(cgss::RenderTarget& target) const;
 		void updateContentsOpacity(std::uint8_t opacity);
 	};
 }

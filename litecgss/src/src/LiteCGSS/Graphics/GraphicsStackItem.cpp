@@ -24,13 +24,13 @@ cgss::GraphicsStackItem::~GraphicsStackItem() {
 	detach();
 }
 
-void cgss::GraphicsStackItem::tryDraw(sf::RenderTarget& target) const {
+void cgss::GraphicsStackItem::tryDraw(cgss::RenderTarget& target) const {
 	if (m_visible) {
 		draw(target);
 	}
 }
 
-void cgss::GraphicsStackItem::tryDrawFast(sf::RenderTarget& target) const {
+void cgss::GraphicsStackItem::tryDrawFast(cgss::RenderTarget& target) const {
 	if (m_visible) {
 		drawFast(target);
 	}

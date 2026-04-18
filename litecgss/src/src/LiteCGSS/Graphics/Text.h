@@ -12,8 +12,8 @@ namespace cgss {
 		friend class Text;
 	public:
 		TextItem(Text* owner);
-		void draw(sf::RenderTarget& target) const override;
-		void drawFast(sf::RenderTarget& target) const override;
+		void draw(cgss::RenderTarget& target) const override;
+		void drawFast(cgss::RenderTarget& target) const override;
 		void updateAlign();
 		void setOpacity(std::uint8_t opacity) override;
 	private:

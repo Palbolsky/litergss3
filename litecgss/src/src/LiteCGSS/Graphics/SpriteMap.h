@@ -4,6 +4,8 @@
 #include "LiteCGSS/Graphics/Transformable.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
 #include <SFML/Graphics/Sprite.hpp>
+#include <SFML/Graphics/Texture.hpp>
+#include <SFML/Graphics/Rect.hpp>
 
 namespace cgss {
 	class Texture;
@@ -26,8 +28,8 @@ namespace cgss {
 		SpriteMapItem(SpriteMap* owner);
 		virtual ~SpriteMapItem() = default;
 
-		void draw(sf::RenderTarget& target) const override;
-		void drawFast(sf::RenderTarget& target) const override;
+		void draw(cgss::RenderTarget& target) const override;
+		void drawFast(cgss::RenderTarget& target) const override;
 		void defineMap(unsigned long tileWidth, unsigned long tileCount);
 	};
 

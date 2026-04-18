@@ -6,6 +6,7 @@
 #include <optional>
 
 #include <SFML/Graphics/Image.hpp>
+#include <SFML/Graphics/RenderWindow.hpp>
 
 #include "View.h"
 #include "ViewAuthorizations.h"
@@ -105,7 +106,7 @@ namespace cgss {
 
 		void initUserRender();
 		void drawBrightness();
-		sf::RenderTarget& configureAndGetRenderTarget(sf::View& defview);
+		cgss::RenderTarget configureAndGetRenderTarget(cgss::Camera& defview);
 		void postProcessing();
 		void setShader(const sf::RenderStates* shader);
 		void updateFromValue(const RenderStatesData* renderStatesData) override;

@@ -2,6 +2,10 @@
 #define CGSS_FRAMED_VIEW_H
 #include <optional>
 #include <array>
+#include <SFML/Graphics/Sprite.hpp>
+#include <SFML/Graphics/VertexArray.hpp>
+#include <SFML/Graphics/Rect.hpp>
+#include <SFML/System/Vector2.hpp>
 #include "View.h"
 #include "ViewAuthorizations.h"
 #include "LiteCGSS/Graphics/Texture.h"
@@ -90,9 +94,9 @@ namespace cgss {
 		FramedViewItem(const FramedViewItem&) = delete;
 		FramedViewItem& operator=(const FramedViewItem&) = delete;
 
-		void draw(sf::RenderTarget& target) const override;
-		void drawFast(sf::RenderTarget& target) const override;
-		void drawCalculateView(ViewportItem& parent, sf::View& targetView) const;
+		void draw(cgss::RenderTarget& target) const override;
+		void drawFast(cgss::RenderTarget& target) const override;
+		void drawCalculateView(ViewportItem& parent, cgss::Camera& targetView) const;
 		void update();
 
 		void setOpacity(uint8_t opacity) override;
@@ -151,8 +155,8 @@ namespace cgss {
 		FramedView(const FramedView&) = delete;
 		FramedView& operator=(const FramedView&) = delete;
 
-		void draw(sf::RenderTarget& target) const override;
-		void drawFast(sf::RenderTarget& target) const override;
+		void draw(cgss::RenderTarget& target) const override;
+		void drawFast(cgss::RenderTarget& target) const override;
 		void sortZ();
 
 		void lock();
