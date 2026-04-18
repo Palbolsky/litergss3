@@ -1,3 +1,4 @@
+#include <SFML/Graphics/Shader.hpp>
 #include "RenderStates.h"
 
 bool cgss::RenderStates::areGeometryShadersEnabled() {

@@ -23,7 +23,7 @@ void cgss::SpriteItem::drawFast(cgss::RenderTarget& target) const {
 
 void cgss::Sprite::bindRenderStates(RenderStates* renderStates) {
 	if (renderStates != nullptr) {
-		renderStates->data().setShaderUniform("texture", sf::Shader::CurrentTexture);
+		renderStates->data().setShaderUniform("texture", cgss::CurrentTexture);
 		m_proxy->ShaderRenderable::bindValue(&renderStates->data());
 	} else {
 		m_proxy->ShaderRenderable::bindValue(nullptr);

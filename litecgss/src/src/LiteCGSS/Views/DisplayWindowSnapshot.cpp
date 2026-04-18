@@ -28,7 +28,7 @@ void cgss::DisplayWindowSnapshot::init() {
 		"  gl_FragColor = frag;" \
 		"}";
 	if (m_rgssTransition) {
-		m_freezeShader.data().loadShaderFromMemory(GraphicsTransitionFragmentShader, sf::Shader::Type::Fragment);
+		m_freezeShader.data().loadShaderFromMemory(GraphicsTransitionFragmentShader, cgss::ShaderType::Fragment);
 	}
 }
 

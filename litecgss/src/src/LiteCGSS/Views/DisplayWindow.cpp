@@ -313,7 +313,7 @@ void cgss::DisplayWindow::setShader(const sf::RenderStates* renderStates) {
 
 void cgss::DisplayWindow::bindRenderStates(RenderStates* renderStates) {
 	if (renderStates != nullptr) {
-		renderStates->data().setShaderUniform("texture", sf::Shader::CurrentTexture);
+		renderStates->data().setShaderUniform("texture", cgss::CurrentTexture);
 		ShaderRenderable::bindValue(&renderStates->data());
 		setShader(&renderStates->data().getRenderStates());
 	} else {

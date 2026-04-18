@@ -3,7 +3,12 @@
 #include <iostream>
 
 #include <SFML/Graphics/BlendMode.hpp>
+#include <SFML/Graphics/RenderStates.hpp>
+#include <SFML/Graphics/Shader.hpp>
+#include <SFML/Graphics/Texture.hpp>
+
 #include "RenderStatesData.h"
+#include "LiteCGSS/Graphics/Internal/SfShaderConv.h"
 
 bool cgss::RenderStatesData::SHADERS_ENABLED = true;
 
@@ -11,6 +16,10 @@ cgss::RenderStatesData::RenderStatesData() :
 	m_renderStates(std::make_unique<sf::RenderStates>()),
 	m_shadersEnabled(true) {
 }
+
+cgss::RenderStatesData::RenderStatesData(RenderStatesData&&) = default;
+cgss::RenderStatesData& cgss::RenderStatesData::operator=(RenderStatesData&&) = default;
+cgss::RenderStatesData::~RenderStatesData() = default;
 
 void cgss::RenderStatesData::enableShaders(bool enable) {
 	SHADERS_ENABLED = enable;
@@ -47,62 +56,62 @@ void cgss::RenderStatesData::enableShader(bool enable) {
 	updateShader();
 }
 
-void cgss::RenderStatesData::setBlendColorSrcFactor(sf::BlendMode::Factor colorSrcFactor) {
-	m_renderStates->blendMode.colorSrcFactor = std::move(colorSrcFactor);
+void cgss::RenderStatesData::setBlendColorSrcFactor(cgss::BlendFactor colorSrcFactor) {
+	m_renderStates->blendMode.colorSrcFactor = cgss::internal::toSf(colorSrcFactor);
 }
 
-void cgss::RenderStatesData::setBlendColorDstFactor(sf::BlendMode::Factor colorDstFactor) {
-	m_renderStates->blendMode.colorDstFactor = std::move(colorDstFactor);
+void cgss::RenderStatesData::setBlendColorDstFactor(cgss::BlendFactor colorDstFactor) {
+	m_renderStates->blendMode.colorDstFactor = cgss::internal::toSf(colorDstFactor);
 }
 
-void cgss::RenderStatesData::setBlendAlphaSrcFactor(sf::BlendMode::Factor alphaSrcFactor) {
-	m_renderStates->blendMode.alphaSrcFactor = std::move(alphaSrcFactor);
+void cgss::RenderStatesData::setBlendAlphaSrcFactor(cgss::BlendFactor alphaSrcFactor) {
+	m_renderStates->blendMode.alphaSrcFactor = cgss::internal::toSf(alphaSrcFactor);
 }
 
-void cgss::RenderStatesData::setBlendAlphaDstFactor(sf::BlendMode::Factor alphaDstFactor) {
-	m_renderStates->blendMode.alphaDstFactor = std::move(alphaDstFactor);
+void cgss::RenderStatesData::setBlendAlphaDstFactor(cgss::BlendFactor alphaDstFactor) {
+	m_renderStates->blendMode.alphaDstFactor = cgss::internal::toSf(alphaDstFactor);
 }
 
-void cgss::RenderStatesData::setBlendColorEquation(sf::BlendMode::Equation colorEquation) {
-	m_renderStates->blendMode.colorEquation = colorEquation;
+void cgss::RenderStatesData::setBlendColorEquation(cgss::BlendEquation colorEquation) {
+	m_renderStates->blendMode.colorEquation = cgss::internal::toSf(colorEquation);
 }
 
-void cgss::RenderStatesData::setBlendAlphaEquation(sf::BlendMode::Equation alphaEquation) {
-	m_renderStates->blendMode.alphaEquation = alphaEquation;
+void cgss::RenderStatesData::setBlendAlphaEquation(cgss::BlendEquation alphaEquation) {
+	m_renderStates->blendMode.alphaEquation = cgss::internal::toSf(alphaEquation);
 }
 
-sf::BlendMode::Factor cgss::RenderStatesData::getBlendColorSrcFactor() const {
-	return m_renderStates->blendMode.colorSrcFactor;
+cgss::BlendFactor cgss::RenderStatesData::getBlendColorSrcFactor() const {
+	return cgss::internal::fromSf(m_renderStates->blendMode.colorSrcFactor);
 }
 
-sf::BlendMode::Factor cgss::RenderStatesData::getBlendColorDstFactor() const {
-	return m_renderStates->blendMode.colorDstFactor;
+cgss::BlendFactor cgss::RenderStatesData::getBlendColorDstFactor() const {
+	return cgss::internal::fromSf(m_renderStates->blendMode.colorDstFactor);
 }
 
-sf::BlendMode::Factor cgss::RenderStatesData::getBlendAlphaSrcFactor() const {
-	return m_renderStates->blendMode.alphaSrcFactor;
+cgss::BlendFactor cgss::RenderStatesData::getBlendAlphaSrcFactor() const {
+	return cgss::internal::fromSf(m_renderStates->blendMode.alphaSrcFactor);
 }
 
-sf::BlendMode::Factor cgss::RenderStatesData::getBlendAlphaDstFactor() const {
-	return m_renderStates->blendMode.alphaDstFactor;
+cgss::BlendFactor cgss::RenderStatesData::getBlendAlphaDstFactor() const {
+	return cgss::internal::fromSf(m_renderStates->blendMode.alphaDstFactor);
 }
 
-sf::BlendMode::Equation cgss::RenderStatesData::getBlendColorEquation() const {
-	return m_renderStates->blendMode.colorEquation;
+cgss::BlendEquation cgss::RenderStatesData::getBlendColorEquation() const {
+	return cgss::internal::fromSf(m_renderStates->blendMode.colorEquation);
 }
 
-sf::BlendMode::Equation cgss::RenderStatesData::getBlendAlphaEquation() const {
-	return m_renderStates->blendMode.alphaEquation;
+cgss::BlendEquation cgss::RenderStatesData::getBlendAlphaEquation() const {
+	return cgss::internal::fromSf(m_renderStates->blendMode.alphaEquation);
 }
 
-bool cgss::RenderStatesData::loadShaderFromMemory(const std::string &shader, sf::Shader::Type type) {
+bool cgss::RenderStatesData::loadShaderFromMemory(const std::string &shader, cgss::ShaderType type) {
 	if (!isAvailable()) {
 		return false;
 	}
 	if (m_shader == nullptr) {
 		m_shader = std::make_unique<sf::Shader>();
 	}
-	const bool success = m_shader->loadFromMemory(shader, type);
+	const bool success = m_shader->loadFromMemory(shader, cgss::internal::toSf(type));
 	enableShader(success);
 	if (!success) {
 		std::cerr << "Shader content:" << std::endl << shader << std::endl;
@@ -153,21 +162,21 @@ void cgss::RenderStatesData::setShaderUniform(const std::string& name, float x) 
 	}
 }
 
-void cgss::RenderStatesData::setShaderUniform(const std::string& name, const sf::Glsl::Vec2& vector) {
+void cgss::RenderStatesData::setShaderUniform(const std::string& name, const cgss::Glsl::Vec2& vector) {
 	if (m_shader != nullptr) {
-		m_shader->setUniform(name, vector);
+		m_shader->setUniform(name, cgss::internal::toSf(vector));
 	}
 }
 
-void cgss::RenderStatesData::setShaderUniform(const std::string& name, const sf::Glsl::Vec3& vector) {
+void cgss::RenderStatesData::setShaderUniform(const std::string& name, const cgss::Glsl::Vec3& vector) {
 	if (m_shader != nullptr) {
-		m_shader->setUniform(name, vector);
+		m_shader->setUniform(name, cgss::internal::toSf(vector));
 	}
 }
 
-void cgss::RenderStatesData::setShaderUniform(const std::string& name, const sf::Glsl::Vec4& vector) {
+void cgss::RenderStatesData::setShaderUniform(const std::string& name, const cgss::Glsl::Vec4& vector) {
 	if (m_shader != nullptr) {
-		m_shader->setUniform(name, vector);
+		m_shader->setUniform(name, cgss::internal::toSf(vector));
 	}
 }
 
@@ -177,21 +186,21 @@ void cgss::RenderStatesData::setShaderUniform(const std::string& name, int x) {
 	}
 }
 
-void cgss::RenderStatesData::setShaderUniform(const std::string& name, const sf::Glsl::Ivec2& vector) {
+void cgss::RenderStatesData::setShaderUniform(const std::string& name, const cgss::Glsl::Ivec2& vector) {
 	if (m_shader != nullptr) {
-		m_shader->setUniform(name, vector);
+		m_shader->setUniform(name, cgss::internal::toSf(vector));
 	}
 }
 
-void cgss::RenderStatesData::setShaderUniform(const std::string& name, const sf::Glsl::Ivec3& vector) {
+void cgss::RenderStatesData::setShaderUniform(const std::string& name, const cgss::Glsl::Ivec3& vector) {
 	if (m_shader != nullptr) {
-		m_shader->setUniform(name, vector);
+		m_shader->setUniform(name, cgss::internal::toSf(vector));
 	}
 }
 
-void cgss::RenderStatesData::setShaderUniform(const std::string& name, const sf::Glsl::Ivec4& vector) {
+void cgss::RenderStatesData::setShaderUniform(const std::string& name, const cgss::Glsl::Ivec4& vector) {
 	if (m_shader != nullptr) {
-		m_shader->setUniform(name, vector);
+		m_shader->setUniform(name, cgss::internal::toSf(vector));
 	}
 }
 
@@ -201,39 +210,39 @@ void cgss::RenderStatesData::setShaderUniform(const std::string& name, bool x) {
 	}
 }
 
-void cgss::RenderStatesData::setShaderUniform(const std::string& name, const sf::Glsl::Bvec2& vector) {
+void cgss::RenderStatesData::setShaderUniform(const std::string& name, const cgss::Glsl::Bvec2& vector) {
 	if (m_shader != nullptr) {
-		m_shader->setUniform(name, vector);
+		m_shader->setUniform(name, cgss::internal::toSf(vector));
 	}
 }
 
-void cgss::RenderStatesData::setShaderUniform(const std::string& name, const sf::Glsl::Bvec3& vector) {
+void cgss::RenderStatesData::setShaderUniform(const std::string& name, const cgss::Glsl::Bvec3& vector) {
 	if (m_shader != nullptr) {
-		m_shader->setUniform(name, vector);
+		m_shader->setUniform(name, cgss::internal::toSf(vector));
 	}
 }
 
-void cgss::RenderStatesData::setShaderUniform(const std::string& name, const sf::Glsl::Bvec4& vector) {
+void cgss::RenderStatesData::setShaderUniform(const std::string& name, const cgss::Glsl::Bvec4& vector) {
 	if (m_shader != nullptr) {
-		m_shader->setUniform(name, vector);
+		m_shader->setUniform(name, cgss::internal::toSf(vector));
 	}
 }
 
-void cgss::RenderStatesData::setShaderUniform(const std::string& name, const sf::Glsl::Mat3& matrix) {
+void cgss::RenderStatesData::setShaderUniform(const std::string& name, const cgss::Glsl::Mat3& matrix) {
 	if (m_shader != nullptr) {
-		m_shader->setUniform(name, matrix);
+		m_shader->setUniform(name, cgss::internal::toSf(matrix));
 	}
 }
 
-void cgss::RenderStatesData::setShaderUniform(const std::string& name, const sf::Glsl::Mat4& matrix) {
+void cgss::RenderStatesData::setShaderUniform(const std::string& name, const cgss::Glsl::Mat4& matrix) {
 	if (m_shader != nullptr) {
-		m_shader->setUniform(name, matrix);
+		m_shader->setUniform(name, cgss::internal::toSf(matrix));
 	}
 }
 
-void cgss::RenderStatesData::setShaderUniform(const std::string& name, sf::Shader::CurrentTextureType x) {
+void cgss::RenderStatesData::setShaderUniform(const std::string& name, cgss::CurrentTextureType) {
 	if (m_shader != nullptr) {
-		m_shader->setUniform(name, x);
+		m_shader->setUniform(name, sf::Shader::CurrentTexture);
 	}
 }
 

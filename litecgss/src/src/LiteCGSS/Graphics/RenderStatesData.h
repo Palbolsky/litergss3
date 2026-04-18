@@ -2,10 +2,22 @@
 #define CGSS_RENDER_STATES_DATA_H
 
 #include <memory>
-#include <SFML/Graphics/RenderStates.hpp>
-#include <SFML/Graphics/Shader.hpp>
+#include <string>
+#include <cstddef>
+
+#include "LiteCGSS/Graphics/BlendMode.h"
+#include "LiteCGSS/Graphics/Glsl.h"
+#include "LiteCGSS/Graphics/ShaderType.h"
+
+namespace sf {
+	class RenderStates;
+	class Shader;
+	class Texture;
+}
 
 namespace cgss {
+
+	class Texture;
 
 	class RenderStatesData {
 	private:
@@ -19,11 +31,11 @@ namespace cgss {
 		static bool isAvailable();
 	public:
 		RenderStatesData();
-		RenderStatesData(RenderStatesData&&) = default;
+		RenderStatesData(RenderStatesData&&);
 		RenderStatesData(const RenderStatesData&) = delete;
 		RenderStatesData& operator=(const RenderStatesData&) = delete;
-		RenderStatesData& operator=(RenderStatesData&&) = default;
-		virtual ~RenderStatesData() = default;
+		RenderStatesData& operator=(RenderStatesData&&);
+		virtual ~RenderStatesData();
 
 		static void enableShaders(bool enable);
 		static bool enabledShaders();
@@ -32,42 +44,42 @@ namespace cgss {
 		void warnIfShadersNotAvailable();
 		bool enabledShader() const;
 
-		void setBlendColorSrcFactor(sf::BlendMode::Factor colorSrcFactor);
-		void setBlendColorDstFactor(sf::BlendMode::Factor colorDstFactor);
-		void setBlendAlphaSrcFactor(sf::BlendMode::Factor alphaSrcFactor);
-		void setBlendAlphaDstFactor(sf::BlendMode::Factor alphaDstFactor);
+		void setBlendColorSrcFactor(cgss::BlendFactor colorSrcFactor);
+		void setBlendColorDstFactor(cgss::BlendFactor colorDstFactor);
+		void setBlendAlphaSrcFactor(cgss::BlendFactor alphaSrcFactor);
+		void setBlendAlphaDstFactor(cgss::BlendFactor alphaDstFactor);
 
-		void setBlendColorEquation(sf::BlendMode::Equation colorEquation);
-		void setBlendAlphaEquation(sf::BlendMode::Equation alphaEquation);
+		void setBlendColorEquation(cgss::BlendEquation colorEquation);
+		void setBlendAlphaEquation(cgss::BlendEquation alphaEquation);
 
-		sf::BlendMode::Factor getBlendColorSrcFactor() const;
-		sf::BlendMode::Factor getBlendColorDstFactor() const;
-		sf::BlendMode::Factor getBlendAlphaSrcFactor() const;
-		sf::BlendMode::Factor getBlendAlphaDstFactor() const;
+		cgss::BlendFactor getBlendColorSrcFactor() const;
+		cgss::BlendFactor getBlendColorDstFactor() const;
+		cgss::BlendFactor getBlendAlphaSrcFactor() const;
+		cgss::BlendFactor getBlendAlphaDstFactor() const;
 
-		sf::BlendMode::Equation getBlendColorEquation() const;
-		sf::BlendMode::Equation getBlendAlphaEquation() const;
+		cgss::BlendEquation getBlendColorEquation() const;
+		cgss::BlendEquation getBlendAlphaEquation() const;
 
-		bool loadShaderFromMemory(const std::string& shader, sf::Shader::Type type);
+		bool loadShaderFromMemory(const std::string& shader, cgss::ShaderType type);
 		bool loadShaderFromMemory(const std::string& vertexShader, const std::string& fragmentShader);
 		bool loadShaderFromMemory(const std::string &vertexShader, const std::string& geometryShader, const std::string& fragmentShader);
 
 		void setShaderUniform(const std::string& name, float x);
-		void setShaderUniform(const std::string& name, const sf::Glsl::Vec2& vector);
-		void setShaderUniform(const std::string& name, const sf::Glsl::Vec3& vector);
-		void setShaderUniform(const std::string& name, const sf::Glsl::Vec4& vector);
+		void setShaderUniform(const std::string& name, const cgss::Glsl::Vec2& vector);
+		void setShaderUniform(const std::string& name, const cgss::Glsl::Vec3& vector);
+		void setShaderUniform(const std::string& name, const cgss::Glsl::Vec4& vector);
 		void setShaderUniform(const std::string& name, int x);
-		void setShaderUniform(const std::string& name, const sf::Glsl::Ivec2& vector);
-		void setShaderUniform(const std::string& name, const sf::Glsl::Ivec3& vector);
-		void setShaderUniform(const std::string& name, const sf::Glsl::Ivec4& vector);
+		void setShaderUniform(const std::string& name, const cgss::Glsl::Ivec2& vector);
+		void setShaderUniform(const std::string& name, const cgss::Glsl::Ivec3& vector);
+		void setShaderUniform(const std::string& name, const cgss::Glsl::Ivec4& vector);
 		void setShaderUniform(const std::string& name, bool x);
-		void setShaderUniform(const std::string& name, const sf::Glsl::Bvec2& vector);
-		void setShaderUniform(const std::string& name, const sf::Glsl::Bvec3& vector);
-		void setShaderUniform(const std::string& name, const sf::Glsl::Bvec4& vector);
-		void setShaderUniform(const std::string& name, const sf::Glsl::Mat3& matrix);
-		void setShaderUniform(const std::string& name, const sf::Glsl::Mat4& matrix);
+		void setShaderUniform(const std::string& name, const cgss::Glsl::Bvec2& vector);
+		void setShaderUniform(const std::string& name, const cgss::Glsl::Bvec3& vector);
+		void setShaderUniform(const std::string& name, const cgss::Glsl::Bvec4& vector);
+		void setShaderUniform(const std::string& name, const cgss::Glsl::Mat3& matrix);
+		void setShaderUniform(const std::string& name, const cgss::Glsl::Mat4& matrix);
 		void setShaderUniform(const std::string& name, const sf::Texture& texture);
-		void setShaderUniform(const std::string& name, sf::Shader::CurrentTextureType);
+		void setShaderUniform(const std::string& name, cgss::CurrentTextureType);
 
 		void setShaderUniformArray(const std::string& name, const float* scalarArray, std::size_t length);
 

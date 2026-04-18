@@ -138,7 +138,7 @@ void cgss::Viewport::draw(cgss::RenderTarget& target) const {
 
 void cgss::Viewport::bindRenderStates(RenderStates* renderStates) {
 	if (renderStates != nullptr) {
-		renderStates->data().setShaderUniform("texture", sf::Shader::CurrentTexture);
+		renderStates->data().setShaderUniform("texture", cgss::CurrentTexture);
 		m_proxy->ShaderRenderable::bindValue(&renderStates->data());
 	} else {
 		m_proxy->ShaderRenderable::bindValue(nullptr);
