@@ -75,9 +75,8 @@ namespace cgss {
 		using Transformable::getScaleX;
 		using Transformable::getScaleY;
 		using Transformable::moveOrigin;
-		using Transformable::scale;
-		using Transformable::setInstance;
 
+		void scale(float xScale, float yScale);
 		void move(float x, float y);
 		void resize(long width, long height);
 		long getWidth() const;

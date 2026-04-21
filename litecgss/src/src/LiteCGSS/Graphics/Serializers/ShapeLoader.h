@@ -1,6 +1,10 @@
 #ifndef CGSS_SHAPE_LOADER_H
 #define CGSS_SHAPE_LOADER_H
 
+#include <SFML/Graphics/CircleShape.hpp>
+#include <SFML/Graphics/ConvexShape.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
+#include <SFML/System/Vector2.hpp>
 #include "Graphics/Shape.h"
 
 namespace cgss {

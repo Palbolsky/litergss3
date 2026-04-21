@@ -3,6 +3,7 @@
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/ConvexShape.hpp>
 #include "Shape.h"
+#include "LiteCGSS/Backend/SFMLBackend.h"
 #include "LiteCGSS/Common/Rectangle.h"
 #include "LiteCGSS/Common/Internal/SfColorConv.h"
 #include "LiteCGSS/Common/Internal/SfRectConv.h"
@@ -10,20 +11,24 @@
 
 cgss::ShapeItem::ShapeItem(Shape* owner, ShapeData shape) :
 	m_shape(std::move(shape.second)),
+	m_transformable(static_cast<Transformable*>(owner)),
 	m_type(shape.first) {
 	if (m_shape == nullptr) {
 		throw std::runtime_error("Invalid shape provided");
 	}
 	m_shape->setFillColor(sf::Color::White);
-	owner->setInstance(m_shape ? *m_shape : m_defaultShape);
 }
 
 void cgss::ShapeItem::draw(cgss::RenderTarget& target) const {
-	target.raw().draw(*m_shape, m_renderStates.raw());
+	sf::RenderStates states = m_renderStates.raw();
+	states.transform *= cgss::backend::SFMLBackend::build_transform(*m_transformable);
+	target.raw().draw(*m_shape, states);
 }
 
 void cgss::ShapeItem::drawFast(cgss::RenderTarget& target) const {
-	target.raw().draw(*m_shape);
+	sf::RenderStates states;
+	states.transform = cgss::backend::SFMLBackend::build_transform(*m_transformable);
+	target.raw().draw(*m_shape, states);
 }
 
 void cgss::Shape::setRenderState(cgss::DrawState states) {

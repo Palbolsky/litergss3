@@ -36,6 +36,9 @@
 #include "LiteCGSS/Graphics/BlendMode.h"
 #include "LiteCGSS/Graphics/Glsl.h"
 #include "LiteCGSS/Graphics/ShaderType.h"
+#include "LiteCGSS/Graphics/Transformable.h"
+
+#include <SFML/Graphics/Transform.hpp>
 
 namespace cgss::backend {
 
@@ -125,6 +128,20 @@ namespace cgss::backend {
 				c.attributeFlags,
 				c.sRgbCapable
 			};
+		}
+
+		// ---- Transform composition ----
+		// Builds an sf::Transform equivalent to the transform that sf::Transformable
+		// applies internally, from the cgss::Transformable's own state. Sign of the
+		// angle is flipped to match SFML's rotation convention (clockwise when Y
+		// points down, as with screen coordinates).
+		static inline sf::Transform build_transform(const cgss::Transformable& xf) noexcept {
+			sf::Transform t;
+			t.translate(xf.getX(), xf.getY());
+			t.rotate(-xf.getAngle());
+			t.scale(xf.getScaleX(), xf.getScaleY());
+			t.translate(-xf.getOx(), -xf.getOy());
+			return t;
 		}
 
 		// ---- Draw thunks (seed; grown per wrapper PR) ----

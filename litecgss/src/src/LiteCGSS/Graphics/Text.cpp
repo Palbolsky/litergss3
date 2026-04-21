@@ -11,8 +11,7 @@ SKA_LOGC_CONFIG(ska::LogLevel::Disabled, cgss::TextItem)
 #define LOG_INFO SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Info, cgss::TextItem)
 #define LOG_WARN SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Warn, cgss::TextItem)
 
-cgss::TextItem::TextItem(Text* owner) {
-	owner->setInstance(m_text);
+cgss::TextItem::TextItem(Text*) {
 }
 
 void cgss::TextItem::draw(cgss::RenderTarget& target) const {
@@ -167,6 +166,11 @@ void cgss::Text::move(float x, float y) {
 	LOG_INFO << "Text moved explicitely to x = " << x << " y = " << y;
 	Transformable::move(x, y);
 	m_proxy->updateAlign();
+}
+
+void cgss::Text::scale(float xScale, float yScale) {
+	Transformable::scale(xScale, yScale);
+	m_proxy->m_text.setScale(xScale, yScale);
 }
 
 void cgss::Text::resize(long width, long height) {

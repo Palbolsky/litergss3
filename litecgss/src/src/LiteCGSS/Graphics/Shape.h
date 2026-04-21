@@ -31,6 +31,7 @@ namespace cgss {
 	private:
 		std::unique_ptr<sf::Shape> m_shape;
 		std::shared_ptr<sf::Texture> m_linkedTexture = nullptr;
+		Transformable* m_transformable = nullptr;
 		ShapeType m_type = ShapeType::Rectangle;
 		sf::RectangleShape m_defaultShape;
 

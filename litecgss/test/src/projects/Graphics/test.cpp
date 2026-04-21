@@ -8,8 +8,8 @@ struct DrawableTest;
 struct StackItemTest :
 	public cgss::GraphicsStackItem {
 	StackItemTest(DrawableTest*){}
-	MOCK_METHOD(void, draw, (sf::RenderTarget& target), (const override));
-    MOCK_METHOD(void, drawFast, (sf::RenderTarget& target), (const override));
+	MOCK_METHOD(void, draw, (cgss::RenderTarget& target), (const override));
+    MOCK_METHOD(void, drawFast, (cgss::RenderTarget& target), (const override));
 };
 
 struct ViewTest {

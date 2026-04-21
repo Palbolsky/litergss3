@@ -27,6 +27,7 @@ namespace cgss {
 	private:
 		std::unique_ptr<sf::Sprite> m_sprite;
 		std::shared_ptr<sf::Texture> m_linkedTexture = nullptr;
+		Transformable* m_transformable = nullptr;
 		bool m_mirror = false;
 		float m_wantedX = 0;
 		float m_wantedY = 0;
@@ -42,7 +43,7 @@ namespace cgss {
 
 	class Sprite :
 		public Drawable<Sprite, SpriteItem>,
-		private Transformable {
+		public Transformable {
 	private:
 		void horizontalFlip();
 
@@ -57,16 +58,6 @@ namespace cgss {
 		float getX() const;
 		float getY() const;
 		void move(float x, float y);
-
-		using Transformable::getOx;
-		using Transformable::getOy;
-		using Transformable::getScaleX;
-		using Transformable::getScaleY;
-		using Transformable::moveOrigin;
-		using Transformable::scale;
-		using Transformable::setInstance;
-		using Transformable::getAngle;
-		using Transformable::setAngle;
 
 		cgss::Color getColor() const;
 		void setColor(cgss::Color color);

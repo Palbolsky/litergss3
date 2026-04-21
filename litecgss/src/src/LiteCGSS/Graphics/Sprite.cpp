@@ -5,14 +5,15 @@
 #include "Sprite.h"
 #include "RenderStates.h"
 #include "Texture.h"
+#include "LiteCGSS/Backend/SFMLBackend.h"
 #include "LiteCGSS/Common/Rectangle.h"
 #include "LiteCGSS/Common/Internal/SfColorConv.h"
 #include "LiteCGSS/Common/Internal/SfRectConv.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
 
 cgss::SpriteItem::SpriteItem(Sprite* owner) :
-	m_sprite(std::make_unique<sf::Sprite>()) {
-	owner->setInstance(*m_sprite);
+	m_sprite(std::make_unique<sf::Sprite>()),
+	m_transformable(static_cast<Transformable*>(owner)) {
 }
 
 cgss::SpriteItem::~SpriteItem() = default;
@@ -24,7 +25,11 @@ void cgss::SpriteItem::draw(cgss::RenderTarget& target) const {
 void cgss::SpriteItem::updateFromValue(const RenderStatesData*) {}
 
 void cgss::SpriteItem::drawFast(cgss::RenderTarget& target) const {
-	target.raw().draw(*m_sprite, ShaderRenderable::getValue() == nullptr ? sf::RenderStates::Default : ShaderRenderable::getValue()->getRenderStates().raw());
+	sf::RenderStates states = ShaderRenderable::getValue() == nullptr
+		? sf::RenderStates::Default
+		: ShaderRenderable::getValue()->getRenderStates().raw();
+	states.transform *= cgss::backend::SFMLBackend::build_transform(*m_transformable);
+	target.raw().draw(*m_sprite, states);
 }
 
 void cgss::Sprite::bindRenderStates(RenderStates* renderStates) {
