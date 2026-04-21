@@ -22,7 +22,10 @@ generate_source_groups("${SOURCES}" "${LITECGSS_ROOT_DIR}")
 
 add_library(LiteCGSS_engine ${SOURCES})
 
-set(TARGET_LIBS skalog sfml-graphics sfml-window sfml-system)
+set(TARGET_LIBS skalog)
+if(CGSS_BACKEND STREQUAL "sfml")
+	set(TARGET_LIBS ${TARGET_LIBS} sfml-graphics sfml-window sfml-system)
+endif()
 if (LITECGSS_USE_PHYSFS)
 	set(TARGET_LIBS ${TARGET_LIBS} physfs)
 	set_property(TARGET physfs-static PROPERTY POSITION_INDEPENDENT_CODE ON)
