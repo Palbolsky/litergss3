@@ -6,12 +6,12 @@
 
 #include "LiteCGSS/Graphics/Drawable.h"
 #include "LiteCGSS/Views/Stack/DrawableStack.h"
+#include "DisplayWindowFwd.h"
 #include "ViewAuthorizations.h"
 
 namespace cgss {
 
 	//We only expose the "add" method to the internal of Drawable class
-	class DisplayWindow;
 	class View {
 		template <class Owner, class Item>
 		friend class Drawable;

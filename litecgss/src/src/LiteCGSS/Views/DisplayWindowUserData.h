@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "LiteCGSS/Events/MainEventDispatcher.h"
+#include "DisplayWindowFwd.h"
 
 namespace sf {
 	class Sprite;
@@ -10,7 +11,6 @@ namespace sf {
 }
 
 namespace cgss {
-	class DisplayWindow;
 	struct DisplayWindowSettings;
 
 	struct DisplayWindowUserData {

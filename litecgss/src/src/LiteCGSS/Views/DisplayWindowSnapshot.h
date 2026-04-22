@@ -4,6 +4,7 @@
 #include <memory>
 #include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Graphics/RenderStates.h"
+#include "DisplayWindowFwd.h"
 
 namespace sf {
 	class RenderWindow;
@@ -12,7 +13,6 @@ namespace sf {
 }
 
 namespace cgss {
-	class DisplayWindow;
 	class DisplayWindowSnapshot {
 	public:
 		DisplayWindowSnapshot(DisplayWindow& window);

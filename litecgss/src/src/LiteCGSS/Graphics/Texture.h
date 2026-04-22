@@ -10,9 +10,10 @@
 #include "LiteCGSS/Image/ImageFwd.h"
 #include "Serializers/TextureLoaderSaver.h"
 
+#include "LiteCGSS/Views/DisplayWindowFwd.h"
+
 namespace cgss {
 	class Rectangle;
-	class DisplayWindow;
 
 	using TextureFactorNpot = std::array<double, 2>;
 

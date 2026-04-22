@@ -5,17 +5,12 @@
 #include <mutex>
 #include <optional>
 
-namespace sf {
-	class RenderWindow;
-	class Sprite;
-	class RenderTexture;
-	class Texture;
-}
-
+#include "LiteCGSS/Backend/ActiveBackendFwd.h"
 #include "LiteCGSS/Events/Event.h"
 #include "View.h"
 #include "ViewAuthorizations.h"
 #include "DisplayWindowDraw.h"
+#include "DisplayWindowFwd.h"
 #include "DisplayWindowSnapshot.h"
 #include "DisplayWindowUserData.h"
 #include "FramedView.h"
@@ -32,7 +27,20 @@ namespace sf {
 namespace cgss {
 
 	struct DisplayWindowSettings;
-	class DisplayWindow :
+
+	// Templated wrapper over `Backend::native_window` (+ render texture +
+	// user-render sprite). Consumers refer to it as `cgss::DisplayWindow`.
+	//
+	// The default body in DisplayWindow.cpp is SFML-coupled (it calls
+	// sf::RenderWindow / sf::RenderTexture / sf::Sprite methods directly).
+	// It compiles for `B = SFMLBackend` because `B::native_X` resolves to
+	// the matching sf:: types. Other backends (raylib, libretro) need a
+	// full specialization of `basic_DisplayWindow<Backend>` in their own
+	// .cpp — DisplayWindowSnapshot/DrawData/UserData are not yet templated
+	// either; per plan §1, full-class specialization is the documented
+	// escape hatch when a wrapper's behavior diverges radically per backend.
+	template <class B>
+	class basic_DisplayWindow :
 		public View,
 		public SnapshotCapturable,
 		public ShaderRenderable {
@@ -41,15 +49,15 @@ namespace cgss {
 		static unsigned int DesktopWidth();
 		static unsigned int DesktopHeight();
 
-		DisplayWindow(const DisplayWindowSettings& settings);
+		basic_DisplayWindow(const DisplayWindowSettings& settings);
 
-		DisplayWindow(const DisplayWindow&) = delete;
-		DisplayWindow& operator=(DisplayWindow&) = delete;
-		DisplayWindow(DisplayWindow&&) = delete;
-		DisplayWindow& operator=(DisplayWindow&&) = delete;
+		basic_DisplayWindow(const basic_DisplayWindow&) = delete;
+		basic_DisplayWindow& operator=(basic_DisplayWindow&) = delete;
+		basic_DisplayWindow(basic_DisplayWindow&&) = delete;
+		basic_DisplayWindow& operator=(basic_DisplayWindow&&) = delete;
 
-		DisplayWindow();
-		virtual ~DisplayWindow();
+		basic_DisplayWindow();
+		virtual ~basic_DisplayWindow();
 
 		unsigned char brightness() const { return m_draw.brightness; }
 		long screenWidth() const { return m_draw.screenWidth; }
@@ -126,8 +134,8 @@ namespace cgss {
 			(either to the owned one, or to a shared static one in the CGSS_WINDOW_PRESERVATION
 			case — see DisplayWindow.cpp ctors). Declaration order matters: m_ownedGameWindow
 			must come before m_gameWindow so it is constructed first. */
-		std::unique_ptr<sf::RenderWindow> m_ownedGameWindow;
-		sf::RenderWindow& m_gameWindow;
+		std::unique_ptr<typename B::native_window> m_ownedGameWindow;
+		typename B::native_window& m_gameWindow;
 		DisplayWindowSnapshot m_snapshot;
 		DisplayWindowDrawData m_draw;
 
@@ -140,8 +148,8 @@ namespace cgss {
 			children viewports (when render states, so shaders, are enabled).
 			Initialized in the constructor (sf:: types must remain complete in the .cpp only).
 		*/
-		std::unique_ptr<sf::Sprite> m_userRenderSprite;
-		std::unique_ptr<sf::RenderTexture> m_userRenderTexture;
+		std::unique_ptr<typename B::native_sprite> m_userRenderSprite;
+		std::unique_ptr<typename B::native_render_texture> m_userRenderTexture;
 	};
 
 	class Text;
