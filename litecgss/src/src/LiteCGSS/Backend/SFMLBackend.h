@@ -130,6 +130,37 @@ namespace cgss::backend {
 			target.draw(sprite, states);
 		}
 
+		// ---- Sprite ops ----
+		static inline cgss::Color get_sprite_color(const native_sprite& s) noexcept {
+			const auto c = s.getColor();
+			return cgss::Color{ c.r, c.g, c.b, c.a };
+		}
+
+		static inline void set_sprite_color(native_sprite& s, cgss::Color c) noexcept {
+			s.setColor(sf::Color(c.r, c.g, c.b, c.a));
+		}
+
+		static inline cgss::IntRect get_sprite_texture_rect(const native_sprite& s) noexcept {
+			const auto r = s.getTextureRect();
+			return cgss::IntRect{ r.left, r.top, r.width, r.height };
+		}
+
+		static inline void set_sprite_texture_rect(native_sprite& s, const cgss::IntRect& r) noexcept {
+			s.setTextureRect(sf::IntRect(r.left, r.top, r.width, r.height));
+		}
+
+		static inline void set_sprite_texture(native_sprite& s, const native_texture& t, bool resetRect) {
+			s.setTexture(t, resetRect);
+		}
+
+		// Returns the texture's size if a texture is bound, else {0, 0}.
+		static inline Size2u get_sprite_bound_texture_size(const native_sprite& s) noexcept {
+			const auto* t = s.getTexture();
+			if (t == nullptr) return { 0u, 0u };
+			const auto sz = t->getSize();
+			return { sz.x, sz.y };
+		}
+
 		// ---- Texture / Image ops ----
 		static inline void set_smooth(native_texture& t, bool smooth) noexcept {
 			t.setSmooth(smooth);

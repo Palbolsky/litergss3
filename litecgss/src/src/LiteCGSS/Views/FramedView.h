@@ -15,6 +15,7 @@
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Graphics/Drawable.h"
+#include "LiteCGSS/Graphics/SpriteFwd.h"
 
 namespace sf {
 	class Sprite;
@@ -240,7 +241,6 @@ namespace cgss {
 		void onDispose() override { m_proxy->View::drawables().clear(); }
 	};
 
-	class Sprite;
 	class Text;
 	class Shape;
 

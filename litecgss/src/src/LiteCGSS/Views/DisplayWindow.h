@@ -20,6 +20,7 @@ namespace sf {
 #include "DisplayWindowUserData.h"
 #include "FramedView.h"
 #include "SnapshotCapturable.h"
+#include "LiteCGSS/Graphics/SpriteFwd.h"
 #include "LiteCGSS/Image/Image.h"
 
 #include "LiteCGSS/Events/MainEventDispatcher.h"
@@ -142,7 +143,6 @@ namespace cgss {
 		std::unique_ptr<sf::RenderTexture> m_userRenderTexture;
 	};
 
-	class Sprite;
 	class Text;
 	class Viewport;
 	class Shape;

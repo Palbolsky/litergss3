@@ -1,98 +1,111 @@
-#include <cassert>
-#include <SFML/Graphics/RenderTarget.hpp>
-#include <SFML/Graphics/Sprite.hpp>
-#include <SFML/Graphics/Texture.hpp>
 #include "Sprite.h"
+
+#include <SFML/Graphics/Sprite.hpp>
+
+#include "LiteCGSS/Backend/ActiveBackend.h"
+#include "LiteCGSS/Common/Meta/metadata.h"
+#include "LiteCGSS/Common/Rectangle.h"
 #include "RenderStates.h"
 #include "Texture.h"
-#include "LiteCGSS/Backend/SFMLBackend.h"
-#include "LiteCGSS/Common/Rectangle.h"
-#include "LiteCGSS/Common/Internal/SfColorConv.h"
-#include "LiteCGSS/Common/Internal/SfRectConv.h"
-#include "LiteCGSS/Common/Meta/metadata.h"
 
-cgss::SpriteItem::SpriteItem(Sprite* owner) :
-	m_sprite(std::make_unique<sf::Sprite>()),
+template <class B>
+cgss::basic_SpriteItem<B>::basic_SpriteItem(basic_Sprite<B>* owner) :
+	m_sprite(std::make_unique<typename B::native_sprite>()),
 	m_transformable(static_cast<Transformable*>(owner)) {
 }
 
-cgss::SpriteItem::~SpriteItem() = default;
+template <class B>
+cgss::basic_SpriteItem<B>::~basic_SpriteItem() = default;
 
-void cgss::SpriteItem::draw(cgss::RenderTarget& target) const {
-	SpriteItem::drawFast(target);
+template <class B>
+void cgss::basic_SpriteItem<B>::draw(cgss::RenderTarget& target) const {
+	basic_SpriteItem::drawFast(target);
 }
 
-void cgss::SpriteItem::updateFromValue(const RenderStatesData*) {}
+template <class B>
+void cgss::basic_SpriteItem<B>::updateFromValue(const RenderStatesData*) {}
 
-void cgss::SpriteItem::drawFast(cgss::RenderTarget& target) const {
+template <class B>
+void cgss::basic_SpriteItem<B>::drawFast(cgss::RenderTarget& target) const {
 	sf::RenderStates states = ShaderRenderable::getValue() == nullptr
 		? sf::RenderStates::Default
 		: ShaderRenderable::getValue()->getRenderStates().raw();
-	states.transform *= cgss::backend::SFMLBackend::Ops::build_transform(*m_transformable);
+	states.transform *= B::Ops::build_transform(*m_transformable);
 	target.raw().draw(*m_sprite, states);
 }
 
-void cgss::Sprite::bindRenderStates(RenderStates* renderStates) {
+template <class B>
+void cgss::basic_Sprite<B>::bindRenderStates(RenderStates* renderStates) {
 	if (renderStates != nullptr) {
 		renderStates->data().setShaderUniform("texture", cgss::CurrentTexture);
-		m_proxy->ShaderRenderable::bindValue(&renderStates->data());
+		this->m_proxy->ShaderRenderable::bindValue(&renderStates->data());
 	} else {
-		m_proxy->ShaderRenderable::bindValue(nullptr);
+		this->m_proxy->ShaderRenderable::bindValue(nullptr);
 	}
 }
 
-void cgss::Sprite::setMirror(bool mirror) {
-	if (m_proxy->m_mirror ^ mirror) {
+template <class B>
+void cgss::basic_Sprite<B>::setMirror(bool mirror) {
+	if (this->m_proxy->m_mirror ^ mirror) {
 		horizontalFlip();
-		m_proxy->m_mirror = mirror;
+		this->m_proxy->m_mirror = mirror;
 	}
 }
 
-void cgss::Sprite::horizontalFlip() {
-	auto rect = m_proxy->m_sprite->getTextureRect();
+template <class B>
+void cgss::basic_Sprite<B>::horizontalFlip() {
+	auto rect = B::Ops::get_sprite_texture_rect(*this->m_proxy->m_sprite);
 	rect.left += rect.width;
 	rect.width = -rect.width;
-	setTextureRect(cgss::internal::fromSf(rect));
+	setTextureRect(rect);
 }
 
-cgss::Color cgss::Sprite::getColor() const {
-	return cgss::internal::fromSf(m_proxy->m_sprite->getColor());
+template <class B>
+cgss::Color cgss::basic_Sprite<B>::getColor() const {
+	return B::Ops::get_sprite_color(*this->m_proxy->m_sprite);
 }
 
-float cgss::Sprite::getX() const {
-	return m_proxy->m_wantedX;
+template <class B>
+float cgss::basic_Sprite<B>::getX() const {
+	return this->m_proxy->m_wantedX;
 }
 
-float cgss::Sprite::getY() const {
-	return m_proxy->m_wantedY;
+template <class B>
+float cgss::basic_Sprite<B>::getY() const {
+	return this->m_proxy->m_wantedY;
 }
 
-void cgss::Sprite::move(float x, float y) {
-	m_proxy->m_wantedX = x;
-	m_proxy->m_wantedY = y;
+template <class B>
+void cgss::basic_Sprite<B>::move(float x, float y) {
+	this->m_proxy->m_wantedX = x;
+	this->m_proxy->m_wantedY = y;
 	Transformable::move(x, y);
 }
 
-void cgss::Sprite::setColor(cgss::Color color) {
-	m_proxy->m_sprite->setColor(cgss::internal::toSf(color));
+template <class B>
+void cgss::basic_Sprite<B>::setColor(cgss::Color color) {
+	B::Ops::set_sprite_color(*this->m_proxy->m_sprite, color);
 }
 
-void cgss::SpriteItem::setOpacity(std::uint8_t opacity) {
-	sf::Color col = m_sprite->getColor();
-	col.a = opacity;
-	m_sprite->setColor(col);
+template <class B>
+void cgss::basic_SpriteItem<B>::setOpacity(std::uint8_t opacity) {
+	auto color = B::Ops::get_sprite_color(*m_sprite);
+	color.a = opacity;
+	B::Ops::set_sprite_color(*m_sprite, color);
 }
 
-void cgss::Sprite::setTexture(Texture& texture, bool resetRect) {
-	m_proxy->m_linkedTexture = texture.ref();
-	m_proxy->m_sprite->setTexture(*m_proxy->m_linkedTexture.get(), resetRect);
+template <class B>
+void cgss::basic_Sprite<B>::setTexture(basic_Texture<B>& texture, bool resetRect) {
+	this->m_proxy->m_linkedTexture = texture.ref();
+	B::Ops::set_sprite_texture(*this->m_proxy->m_sprite, *this->m_proxy->m_linkedTexture, resetRect);
 	if (resetRect) {
-		m_proxy->GraphicsStackItem::setValue(cgss::internal::fromSf(m_proxy->m_sprite->getTextureRect()));
+		this->m_proxy->GraphicsStackItem::setValue(B::Ops::get_sprite_texture_rect(*this->m_proxy->m_sprite));
 	}
 }
 
-void cgss::SpriteItem::updateFromValue(const cgss::IntRect* rectangle) {
-	auto textureSize = m_sprite->getTexture() == nullptr ? sf::Vector2u{} : m_sprite->getTexture()->getSize();
+template <class B>
+void cgss::basic_SpriteItem<B>::updateFromValue(const cgss::IntRect* rectangle) {
+	const auto textureSize = B::Ops::get_sprite_bound_texture_size(*m_sprite);
 	auto tmpRectangle = rectangle == nullptr
 		? cgss::IntRect{0, 0, static_cast<int>(textureSize.x), static_cast<int>(textureSize.y)}
 		: *rectangle;
@@ -100,13 +113,18 @@ void cgss::SpriteItem::updateFromValue(const cgss::IntRect* rectangle) {
 		tmpRectangle.left += tmpRectangle.width;
 		tmpRectangle.width = -tmpRectangle.width;
 	}
-	m_sprite->setTextureRect(cgss::internal::toSf(tmpRectangle));
+	B::Ops::set_sprite_texture_rect(*m_sprite, tmpRectangle);
 }
 
-void cgss::Sprite::setTextureRect(cgss::IntRect rectangle) {
-	m_proxy->GraphicsStackItem::setValue(std::move(rectangle));
+template <class B>
+void cgss::basic_Sprite<B>::setTextureRect(cgss::IntRect rectangle) {
+	this->m_proxy->GraphicsStackItem::setValue(std::move(rectangle));
 }
 
-cgss::IntRect cgss::Sprite::getTextureRect() const {
-	return cgss::internal::fromSf(m_proxy->m_sprite->getTextureRect());
+template <class B>
+cgss::IntRect cgss::basic_Sprite<B>::getTextureRect() const {
+	return B::Ops::get_sprite_texture_rect(*this->m_proxy->m_sprite);
 }
+
+template class cgss::basic_SpriteItem<cgss::backend::ActiveBackend>;
+template class cgss::basic_Sprite<cgss::backend::ActiveBackend>;
