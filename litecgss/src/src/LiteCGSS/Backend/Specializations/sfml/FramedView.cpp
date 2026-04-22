@@ -1,11 +1,13 @@
-// FramedView's body is SFML-coupled — it directly manipulates sf::Sprite
-// (m_pause/m_cursor), sf::VertexArray (m_vertices for the 9-slice skin),
-// and the bulk of the file (~700 lines) is SFML-typed geometry/rendering
-// code. Templating it would require ~30 new vertex/sprite ops plus
-// careful refactor of updateVertices. For now the whole TU is guarded
-// so non-SFML backends compile (engine .a has no FramedView symbols
-// under raylib — link errors only if downstream binaries call them).
-#ifdef CGSS_BACKEND_SFML
+// SFML implementation of cgss::FramedViewItem / cgss::FramedView — selected
+// by CMake when CGSS_BACKEND=sfml (folder-based per-backend specialization).
+// The raylib equivalent lives in Backend/Specializations/raylib/FramedView.cpp
+// and provides stub no-op bodies for the same class methods.
+//
+// FramedView is in the PERMANENT bucket because its 9-slice skin renderer is
+// fundamentally backend-shaped: SFML composes per-section sf::VertexArrays
+// here, while raylib has a single `DrawTextureNPatch(..., NPatchInfo, ...)`
+// native call. The natural impls are different enough that templating per-op
+// adds noise vs. just having two .cpp bodies behind the same public API.
 
 #include <cstring>
 #include <SFML/Graphics/RenderTarget.hpp>
@@ -15,9 +17,9 @@
 #include <SFML/Graphics/Rect.hpp>
 #include <SFML/Graphics/View.hpp>
 #include <SFML/System/Vector2.hpp>
-#include "LoggerViews.h"
-#include "FramedView.h"
-#include "Viewport.h"
+#include "LiteCGSS/Views/LoggerViews.h"
+#include "LiteCGSS/Views/FramedView.h"
+#include "LiteCGSS/Views/Viewport.h"
 #include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Rectangle.h"
 #include "LiteCGSS/Common/Internal/SfRectConv.h"
@@ -970,5 +972,3 @@ void cgss::FramedView::setBackOpacity(uint8_t backOpacity) {
 std::uint8_t cgss::FramedView::getBackOpacity() const {
 	return m_proxy->getBackOpacity();
 }
-
-#endif  // CGSS_BACKEND_SFML
