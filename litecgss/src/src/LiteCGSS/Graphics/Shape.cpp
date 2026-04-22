@@ -1,166 +1,171 @@
-#include <cassert>
-#include <SFML/Graphics/RenderTarget.hpp>
-#include <SFML/Graphics/CircleShape.hpp>
-#include <SFML/Graphics/ConvexShape.hpp>
 #include "Shape.h"
-#include "LiteCGSS/Backend/SFMLBackend.h"
+
+#include <cassert>
+
+#include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Rectangle.h"
-#include "LiteCGSS/Common/Internal/SfColorConv.h"
-#include "LiteCGSS/Common/Internal/SfRectConv.h"
 #include "Texture.h"
 
-cgss::ShapeItem::ShapeItem(Shape* owner, ShapeData shape) :
-	m_shape(std::move(shape.second)),
-	m_transformable(static_cast<Transformable*>(owner)),
-	m_type(shape.first) {
-	if (m_shape == nullptr) {
-		throw std::runtime_error("Invalid shape provided");
-	}
-	m_shape->setFillColor(sf::Color::White);
+template <class B>
+cgss::basic_ShapeItem<B>::basic_ShapeItem(basic_Shape<B>* owner, ShapeGeometry geometry) :
+	m_geometry(std::move(geometry)),
+	m_transformable(static_cast<Transformable*>(owner)) {
 }
 
-void cgss::ShapeItem::draw(cgss::RenderTarget& target) const {
+template <class B>
+void cgss::basic_ShapeItem<B>::draw(cgss::RenderTarget& target) const {
 	sf::RenderStates states = m_renderStates.raw();
-	states.transform *= cgss::backend::SFMLBackend::Ops::build_transform(*m_transformable);
-	target.raw().draw(*m_shape, states);
+	states.transform *= B::Ops::build_transform(*m_transformable);
+	B::Ops::draw_shape(target.raw(), m_geometry, m_linkedTexture.get(), states);
 }
 
-void cgss::ShapeItem::drawFast(cgss::RenderTarget& target) const {
+template <class B>
+void cgss::basic_ShapeItem<B>::drawFast(cgss::RenderTarget& target) const {
 	sf::RenderStates states;
-	states.transform = cgss::backend::SFMLBackend::Ops::build_transform(*m_transformable);
-	target.raw().draw(*m_shape, states);
+	states.transform = B::Ops::build_transform(*m_transformable);
+	B::Ops::draw_shape(target.raw(), m_geometry, m_linkedTexture.get(), states);
 }
 
-void cgss::Shape::setRenderState(cgss::DrawState states) {
-	m_proxy->m_renderStates = std::move(states);
+template <class B>
+void cgss::basic_ShapeItem<B>::updateFromValue(const cgss::IntRect* rectangle) {
+	m_geometry.textureRect = rectangle == nullptr ? cgss::IntRect{ 0, 0, 0, 0 } : *rectangle;
 }
 
-void cgss::Shape::setTexture(Texture* texture, bool resetRect) {
-	m_proxy->m_linkedTexture = texture != nullptr ? texture->ref() : nullptr;
-	if (m_proxy->m_linkedTexture != nullptr) {
-		m_proxy->m_shape->setTexture(m_proxy->m_linkedTexture.get(), resetRect);
-	}
-
-	if (resetRect) {
-		m_proxy->setValue(cgss::internal::fromSf(m_proxy->m_shape->getTextureRect()));
-	}
+template <class B>
+void cgss::basic_Shape<B>::setRenderState(cgss::DrawState states) {
+	this->m_proxy->m_renderStates = std::move(states);
 }
 
-cgss::IntRect cgss::Shape::getRectangle() const {
-	return cgss::internal::fromSf(m_proxy->m_shape->getTextureRect());
-}
-
-void cgss::Shape::setRectangle(cgss::IntRect rectangle) {
-	m_proxy->setValue(std::move(rectangle));
-}
-
-std::size_t cgss::Shape::getPointCount() const {
-	return m_proxy->m_shape->getPointCount();
-}
-
-void cgss::Shape::setPointCount(std::size_t pointCount) const {
-	switch (m_proxy->m_type) {
-	case ShapeType::Circle:
-		static_cast<sf::CircleShape&>(*m_proxy->m_shape).setPointCount(pointCount);
-		break;
-	case ShapeType::Convex:
-		static_cast<sf::ConvexShape&>(*m_proxy->m_shape).setPointCount(pointCount);
-		break;
-	default:
-		break;
+template <class B>
+void cgss::basic_Shape<B>::setTexture(basic_Texture<B>* texture, bool resetRect) {
+	this->m_proxy->m_linkedTexture = texture != nullptr ? texture->ref() : nullptr;
+	if (resetRect && this->m_proxy->m_linkedTexture != nullptr) {
+		const auto sz = B::Ops::get_texture_size(*this->m_proxy->m_linkedTexture);
+		this->m_proxy->setValue(cgss::IntRect{ 0, 0, static_cast<int>(sz.x), static_cast<int>(sz.y) });
 	}
 }
 
-float cgss::Shape::getRadius() const {
-	switch (m_proxy->m_type) {
-	case ShapeType::Circle:
-		return static_cast<sf::CircleShape&>(*m_proxy->m_shape).getRadius();
-	default:
-		return -1.F;
+template <class B>
+cgss::IntRect cgss::basic_Shape<B>::getRectangle() const {
+	return this->m_proxy->m_geometry.textureRect;
+}
+
+template <class B>
+void cgss::basic_Shape<B>::setRectangle(cgss::IntRect rectangle) {
+	this->m_proxy->setValue(std::move(rectangle));
+}
+
+template <class B>
+std::size_t cgss::basic_Shape<B>::getPointCount() const {
+	const auto& g = this->m_proxy->m_geometry;
+	switch (g.type) {
+		case ShapeType::Rectangle: return 4;
+		case ShapeType::Circle:    return g.pointCount;
+		case ShapeType::Convex:    return g.points.size();
 	}
+	return 0;
 }
 
-void cgss::Shape::setRadius(float radius) {
-	switch (m_proxy->m_type) {
-	case ShapeType::Circle:
-		static_cast<sf::CircleShape&>(*m_proxy->m_shape).setRadius(radius);
-	default:
-		break;
-	}
-}
-
-sf::Vector2f cgss::Shape::getPoint(const std::size_t index) const {
-	return m_proxy->m_shape->getPoint(index);
-}
-
-long cgss::Shape::getWidth() const {
-	return m_proxy->m_shape->getGlobalBounds().width;
-}
-
-long cgss::Shape::getHeight() const {
-	return m_proxy->m_shape->getGlobalBounds().height;
-}
-
-void cgss::Shape::setWidth(long width) {
-	switch (m_proxy->m_type) {
-		case ShapeType::Rectangle: {
-			auto& rectangle = static_cast<sf::RectangleShape&>(*m_proxy->m_shape);
-			auto size = rectangle.getSize();
-			size.x = width;
-			rectangle.setSize(size);
-		}
+template <class B>
+void cgss::basic_Shape<B>::setPointCount(std::size_t pointCount) {
+	auto& g = this->m_proxy->m_geometry;
+	switch (g.type) {
+		case ShapeType::Circle:
+			g.pointCount = pointCount;
+			break;
+		case ShapeType::Convex:
+			g.pointCount = pointCount;
+			g.points.resize(pointCount);
+			break;
 		default:
 			break;
 	}
 }
 
-void cgss::Shape::setHeight(long height) {
-	switch (m_proxy->m_type) {
-		case ShapeType::Rectangle: {
-			auto& rectangle = static_cast<sf::RectangleShape&>(*m_proxy->m_shape);
-			auto size = rectangle.getSize();
-			size.y = height;
-			rectangle.setSize(size);
-		}
-		default:
-			break;
+template <class B>
+float cgss::basic_Shape<B>::getRadius() const {
+	const auto& g = this->m_proxy->m_geometry;
+	return g.type == ShapeType::Circle ? g.radius : -1.f;
+}
+
+template <class B>
+void cgss::basic_Shape<B>::setRadius(float radius) {
+	auto& g = this->m_proxy->m_geometry;
+	if (g.type == ShapeType::Circle) {
+		g.radius = radius;
 	}
 }
 
-void cgss::Shape::setPoint(const std::size_t index, float x, float y) {
-	switch (m_proxy->m_type) {
-	case ShapeType::Convex:
-		static_cast<sf::ConvexShape&>(*m_proxy->m_shape).setPoint(index, sf::Vector2f(x, y));
-		break;
-	default:
-		break;
+template <class B>
+cgss::Point cgss::basic_Shape<B>::getPoint(std::size_t index) const {
+	return B::Ops::get_shape_point(this->m_proxy->m_geometry, index);
+}
+
+template <class B>
+void cgss::basic_Shape<B>::setPoint(std::size_t index, float x, float y) {
+	auto& g = this->m_proxy->m_geometry;
+	if (g.type == ShapeType::Convex && index < g.points.size()) {
+		g.points[index] = { x, y };
 	}
 }
 
-cgss::Color cgss::Shape::getFillColor() const {
-	return cgss::internal::fromSf(m_proxy->m_shape->getFillColor());
+template <class B>
+long cgss::basic_Shape<B>::getWidth() const {
+	const auto b = B::Ops::get_shape_global_bounds(this->m_proxy->m_geometry, *this);
+	return static_cast<long>(b.width);
 }
 
-void cgss::Shape::setFillColor(cgss::Color color){
-	return m_proxy->m_shape->setFillColor(cgss::internal::toSf(color));
+template <class B>
+long cgss::basic_Shape<B>::getHeight() const {
+	const auto b = B::Ops::get_shape_global_bounds(this->m_proxy->m_geometry, *this);
+	return static_cast<long>(b.height);
 }
 
-cgss::Color cgss::Shape::getOutlineColor() const {
-	return cgss::internal::fromSf(m_proxy->m_shape->getOutlineColor());
+template <class B>
+void cgss::basic_Shape<B>::setWidth(long width) {
+	auto& g = this->m_proxy->m_geometry;
+	if (g.type == ShapeType::Rectangle) {
+		g.width = static_cast<float>(width);
+	}
 }
 
-void cgss::Shape::setOutlineColor(cgss::Color color) {
-	return m_proxy->m_shape->setOutlineColor(cgss::internal::toSf(color));
+template <class B>
+void cgss::basic_Shape<B>::setHeight(long height) {
+	auto& g = this->m_proxy->m_geometry;
+	if (g.type == ShapeType::Rectangle) {
+		g.height = static_cast<float>(height);
+	}
 }
 
-float cgss::Shape::getOutlineThickness() const {
-	return m_proxy->m_shape->getOutlineThickness();
+template <class B>
+cgss::Color cgss::basic_Shape<B>::getFillColor() const {
+	return this->m_proxy->m_geometry.fillColor;
 }
 
-void cgss::Shape::setOutlineThickness(float thickness) const {
-	return m_proxy->m_shape->setOutlineThickness(thickness);
+template <class B>
+void cgss::basic_Shape<B>::setFillColor(cgss::Color color) {
+	this->m_proxy->m_geometry.fillColor = color;
 }
 
-void cgss::ShapeItem::updateFromValue(const cgss::IntRect* rectangle) {
-	m_shape->setTextureRect(rectangle == nullptr ? sf::IntRect{} : cgss::internal::toSf(*rectangle));
+template <class B>
+cgss::Color cgss::basic_Shape<B>::getOutlineColor() const {
+	return this->m_proxy->m_geometry.outlineColor;
 }
+
+template <class B>
+void cgss::basic_Shape<B>::setOutlineColor(cgss::Color color) {
+	this->m_proxy->m_geometry.outlineColor = color;
+}
+
+template <class B>
+float cgss::basic_Shape<B>::getOutlineThickness() const {
+	return this->m_proxy->m_geometry.outlineThickness;
+}
+
+template <class B>
+void cgss::basic_Shape<B>::setOutlineThickness(float thickness) {
+	this->m_proxy->m_geometry.outlineThickness = thickness;
+}
+
+template class cgss::basic_ShapeItem<cgss::backend::ActiveBackend>;
+template class cgss::basic_Shape<cgss::backend::ActiveBackend>;

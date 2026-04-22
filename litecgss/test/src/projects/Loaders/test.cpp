@@ -3,13 +3,13 @@
 
 TEST(LoaderGroup, Shape) {
 	const auto circleShape = cgss::ShapeLoader::buildCircle(5.4f, 1);
-	EXPECT_EQ(circleShape.first, cgss::ShapeType::Circle);
+	EXPECT_EQ(circleShape.type, cgss::ShapeType::Circle);
 
 	const auto convexShape = cgss::ShapeLoader::buildConvex(2);
-	EXPECT_EQ(convexShape.first, cgss::ShapeType::Convex);
+	EXPECT_EQ(convexShape.type, cgss::ShapeType::Convex);
 
 	const auto rectangleShape = cgss::ShapeLoader::buildRectangle(3.1f, 3);
-	EXPECT_EQ(rectangleShape.first, cgss::ShapeType::Rectangle);
+	EXPECT_EQ(rectangleShape.type, cgss::ShapeType::Rectangle);
 }
 
 /*

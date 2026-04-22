@@ -15,6 +15,7 @@
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Graphics/Drawable.h"
+#include "LiteCGSS/Graphics/ShapeFwd.h"
 #include "LiteCGSS/Graphics/SpriteFwd.h"
 
 namespace sf {
@@ -242,7 +243,6 @@ namespace cgss {
 	};
 
 	class Text;
-	class Shape;
 
 	template <>
 	struct ViewAuthorizations<FramedView> : public AuthorizedDrawableSet<Sprite, Text, Shape> {};

@@ -12,6 +12,7 @@
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
 #include "LiteCGSS/Graphics/RenderStates.h"
+#include "LiteCGSS/Graphics/ShapeFwd.h"
 #include "LiteCGSS/Graphics/SpriteFwd.h"
 
 namespace cgss {
@@ -95,7 +96,6 @@ namespace cgss {
 	};
 
 	class Text;
-	class Shape;
 	class FramedView;
 	class SpriteMap;
 

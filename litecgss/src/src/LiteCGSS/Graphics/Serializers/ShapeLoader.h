@@ -1,34 +1,39 @@
 #ifndef CGSS_SHAPE_LOADER_H
 #define CGSS_SHAPE_LOADER_H
 
-#include <SFML/Graphics/CircleShape.hpp>
-#include <SFML/Graphics/ConvexShape.hpp>
-#include <SFML/Graphics/RectangleShape.hpp>
-#include <SFML/System/Vector2.hpp>
-#include "Graphics/Shape.h"
+#include <cstddef>
+
+#include "LiteCGSS/Graphics/ShapeGeometry.h"
 
 namespace cgss {
 
+	// Factories for ShapeGeometry. After PR E, shape geometry is held as a
+	// backend-agnostic POD; callers construct one via these helpers (or
+	// directly) instead of building an `sf::Shape` themselves.
 	class ShapeLoader {
 	public:
-		using ShapeData = std::pair<ShapeType, std::unique_ptr<sf::Shape>>;
-
-		static ShapeData buildCircle(float radius, unsigned long numPoints) {
-			return build<sf::CircleShape>(ShapeType::Circle, radius, numPoints);
+		static ShapeGeometry buildRectangle(float width, float height) {
+			ShapeGeometry g;
+			g.type = ShapeType::Rectangle;
+			g.width = width;
+			g.height = height;
+			return g;
 		}
 
-		static ShapeData buildConvex(unsigned long numPoints) {
-			return build<sf::ConvexShape>(ShapeType::Convex, numPoints);
+		static ShapeGeometry buildCircle(float radius, std::size_t numPoints) {
+			ShapeGeometry g;
+			g.type = ShapeType::Circle;
+			g.radius = radius;
+			g.pointCount = numPoints;
+			return g;
 		}
 
-		static ShapeData buildRectangle(float radNumPoints, float numPoints) {
-			return build<sf::RectangleShape>(ShapeType::Rectangle, sf::Vector2f(radNumPoints, numPoints) );
-		}
-
-	private:
-		template <class ShapeT, class ... Args>
-		static ShapeData build(ShapeType shapeType, Args&& ... args) {
-			return std::make_pair(shapeType, std::unique_ptr<sf::Shape>( new ShapeT(std::forward<Args>(args)...) ));
+		static ShapeGeometry buildConvex(std::size_t numPoints) {
+			ShapeGeometry g;
+			g.type = ShapeType::Convex;
+			g.pointCount = numPoints;
+			g.points.resize(numPoints);
+			return g;
 		}
 	};
 

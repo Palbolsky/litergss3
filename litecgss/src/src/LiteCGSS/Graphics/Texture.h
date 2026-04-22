@@ -11,7 +11,6 @@
 
 namespace cgss {
 	class Rectangle;
-	class Shape;
 	class DisplayWindow;
 	class Image;
 

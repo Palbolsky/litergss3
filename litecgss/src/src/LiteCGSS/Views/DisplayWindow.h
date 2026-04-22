@@ -20,6 +20,7 @@ namespace sf {
 #include "DisplayWindowUserData.h"
 #include "FramedView.h"
 #include "SnapshotCapturable.h"
+#include "LiteCGSS/Graphics/ShapeFwd.h"
 #include "LiteCGSS/Graphics/SpriteFwd.h"
 #include "LiteCGSS/Image/Image.h"
 
@@ -145,7 +146,6 @@ namespace cgss {
 
 	class Text;
 	class Viewport;
-	class Shape;
 
 	template <>
 	struct ViewAuthorizations<DisplayWindow> : public AuthorizedDrawableSet<Sprite, Text, Shape, Viewport, FramedView> {};

@@ -1,74 +1,65 @@
 #ifndef CGSS_SHAPE_H
 #define CGSS_SHAPE_H
+
+#include <cstddef>
 #include <memory>
-#include <SFML/Graphics/Shape.hpp>
-#include <SFML/Graphics/RectangleShape.hpp>
-#include <SFML/Graphics/Texture.hpp>
-#include <SFML/System/Vector2.hpp>
-#include "LiteCGSS/Graphics/Drawable.h"
-#include "LiteCGSS/Graphics/DrawState.h"
-#include "LiteCGSS/Graphics/Transformable.h"
+#include "LiteCGSS/Backend/ActiveBackendFwd.h"
 #include "LiteCGSS/Common/Color.h"
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
-
+#include "LiteCGSS/Common/Point.h"
+#include "LiteCGSS/Graphics/Drawable.h"
+#include "LiteCGSS/Graphics/DrawState.h"
+#include "LiteCGSS/Graphics/ShapeFwd.h"
+#include "LiteCGSS/Graphics/ShapeGeometry.h"
 #include "LiteCGSS/Graphics/TextureFwd.h"
+#include "LiteCGSS/Graphics/Transformable.h"
 
 namespace cgss {
 	class View;
-	class Shape;
 
-	enum class ShapeType {
-		Rectangle,
-		Circle,
-		Convex
-	};
-
-	using ShapeData = std::pair<ShapeType, std::unique_ptr<sf::Shape>>;
-
-	class ShapeItem :
+	template <class B>
+	class basic_ShapeItem :
 		public GraphicsStackItem {
-		friend class Shape;
+		friend class basic_Shape<B>;
 	private:
-		std::unique_ptr<sf::Shape> m_shape;
-		std::shared_ptr<sf::Texture> m_linkedTexture = nullptr;
+		ShapeGeometry m_geometry {};
+		std::shared_ptr<typename B::native_texture> m_linkedTexture = nullptr;
 		Transformable* m_transformable = nullptr;
-		ShapeType m_type = ShapeType::Rectangle;
-		sf::RectangleShape m_defaultShape;
-
 		cgss::DrawState m_renderStates {};
 	public:
-		ShapeItem(Shape* owner, ShapeData shape);
+		basic_ShapeItem(basic_Shape<B>* owner, ShapeGeometry geometry);
 		void draw(cgss::RenderTarget& target) const override;
 		void drawFast(cgss::RenderTarget& target) const override;
 		void updateFromValue(const cgss::IntRect* rectangle) override;
 	};
 
-	class Shape :
-		public Drawable<Shape, ShapeItem>,
+	template <class B>
+	class basic_Shape :
+		public Drawable<basic_Shape<B>, basic_ShapeItem<B>>,
 		public Transformable {
 	public:
-		Shape() = default;
-		Shape(Shape&&) = default;
-		Shape(const Shape&) = delete;
-		Shape& operator=(const Shape&) = delete;
-		Shape& operator=(Shape&&) = default;
-		virtual ~Shape() = default;
+		basic_Shape() = default;
+		basic_Shape(basic_Shape&&) = default;
+		basic_Shape(const basic_Shape&) = delete;
+		basic_Shape& operator=(const basic_Shape&) = delete;
+		basic_Shape& operator=(basic_Shape&&) = default;
+		virtual ~basic_Shape() = default;
 
 		void setRenderState(cgss::DrawState states);
-		void setTexture(Texture* texture, bool resetRect = false);
+		void setTexture(basic_Texture<B>* texture, bool resetRect = false);
 
 		cgss::IntRect getRectangle() const;
 		void setRectangle(cgss::IntRect rectangle);
 
 		std::size_t getPointCount() const;
-		void setPointCount(std::size_t pointCount) const;
+		void setPointCount(std::size_t pointCount);
 
 		float getRadius() const;
 		void setRadius(float radius);
 
-		sf::Vector2f getPoint(const std::size_t index) const;
-		void setPoint(const std::size_t index, float x, float y);
+		cgss::Point getPoint(std::size_t index) const;
+		void setPoint(std::size_t index, float x, float y);
 
 		cgss::Color getFillColor() const;
 		void setFillColor(cgss::Color color);
@@ -77,7 +68,7 @@ namespace cgss {
 		void setOutlineColor(cgss::Color color);
 
 		float getOutlineThickness() const;
-		void setOutlineThickness(float thickness) const;
+		void setOutlineThickness(float thickness);
 
 		long getWidth() const;
 		void setWidth(long width);
@@ -87,8 +78,8 @@ namespace cgss {
 	};
 
 	namespace meta {
-		template<>
-		struct Log<Shape> {
+		template <class B>
+		struct Log<basic_Shape<B>> {
 			static constexpr auto classname = "Shape";
 		};
 	}
