@@ -7,12 +7,12 @@
 #include "LiteCGSS/Backend/ActiveBackendFwd.h"
 #include "LiteCGSS/Common/Color.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
+#include "LiteCGSS/Image/ImageFwd.h"
 #include "Serializers/TextureLoaderSaver.h"
 
 namespace cgss {
 	class Rectangle;
 	class DisplayWindow;
-	class Image;
 
 	using TextureFactorNpot = std::array<double, 2>;
 
@@ -43,7 +43,7 @@ namespace cgss {
 		static basic_Texture create_from_native(typename B::native_texture native);
 
 		void update();
-		void update(const Image& image);
+		void update(const basic_Image<B>& image);
 
 		struct Size { unsigned int x; unsigned int y; };
 		Size getSize() const;

@@ -11,6 +11,8 @@
 
 #include "LiteCGSS/Backend/SFMLBackendFwd.h"
 
+#include <cstdint>
+
 #include <SFML/Graphics/BlendMode.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Color.hpp>
@@ -267,9 +269,27 @@ namespace cgss::backend {
 			i.setPixel(x, y, sf::Color(c.r, c.g, c.b, c.a));
 		}
 
+		static inline cgss::Color image_get_pixel(const native_image& i, unsigned int x, unsigned int y) {
+			const auto c = i.getPixel(x, y);
+			return cgss::Color{ c.r, c.g, c.b, c.a };
+		}
+
 		static inline void image_blit(native_image& dst, unsigned int x, unsigned int y,
-		                              const native_image& src, const cgss::IntRect& srcRect) {
-			dst.copy(src, x, y, sf::IntRect(srcRect.left, srcRect.top, srcRect.width, srcRect.height));
+		                              const native_image& src, const cgss::IntRect& srcRect,
+		                              bool applyAlpha = false) {
+			dst.copy(src, x, y, sf::IntRect(srcRect.left, srcRect.top, srcRect.width, srcRect.height), applyAlpha);
+		}
+
+		static inline const std::uint8_t* get_image_pixels_ptr(const native_image& i) noexcept {
+			return i.getPixelsPtr();
+		}
+
+		static inline void image_create_with_pixels(native_image& i, unsigned int w, unsigned int h, const std::uint8_t* pixels) {
+			i.create(w, h, pixels);
+		}
+
+		static inline void image_create_mask_from_color(native_image& i, cgss::Color color, std::uint8_t alpha) {
+			i.createMaskFromColor(sf::Color(color.r, color.g, color.b, color.a), alpha);
 		}
 	};
 

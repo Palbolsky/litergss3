@@ -87,7 +87,7 @@ void cgss::basic_Texture<B>::update() {
 }
 
 template <class B>
-void cgss::basic_Texture<B>::update(const Image& image) {
+void cgss::basic_Texture<B>::update(const basic_Image<B>& image) {
 	// Explicit copy from the provided cgss::Image's backing native image.
 	B::Ops::copy_image(*m_image, *image.m_image);
 	B::Ops::update_texture_from_image(*m_texture, *m_image);
