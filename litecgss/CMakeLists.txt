@@ -14,7 +14,7 @@ if(CGSS_NO_LOGS)
   set(CMAKE_CXX_FLAGS "-DCGSS_NO_LOGS")
 endif()
 
-project(LiteCGSS_engine CXX)
+project(LiteCGSS_engine CXX C)
 
 if(NOT DEFINED CGSS_WINDOW_PRESERVATION)
   if(ANDROID OR CMAKE_SYSTEM_NAME STREQUAL "Android")
@@ -77,8 +77,84 @@ endif()
 
 set(BUILD_SHARED_LIBS ${OLD_BUILD_SHARED_LIBS})
 
-add_subdirectory(src)
+# ---------------------------------------------------------------------------
+# LiteCGSS_engine target
+#
+#   include/LiteCGSS/**  -> PUBLIC headers propagated to consumers
+#   src/LiteCGSS/**      -> PRIVATE tree (.cpp files + backend-coupled headers
+#                           such as ActiveBackend.h, SFMLBackend.h, ScrollText.h
+#                           and the Internal/ Sf*Conv.h helpers). Not reachable
+#                           from consumer TUs.
+# ---------------------------------------------------------------------------
+
+file(GLOB_RECURSE LITECGSS_PUBLIC_HEADERS CONFIGURE_DEPENDS
+	include/LiteCGSS/*.h
+)
+file(GLOB_RECURSE LITECGSS_PRIVATE_SOURCES CONFIGURE_DEPENDS
+	src/LiteCGSS/*.h
+	src/LiteCGSS/*.cpp
+)
+file(GLOB_RECURSE LITECGSS_VENDORED_SOURCES CONFIGURE_DEPENDS
+	${LITE_CGSS_EXTERNAL}/lodepng/*.cpp
+	${LITE_CGSS_EXTERNAL}/lodepng/*.h
+	${LITE_CGSS_EXTERNAL}/libnsgif/*.c
+	${LITE_CGSS_EXTERNAL}/libnsgif/*.h
+	${LITE_CGSS_EXTERNAL}/libnsgif/*.hpp
+)
+
+# Exclude all per-backend impls from the main glob; we re-add only the
+# matching backend's folder below. This is the "PERMANENT per-backend"
+# bucket — TUs whose impl is fundamentally different across backends
+# (Text/ScrollText, DisplayWindowSnapshot, ViewportTakeSnapshot).
+list(FILTER LITECGSS_PRIVATE_SOURCES EXCLUDE REGEX "/LiteCGSS/Backend/Specializations/")
+file(GLOB_RECURSE LITECGSS_BACKEND_IMPL_SOURCES CONFIGURE_DEPENDS
+	src/LiteCGSS/Backend/Specializations/${CGSS_BACKEND}/*.cpp
+	src/LiteCGSS/Backend/Specializations/${CGSS_BACKEND}/*.h
+)
+
+set(LITECGSS_ALL_SOURCES
+	${LITECGSS_PUBLIC_HEADERS}
+	${LITECGSS_PRIVATE_SOURCES}
+	${LITECGSS_BACKEND_IMPL_SOURCES}
+	${LITECGSS_VENDORED_SOURCES}
+)
+
+generate_source_groups("${LITECGSS_ALL_SOURCES}" "${LITECGSS_ROOT_DIR}")
+
+add_library(LiteCGSS_engine ${LITECGSS_ALL_SOURCES})
+
+set(TARGET_LIBS skalog)
+if(CGSS_BACKEND STREQUAL "sfml")
+	set(TARGET_LIBS ${TARGET_LIBS} sfml-graphics sfml-window sfml-system)
+endif()
+if(LITECGSS_USE_PHYSFS)
+	set(TARGET_LIBS ${TARGET_LIBS} physfs-static)
+	set_property(TARGET physfs-static PROPERTY POSITION_INDEPENDENT_CODE ON)
+endif()
+
+target_link_libraries(LiteCGSS_engine PUBLIC ${TARGET_LIBS})
+
+target_include_directories(LiteCGSS_engine
+	PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/include
+	PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
+	PUBLIC  ${LITE_CGSS_EXTERNAL}/lodepng
+	PUBLIC  ${LITE_CGSS_EXTERNAL}/libnsgif
+	PUBLIC  ${LITE_CGSS_EXTERNAL}/skalog/src/src
+)
+if(LITECGSS_USE_PHYSFS)
+	target_include_directories(LiteCGSS_engine
+		PUBLIC ${FETCHCONTENT_BASE_DIR}/physfs-src/src)
+endif()
+if(CGSS_BACKEND STREQUAL "raylib")
+	# Header-only use of raylib for PR M scope (b): types only, no link.
+	target_include_directories(LiteCGSS_engine PUBLIC ${LITE_CGSS_EXTERNAL}/raylib)
+endif()
+
+if(NOT BUILD_SHARED_LIBS)
+	set_property(TARGET LiteCGSS_engine PROPERTY POSITION_INDEPENDENT_CODE ON)
+endif()
+
 if(NOT LITECGSS_NO_TEST)
-  add_subdirectory(test)
+	add_subdirectory(test)
 endif()
 add_subdirectory(playground)

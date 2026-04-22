@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "Graphics/ZIndex.h"
+#include "LiteCGSS/Graphics/ZIndex.h"
 
 TEST(ZIndexGroup, Init) {
 	{

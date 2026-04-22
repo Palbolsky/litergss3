@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-#include "Common/Bindable.h"
-#include "Common/BondElement.h"
+#include "LiteCGSS/Common/Bindable.h"
+#include "LiteCGSS/Common/BondElement.h"
 
 struct BondTest :
 	public cgss::BondElement<int> {

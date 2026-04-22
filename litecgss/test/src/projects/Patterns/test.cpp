@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-#include "Events/Patterns/EventDispatcher.h"
-#include "Events/Patterns/SubObserver.h"
+#include "LiteCGSS/Events/Patterns/EventDispatcher.h"
+#include "LiteCGSS/Events/Patterns/SubObserver.h"
 
 TEST(ObservableGroup, AddNotify) {
 	int globalValue = 0;

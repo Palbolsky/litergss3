@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "Graphics/Transformable.h"
+#include "LiteCGSS/Graphics/Transformable.h"
 
 static bool CheckFloat(float expected, float value) {
 	return value >= expected - 0.1f && value <= expected + 0.1f;

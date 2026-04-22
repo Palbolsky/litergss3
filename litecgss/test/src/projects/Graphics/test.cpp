@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-#include "Graphics/Drawable.h"
-#include "Common/Rectangle.h"
+#include "LiteCGSS/Graphics/Drawable.h"
+#include "LiteCGSS/Common/Rectangle.h"
 
 struct DrawableTest;
 

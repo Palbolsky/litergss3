@@ -1,11 +1,11 @@
 #include <iostream>
 
-#include "Views/DisplayWindow.h"
-#include "Views/Viewport.h"
-#include "Configuration/DisplayWindowSettings.h"
-#include "Graphics/Sprite.h"
-#include "Graphics/Texture.h"
-#include "Graphics/Serializers/TextureSerializer.h"
+#include "LiteCGSS/Views/DisplayWindow.h"
+#include "LiteCGSS/Views/Viewport.h"
+#include "LiteCGSS/Configuration/DisplayWindowSettings.h"
+#include "LiteCGSS/Graphics/Sprite.h"
+#include "LiteCGSS/Graphics/Texture.h"
+#include "LiteCGSS/Graphics/Serializers/TextureSerializer.h"
 #include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Backend/BackendCommon.h"
 

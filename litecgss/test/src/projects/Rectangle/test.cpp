@@ -1,6 +1,6 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include "Common/Rectangle.h"
+#include "LiteCGSS/Common/Rectangle.h"
 
 struct BindableToRectangle :
 	public cgss::Bindable<cgss::IntRect> {

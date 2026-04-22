@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "Graphics/Serializers/ShapeLoader.h"
+#include "LiteCGSS/Graphics/Serializers/ShapeLoader.h"
 
 TEST(LoaderGroup, Shape) {
 	const auto circleShape = cgss::ShapeLoader::buildCircle(5.4f, 1);

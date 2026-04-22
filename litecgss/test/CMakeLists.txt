@@ -10,10 +10,8 @@ SET(GTEST_INSTALL_DIR ${LITECGSS_ROOT_DIR}/external/gtest)
 # Download and unpack googletest at configure time
 configure_file(${CMAKE_CURRENT_LIST_DIR}/external/CMakeLists.txt.in ${GTEST_INSTALL_DIR}/download/CMakeLists.txt)
 
-include_directories(../src/src/LiteCGSS)
-include_directories(../src/src)
-
-link_directories(../lib)
+include_directories(${LITECGSS_ROOT_DIR}/include)
+include_directories(${LITECGSS_ROOT_DIR}/src)
 
 add_definitions(-DLITE_CGSS_TEST_DIR="${LITECGSS_ROOT_DIR}/test")
 
@@ -36,7 +34,10 @@ ENDMACRO()
 
 SET(ROOT_TEST_SUBDIR "${CMAKE_CURRENT_LIST_DIR}/src/projects")
 SET(MOCKS_DIR "${CMAKE_CURRENT_LIST_DIR}/src/mocks")
-SET(LITECGSS_SRC_DIR ${LITECGSS_ROOT_DIR}/src/src/LiteCGSS)
+# Per-project cmake.conf files reference .cpp via LITECGSS_SRC_DIR and .h
+# via LITECGSS_INCLUDE_DIR to match the public/private split in the engine.
+SET(LITECGSS_SRC_DIR ${LITECGSS_ROOT_DIR}/src/LiteCGSS)
+SET(LITECGSS_INCLUDE_DIR ${LITECGSS_ROOT_DIR}/include/LiteCGSS)
 
 file(GLOB_RECURSE MOCKS_SOURCES
 	${MOCKS_DIR}/*.h
