@@ -71,10 +71,11 @@ cgss::basic_DisplayWindow<B>::~basic_DisplayWindow() {
 	stop();
 }
 
-cgss::DisplayWindowDrawData::DisplayWindowDrawData() = default;
-cgss::DisplayWindowDrawData::~DisplayWindowDrawData() = default;
-cgss::DisplayWindowDrawData::DisplayWindowDrawData(DisplayWindowDrawData&&) noexcept = default;
-cgss::DisplayWindowDrawData& cgss::DisplayWindowDrawData::operator=(DisplayWindowDrawData&&) noexcept = default;
+template <class B> cgss::basic_DisplayWindowDrawData<B>::basic_DisplayWindowDrawData() = default;
+template <class B> cgss::basic_DisplayWindowDrawData<B>::~basic_DisplayWindowDrawData() = default;
+template <class B> cgss::basic_DisplayWindowDrawData<B>::basic_DisplayWindowDrawData(basic_DisplayWindowDrawData&&) noexcept = default;
+template <class B> cgss::basic_DisplayWindowDrawData<B>& cgss::basic_DisplayWindowDrawData<B>::operator=(basic_DisplayWindowDrawData&&) noexcept = default;
+template class cgss::basic_DisplayWindowDrawData<cgss::backend::ActiveBackend>;
 
 template <class B>
 void cgss::basic_DisplayWindow<B>::initUserRender() {
@@ -183,7 +184,7 @@ void cgss::basic_DisplayWindow<B>::onSizeChanged() {
 
 	/* Render resize */
 	if (m_draw.renderTexture != nullptr) {
-		m_draw.renderTexture->create(m_draw.screenWidth, m_draw.screenHeight);
+		B::Ops::render_texture_create(*m_draw.renderTexture, m_draw.screenWidth, m_draw.screenHeight);
 	}
 
 	/* Re-init user drawing surface */
@@ -215,11 +216,9 @@ cgss::RenderTarget cgss::basic_DisplayWindow<B>::configureAndGetRenderTarget(cgs
 
 	// If the m_renderTexture is defined, we use it instead of the m_gameWindow (shader processing)
 	if (m_draw.renderTexture != nullptr) {
-		// Set the default view — m_draw.renderTexture is sf::RenderTexture
-		// (DisplayWindowDrawData not yet templated; see plan §J).
-		m_draw.renderTexture->setView(native_of(defview));
-		// It's not cleard so we perform the clear operation
-		m_draw.renderTexture->clear();
+		// Set the default view + clear via backend ops
+		Ops::render_texture_set_view(*m_draw.renderTexture, native_of(defview));
+		Ops::render_texture_clear(*m_draw.renderTexture);
 		return cgss::RenderTarget{*m_draw.renderTexture.get()};
 	}
 	return cgss::RenderTarget{m_gameWindow};
@@ -292,29 +291,26 @@ void cgss::basic_DisplayWindow<B>::changeEventPolicy(bool polling) {
 
 template <class B>
 void cgss::basic_DisplayWindow<B>::drawBrightness() {
-	const auto size = m_gameWindow.getSize();
-	const auto color = sf::Color(0, 0, 0, 255 - m_draw.brightness);
-	const sf::Vertex vertices[4] = {
-		sf::Vertex { sf::Vector2f(0, 0), color, sf::Vector2f(0, 0) },
-		sf::Vertex { sf::Vector2f(0, static_cast<float>(size.y)), color, sf::Vector2f(0, 0) },
-		sf::Vertex { sf::Vector2f(static_cast<float>(size.x), 0), color, sf::Vector2f(0, 0) },
-		sf::Vertex { sf::Vector2f(static_cast<float>(size.x), static_cast<float>(size.y)), color, sf::Vector2f(0, 0) }
-	};
+	using Ops = typename B::Ops;
+	const auto size = Ops::window_get_size(m_gameWindow);
+	const cgss::Color overlay{ 0, 0, 0, static_cast<std::uint8_t>(255 - m_draw.brightness) };
 	LOG_INFO << "Drawing brightness " << static_cast<int>(m_draw.brightness) << " on window size " << size.x << ", " << size.y;
-	m_gameWindow.draw(vertices, 4, sf::PrimitiveType::TriangleStrip);
+	Ops::window_draw_color_quad(m_gameWindow, 0.f, 0.f,
+		static_cast<float>(size.x), static_cast<float>(size.y), overlay);
 }
 
 template <class B>
 void cgss::basic_DisplayWindow<B>::postProcessing() {
+	using Ops = typename B::Ops;
+	using cgss::backend::native_of;
+
 	// Drawing render to window if finished
 	if (m_draw.renderTexture) {
-		m_draw.renderTexture->display();
-		sf::Sprite sp(m_draw.renderTexture->getTexture());
-		if (m_draw.renderState == nullptr) {
-			m_gameWindow.draw(sp);
-		} else {
-			m_gameWindow.draw(sp, cgss::backend::native_of(*m_draw.renderState));
-		}
+		Ops::render_texture_display(*m_draw.renderTexture);
+		const auto* states = m_draw.renderState == nullptr
+			? nullptr
+			: &native_of(*m_draw.renderState);
+		Ops::window_draw_render_texture(m_gameWindow, *m_draw.renderTexture, states);
 	}
 
 	//Draw the "freeze" texture, if visible
@@ -377,10 +373,11 @@ void cgss::basic_DisplayWindow<B>::setIcon(const cgss::Image& image) {
 
 template <class B>
 void cgss::basic_DisplayWindow<B>::setShader(const cgss::DrawState* renderStates) {
+	using Ops = typename B::Ops;
 	m_draw.renderState = renderStates;
 	if (m_draw.renderTexture == nullptr && m_draw.renderState != nullptr) {
-		m_draw.renderTexture = std::make_unique<sf::RenderTexture>();
-		m_draw.renderTexture->create(m_draw.screenWidth, m_draw.screenHeight);
+		m_draw.renderTexture = std::make_unique<typename B::native_render_texture>();
+		Ops::render_texture_create(*m_draw.renderTexture, m_draw.screenWidth, m_draw.screenHeight);
 	}
 }
 

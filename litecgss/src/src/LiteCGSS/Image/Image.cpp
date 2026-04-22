@@ -1,6 +1,9 @@
 #include "Image.h"
 
+#include <type_traits>
+
 #include "LiteCGSS/Backend/ActiveBackend.h"
+#include "LiteCGSS/Backend/SFMLBackendFwd.h"
 #include "LiteCGSS/Common/Rectangle.h"
 #include "Serializers/ImageSerializer.h"
 
@@ -33,15 +36,20 @@ cgss::basic_Image<B>& cgss::basic_Image<B>::operator=(basic_Image&& image) noexc
 template <class B>
 cgss::basic_Image<B> cgss::basic_Image<B>::create(const std::string& filename) {
 	auto image = basic_Image{};
-	ImageFileSerializeMethod::load(*image.m_image, filename);
+	// SerializeMethod is SFML-typed (PR K's deferred half).
+	if constexpr (std::is_same_v<B, cgss::backend::SFMLBackend>) {
+		ImageFileSerializeMethod::load(*image.m_image, filename);
+	}
 	return image;
 }
 
 template <class B>
 cgss::basic_Image<B> cgss::basic_Image<B>::create(const char* rawMemory, std::size_t rawMemorySize) {
 	auto image = basic_Image{};
-	const MemorySerializerData data { reinterpret_cast<unsigned char*>(const_cast<char*>(rawMemory)), rawMemorySize };
-	ImageMemorySerializeMethod::load(*image.m_image, data);
+	if constexpr (std::is_same_v<B, cgss::backend::SFMLBackend>) {
+		const MemorySerializerData data { reinterpret_cast<unsigned char*>(const_cast<char*>(rawMemory)), rawMemorySize };
+		ImageMemorySerializeMethod::load(*image.m_image, data);
+	}
 	return image;
 }
 

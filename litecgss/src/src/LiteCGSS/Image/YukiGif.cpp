@@ -1,3 +1,8 @@
+// YukiGif's draw/update path bulk-uploads gif pixels via sf::Texture::update
+// directly. Templating the pixel-update op + native_texture creation flow
+// is deferred; guard the TU so non-SFML backends compile.
+#ifdef CGSS_BACKEND_SFML
+
 /* Include cstddef first, otherwise libnsgif.hpp won't "compile" */
 #include <cstddef>
 #include <libnsgif.hpp>
@@ -100,3 +105,5 @@ void cgss::YukiGif::setFrame(unsigned long frame) {
 unsigned long cgss::YukiGif::frameCount() const {
 	return m_gif->frame_count;
 }
+
+#endif  // CGSS_BACKEND_SFML

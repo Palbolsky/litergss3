@@ -1,3 +1,12 @@
+// SpriteMap's body is SFML-coupled (uses sf::Sprite::setTexture/setPosition/
+// setOrigin/setScale/setTextureRect on a vector of unique_ptr<sf::Sprite>;
+// draws via target.draw(*sf::Sprite)). Templating it would require ~10
+// new sprite-related backend ops + restructuring m_sprites' inner type.
+// For now the whole TU is guarded so non-SFML backends compile (engine .a
+// has no SpriteMap symbols under raylib — link errors only if downstream
+// binaries call SpriteMap methods).
+#ifdef CGSS_BACKEND_SFML
+
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Texture.hpp>
@@ -98,3 +107,5 @@ void cgss::SpriteMap::setTileScale(float scale) {
 		sprite.sprite->setScale(scale, scale);
 	}
 }
+
+#endif  // CGSS_BACKEND_SFML

@@ -1,3 +1,8 @@
+// FontLoader's body uses sf::Font::loadFromFile / loadFromMemory directly.
+// Templating it (and the matching backend op family) is out of scope for
+// the current PR M continuation; guard the TU so non-SFML backends compile.
+#ifdef CGSS_BACKEND_SFML
+
 #include <iostream>
 #include <memory>
 #include <SFML/Graphics/Font.hpp>
@@ -26,3 +31,5 @@ bool cgss::FontLoaderMethod::load(cgss::Font& font, const std::string& filename)
 	return raw.loadFromFile(filename.c_str());
 #endif
 }
+
+#endif  // CGSS_BACKEND_SFML

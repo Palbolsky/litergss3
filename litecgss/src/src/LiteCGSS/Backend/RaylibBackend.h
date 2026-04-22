@@ -85,11 +85,17 @@ namespace cgss::backend {
 		static inline bool window_wait_event(native_window&, native_event&) { return false; }
 		static inline Size2u desktop_size() noexcept { return {}; }
 		static inline void window_set_icon(native_window&, unsigned int, unsigned int, const std::uint8_t*) {}
+		static inline void window_draw_render_texture(native_window&, const native_render_texture&, const native_render_states*) {}
+		static inline void window_draw_color_quad(native_window&, float, float, float, float, cgss::Color) {}
 
 		// ---- Render texture ops (stubs) ----
 		static inline bool render_texture_create(native_render_texture&, unsigned int, unsigned int) { return false; }
 		static inline void render_texture_set_smooth(native_render_texture&, bool) {}
 		static inline const native_texture& render_texture_get_texture(const native_render_texture& rt) { return rt.texture; }
+		static inline void render_texture_set_view(native_render_texture&, const native_view&) {}
+		static inline void render_texture_display(native_render_texture&) {}
+		static inline void render_texture_clear(native_render_texture&) {}
+		static inline void render_texture_clear_color(native_render_texture&, cgss::Color) {}
 
 		// ---- View ops (stubs) ----
 		// raylib's Camera2D models offset/target/rotation/zoom (transform-
@@ -129,6 +135,7 @@ namespace cgss::backend {
 		static inline cgss::IntRect get_sprite_texture_rect(const native_sprite&) noexcept { return {}; }
 		static inline void set_sprite_texture_rect(native_sprite&, const cgss::IntRect&) noexcept {}
 		static inline void set_sprite_texture(native_sprite&, const native_texture&, bool) noexcept {}
+		static inline void sprite_set_position(native_sprite&, float, float) noexcept {}
 		static inline Size2u get_sprite_bound_texture_size(const native_sprite&) noexcept { return { 0u, 0u }; }
 
 		// ---- Shape ops (stubs) ----

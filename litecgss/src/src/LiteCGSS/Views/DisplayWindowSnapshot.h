@@ -13,6 +13,23 @@ namespace sf {
 }
 
 namespace cgss {
+
+	// No-op snapshot for backends that don't yet have an snapshot impl
+	// (currently raylib). Methods accept any window type via templates so
+	// the same call sites in basic_DisplayWindow<B> compile under either
+	// backend; under non-SFML the calls just no-op.
+	template <class DisplayWindowT>
+	class StubDisplayWindowSnapshot {
+	public:
+		StubDisplayWindowSnapshot(DisplayWindowT&) {}
+		void init() {}
+		void stop() {}
+		template <class W> std::unique_ptr<cgss::Texture> takeSnapshot(const W&) const { return nullptr; }
+		template <class W> void freeze(const W&) {}
+		void transition(long, cgss::Texture* = nullptr) {}
+		template <class W> void draw(W&) {}
+	};
+
 	class DisplayWindowSnapshot {
 	public:
 		DisplayWindowSnapshot(DisplayWindow& window);

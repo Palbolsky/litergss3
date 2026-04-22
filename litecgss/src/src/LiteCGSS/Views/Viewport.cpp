@@ -53,17 +53,17 @@ void cgss::ViewportItem::draw(cgss::RenderTarget& target) const {
 		scaleRenderSpriteToViewport();
 
 		// Clear it
-		m_windowData.userRenderTexture->clear(sf::Color::Transparent);
+		Ops::render_texture_clear_color(*m_windowData.userRenderTexture, cgss::Colors::Transparent);
 
 		// Drawing sprites
 		drawables().drawFast(userRenderTarget);
-		m_windowData.userRenderTexture->display();
+		Ops::render_texture_display(*m_windowData.userRenderTexture);
 
 		// Reset the target view
 		setupFullWindowView(target);
 
 		// Draw the result
-		native_of(target).draw(*m_windowData.userRenderSprite, native_of(*renderStates));
+		Ops::draw_sprite(native_of(target), *m_windowData.userRenderSprite, native_of(*renderStates));
 	} else {
 		ViewBox::onRenderTarget(target, false);
 		drawables().drawFast(target);
@@ -73,6 +73,12 @@ void cgss::ViewportItem::draw(cgss::RenderTarget& target) const {
 }
 
 std::unique_ptr<cgss::Texture> cgss::ViewportItem::takeSnapshot() const {
+#ifdef CGSS_BACKEND_SFML
+	// Snapshot uses local `sf::RenderTexture` + `sf::Sprite` to render the
+	// viewport's contents into an off-screen target and then wrap that
+	// resulting native texture as a cgss::Texture. The whole choreography
+	// is SFML-shaped — non-SFML backends would need a different impl
+	// (raylib's BeginTextureMode/EndTextureMode pattern).
 	using Ops = cgss::backend::ActiveBackend::Ops;
 	using cgss::backend::native_of;
 
@@ -108,6 +114,9 @@ std::unique_ptr<cgss::Texture> cgss::ViewportItem::takeSnapshot() const {
 	}
 
 	return std::make_unique<cgss::Texture>(cgss::Texture::create_from_native(sf::Texture(render.getTexture())));
+#else
+	return nullptr;
+#endif
 }
 
 void cgss::ViewportItem::setupFullWindowView(cgss::RenderTarget& target) const {
@@ -166,10 +175,12 @@ void cgss::ViewportItem::updateFromValue(const RenderStatesData* renderStatesDat
 }
 
 void cgss::ViewportItem::scaleRenderSpriteToViewport() const {
+	using Ops = cgss::backend::ActiveBackend::Ops;
 	assert (m_windowData.userRenderSprite != nullptr);
 	const auto viewportBox = getViewportBox();
-	m_windowData.userRenderSprite->setTextureRect(cgss::internal::toSf(viewportBox));
-	m_windowData.userRenderSprite->setPosition(viewportBox.left, viewportBox.top);
+	Ops::set_sprite_texture_rect(*m_windowData.userRenderSprite, viewportBox);
+	Ops::sprite_set_position(*m_windowData.userRenderSprite,
+		static_cast<float>(viewportBox.left), static_cast<float>(viewportBox.top));
 }
 
 void cgss::ViewportItem::updateFromValue(const cgss::IntRect* rectanglePtr) {

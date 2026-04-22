@@ -1,3 +1,11 @@
+// Text.cpp is intentionally SFML-coupled — it builds on ScrollText (a copy
+// of sf::Text vendored into the project). Per existing project policy
+// (memory: SFML isolation effort), ScrollText/Text stay SFML-only and
+// would need a wholly different impl under any non-SFML backend (raylib's
+// font/text rendering uses LoadFontFromMemory + DrawTextEx). The whole
+// TU is guarded so non-SFML backends compile.
+#ifdef CGSS_BACKEND_SFML
+
 #include <cmath>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/String.hpp>
@@ -209,3 +217,5 @@ void cgss::Text::setFont(const cgss::Font& font) {
 	LOG_INFO << "Set font (family = " << cgss::backend::native_of(font).getInfo().family << ")";
 	m_proxy->m_text.setFont(cgss::backend::native_of(font));
 }
+
+#endif  // CGSS_BACKEND_SFML

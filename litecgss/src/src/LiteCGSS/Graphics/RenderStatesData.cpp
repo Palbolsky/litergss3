@@ -1,3 +1,12 @@
+// RenderStatesData's body is SFML-coupled (uses sf::Shader::isAvailable,
+// sf::Shader::loadFromMemory, sf::Shader::setUniform with various types,
+// plus direct field access on sf::RenderStates members). Templating the
+// class would require 15-20 new shader-related backend ops; for now the
+// whole TU is guarded so non-SFML backends compile (the engine library
+// .a will simply contain no symbols for these methods — link errors only
+// surface if a downstream binary actually calls them).
+#ifdef CGSS_BACKEND_SFML
+
 #include <sstream>
 #include <fstream>
 #include <iostream>
@@ -272,3 +281,5 @@ bool cgss::RenderStatesData::enabledShader() const {
 const cgss::DrawState& cgss::RenderStatesData::getRenderStates() const {
 	return m_drawState;
 }
+
+#endif  // CGSS_BACKEND_SFML

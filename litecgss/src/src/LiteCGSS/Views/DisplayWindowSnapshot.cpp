@@ -1,3 +1,10 @@
+// DisplayWindowSnapshot is the SFML-only implementation of the snapshot/freeze/
+// transition machinery — under non-SFML backends, the header provides
+// `StubDisplayWindowSnapshot<...>` (a no-op) which DisplayWindow.h selects via
+// std::conditional_t. The whole TU body is therefore guarded so it doesn't
+// attempt to compile sf:: code paths under other backends.
+#ifdef CGSS_BACKEND_SFML
+
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/RenderTexture.hpp>
 #include <SFML/Graphics/Sprite.hpp>
@@ -133,3 +140,5 @@ void cgss::DisplayWindowSnapshot::draw(sf::RenderWindow& window) {
 		}
 	}
 }
+
+#endif  // CGSS_BACKEND_SFML

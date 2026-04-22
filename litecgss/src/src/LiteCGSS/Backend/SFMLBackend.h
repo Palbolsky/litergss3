@@ -202,6 +202,33 @@ namespace cgss::backend {
 		static inline void window_set_icon(native_window& w, unsigned int width, unsigned int height, const std::uint8_t* pixels) {
 			w.setIcon(width, height, pixels);
 		}
+		// Draws the render texture's color buffer onto the window (used by
+		// post-processing). Encapsulates the SFML-specific local-sprite
+		// construction so the wrapper body stays backend-portable.
+		static inline void window_draw_render_texture(native_window& w,
+		                                              const native_render_texture& rt,
+		                                              const native_render_states* states) {
+			sf::Sprite sp(rt.getTexture());
+			if (states == nullptr) {
+				w.draw(sp);
+			} else {
+				w.draw(sp, *states);
+			}
+		}
+		// Draws a single solid-color quad covering the given rect on the
+		// window (used by the brightness overlay).
+		static inline void window_draw_color_quad(native_window& w,
+		                                          float x, float y, float width, float height,
+		                                          cgss::Color color) {
+			const auto sfColor = sf::Color(color.r, color.g, color.b, color.a);
+			const sf::Vertex vertices[4] = {
+				sf::Vertex { sf::Vector2f(x,         y),          sfColor, sf::Vector2f(0, 0) },
+				sf::Vertex { sf::Vector2f(x,         y + height), sfColor, sf::Vector2f(0, 0) },
+				sf::Vertex { sf::Vector2f(x + width, y),          sfColor, sf::Vector2f(0, 0) },
+				sf::Vertex { sf::Vector2f(x + width, y + height), sfColor, sf::Vector2f(0, 0) },
+			};
+			w.draw(vertices, 4, sf::PrimitiveType::TriangleStrip);
+		}
 
 		// ---- Render texture ops ----
 		static inline bool render_texture_create(native_render_texture& rt, unsigned int w, unsigned int h) {
@@ -212,6 +239,18 @@ namespace cgss::backend {
 		}
 		static inline const native_texture& render_texture_get_texture(const native_render_texture& rt) {
 			return rt.getTexture();
+		}
+		static inline void render_texture_set_view(native_render_texture& rt, const native_view& v) {
+			rt.setView(v);
+		}
+		static inline void render_texture_display(native_render_texture& rt) {
+			rt.display();
+		}
+		static inline void render_texture_clear(native_render_texture& rt) {
+			rt.clear();
+		}
+		static inline void render_texture_clear_color(native_render_texture& rt, cgss::Color c) {
+			rt.clear(sf::Color(c.r, c.g, c.b, c.a));
 		}
 
 		// ---- View ops ----
@@ -353,6 +392,13 @@ namespace cgss::backend {
 
 		static inline void set_sprite_texture(native_sprite& s, const native_texture& t, bool resetRect) {
 			s.setTexture(t, resetRect);
+		}
+
+		// Position used for raw sprite-handle drawing (e.g., the per-window
+		// user-render sprite owned by DisplayWindow). cgss::Sprite stores its
+		// own position in cgss::Transformable; this is for native handles.
+		static inline void sprite_set_position(native_sprite& s, float x, float y) {
+			s.setPosition(x, y);
 		}
 
 		// Returns the texture's size if a texture is bound, else {0, 0}.

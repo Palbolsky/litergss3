@@ -4,8 +4,10 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <type_traits>
 
 #include "LiteCGSS/Backend/ActiveBackendFwd.h"
+#include "LiteCGSS/Backend/SFMLBackendFwd.h"
 #include "LiteCGSS/Events/Event.h"
 #include "View.h"
 #include "ViewAuthorizations.h"
@@ -136,7 +138,15 @@ namespace cgss {
 			must come before m_gameWindow so it is constructed first. */
 		std::unique_ptr<typename B::native_window> m_ownedGameWindow;
 		typename B::native_window& m_gameWindow;
-		DisplayWindowSnapshot m_snapshot;
+		// Snapshot is SFML-coupled (uses sf::Sprite + RenderStates which holds
+		// sf::Shader). For non-SFML backends, swap to a no-op stub via
+		// std::conditional_t — same call sites in the .cpp body work for
+		// either branch.
+		using SnapshotImpl = std::conditional_t<
+			std::is_same_v<B, cgss::backend::SFMLBackend>,
+			DisplayWindowSnapshot,
+			StubDisplayWindowSnapshot<basic_DisplayWindow<B>>>;
+		SnapshotImpl m_snapshot;
 		DisplayWindowDrawData m_draw;
 
 		std::mutex m_pendingReloadMutex;

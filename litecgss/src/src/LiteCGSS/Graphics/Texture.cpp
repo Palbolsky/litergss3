@@ -1,6 +1,9 @@
 #include "Texture.h"
 
+#include <type_traits>
+
 #include "LiteCGSS/Backend/ActiveBackend.h"
+#include "LiteCGSS/Backend/SFMLBackendFwd.h"
 #include "LiteCGSS/Common/Rectangle.h"
 #include "LiteCGSS/Graphics/Serializers/TextureSerializer.h"
 #include "LiteCGSS/Image/Image.h"
@@ -44,14 +47,20 @@ template <class B>
 cgss::basic_Texture<B> cgss::basic_Texture<B>::create(const DisplayWindow& window, const std::string& filename) {
 	auto result = basic_Texture{};
 	B::Ops::set_smooth(*result.m_texture, window.smoothScreen());
-	TextureFileSerializeMethod::load(*result.m_texture, filename, *result.m_image);
+	// SerializeMethod is SFML-typed; templating it (PR K's deferred half) is
+	// out of scope here, so the file-load path is gated on the SFML backend.
+	if constexpr (std::is_same_v<B, cgss::backend::SFMLBackend>) {
+		TextureFileSerializeMethod::load(*result.m_texture, filename, *result.m_image);
+	}
 	return result;
 }
 
 template <class B>
 cgss::basic_Texture<B> cgss::basic_Texture<B>::create(const std::string& filename) {
 	auto result = basic_Texture{};
-	TextureFileSerializeMethod::load(*result.m_texture, filename, *result.m_image);
+	if constexpr (std::is_same_v<B, cgss::backend::SFMLBackend>) {
+		TextureFileSerializeMethod::load(*result.m_texture, filename, *result.m_image);
+	}
 	return result;
 }
 

@@ -1,3 +1,12 @@
+// FramedView's body is SFML-coupled — it directly manipulates sf::Sprite
+// (m_pause/m_cursor), sf::VertexArray (m_vertices for the 9-slice skin),
+// and the bulk of the file (~700 lines) is SFML-typed geometry/rendering
+// code. Templating it would require ~30 new vertex/sprite ops plus
+// careful refactor of updateVertices. For now the whole TU is guarded
+// so non-SFML backends compile (engine .a has no FramedView symbols
+// under raylib — link errors only if downstream binaries call them).
+#ifdef CGSS_BACKEND_SFML
+
 #include <cstring>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/Sprite.hpp>
@@ -961,3 +970,5 @@ void cgss::FramedView::setBackOpacity(uint8_t backOpacity) {
 std::uint8_t cgss::FramedView::getBackOpacity() const {
 	return m_proxy->getBackOpacity();
 }
+
+#endif  // CGSS_BACKEND_SFML
