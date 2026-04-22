@@ -3,7 +3,7 @@
 
 // Backend-agnostic GLSL uniform value types. Layouts are chosen to be
 // structurally compatible with sf::Glsl::* counterparts so that conversion
-// at the backend boundary (see Graphics/Internal/SfShaderConv.h) is trivial.
+// at the backend boundary (see Backend/Internal/SFMLConversions.h) is trivial.
 // No SFML dependency.
 namespace cgss {
 namespace Glsl {

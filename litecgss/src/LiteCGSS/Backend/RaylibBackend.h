@@ -63,15 +63,18 @@ namespace cgss::backend {
 			return Transform2D{ xf.getX(), xf.getY(), xf.getOx(), xf.getOy(), xf.getAngle(), xf.getScaleX(), xf.getScaleY() };
 		}
 
-		// ---- Window ops (stubs) ----
+		// ---- Window ops with raylib global-function equivalents ----
 		// raylib uses GLOBAL window state (InitWindow / CloseWindow / etc.) — the
-		// `raylib::Window` placeholder is empty. A real impl would call
-		// raylib's free functions and ignore the placeholder arg.
+		// `raylib::Window` placeholder is empty. A real impl would call raylib's
+		// free functions (CloseWindow / WindowShouldClose / BeginDrawing+
+		// ClearBackground / EndDrawing / SetWindowTitle / SetWindowSize /
+		// GetScreenWidth+Height / HideCursor+ShowCursor / SetConfigFlags pre-init /
+		// SetTargetFPS / SetWindowPosition / GetWindowPosition / SetWindowIcon /
+		// InitWindow / GetMonitorWidth+Height) and ignore the placeholder arg.
 		static inline void window_close(native_window&) {}
 		static inline bool window_is_open(const native_window&) { return false; }
 		static inline void window_clear(native_window&) {}
 		static inline void window_display(native_window&) {}
-		static inline void window_set_active(native_window&, bool) {}
 		static inline void window_set_title(native_window&, const char*) {}
 		static inline void window_set_size(native_window&, unsigned int, unsigned int) {}
 		static inline Size2u window_get_size(const native_window&) noexcept { return {}; }
@@ -80,15 +83,23 @@ namespace cgss::backend {
 		static inline void window_set_framerate_limit(native_window&, unsigned int) {}
 		static inline void window_set_position(native_window&, int, int) {}
 		static inline Point2i window_get_position(const native_window&) noexcept { return {}; }
+		static inline Size2u desktop_size() noexcept { return {}; }
+		static inline void window_set_icon(native_window&, unsigned int, unsigned int, const std::uint8_t*) {}
+
+		// ---- Instance-only window ops (SFML model only) ----
+		// raylib has no equivalent concept: context-activate, per-event pump
+		// (raylib polls inputs internally via IsKeyPressed / GetGesture), and
+		// window-embedded views (raylib routes views through render-targets).
+		// Kept as no-op stubs for BackendConcept symmetry; callers must gate
+		// on `RaylibBackend::window_is_stateful` (= false) and avoid these.
+		static inline void window_set_active(native_window&, bool) {}
+		static inline bool window_poll_event(native_window&, native_event&) { return false; }
+		static inline bool window_wait_event(native_window&, native_event&) { return false; }
 		static inline native_view window_get_default_view(const native_window&) { return {}; }
 		static inline void window_set_view(native_window&, const native_view&) {}
 		static inline cgss::DisplayWindowContextSettings window_get_settings(const native_window&) {
 			return {};
 		}
-		static inline bool window_poll_event(native_window&, native_event&) { return false; }
-		static inline bool window_wait_event(native_window&, native_event&) { return false; }
-		static inline Size2u desktop_size() noexcept { return {}; }
-		static inline void window_set_icon(native_window&, unsigned int, unsigned int, const std::uint8_t*) {}
 		// Stub: a real raylib impl would call SetConfigFlags() then InitWindow()
 		// (or no-op if a window is already initialised — raylib uses global
 		// window state, so this op effectively redirects to that singleton).

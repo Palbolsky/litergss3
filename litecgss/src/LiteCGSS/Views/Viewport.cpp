@@ -7,7 +7,6 @@
 #include "LiteCGSS/Views/Viewport.h"
 #include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Rectangle.h"
-#include "LiteCGSS/Common/Internal/SfRectConv.h"
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
 #include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Views/LoggerViews.h"

@@ -51,7 +51,8 @@ void cgss::DisplayWindowSnapshot::init() {
 	}
 }
 
-void cgss::DisplayWindowSnapshot::freeze(const sf::RenderWindow& window) {
+template <class W>
+void cgss::DisplayWindowSnapshot::freeze(const W& window) {
 	if (m_freezeTexture != nullptr) {
 		return;
 	}
@@ -62,7 +63,8 @@ void cgss::DisplayWindowSnapshot::freeze(const sf::RenderWindow& window) {
 	m_freezeSprite->setScale(1.0f / static_cast<float>(m_window.scale()), 1.0f / static_cast<float>(m_window.scale()));
 }
 
-void cgss::DisplayWindowSnapshot::takeSnapshotOn(const sf::RenderWindow& window, sf::Texture& text) const {
+template <class W>
+void cgss::DisplayWindowSnapshot::takeSnapshotOn(const W& window, sf::Texture& text) const {
 	sf::Vector2u sc_sz = window.getSize();
 	int x = 0;
 	int y = 0;
@@ -121,7 +123,8 @@ void cgss::DisplayWindowSnapshot::transition(long time, Texture* texture) {
 	m_freezeTexture = nullptr;
 }
 
-std::unique_ptr<cgss::Texture> cgss::DisplayWindowSnapshot::takeSnapshot(const sf::RenderWindow& window) const {
+template <class W>
+std::unique_ptr<cgss::Texture> cgss::DisplayWindowSnapshot::takeSnapshot(const W& window) const {
 	sf::Texture raw;
 	takeSnapshotOn(window, raw);
 	return std::make_unique<cgss::Texture>(cgss::Texture::create_from_native(std::move(raw)));
@@ -134,7 +137,8 @@ void cgss::DisplayWindowSnapshot::stop() {
 	m_freezeShader = {};
 }
 
-void cgss::DisplayWindowSnapshot::draw(sf::RenderWindow& window) {
+template <class W>
+void cgss::DisplayWindowSnapshot::draw(W& window) {
 	// Display transition sprite
 	if (m_freezeSprite != nullptr) {
 		if (m_rgssTransition) {
@@ -144,3 +148,11 @@ void cgss::DisplayWindowSnapshot::draw(sf::RenderWindow& window) {
 		}
 	}
 }
+
+// Explicit instantiation for the SFML backend's native window type. Other
+// backends instantiate StubDisplayWindowSnapshot instead (selected via
+// std::conditional_t in basic_DisplayWindow<B>).
+template std::unique_ptr<cgss::Texture>
+    cgss::DisplayWindowSnapshot::takeSnapshot<sf::RenderWindow>(const sf::RenderWindow&) const;
+template void cgss::DisplayWindowSnapshot::freeze<sf::RenderWindow>(const sf::RenderWindow&);
+template void cgss::DisplayWindowSnapshot::draw<sf::RenderWindow>(sf::RenderWindow&);

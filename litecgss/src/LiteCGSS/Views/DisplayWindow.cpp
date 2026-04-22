@@ -9,7 +9,6 @@
 #include <SFML/Window/Event.hpp>
 #include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
-#include "LiteCGSS/Configuration/Internal/SfContextSettingsConv.h"
 #include "LiteCGSS/Views/LoggerViews.h"
 
 // All bodies below are SFML-coupled: they call sf::RenderWindow / RenderTexture

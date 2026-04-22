@@ -5,7 +5,7 @@ namespace cgss {
 
 	// Backend-agnostic integer rectangle. Structurally equivalent to sf::IntRect
 	// (same field names, same types, same order) so that backend adapters can
-	// convert cheaply at .cpp boundaries — see Common/Internal/SfRectConv.h.
+	// convert cheaply at .cpp boundaries — see Backend/Internal/SFMLConversions.h.
 	struct IntRect {
 		int left = 0;
 		int top = 0;

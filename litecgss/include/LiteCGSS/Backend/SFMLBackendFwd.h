@@ -54,6 +54,15 @@ namespace cgss::backend {
 		// `StubDisplayWindowSnapshot<...>` otherwise. Tag-based dispatch keeps
 		// public headers from having to name individual backends.
 		static constexpr bool has_snapshot    = true;
+		// True when `native_window` is a real instance that owns per-window
+		// state (close/clear/display/poll route through the instance). False
+		// for backends whose window is a global singleton (raylib:
+		// InitWindow/CloseWindow are free functions, `native_window` is a
+		// placeholder). Callers that reach for instance-only ops
+		// (window_set_active, window_poll_event, window_wait_event,
+		// window_get_default_view, window_set_view, window_get_settings)
+		// should gate on this tag.
+		static constexpr bool window_is_stateful = true;
 
 		// All inline thunks live on the nested Ops struct, defined in
 		// SFMLBackend.h. Forward-declared here so wrappers can name

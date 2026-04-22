@@ -7,7 +7,6 @@
 #include "LiteCGSS/Views/DisplayWindowFwd.h"
 
 namespace sf {
-	class RenderWindow;
 	class Sprite;
 	class Texture;
 }
@@ -40,14 +39,14 @@ namespace cgss {
 		DisplayWindowSnapshot& operator=(DisplayWindowSnapshot&&) = delete;
 		DisplayWindowSnapshot(const DisplayWindowSnapshot&) = delete;
 		DisplayWindowSnapshot& operator=(const DisplayWindowSnapshot&) = delete;
-		std::unique_ptr<cgss::Texture> takeSnapshot(const sf::RenderWindow& window) const;
-		void freeze(const sf::RenderWindow& window);
+		template <class W> std::unique_ptr<cgss::Texture> takeSnapshot(const W& window) const;
+		template <class W> void freeze(const W& window);
 		void transition(long time, Texture* texture = nullptr);
 		void stop();
-		void draw(sf::RenderWindow& window);
+		template <class W> void draw(W& window);
 		void init();
 	private:
-		void takeSnapshotOn(const sf::RenderWindow& window, sf::Texture& text) const;
+		template <class W> void takeSnapshotOn(const W& window, sf::Texture& text) const;
 		void transitionBasic(long time);
 		void transitionRGSS(long time, const Texture& bitmap);
 

@@ -36,6 +36,7 @@
 #include <SFML/Window/ContextSettings.hpp>
 #include <SFML/Window/Event.hpp>
 
+#include "LiteCGSS/Backend/Internal/SFMLConversions.h"
 #include "LiteCGSS/Common/Color.h"
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Configuration/DisplayWindowContextSettings.h"
@@ -53,73 +54,13 @@ namespace cgss::backend {
 	// compiler can inline it through the wrapper template at the use site.
 	struct SFMLBackend::Ops {
 
-		// ---- Value conversions ----
-		// IntRect
-		static inline sf::IntRect toNative(const cgss::IntRect& r) noexcept {
-			return sf::IntRect(r.left, r.top, r.width, r.height);
-		}
-		static inline cgss::IntRect fromNative(const sf::IntRect& r) noexcept {
-			return cgss::IntRect{ r.left, r.top, r.width, r.height };
-		}
-
-		// Color
-		static inline sf::Color toNative(const cgss::Color& c) noexcept {
-			return sf::Color(c.r, c.g, c.b, c.a);
-		}
-		static inline cgss::Color fromNative(const sf::Color& c) noexcept {
-			return cgss::Color{ c.r, c.g, c.b, c.a };
-		}
-
-		// Blend enums (numeric values match by construction)
-		static inline sf::BlendMode::Factor   toNative(cgss::BlendFactor f)    noexcept { return static_cast<sf::BlendMode::Factor>(f); }
-		static inline sf::BlendMode::Equation toNative(cgss::BlendEquation e)  noexcept { return static_cast<sf::BlendMode::Equation>(e); }
-		static inline cgss::BlendFactor       fromNative(sf::BlendMode::Factor f)   noexcept { return static_cast<cgss::BlendFactor>(f); }
-		static inline cgss::BlendEquation     fromNative(sf::BlendMode::Equation e) noexcept { return static_cast<cgss::BlendEquation>(e); }
-
-		// Shader stage
-		static inline sf::Shader::Type toNative(cgss::ShaderType t) noexcept {
-			return static_cast<sf::Shader::Type>(t);
-		}
-
-		// GLSL uniform values
-		static inline sf::Glsl::Vec2 toNative(const cgss::Glsl::Vec2& v) noexcept { return sf::Glsl::Vec2(v.x, v.y); }
-		static inline sf::Glsl::Vec3 toNative(const cgss::Glsl::Vec3& v) noexcept { return sf::Glsl::Vec3(v.x, v.y, v.z); }
-		static inline sf::Glsl::Vec4 toNative(const cgss::Glsl::Vec4& v) noexcept { return sf::Glsl::Vec4(v.x, v.y, v.z, v.w); }
-
-		static inline sf::Glsl::Ivec2 toNative(const cgss::Glsl::Ivec2& v) noexcept { return sf::Glsl::Ivec2(v.x, v.y); }
-		static inline sf::Glsl::Ivec3 toNative(const cgss::Glsl::Ivec3& v) noexcept { return sf::Glsl::Ivec3(v.x, v.y, v.z); }
-		static inline sf::Glsl::Ivec4 toNative(const cgss::Glsl::Ivec4& v) noexcept { return sf::Glsl::Ivec4(v.x, v.y, v.z, v.w); }
-
-		static inline sf::Glsl::Bvec2 toNative(const cgss::Glsl::Bvec2& v) noexcept { return sf::Glsl::Bvec2(v.x, v.y); }
-		static inline sf::Glsl::Bvec3 toNative(const cgss::Glsl::Bvec3& v) noexcept { return sf::Glsl::Bvec3(v.x, v.y, v.z); }
-		static inline sf::Glsl::Bvec4 toNative(const cgss::Glsl::Bvec4& v) noexcept { return sf::Glsl::Bvec4(v.x, v.y, v.z, v.w); }
-
-		static inline sf::Glsl::Mat3 toNative(const cgss::Glsl::Mat3& m) noexcept { return sf::Glsl::Mat3(m.array); }
-		static inline sf::Glsl::Mat4 toNative(const cgss::Glsl::Mat4& m) noexcept { return sf::Glsl::Mat4(m.array); }
-
-		// Context settings
-		static inline sf::ContextSettings toNative(const cgss::DisplayWindowContextSettings& c) noexcept {
-			return sf::ContextSettings(
-				c.depthBits,
-				c.stencilBits,
-				c.antialiasingLevel,
-				c.majorVersion,
-				c.minorVersion,
-				c.attributeFlags,
-				c.sRgbCapable
-			);
-		}
-		static inline cgss::DisplayWindowContextSettings fromNative(const sf::ContextSettings& c) noexcept {
-			return cgss::DisplayWindowContextSettings{
-				c.depthBits,
-				c.stencilBits,
-				c.antialiasingLevel,
-				c.majorVersion,
-				c.minorVersion,
-				c.attributeFlags,
-				c.sRgbCapable
-			};
-		}
+		// Conversion helpers (toNative / fromNative overloads for Color,
+		// IntRect, BlendFactor/Equation, ShaderType, Glsl values, ContextSettings)
+		// live in Backend/Internal/SFMLConversions.h as free functions in
+		// cgss::backend::. Ops-body callers use them via unqualified lookup —
+		// member function name lookup falls through to the enclosing
+		// cgss::backend namespace, and ADL on cgss:: or sf:: arguments also
+		// reaches them.
 
 		// ---- Wrapper native accessors ----
 		// Backend-side replacement for the (now-private) `wrapper.raw()`

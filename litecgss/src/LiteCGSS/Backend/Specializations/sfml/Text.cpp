@@ -13,7 +13,7 @@
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/String.hpp>
 #include "LiteCGSS/Backend/ActiveBackend.h"
-#include "LiteCGSS/Common/Internal/SfColorConv.h"
+#include "LiteCGSS/Backend/Internal/SFMLConversions.h"
 #include "LiteCGSS/Graphics/LoggerDrawables.h"
 #include "LiteCGSS/Graphics/ScrollText.h"
 #include "LiteCGSS/Graphics/Text.h"
@@ -78,20 +78,20 @@ float cgss::Text::getRealHeight() const {
 }
 
 cgss::Color cgss::Text::getFillColor() const {
-	return cgss::internal::fromSf(m_proxy->m_text->getFillColor());
+	return cgss::backend::fromNative(m_proxy->m_text->getFillColor());
 }
 
 void cgss::Text::setFillColor(cgss::Color color) {
 	LOG_INFO << "Set fill color (r = " << static_cast<int>(color.r) << " g =" << static_cast<int>(color.g) << " b = " << static_cast<int>(color.b) << " a = " << static_cast<int>(color.a) << ")";
-	m_proxy->m_text->setFillColor(cgss::internal::toSf(color));
+	m_proxy->m_text->setFillColor(cgss::backend::toNative(color));
 }
 
 cgss::Color cgss::Text::getOutlineColor() const {
-	return cgss::internal::fromSf(m_proxy->m_text->getOutlineColor());
+	return cgss::backend::fromNative(m_proxy->m_text->getOutlineColor());
 }
 
 void cgss::Text::setOutlineColor(cgss::Color color) {
-	m_proxy->m_text->setOutlineColor(cgss::internal::toSf(color));
+	m_proxy->m_text->setOutlineColor(cgss::backend::toNative(color));
 }
 
 float cgss::Text::getOutlineThickness() const {

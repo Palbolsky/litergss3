@@ -23,7 +23,6 @@
 #include "LiteCGSS/Views/Viewport.h"
 #include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Rectangle.h"
-#include "LiteCGSS/Common/Internal/SfRectConv.h"
 
 SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::FramedViewItem)
 

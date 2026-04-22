@@ -48,6 +48,12 @@ namespace cgss::backend {
 		// Raylib has no `DisplayWindowSnapshot` impl yet — DisplayWindow falls
 		// back to `StubDisplayWindowSnapshot<...>` via tag-based dispatch.
 		static constexpr bool has_snapshot    = false;
+		// Raylib uses global window state (InitWindow/CloseWindow are free
+		// functions, `native_window` is an empty placeholder). Instance-only
+		// ops (window_set_active, window_poll_event, window_wait_event,
+		// window_get_default_view, window_set_view, window_get_settings) stay
+		// as no-op stubs for Ops symmetry; callers must gate on this tag.
+		static constexpr bool window_is_stateful = false;
 
 		struct Ops;
 	};
