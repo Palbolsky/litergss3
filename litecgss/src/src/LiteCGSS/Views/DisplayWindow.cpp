@@ -78,10 +78,12 @@ cgss::DisplayWindowDrawData& cgss::DisplayWindowDrawData::operator=(DisplayWindo
 
 template <class B>
 void cgss::basic_DisplayWindow<B>::initUserRender() {
-	m_userRenderTexture->create(m_draw.screenWidth, m_draw.screenHeight);
-	m_userRenderTexture->setSmooth(m_draw.smoothScreen);
+	using Ops = typename B::Ops;
+	Ops::render_texture_create(*m_userRenderTexture, m_draw.screenWidth, m_draw.screenHeight);
+	Ops::render_texture_set_smooth(*m_userRenderTexture, m_draw.smoothScreen);
 
-	m_userRenderSprite->setTexture(m_userRenderTexture->getTexture());
+	Ops::set_sprite_texture(*m_userRenderSprite,
+		Ops::render_texture_get_texture(*m_userRenderTexture), false);
 }
 
 template <class B>
@@ -127,18 +129,18 @@ void cgss::basic_DisplayWindow<B>::applyReload(DisplayWindowSettings settings, b
 	m_settings = std::move(settings);
 
 	if (m_settings.headless) {
-		m_gameWindow.close();
+		B::Ops::window_close(m_gameWindow);
 	} else {
 		const auto scaledWidth = static_cast<unsigned int>(m_settings.video.width * m_settings.video.scale);
 		const auto scaledHeight = static_cast<unsigned int>(m_settings.video.height * m_settings.video.scale);
 		if (windowCreateNeeded) {
 #ifdef CGSS_WINDOW_PRESERVATION
-			if (m_gameWindow.isOpen()) {
+			if (B::Ops::window_is_open(m_gameWindow)) {
 				// Window already exists (shared static), just update settings.
 				// Don't call setSize() — on Android the native window is always fullscreen,
 				// and setSize() would desync SFML's internal size from the actual surface.
 				LOG_WARN << "Reusing existing window instead of recreating";
-				m_gameWindow.setTitle(sf::String::fromUtf8(m_settings.title.begin(), m_settings.title.end()));
+				B::Ops::window_set_title(m_gameWindow, m_settings.title.c_str());
 			} else
 #endif
 			{
@@ -150,10 +152,10 @@ void cgss::basic_DisplayWindow<B>::applyReload(DisplayWindowSettings settings, b
 					cgss::internal::toSf(m_settings.context));
 			}
 		} else {
-			m_gameWindow.setSize(sf::Vector2u { scaledWidth, scaledHeight });
-			m_gameWindow.setTitle(m_settings.title);
+			B::Ops::window_set_size(m_gameWindow, scaledWidth, scaledHeight);
+			B::Ops::window_set_title(m_gameWindow, m_settings.title.c_str());
 		}
-		m_gameWindow.setMouseCursorVisible(m_settings.visibleMouse);
+		B::Ops::window_set_mouse_cursor_visible(m_gameWindow, m_settings.visibleMouse);
 		setVsync(m_settings.vSync);
 	}
 
@@ -201,17 +203,21 @@ void cgss::basic_DisplayWindow<B>::notifyWindowSizeChange() {
 
 template <class B>
 cgss::RenderTarget cgss::basic_DisplayWindow<B>::configureAndGetRenderTarget(cgss::Camera& defview) {
+	using Ops = typename B::Ops;
+	using cgss::backend::native_of;
+
 	// Setting the default view parameters
-	cgss::backend::native_of(defview).setSize(static_cast<float>(m_draw.screenWidth), static_cast<float>(m_draw.screenHeight));
-	cgss::backend::native_of(defview).setCenter(round(m_draw.screenWidth / 2.0f), round(m_draw.screenHeight / 2.0f));
+	Ops::view_set_size(native_of(defview), static_cast<float>(m_draw.screenWidth), static_cast<float>(m_draw.screenHeight));
+	Ops::view_set_center(native_of(defview), round(m_draw.screenWidth / 2.0f), round(m_draw.screenHeight / 2.0f));
 
 	// Appying the default view to the Window (used in postProcessing())
-	m_gameWindow.setView(cgss::backend::native_of(defview));
+	Ops::window_set_view(m_gameWindow, native_of(defview));
 
 	// If the m_renderTexture is defined, we use it instead of the m_gameWindow (shader processing)
 	if (m_draw.renderTexture != nullptr) {
-		// Set the default view
-		m_draw.renderTexture->setView(cgss::backend::native_of(defview));
+		// Set the default view — m_draw.renderTexture is sf::RenderTexture
+		// (DisplayWindowDrawData not yet templated; see plan §J).
+		m_draw.renderTexture->setView(native_of(defview));
 		// It's not cleard so we perform the clear operation
 		m_draw.renderTexture->clear();
 		return cgss::RenderTarget{*m_draw.renderTexture.get()};
@@ -221,7 +227,7 @@ cgss::RenderTarget cgss::basic_DisplayWindow<B>::configureAndGetRenderTarget(cgs
 
 template <class B>
 cgss::DisplayWindowContextSettings cgss::basic_DisplayWindow<B>::getContextSettings() const {
-	return cgss::internal::fromSf(m_gameWindow.getSettings());
+	return B::Ops::window_get_settings(m_gameWindow);
 }
 
 template <class B>
@@ -231,7 +237,7 @@ const cgss::DisplayWindowSettings& cgss::basic_DisplayWindow<B>::getSettings() c
 
 template <class B>
 bool cgss::basic_DisplayWindow<B>::isOpen() const {
-	return m_gameWindow.isOpen();
+	return B::Ops::window_is_open(m_gameWindow);
 }
 
 template <class B>
@@ -241,24 +247,25 @@ void cgss::basic_DisplayWindow<B>::stop() {
 	// Don't close the shared window — just clear drawables.
 	// The GL context stays valid so member destructors can clean up GL resources safely.
 	drawables().clear();
-	m_gameWindow.clear();
-	m_gameWindow.display();
+	B::Ops::window_clear(m_gameWindow);
+	B::Ops::window_display(m_gameWindow);
 #else
-	m_gameWindow.close();
+	B::Ops::window_close(m_gameWindow);
 #endif
 }
 
 template <class B>
 void cgss::basic_DisplayWindow<B>::setActive(bool active) {
-	m_gameWindow.setActive(active);
+	B::Ops::window_set_active(m_gameWindow, active);
 }
 
 template <class B>
 void cgss::basic_DisplayWindow<B>::draw() {
+	using Ops = typename B::Ops;
 	applyPendingReload();
-	m_gameWindow.clear();
+	Ops::window_clear(m_gameWindow);
 
-	cgss::Camera defview{m_gameWindow.getDefaultView()};
+	cgss::Camera defview{Ops::window_get_default_view(m_gameWindow)};
 	auto render_target = configureAndGetRenderTarget(defview);
 
 	// Rendering C++ sprite stack
@@ -266,12 +273,16 @@ void cgss::basic_DisplayWindow<B>::draw() {
 
 	postProcessing();
 
-	m_gameWindow.display();
+	Ops::window_display(m_gameWindow);
 }
 
 template <class B>
 bool cgss::basic_DisplayWindow<B>::popEvent(cgss::Event& event) {
-	return m_eventPolicyPolling ? m_gameWindow.pollEvent(cgss::backend::native_of(event)) : m_gameWindow.waitEvent(cgss::backend::native_of(event));
+	using Ops = typename B::Ops;
+	using cgss::backend::native_of;
+	return m_eventPolicyPolling
+		? Ops::window_poll_event(m_gameWindow, native_of(event))
+		: Ops::window_wait_event(m_gameWindow, native_of(event));
 }
 
 template <class B>
@@ -322,7 +333,7 @@ void cgss::basic_DisplayWindow<B>::resizeScreen(unsigned int width, unsigned int
 
 	const auto scaledWidth = static_cast<unsigned int>(m_settings.video.width * m_settings.video.scale);
 	const auto scaledHeight = static_cast<unsigned int>(m_settings.video.height * m_settings.video.scale);
-	m_gameWindow.setSize(sf::Vector2u { scaledWidth, scaledHeight });
+	B::Ops::window_set_size(m_gameWindow, scaledWidth, scaledHeight);
 
 	onSizeChanged();
 }
@@ -330,21 +341,21 @@ void cgss::basic_DisplayWindow<B>::resizeScreen(unsigned int width, unsigned int
 template <class B>
 void cgss::basic_DisplayWindow<B>::setTitle(const char* title) {
 	m_settings.title = title;
-	m_gameWindow.setTitle(sf::String::fromUtf8(m_settings.title.begin(), m_settings.title.end()));
+	B::Ops::window_set_title(m_gameWindow, m_settings.title.c_str());
 }
 
 template <class B>
 void cgss::basic_DisplayWindow<B>::setVsync(bool enable) {
 	m_settings.vSync = enable;
 	/* VSYNC choice */
-	m_gameWindow.setVerticalSyncEnabled(m_settings.vSync);
-	m_gameWindow.setFramerateLimit(!m_settings.vSync ? m_settings.frameRate : 0);
+	B::Ops::window_set_vsync(m_gameWindow, m_settings.vSync);
+	B::Ops::window_set_framerate_limit(m_gameWindow, !m_settings.vSync ? m_settings.frameRate : 0);
 }
 
 template <class B>
 void cgss::basic_DisplayWindow<B>::setFrameRate(unsigned int frameRate) {
 	m_settings.frameRate = frameRate;
-	m_gameWindow.setFramerateLimit(!m_settings.vSync ? m_settings.frameRate : 0);
+	B::Ops::window_set_framerate_limit(m_gameWindow, !m_settings.vSync ? m_settings.frameRate : 0);
 }
 
 template <class B>
@@ -353,13 +364,15 @@ void cgss::basic_DisplayWindow<B>::setScale(double scale) {
 
 	const auto scaledWidth = static_cast<unsigned int>(m_settings.video.width * m_settings.video.scale);
 	const auto scaledHeight = static_cast<unsigned int>(m_settings.video.height * m_settings.video.scale);
-	m_gameWindow.setSize(sf::Vector2u { scaledWidth, scaledHeight });
+	B::Ops::window_set_size(m_gameWindow, scaledWidth, scaledHeight);
 }
 
 template <class B>
 void cgss::basic_DisplayWindow<B>::setIcon(const cgss::Image& image) {
-	const auto& raw = cgss::backend::native_of(image);
-	m_gameWindow.setIcon(raw.getSize().x, raw.getSize().y, raw.getPixelsPtr());
+	using Ops = typename B::Ops;
+	using cgss::backend::native_of;
+	const auto& raw = native_of(image);
+	Ops::window_set_icon(m_gameWindow, image.width(), image.height(), Ops::get_image_pixels_ptr(raw));
 }
 
 template <class B>
@@ -397,12 +410,12 @@ std::unique_ptr<cgss::Texture> cgss::basic_DisplayWindow<B>::takeSnapshot() cons
 
 template <class B>
 int cgss::basic_DisplayWindow<B>::getX() const {
-	return m_gameWindow.getPosition().x;
+	return B::Ops::window_get_position(m_gameWindow).x;
 }
 
 template <class B>
 int cgss::basic_DisplayWindow<B>::getY() const {
-	return m_gameWindow.getPosition().y;
+	return B::Ops::window_get_position(m_gameWindow).y;
 }
 
 template <class B>
@@ -417,17 +430,17 @@ void cgss::basic_DisplayWindow<B>::freeze() {
 
 template <class B>
 void cgss::basic_DisplayWindow<B>::move(int x, int y) {
-	m_gameWindow.setPosition(sf::Vector2i { x, y });
+	B::Ops::window_set_position(m_gameWindow, x, y);
 }
 
 template <class B>
 unsigned int cgss::basic_DisplayWindow<B>::DesktopWidth() {
-	return sf::VideoMode::getDesktopMode().width;
+	return B::Ops::desktop_size().x;
 }
 
 template <class B>
 unsigned int cgss::basic_DisplayWindow<B>::DesktopHeight() {
-	return sf::VideoMode::getDesktopMode().height;
+	return B::Ops::desktop_size().y;
 }
 
 template class cgss::basic_DisplayWindow<cgss::backend::ActiveBackend>;

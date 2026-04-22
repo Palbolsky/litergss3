@@ -31,6 +31,8 @@
 #include "LiteCGSS/Common/Color.h"
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Common/Point.h"
+#include "LiteCGSS/Configuration/DisplayWindowContextSettings.h"
+#include "LiteCGSS/Graphics/BlendMode.h"
 #include "LiteCGSS/Graphics/ShapeGeometry.h"
 #include "LiteCGSS/Graphics/Transformable.h"
 
@@ -57,8 +59,69 @@ namespace cgss::backend {
 			return Transform2D{ xf.getX(), xf.getY(), xf.getOx(), xf.getOy(), xf.getAngle(), xf.getScaleX(), xf.getScaleY() };
 		}
 
+		// ---- Window ops (stubs) ----
+		// raylib uses GLOBAL window state (InitWindow / CloseWindow / etc.) — the
+		// `raylib::Window` placeholder is empty. A real impl would call
+		// raylib's free functions and ignore the placeholder arg.
+		static inline void window_close(native_window&) {}
+		static inline bool window_is_open(const native_window&) { return false; }
+		static inline void window_clear(native_window&) {}
+		static inline void window_display(native_window&) {}
+		static inline void window_set_active(native_window&, bool) {}
+		static inline void window_set_title(native_window&, const char*) {}
+		static inline void window_set_size(native_window&, unsigned int, unsigned int) {}
+		static inline Size2u window_get_size(const native_window&) noexcept { return {}; }
+		static inline void window_set_mouse_cursor_visible(native_window&, bool) {}
+		static inline void window_set_vsync(native_window&, bool) {}
+		static inline void window_set_framerate_limit(native_window&, unsigned int) {}
+		static inline void window_set_position(native_window&, int, int) {}
+		static inline Point2i window_get_position(const native_window&) noexcept { return {}; }
+		static inline native_view window_get_default_view(const native_window&) { return {}; }
+		static inline void window_set_view(native_window&, const native_view&) {}
+		static inline cgss::DisplayWindowContextSettings window_get_settings(const native_window&) {
+			return {};
+		}
+		static inline bool window_poll_event(native_window&, native_event&) { return false; }
+		static inline bool window_wait_event(native_window&, native_event&) { return false; }
+		static inline Size2u desktop_size() noexcept { return {}; }
+		static inline void window_set_icon(native_window&, unsigned int, unsigned int, const std::uint8_t*) {}
+
+		// ---- Render texture ops (stubs) ----
+		static inline bool render_texture_create(native_render_texture&, unsigned int, unsigned int) { return false; }
+		static inline void render_texture_set_smooth(native_render_texture&, bool) {}
+		static inline const native_texture& render_texture_get_texture(const native_render_texture& rt) { return rt.texture; }
+
+		// ---- View ops (stubs) ----
+		// raylib's Camera2D models offset/target/rotation/zoom (transform-
+		// based), unlike sf::View's rectangular world-space region. A
+		// faithful mapping needs auxiliary state per cgss::Camera; for now
+		// these stubs no-op so the abstraction compiles.
+		static inline Size2f view_get_size(const native_view&) noexcept { return {}; }
+		static inline void view_set_size(native_view&, float, float) noexcept {}
+		static inline Size2f view_get_center(const native_view& v) noexcept { return { v.target.x, v.target.y }; }
+		static inline void view_set_center(native_view& v, float x, float y) noexcept { v.target = { x, y }; }
+		static inline Box2f view_get_viewport(const native_view&) noexcept { return {}; }
+		static inline void view_set_viewport(native_view&, float, float, float, float) noexcept {}
+		static inline void view_reset(native_view&, float, float, float, float) noexcept {}
+		static inline void view_zoom(native_view& v, float factor) noexcept { v.zoom *= factor; }
+		static inline void view_set_rotation(native_view& v, float angle) noexcept { v.rotation = angle; }
+
+		// ---- Draw-state ops (stubs) ----
+		static inline void draw_state_set_shader(native_render_states&, native_shader*) noexcept {}
+		static inline void draw_state_set_blend_factor(native_render_states&, BlendFactorSlot, cgss::BlendFactor) noexcept {}
+		static inline cgss::BlendFactor draw_state_get_blend_factor(const native_render_states&, BlendFactorSlot) noexcept { return cgss::BlendFactor::Zero; }
+		static inline void draw_state_set_blend_equation(native_render_states&, BlendEquationSlot, cgss::BlendEquation) noexcept {}
+		static inline cgss::BlendEquation draw_state_get_blend_equation(const native_render_states&, BlendEquationSlot) noexcept { return cgss::BlendEquation::Add; }
+
+		// ---- Render-target view ops (stubs) ----
+		static inline void target_set_view(native_render_target&, const native_view&) {}
+		static inline native_view target_get_view(const native_render_target&) { return {}; }
+		static inline native_view target_get_default_view(const native_render_target&) { return {}; }
+
 		// ---- Draw thunks (stubs) ----
 		static inline void draw_sprite(native_render_target&, const native_sprite&, const native_render_states&) {}
+		static inline void draw_sprite_transformed(native_render_target&, const native_sprite&, const cgss::Transformable&, const native_render_states*) {}
+		static inline void draw_shape_transformed(native_render_target&, const cgss::ShapeGeometry&, const native_texture*, const cgss::Transformable&, const native_render_states*) {}
 
 		// ---- Sprite ops (stubs) ----
 		static inline cgss::Color get_sprite_color(const native_sprite&) noexcept { return cgss::Colors::White; }

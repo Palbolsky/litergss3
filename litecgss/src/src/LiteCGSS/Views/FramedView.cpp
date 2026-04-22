@@ -56,36 +56,42 @@ void cgss::FramedViewItem::draw(cgss::RenderTarget& target) const {
 }
 
 void cgss::FramedViewItem::drawFast(cgss::RenderTarget& target) const {
+	using Ops = cgss::backend::ActiveBackend::Ops;
+	using cgss::backend::native_of;
+
 	/* Draw window */
-	sf::Texture* rawTexture = m_texture != nullptr ? &cgss::backend::native_of(*m_texture) : nullptr;
+	sf::Texture* rawTexture = m_texture != nullptr ? &native_of(*m_texture) : nullptr;
 	for (auto& vertice : m_vertices) {
-		cgss::backend::native_of(target).draw(*vertice, rawTexture);
+		native_of(target).draw(*vertice, rawTexture);
 	}
 
 	/* draw internal */
 	auto targetView = ViewBox::clone();
-	auto originalView = sf::View{ cgss::backend::native_of(target).getView() };
+	auto originalView = Ops::target_get_view(native_of(target));
 	auto parentView = m_parent.lock();
 	if (parentView != nullptr) {
 		drawCalculateView(*parentView, targetView);
 	}
 
-	if (cgss::backend::native_of(targetView).getViewport().height > 0 && cgss::backend::native_of(targetView).getViewport().width > 0) {
-		cgss::backend::native_of(target).setView(cgss::backend::native_of(targetView));
+	const auto vp = Ops::view_get_viewport(native_of(targetView));
+	if (vp.height > 0 && vp.width > 0) {
+		Ops::target_set_view(native_of(target), native_of(targetView));
 		drawables().drawFast(target);
 	}
 
 	/* Draw cursor & reset view */
-	cgss::backend::native_of(target).draw(*m_cursor);
-	cgss::backend::native_of(target).setView(originalView);
+	native_of(target).draw(*m_cursor);
+	Ops::target_set_view(native_of(target), originalView);
 
 	if (m_paused) {
 		/* Draw pause */
-		cgss::backend::native_of(target).draw(*m_pause);
+		native_of(target).draw(*m_pause);
 	}
 }
 
 void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, cgss::Camera& targetView) const {
+	using Ops = cgss::backend::ActiveBackend::Ops;
+	using cgss::backend::native_of;
 	// TODO : can be based on event system ? when parent viewport is moved / resized.
 	LOG_DEBUG << "Draw calculate view";
 
@@ -95,9 +101,9 @@ void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, cgss::Camera&
 	const auto vx0 = parentViewport.width / 2.f - (parentViewport.width / 2.f) / zoom; // <- When vp.zoom = 0.5, zoom = 2
 	const auto vy0 = parentViewport.height / 2.f - (parentViewport.height / 2.f) / zoom;
 
-	sf::Vector2f targetCenter = sf::Vector2f(cgss::backend::native_of(targetView).getCenter());
-	sf::Vector2f targetSize = sf::Vector2f(cgss::backend::native_of(targetView).getSize());
-	sf::FloatRect targetViewport = sf::FloatRect(cgss::backend::native_of(targetView).getViewport());
+	auto targetCenter = Ops::view_get_center(native_of(targetView));
+	auto targetSize = Ops::view_get_size(native_of(targetView));
+	auto targetViewport = Ops::view_get_viewport(native_of(targetView));
 
 	const auto sw = ViewBox::getScreenWidth();
 	const auto sh = ViewBox::getScreenHeight();
@@ -161,9 +167,11 @@ void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, cgss::Camera&
 	LOG_DEBUG << "Calculated view with center = " << targetCenter.x << ", " << targetCenter.y;
 
 	// Set the view
-	cgss::backend::native_of(targetView).setCenter(targetCenter);
-	cgss::backend::native_of(targetView).setSize(targetSize);
-	cgss::backend::native_of(targetView).setViewport(sf::FloatRect(targetViewport.left / sw, targetViewport.top / sh, targetViewport.width / sw, targetViewport.height / sh));
+	Ops::view_set_center(native_of(targetView), targetCenter.x, targetCenter.y);
+	Ops::view_set_size(native_of(targetView), targetSize.x, targetSize.y);
+	Ops::view_set_viewport(native_of(targetView),
+		targetViewport.left / sw, targetViewport.top / sh,
+		targetViewport.width / sw, targetViewport.height / sh);
 }
 
 void cgss::FramedViewItem::updateVertices() {

@@ -42,7 +42,8 @@ void cgss::RenderStatesData::updateShader() {
 		m_shader = nullptr;
 	}
 
-	cgss::backend::native_of(m_drawState).shader = m_shader.get();
+	cgss::backend::ActiveBackend::Ops::draw_state_set_shader(
+		cgss::backend::native_of(m_drawState), m_shader.get());
 }
 
 bool cgss::RenderStatesData::isAvailable() {
@@ -57,52 +58,57 @@ void cgss::RenderStatesData::enableShader(bool enable) {
 	updateShader();
 }
 
+namespace { using Ops = cgss::backend::ActiveBackend::Ops; }
+using cgss::backend::native_of;
+using cgss::backend::BlendFactorSlot;
+using cgss::backend::BlendEquationSlot;
+
 void cgss::RenderStatesData::setBlendColorSrcFactor(cgss::BlendFactor colorSrcFactor) {
-	cgss::backend::native_of(m_drawState).blendMode.colorSrcFactor = cgss::internal::toSf(colorSrcFactor);
+	Ops::draw_state_set_blend_factor(native_of(m_drawState), BlendFactorSlot::ColorSrc, colorSrcFactor);
 }
 
 void cgss::RenderStatesData::setBlendColorDstFactor(cgss::BlendFactor colorDstFactor) {
-	cgss::backend::native_of(m_drawState).blendMode.colorDstFactor = cgss::internal::toSf(colorDstFactor);
+	Ops::draw_state_set_blend_factor(native_of(m_drawState), BlendFactorSlot::ColorDst, colorDstFactor);
 }
 
 void cgss::RenderStatesData::setBlendAlphaSrcFactor(cgss::BlendFactor alphaSrcFactor) {
-	cgss::backend::native_of(m_drawState).blendMode.alphaSrcFactor = cgss::internal::toSf(alphaSrcFactor);
+	Ops::draw_state_set_blend_factor(native_of(m_drawState), BlendFactorSlot::AlphaSrc, alphaSrcFactor);
 }
 
 void cgss::RenderStatesData::setBlendAlphaDstFactor(cgss::BlendFactor alphaDstFactor) {
-	cgss::backend::native_of(m_drawState).blendMode.alphaDstFactor = cgss::internal::toSf(alphaDstFactor);
+	Ops::draw_state_set_blend_factor(native_of(m_drawState), BlendFactorSlot::AlphaDst, alphaDstFactor);
 }
 
 void cgss::RenderStatesData::setBlendColorEquation(cgss::BlendEquation colorEquation) {
-	cgss::backend::native_of(m_drawState).blendMode.colorEquation = cgss::internal::toSf(colorEquation);
+	Ops::draw_state_set_blend_equation(native_of(m_drawState), BlendEquationSlot::Color, colorEquation);
 }
 
 void cgss::RenderStatesData::setBlendAlphaEquation(cgss::BlendEquation alphaEquation) {
-	cgss::backend::native_of(m_drawState).blendMode.alphaEquation = cgss::internal::toSf(alphaEquation);
+	Ops::draw_state_set_blend_equation(native_of(m_drawState), BlendEquationSlot::Alpha, alphaEquation);
 }
 
 cgss::BlendFactor cgss::RenderStatesData::getBlendColorSrcFactor() const {
-	return cgss::internal::fromSf(cgss::backend::native_of(m_drawState).blendMode.colorSrcFactor);
+	return Ops::draw_state_get_blend_factor(native_of(m_drawState), BlendFactorSlot::ColorSrc);
 }
 
 cgss::BlendFactor cgss::RenderStatesData::getBlendColorDstFactor() const {
-	return cgss::internal::fromSf(cgss::backend::native_of(m_drawState).blendMode.colorDstFactor);
+	return Ops::draw_state_get_blend_factor(native_of(m_drawState), BlendFactorSlot::ColorDst);
 }
 
 cgss::BlendFactor cgss::RenderStatesData::getBlendAlphaSrcFactor() const {
-	return cgss::internal::fromSf(cgss::backend::native_of(m_drawState).blendMode.alphaSrcFactor);
+	return Ops::draw_state_get_blend_factor(native_of(m_drawState), BlendFactorSlot::AlphaSrc);
 }
 
 cgss::BlendFactor cgss::RenderStatesData::getBlendAlphaDstFactor() const {
-	return cgss::internal::fromSf(cgss::backend::native_of(m_drawState).blendMode.alphaDstFactor);
+	return Ops::draw_state_get_blend_factor(native_of(m_drawState), BlendFactorSlot::AlphaDst);
 }
 
 cgss::BlendEquation cgss::RenderStatesData::getBlendColorEquation() const {
-	return cgss::internal::fromSf(cgss::backend::native_of(m_drawState).blendMode.colorEquation);
+	return Ops::draw_state_get_blend_equation(native_of(m_drawState), BlendEquationSlot::Color);
 }
 
 cgss::BlendEquation cgss::RenderStatesData::getBlendAlphaEquation() const {
-	return cgss::internal::fromSf(cgss::backend::native_of(m_drawState).blendMode.alphaEquation);
+	return Ops::draw_state_get_blend_equation(native_of(m_drawState), BlendEquationSlot::Alpha);
 }
 
 bool cgss::RenderStatesData::loadShaderFromMemory(const std::string &shader, cgss::ShaderType type) {

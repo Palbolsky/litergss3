@@ -146,11 +146,190 @@ namespace cgss::backend {
 			return t;
 		}
 
+		// ---- Window ops (simple state) ----
+		// Complex window operations (create, set_icon, poll/wait_event, render
+		// texture choreography) are NOT abstracted yet — DisplayWindow's body
+		// retains direct sf:: calls for those, deferred until either full
+		// `basic_DisplayWindow<RaylibBackend>` specialization or a follow-up
+		// op-coverage round.
+		static inline void window_close(native_window& w)               { w.close(); }
+		static inline bool window_is_open(const native_window& w)       { return w.isOpen(); }
+		static inline void window_clear(native_window& w)               { w.clear(); }
+		static inline void window_display(native_window& w)             { w.display(); }
+		static inline void window_set_active(native_window& w, bool a)  { w.setActive(a); }
+		static inline void window_set_title(native_window& w, const char* t) { w.setTitle(t); }
+		static inline void window_set_size(native_window& w, unsigned int width, unsigned int height) {
+			w.setSize(sf::Vector2u{ width, height });
+		}
+		static inline Size2u window_get_size(const native_window& w) noexcept {
+			const auto s = w.getSize();
+			return { s.x, s.y };
+		}
+		static inline void window_set_mouse_cursor_visible(native_window& w, bool v) { w.setMouseCursorVisible(v); }
+		static inline void window_set_vsync(native_window& w, bool v)            { w.setVerticalSyncEnabled(v); }
+		static inline void window_set_framerate_limit(native_window& w, unsigned int f) { w.setFramerateLimit(f); }
+		static inline void window_set_position(native_window& w, int x, int y) {
+			w.setPosition(sf::Vector2i{ x, y });
+		}
+		static inline Point2i window_get_position(const native_window& w) noexcept {
+			const auto p = w.getPosition();
+			return { p.x, p.y };
+		}
+		static inline native_view window_get_default_view(const native_window& w) {
+			return w.getDefaultView();
+		}
+		static inline void window_set_view(native_window& w, const native_view& v) {
+			w.setView(v);
+		}
+		static inline cgss::DisplayWindowContextSettings window_get_settings(const native_window& w) {
+			const auto& c = w.getSettings();
+			return cgss::DisplayWindowContextSettings{
+				c.depthBits, c.stencilBits, c.antialiasingLevel,
+				c.majorVersion, c.minorVersion, c.attributeFlags, c.sRgbCapable
+			};
+		}
+		static inline bool window_poll_event(native_window& w, native_event& ev) {
+			return w.pollEvent(ev);
+		}
+		static inline bool window_wait_event(native_window& w, native_event& ev) {
+			return w.waitEvent(ev);
+		}
+		// Desktop-mode static query (independent of any window instance).
+		static inline Size2u desktop_size() noexcept {
+			const auto m = sf::VideoMode::getDesktopMode();
+			return { m.width, m.height };
+		}
+		static inline void window_set_icon(native_window& w, unsigned int width, unsigned int height, const std::uint8_t* pixels) {
+			w.setIcon(width, height, pixels);
+		}
+
+		// ---- Render texture ops ----
+		static inline bool render_texture_create(native_render_texture& rt, unsigned int w, unsigned int h) {
+			return rt.create(w, h);
+		}
+		static inline void render_texture_set_smooth(native_render_texture& rt, bool smooth) {
+			rt.setSmooth(smooth);
+		}
+		static inline const native_texture& render_texture_get_texture(const native_render_texture& rt) {
+			return rt.getTexture();
+		}
+
+		// ---- View ops ----
+		static inline Size2f view_get_size(const native_view& v) noexcept {
+			const auto s = v.getSize();
+			return { s.x, s.y };
+		}
+		static inline void view_set_size(native_view& v, float w, float h) noexcept {
+			v.setSize(w, h);
+		}
+		static inline Size2f view_get_center(const native_view& v) noexcept {
+			const auto c = v.getCenter();
+			return { c.x, c.y };
+		}
+		static inline void view_set_center(native_view& v, float x, float y) noexcept {
+			v.setCenter(x, y);
+		}
+		static inline Box2f view_get_viewport(const native_view& v) noexcept {
+			const auto r = v.getViewport();
+			return { r.left, r.top, r.width, r.height };
+		}
+		static inline void view_set_viewport(native_view& v, float left, float top, float width, float height) noexcept {
+			v.setViewport(sf::FloatRect(left, top, width, height));
+		}
+		static inline void view_reset(native_view& v, float left, float top, float width, float height) noexcept {
+			v.reset(sf::FloatRect(left, top, width, height));
+		}
+		static inline void view_zoom(native_view& v, float factor) noexcept {
+			v.zoom(factor);
+		}
+		static inline void view_set_rotation(native_view& v, float angle) noexcept {
+			v.setRotation(angle);
+		}
+
+		// ---- Draw-state ops ----
+		// Native shader pointer is set/owned by RenderStatesData (currently
+		// non-templated; m_shader is `unique_ptr<sf::Shader>`). The op just
+		// stores the raw pointer into the native render states.
+		static inline void draw_state_set_shader(native_render_states& s, native_shader* shader) noexcept {
+			s.shader = shader;
+		}
+		static inline void draw_state_set_blend_factor(native_render_states& s, BlendFactorSlot slot, cgss::BlendFactor f) noexcept {
+			const auto v = static_cast<sf::BlendMode::Factor>(f);
+			switch (slot) {
+				case BlendFactorSlot::ColorSrc: s.blendMode.colorSrcFactor = v; break;
+				case BlendFactorSlot::ColorDst: s.blendMode.colorDstFactor = v; break;
+				case BlendFactorSlot::AlphaSrc: s.blendMode.alphaSrcFactor = v; break;
+				case BlendFactorSlot::AlphaDst: s.blendMode.alphaDstFactor = v; break;
+			}
+		}
+		static inline cgss::BlendFactor draw_state_get_blend_factor(const native_render_states& s, BlendFactorSlot slot) noexcept {
+			sf::BlendMode::Factor v = sf::BlendMode::Factor::Zero;
+			switch (slot) {
+				case BlendFactorSlot::ColorSrc: v = s.blendMode.colorSrcFactor; break;
+				case BlendFactorSlot::ColorDst: v = s.blendMode.colorDstFactor; break;
+				case BlendFactorSlot::AlphaSrc: v = s.blendMode.alphaSrcFactor; break;
+				case BlendFactorSlot::AlphaDst: v = s.blendMode.alphaDstFactor; break;
+			}
+			return static_cast<cgss::BlendFactor>(v);
+		}
+		static inline void draw_state_set_blend_equation(native_render_states& s, BlendEquationSlot slot, cgss::BlendEquation e) noexcept {
+			const auto v = static_cast<sf::BlendMode::Equation>(e);
+			switch (slot) {
+				case BlendEquationSlot::Color: s.blendMode.colorEquation = v; break;
+				case BlendEquationSlot::Alpha: s.blendMode.alphaEquation = v; break;
+			}
+		}
+		static inline cgss::BlendEquation draw_state_get_blend_equation(const native_render_states& s, BlendEquationSlot slot) noexcept {
+			sf::BlendMode::Equation v = sf::BlendMode::Equation::Add;
+			switch (slot) {
+				case BlendEquationSlot::Color: v = s.blendMode.colorEquation; break;
+				case BlendEquationSlot::Alpha: v = s.blendMode.alphaEquation; break;
+			}
+			return static_cast<cgss::BlendEquation>(v);
+		}
+
+		// ---- Render-target view ops ----
+		// View is returned by value (a copy) so callers can stash it and
+		// restore later via target_set_view.
+		static inline void target_set_view(native_render_target& target, const native_view& view) {
+			target.setView(view);
+		}
+		static inline native_view target_get_view(const native_render_target& target) {
+			return target.getView();
+		}
+		static inline native_view target_get_default_view(const native_render_target& target) {
+			return target.getDefaultView();
+		}
+
 		// ---- Draw thunks ----
 		static inline void draw_sprite(native_render_target& target,
 		                               const native_sprite& sprite,
 		                               const native_render_states& states) {
 			target.draw(sprite, states);
+		}
+
+		// Draws the sprite with the cgss::Transformable's transform composed
+		// in, optionally over a base render state (for shaders). Encapsulates
+		// the sf::RenderStates assembly that callers used to do inline.
+		static inline void draw_sprite_transformed(native_render_target& target,
+		                                           const native_sprite& sprite,
+		                                           const cgss::Transformable& xf,
+		                                           const native_render_states* base_states) {
+			sf::RenderStates states = base_states == nullptr ? sf::RenderStates::Default : *base_states;
+			states.transform *= build_transform(xf);
+			target.draw(sprite, states);
+		}
+
+		// Draws the shape with the cgss::Transformable's transform composed
+		// in, optionally over a base render state.
+		static inline void draw_shape_transformed(native_render_target& target,
+		                                          const cgss::ShapeGeometry& g,
+		                                          const native_texture* tex,
+		                                          const cgss::Transformable& xf,
+		                                          const native_render_states* base_states) {
+			sf::RenderStates states = base_states == nullptr ? sf::RenderStates::Default : *base_states;
+			states.transform *= build_transform(xf);
+			draw_shape(target, g, tex, states);
 		}
 
 		// ---- Sprite ops ----

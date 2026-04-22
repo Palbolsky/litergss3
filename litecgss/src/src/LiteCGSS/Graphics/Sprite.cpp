@@ -27,11 +27,11 @@ void cgss::basic_SpriteItem<B>::updateFromValue(const RenderStatesData*) {}
 
 template <class B>
 void cgss::basic_SpriteItem<B>::drawFast(cgss::RenderTarget& target) const {
-	sf::RenderStates states = ShaderRenderable::getValue() == nullptr
-		? sf::RenderStates::Default
-		: cgss::backend::native_of(ShaderRenderable::getValue()->getRenderStates());
-	states.transform *= B::Ops::build_transform(*m_transformable);
-	cgss::backend::native_of(target).draw(*m_sprite, states);
+	using cgss::backend::native_of;
+	const auto* base = ShaderRenderable::getValue() == nullptr
+		? nullptr
+		: &native_of(ShaderRenderable::getValue()->getRenderStates());
+	B::Ops::draw_sprite_transformed(native_of(target), *m_sprite, *m_transformable, base);
 }
 
 template <class B>

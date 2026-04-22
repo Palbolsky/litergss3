@@ -19,9 +19,10 @@ SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::DrawableStack)
 static ska::PeriodicTracer<cgss::LoggerStack, ska::LogLevel::Debug> DrawableStackTracer = { cgss::GetLoggerStack() };
 
 void cgss::DrawableStack::draw(cgss::Camera& defview, cgss::RenderTarget& target) const  {
+	using Ops = cgss::backend::ActiveBackend::Ops;
 	DrawableStackTracer.SKA_LOG_PERIODIC_TRACE(LOG_FREQUENCY);
 	for (auto& element: *this) {
-		cgss::backend::native_of(target).setView(cgss::backend::native_of(defview));
+		Ops::target_set_view(cgss::backend::native_of(target), cgss::backend::native_of(defview));
 		element->tryDraw(target);
 	}
 }
