@@ -3,37 +3,38 @@
 
 #include <memory>
 
-namespace sf {
-	class RenderStates;
-}
+#include "LiteCGSS/Backend/ActiveBackendFwd.h"
+#include "LiteCGSS/Graphics/DrawStateFwd.h"
 
 namespace cgss {
 
-	// Opaque wrapper around the backend draw state (currently sf::RenderStates —
-	// blend mode + transform + texture + shader bundle). Uses pimpl so that
-	// public LiteCGSS headers do not need to include <SFML/Graphics/RenderStates.hpp>.
-	// Copies perform a deep copy of the underlying sf::RenderStates (one heap
-	// allocation per clone).
+	// Templated wrapper over `Backend::native_render_states` — the bundle of
+	// blend mode + transform + texture + shader passed alongside each draw.
+	// Consumers refer to it as `cgss::DrawState`. Copies perform a deep
+	// copy of the underlying native render states (one heap allocation
+	// per clone).
 	//
-	// The raw() accessor is a temporary escape hatch used by implementation
-	// .cpp files; it will disappear once the backend is replaced and draw
-	// operations are wrapped natively.
-	class DrawState {
+	// `raw()` is the temporary escape hatch used by implementation .cpps;
+	// it will retire in PR L.
+	template <class B>
+	class basic_DrawState {
 	public:
-		DrawState();
-		DrawState(const DrawState& other);
-		DrawState(DrawState&& other) noexcept;
-		DrawState& operator=(const DrawState& other);
-		DrawState& operator=(DrawState&& other) noexcept;
-		~DrawState();
+		using native_type = typename B::native_render_states;
 
-		explicit DrawState(const sf::RenderStates& raw);
+		basic_DrawState();
+		basic_DrawState(const basic_DrawState& other);
+		basic_DrawState(basic_DrawState&& other) noexcept;
+		basic_DrawState& operator=(const basic_DrawState& other);
+		basic_DrawState& operator=(basic_DrawState&& other) noexcept;
+		~basic_DrawState();
 
-		sf::RenderStates& raw() noexcept;
-		const sf::RenderStates& raw() const noexcept;
+		explicit basic_DrawState(const native_type& raw);
+
+		native_type& raw() noexcept;
+		const native_type& raw() const noexcept;
 
 	private:
-		std::unique_ptr<sf::RenderStates> m_raw;
+		std::unique_ptr<typename B::native_render_states> m_raw;
 	};
 
 }

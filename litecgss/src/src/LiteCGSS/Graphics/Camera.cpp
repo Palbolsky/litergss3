@@ -1,23 +1,38 @@
 #include "Camera.h"
-#include <SFML/Graphics/View.hpp>
 
-cgss::Camera::Camera() : m_view(std::make_unique<sf::View>()) {}
+#include "LiteCGSS/Backend/ActiveBackend.h"
 
-cgss::Camera::Camera(const sf::View& view) : m_view(std::make_unique<sf::View>(view)) {}
+template <class B>
+cgss::basic_Camera<B>::basic_Camera() :
+	m_view(std::make_unique<typename B::native_view>()) {}
 
-cgss::Camera::Camera(const Camera& other) : m_view(std::make_unique<sf::View>(*other.m_view)) {}
+template <class B>
+cgss::basic_Camera<B>::basic_Camera(const native_type& view) :
+	m_view(std::make_unique<typename B::native_view>(view)) {}
 
-cgss::Camera::Camera(Camera&& other) noexcept = default;
+template <class B>
+cgss::basic_Camera<B>::basic_Camera(const basic_Camera& other) :
+	m_view(std::make_unique<typename B::native_view>(*other.m_view)) {}
 
-cgss::Camera& cgss::Camera::operator=(const Camera& other) {
+template <class B>
+cgss::basic_Camera<B>::basic_Camera(basic_Camera&& other) noexcept = default;
+
+template <class B>
+cgss::basic_Camera<B>& cgss::basic_Camera<B>::operator=(const basic_Camera& other) {
 	*m_view = *other.m_view;
 	return *this;
 }
 
-cgss::Camera& cgss::Camera::operator=(Camera&& other) noexcept = default;
+template <class B>
+cgss::basic_Camera<B>& cgss::basic_Camera<B>::operator=(basic_Camera&& other) noexcept = default;
 
-cgss::Camera::~Camera() = default;
+template <class B>
+cgss::basic_Camera<B>::~basic_Camera() = default;
 
-sf::View& cgss::Camera::raw() noexcept { return *m_view; }
+template <class B>
+typename cgss::basic_Camera<B>::native_type& cgss::basic_Camera<B>::raw() noexcept { return *m_view; }
 
-const sf::View& cgss::Camera::raw() const noexcept { return *m_view; }
+template <class B>
+const typename cgss::basic_Camera<B>::native_type& cgss::basic_Camera<B>::raw() const noexcept { return *m_view; }
+
+template class cgss::basic_Camera<cgss::backend::ActiveBackend>;

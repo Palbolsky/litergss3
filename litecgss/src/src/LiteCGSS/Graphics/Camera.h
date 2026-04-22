@@ -3,35 +3,37 @@
 
 #include <memory>
 
-namespace sf {
-	class View;
-}
+#include "LiteCGSS/Backend/ActiveBackendFwd.h"
+#include "LiteCGSS/Graphics/CameraFwd.h"
 
 namespace cgss {
 
-	// Opaque wrapper around the backend 2D view/camera (currently sf::View).
-	// Holds the sf::View via pimpl so that public LiteCGSS headers do not need
-	// to include <SFML/Graphics/View.hpp>. Copies perform a deep copy of the
-	// underlying sf::View (one heap allocation per clone).
+	// Templated wrapper over `Backend::native_view` (the backend's 2D
+	// view/camera type — sf::View under SFMLBackend). Consumers refer to it
+	// as `cgss::Camera`. Copies perform a deep copy of the underlying native
+	// view (one heap allocation per clone).
 	//
-	// The raw() accessor is a temporary escape hatch used by implementation
-	// .cpp files; it will disappear once the backend is replaced.
-	class Camera {
+	// `raw()` is the temporary escape hatch used by implementation .cpps;
+	// it will retire in PR L.
+	template <class B>
+	class basic_Camera {
 	public:
-		Camera();
-		Camera(const Camera& other);
-		Camera(Camera&& other) noexcept;
-		Camera& operator=(const Camera& other);
-		Camera& operator=(Camera&& other) noexcept;
-		~Camera();
+		using native_type = typename B::native_view;
 
-		explicit Camera(const sf::View& view);
+		basic_Camera();
+		basic_Camera(const basic_Camera& other);
+		basic_Camera(basic_Camera&& other) noexcept;
+		basic_Camera& operator=(const basic_Camera& other);
+		basic_Camera& operator=(basic_Camera&& other) noexcept;
+		~basic_Camera();
 
-		sf::View& raw() noexcept;
-		const sf::View& raw() const noexcept;
+		explicit basic_Camera(const native_type& view);
+
+		native_type& raw() noexcept;
+		const native_type& raw() const noexcept;
 
 	private:
-		std::unique_ptr<sf::View> m_view;
+		std::unique_ptr<typename B::native_view> m_view;
 	};
 
 }

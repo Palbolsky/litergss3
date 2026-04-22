@@ -2,12 +2,13 @@
 #define CGSS_DISPLAY_WINDOW_DRAW_H
 #include <memory>
 
+#include "LiteCGSS/Graphics/DrawStateFwd.h"
+
 namespace sf {
 	class RenderTexture;
 }
 
 namespace cgss {
-	class DrawState;
 
 	struct DisplayWindowDrawData {
 		const cgss::DrawState* renderState = nullptr;
