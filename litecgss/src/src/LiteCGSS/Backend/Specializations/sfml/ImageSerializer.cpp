@@ -1,9 +1,8 @@
-// TODO(raylib, TEMPORARY): Image serializer impls are SFML-typed
-// (sf::Image::loadFromFile/loadFromMemory/create). To remove the guard,
-// add per-method specializations for raylib using LoadImage /
-// LoadImageFromMemory / GenImageColor; encode-to-PNG via lodepng is already
-// backend-agnostic and reusable.
-#ifdef CGSS_BACKEND_SFML
+// SFML implementations of the Image serializer family — `template<>`
+// specialisations of the basic_ImageXxxSerializeMethod<SFMLBackend>::*
+// methods. Selected by CMake when CGSS_BACKEND=sfml (folder-based per-backend
+// specialization). The raylib stub equivalents live in
+// Backend/Specializations/raylib/ImageSerializer.cpp.
 
 #include <iostream>
 #include <SFML/Graphics/Image.hpp>
@@ -11,7 +10,7 @@
 #include <lodepng.h>
 #include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Assets.h"
-#include "ImageSerializer.h"
+#include "LiteCGSS/Image/Serializers/ImageSerializer.h"
 
 template <>
 bool cgss::basic_ImageMemorySerializeMethod<cgss::backend::SFMLBackend>::load(sf::Image& image, const MemorySerializerData& rawData) {
@@ -67,5 +66,3 @@ unsigned int cgss::basic_ImageFilesystemSerializeMethod<cgss::backend::SFMLBacke
 	return lodepng_encode32_file(filename.c_str(), image.getPixelsPtr(), image.getSize().x, image.getSize().y);
 }
 #endif
-
-#endif  // CGSS_BACKEND_SFML

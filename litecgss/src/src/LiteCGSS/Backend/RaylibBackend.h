@@ -136,6 +136,11 @@ namespace cgss::backend {
 		static inline void draw_state_set_blend_equation(native_render_states&, BlendEquationSlot, cgss::BlendEquation) noexcept {}
 		static inline cgss::BlendEquation draw_state_get_blend_equation(const native_render_states&, BlendEquationSlot) noexcept { return cgss::BlendEquation::Add; }
 
+		// ---- Font ops (stubs) ----
+		// Real raylib equivalents: LoadFontEx(filename, ...) / LoadFontFromMemory(...)
+		static inline bool font_load_from_file(native_font&, const char*) { return false; }
+		static inline bool font_load_from_memory(native_font&, const void*, std::size_t) { return false; }
+
 		// ---- Shader ops (stubs) ----
 		// Real raylib equivalents would call LoadShaderFromMemory /
 		// SetShaderValue / GetShaderLocation; geometry shaders are not
@@ -190,6 +195,9 @@ namespace cgss::backend {
 		static inline void set_sprite_texture_rect(native_sprite&, const cgss::IntRect&) noexcept {}
 		static inline void set_sprite_texture(native_sprite&, const native_texture&, bool) noexcept {}
 		static inline void sprite_set_position(native_sprite&, float, float) noexcept {}
+		static inline void sprite_set_origin(native_sprite&, float, float) noexcept {}
+		static inline void sprite_set_scale(native_sprite&, float, float) noexcept {}
+		static inline void draw_sprite(native_render_target&, const native_sprite&) {}
 		static inline Size2u get_sprite_bound_texture_size(const native_sprite&) noexcept { return { 0u, 0u }; }
 
 		// ---- Shape ops (stubs) ----
@@ -218,6 +226,11 @@ namespace cgss::backend {
 			// real impl: UpdateTexture(t, i.data);
 			(void)t; (void)i;
 		}
+
+		// Real raylib equivalent: UpdateTextureRec(t, {x,y,w,h}, pixels);
+		static inline void texture_update_pixels(native_texture&, const std::uint8_t*,
+		                                        unsigned int, unsigned int,
+		                                        unsigned int, unsigned int) {}
 
 		// ---- Image ops ----
 		static inline Size2u get_image_size(const native_image& i) noexcept {

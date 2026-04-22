@@ -1,32 +1,22 @@
-// TODO(raylib, TEMPORARY): tile-grid sprite rendering is universal — this
-// should be templated, not ifdef'd. Most ops needed already exist
-// (`set_sprite_texture`, `set_sprite_texture_rect`, `sprite_set_position`,
-// `draw_sprite`); to remove the guard:
-//   1. Template `SpriteMapItem`/`SpriteMap` as basic_SpriteMap*<B>
-//   2. Switch `ActivableSprite::sprite` from `unique_ptr<sf::Sprite>` to
-//      `unique_ptr<typename B::native_sprite>`
-//   3. Add: sprite_set_origin(sprite, x, y), sprite_set_scale(sprite, sx, sy)
-//      ops (currently the body sets these directly via sf::Sprite methods)
-//   4. Migrate the .cpp body to call B::Ops::* throughout
-// ~5 new ops plus class templating; modest effort comparable to PR D.
-#ifdef CGSS_BACKEND_SFML
-
-#include <SFML/Graphics/RenderTarget.hpp>
-#include <SFML/Graphics/Sprite.hpp>
-#include <SFML/Graphics/Texture.hpp>
+// Tile-grid sprite rendering. Tiles are owned as raw `B::native_sprite`
+// handles (NOT cgss::Sprite) — they have no per-tile transformable state,
+// just per-tile texture-rect + position + active flag. Body routes through
+// `B::Ops::set_sprite_*` / `sprite_set_*` / `draw_sprite` for backend
+// portability.
 #include "SpriteMap.h"
 #include "LiteCGSS/Backend/ActiveBackend.h"
-#include "LiteCGSS/Common/Internal/SfRectConv.h"
 #include "LoggerDrawables.h"
 
 SKA_LOGC_CONFIG(ska::LogLevel::Error, cgss::SpriteMapItem)
 
 #define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Debug, cgss::SpriteMapItem)
-#define LOG_INFO SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Info, cgss::SpriteMapItem)
-#define LOG_WARN SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Warn, cgss::SpriteMapItem)
+#define LOG_INFO  SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Info,  cgss::SpriteMapItem)
+#define LOG_WARN  SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Warn,  cgss::SpriteMapItem)
+
+namespace { using Ops = cgss::backend::ActiveBackend::Ops; }
 
 cgss::SpriteMapItem::ActivableSprite::ActivableSprite() :
-	sprite(std::make_unique<sf::Sprite>()) {
+	sprite(std::make_unique<typename cgss::backend::ActiveBackend::native_sprite>()) {
 }
 cgss::SpriteMapItem::ActivableSprite::~ActivableSprite() = default;
 cgss::SpriteMapItem::ActivableSprite::ActivableSprite(ActivableSprite&&) noexcept = default;
@@ -43,7 +33,7 @@ void cgss::SpriteMapItem::drawFast(cgss::RenderTarget& target) const {
 	LOG_INFO << "Drawing " << m_sprites.size() << " sprites";
 	for (const auto& activableSprite: m_sprites) {
 		if (activableSprite.active) {
-			cgss::backend::native_of(target).draw(*activableSprite.sprite);
+			Ops::draw_sprite(cgss::backend::native_of(target), *activableSprite.sprite);
 		}
 	}
 }
@@ -70,8 +60,8 @@ void cgss::SpriteMap::setTile(std::size_t index, const cgss::IntRect& tile, cgss
 	}
 	LOG_DEBUG << "Activate tile index = " << index << " tileRect = " << tile.left << ", " << tile.top << ", " << tile.width << ", " << tile.height;
 	auto& sprite = m_proxy->m_sprites[index];
-	sprite.sprite->setTexture(cgss::backend::native_of(texture));
-	sprite.sprite->setTextureRect(cgss::internal::toSf(tile));
+	Ops::set_sprite_texture(*sprite.sprite, cgss::backend::native_of(texture), /*resetRect=*/false);
+	Ops::set_sprite_texture_rect(*sprite.sprite, tile);
 	sprite.active = true;
 }
 
@@ -79,12 +69,12 @@ void cgss::SpriteMap::setTileRect(std::size_t index, const cgss::IntRect& tile) 
 	if (index >= m_proxy->m_sprites.size()) {
 		return;
 	}
-	m_proxy->m_sprites[index].sprite->setTextureRect(cgss::internal::toSf(tile));
+	Ops::set_sprite_texture_rect(*m_proxy->m_sprites[index].sprite, tile);
 }
 
 void cgss::SpriteMap::reset() {
 	LOG_DEBUG << "SpriteMap resetted";
-		for (auto& sprite : m_proxy->m_sprites) {
+	for (auto& sprite : m_proxy->m_sprites) {
 		sprite.active = false;
 	}
 }
@@ -93,7 +83,7 @@ void cgss::SpriteMap::move(float x, float y) {
 	LOG_WARN << "Moving = " << x << ", " << y;
 	auto xIterator = x;
 	for (auto& sprite : m_proxy->m_sprites) {
-		sprite.sprite->setPosition(xIterator, y);
+		Ops::sprite_set_position(*sprite.sprite, xIterator, y);
 		xIterator += static_cast<float>(m_proxy->m_tileWidth);
 	}
 }
@@ -101,15 +91,13 @@ void cgss::SpriteMap::move(float x, float y) {
 void cgss::SpriteMap::moveOrigin(float ox, float oy) {
 	LOG_DEBUG << "Settings origin = " << ox << ", " << oy;
 	for (auto& sprite : m_proxy->m_sprites) {
-		sprite.sprite->setOrigin(ox, oy);
+		Ops::sprite_set_origin(*sprite.sprite, ox, oy);
 	}
 }
 
 void cgss::SpriteMap::setTileScale(float scale) {
 	LOG_WARN << "Settings scale = " << scale;
 	for (auto& sprite : m_proxy->m_sprites) {
-		sprite.sprite->setScale(scale, scale);
+		Ops::sprite_set_scale(*sprite.sprite, scale, scale);
 	}
 }
-
-#endif  // CGSS_BACKEND_SFML

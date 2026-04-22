@@ -351,6 +351,14 @@ namespace cgss::backend {
 			return static_cast<cgss::BlendEquation>(v);
 		}
 
+		// ---- Font ops ----
+		static inline bool font_load_from_file(native_font& f, const char* filename) {
+			return f.loadFromFile(filename);
+		}
+		static inline bool font_load_from_memory(native_font& f, const void* data, std::size_t size) {
+			return f.loadFromMemory(data, size);
+		}
+
 		// ---- Shader ops ----
 		// Capability queries.
 		static inline bool shader_is_available()          { return sf::Shader::isAvailable(); }
@@ -476,6 +484,20 @@ namespace cgss::backend {
 			s.setPosition(x, y);
 		}
 
+		// Origin / scale on raw native-sprite handles (used by SpriteMap's
+		// per-tile sprites, which are owned outside cgss::Sprite).
+		static inline void sprite_set_origin(native_sprite& s, float x, float y) {
+			s.setOrigin(x, y);
+		}
+		static inline void sprite_set_scale(native_sprite& s, float sx, float sy) {
+			s.setScale(sx, sy);
+		}
+
+		// No-states draw overload — falls back to sf::RenderStates::Default.
+		static inline void draw_sprite(native_render_target& target, const native_sprite& sprite) {
+			target.draw(sprite);
+		}
+
 		// Returns the texture's size if a texture is bound, else {0, 0}.
 		static inline Size2u get_sprite_bound_texture_size(const native_sprite& s) noexcept {
 			const auto* t = s.getTexture();
@@ -574,6 +596,14 @@ namespace cgss::backend {
 
 		static inline void update_texture_from_image(native_texture& t, const native_image& i) {
 			t.update(i);
+		}
+
+		// Upload a contiguous RGBA pixel buffer into a sub-rect of the texture.
+		// Used for streaming-decoded sources (YukiGif).
+		static inline void texture_update_pixels(native_texture& t, const std::uint8_t* pixels,
+		                                        unsigned int width, unsigned int height,
+		                                        unsigned int x, unsigned int y) {
+			t.update(pixels, width, height, x, y);
 		}
 
 		static inline void copy_image(native_image& dst, const native_image& src) {

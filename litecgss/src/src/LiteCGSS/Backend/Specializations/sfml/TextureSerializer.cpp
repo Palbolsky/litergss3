@@ -1,11 +1,8 @@
-// TODO(raylib, TEMPORARY): Texture serializer impls are SFML-typed
-// (sf::Texture::create/update/loadFromFile/loadFromMemory/copyToImage). To
-// remove the guard, add per-method specializations for raylib:
-//   - LoadImage / LoadImageFromMemory / LoadImageFromTexture (raylib path)
-//   - LoadTextureFromImage / UpdateTexture for the create+update flow
-//   - lodepng decode is backend-agnostic, only the texture upload step
-//     differs — the bulk of TextureLodePngDecode can stay shared.
-#ifdef CGSS_BACKEND_SFML
+// SFML implementations of the Texture serializer family — `template<>`
+// specialisations of the basic_TextureXxxSerializeMethod<SFMLBackend>::*
+// methods. Selected by CMake when CGSS_BACKEND=sfml (folder-based per-backend
+// specialization). The raylib stub equivalents live in
+// Backend/Specializations/raylib/TextureSerializer.cpp.
 
 #include <iostream>
 #include <SFML/Graphics/Texture.hpp>
@@ -14,7 +11,7 @@
 #include <lodepng.h>
 #include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Assets.h"
-#include "TextureSerializer.h"
+#include "LiteCGSS/Graphics/Serializers/TextureSerializer.h"
 
 static unsigned int TextureLodePngDecode(sf::Texture& texture, const char* rawDataOrFilename, long from_memory_size) {
 	unsigned char* out = nullptr;
@@ -108,5 +105,3 @@ unsigned int cgss::basic_TextureFilesystemSerializeMethod<cgss::backend::SFMLBac
 	return lodepng_encode32_file(filename.c_str(), img.getPixelsPtr(), img.getSize().x, img.getSize().y);
 }
 #endif
-
-#endif  // CGSS_BACKEND_SFML

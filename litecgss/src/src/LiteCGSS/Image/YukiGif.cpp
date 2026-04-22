@@ -1,15 +1,6 @@
-// TODO(raylib, TEMPORARY): GIF decoding via libnsgif is backend-agnostic; only
-// the per-frame texture upload is backend-specific. To remove the guard:
-//   - Add B::Ops::texture_update_pixels(texture, pixels, width, height, x, y)
-//     (raylib equivalent: UpdateTextureRec(texture, {x,y,w,h}, pixels))
-//   - Migrate the one call site (`texture.update(...)`) to use the op.
-// 1 op + 1-line migration.
-#ifdef CGSS_BACKEND_SFML
-
 /* Include cstddef first, otherwise libnsgif.hpp won't "compile" */
 #include <cstddef>
 #include <libnsgif.hpp>
-#include <SFML/Graphics/Texture.hpp>
 #include "YukiGif.h"
 #include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Graphics/Texture.h"
@@ -66,7 +57,10 @@ cgss::YukiGif::~YukiGif() {
 }
 
 void cgss::YukiGif::drawOn(cgss::Texture& texture) const {
-	cgss::backend::native_of(texture).update(reinterpret_cast<sf::Uint8*>(m_gif->frame_image), m_gif->width, m_gif->height, 0, 0);
+	cgss::backend::ActiveBackend::Ops::texture_update_pixels(
+		cgss::backend::native_of(texture),
+		reinterpret_cast<const std::uint8_t*>(m_gif->frame_image),
+		m_gif->width, m_gif->height, 0, 0);
 }
 
 bool cgss::YukiGif::update(cgss::Texture& texture) {
@@ -108,5 +102,3 @@ void cgss::YukiGif::setFrame(unsigned long frame) {
 unsigned long cgss::YukiGif::frameCount() const {
 	return m_gif->frame_count;
 }
-
-#endif  // CGSS_BACKEND_SFML

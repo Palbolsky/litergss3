@@ -7,11 +7,7 @@
 #include "LiteCGSS/Graphics/Transformable.h"
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
-
-namespace sf {
-	class Sprite;
-}
-
+#include "LiteCGSS/Backend/ActiveBackendFwd.h"
 #include "LiteCGSS/Graphics/TextureFwd.h"
 
 namespace cgss {
@@ -24,7 +20,7 @@ namespace cgss {
 		friend class SpriteMap;
 	private:
 		struct ActivableSprite {
-			std::unique_ptr<sf::Sprite> sprite;
+			std::unique_ptr<typename cgss::backend::ActiveBackend::native_sprite> sprite;
 			bool active = false;
 
 			ActivableSprite();
