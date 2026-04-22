@@ -1,20 +1,34 @@
 #include "Event.h"
-#include <SFML/Window/Event.hpp>
 
-cgss::Event::Event() : m_event(std::make_unique<sf::Event>()) {}
+#include "LiteCGSS/Backend/ActiveBackend.h"
 
-cgss::Event::Event(const Event& other) : m_event(std::make_unique<sf::Event>(*other.m_event)) {}
+template <class B>
+cgss::basic_Event<B>::basic_Event() :
+	m_event(std::make_unique<typename B::native_event>()) {}
 
-cgss::Event::Event(Event&& other) noexcept = default;
+template <class B>
+cgss::basic_Event<B>::basic_Event(const basic_Event& other) :
+	m_event(std::make_unique<typename B::native_event>(*other.m_event)) {}
 
-cgss::Event& cgss::Event::operator=(const Event& other) {
+template <class B>
+cgss::basic_Event<B>::basic_Event(basic_Event&& other) noexcept = default;
+
+template <class B>
+cgss::basic_Event<B>& cgss::basic_Event<B>::operator=(const basic_Event& other) {
 	*m_event = *other.m_event;
 	return *this;
 }
 
-cgss::Event& cgss::Event::operator=(Event&& other) noexcept = default;
+template <class B>
+cgss::basic_Event<B>& cgss::basic_Event<B>::operator=(basic_Event&& other) noexcept = default;
 
-cgss::Event::~Event() = default;
+template <class B>
+cgss::basic_Event<B>::~basic_Event() = default;
 
-sf::Event& cgss::Event::raw() noexcept { return *m_event; }
-const sf::Event& cgss::Event::raw() const noexcept { return *m_event; }
+template <class B>
+typename cgss::basic_Event<B>::native_type& cgss::basic_Event<B>::raw() noexcept { return *m_event; }
+
+template <class B>
+const typename cgss::basic_Event<B>::native_type& cgss::basic_Event<B>::raw() const noexcept { return *m_event; }
+
+template class cgss::basic_Event<cgss::backend::ActiveBackend>;

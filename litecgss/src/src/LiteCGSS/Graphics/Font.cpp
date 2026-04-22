@@ -1,20 +1,34 @@
 #include "Font.h"
-#include <SFML/Graphics/Font.hpp>
 
-cgss::Font::Font() : m_font(std::make_unique<sf::Font>()) {}
+#include "LiteCGSS/Backend/ActiveBackend.h"
 
-cgss::Font::Font(const Font& other) : m_font(std::make_unique<sf::Font>(*other.m_font)) {}
+template <class B>
+cgss::basic_Font<B>::basic_Font() :
+	m_font(std::make_unique<typename B::native_font>()) {}
 
-cgss::Font::Font(Font&& other) noexcept = default;
+template <class B>
+cgss::basic_Font<B>::basic_Font(const basic_Font& other) :
+	m_font(std::make_unique<typename B::native_font>(*other.m_font)) {}
 
-cgss::Font& cgss::Font::operator=(const Font& other) {
+template <class B>
+cgss::basic_Font<B>::basic_Font(basic_Font&& other) noexcept = default;
+
+template <class B>
+cgss::basic_Font<B>& cgss::basic_Font<B>::operator=(const basic_Font& other) {
 	*m_font = *other.m_font;
 	return *this;
 }
 
-cgss::Font& cgss::Font::operator=(Font&& other) noexcept = default;
+template <class B>
+cgss::basic_Font<B>& cgss::basic_Font<B>::operator=(basic_Font&& other) noexcept = default;
 
-cgss::Font::~Font() = default;
+template <class B>
+cgss::basic_Font<B>::~basic_Font() = default;
 
-sf::Font& cgss::Font::raw() noexcept { return *m_font; }
-const sf::Font& cgss::Font::raw() const noexcept { return *m_font; }
+template <class B>
+typename cgss::basic_Font<B>::native_type& cgss::basic_Font<B>::raw() noexcept { return *m_font; }
+
+template <class B>
+const typename cgss::basic_Font<B>::native_type& cgss::basic_Font<B>::raw() const noexcept { return *m_font; }
+
+template class cgss::basic_Font<cgss::backend::ActiveBackend>;

@@ -3,32 +3,33 @@
 
 #include <memory>
 
-namespace sf {
-	class Event;
-}
+#include "LiteCGSS/Backend/ActiveBackendFwd.h"
+#include "LiteCGSS/Events/EventFwd.h"
 
 namespace cgss {
 
-	// Opaque wrapper around the backend window event (currently sf::Event).
-	// Uses pimpl so that public LiteCGSS headers do not need to include
-	// <SFML/Window/Event.hpp>. Callers that need to inspect the event payload
-	// (event type, key code, mouse coords, …) use .raw() at the backend
-	// boundary; this escape hatch will disappear once the backend is replaced
-	// and a native cgss::Event variant is introduced.
-	class Event {
+	// Templated wrapper over `Backend::native_event`. Consumers refer to it
+	// as `cgss::Event`. Callers that need to inspect the event payload
+	// (event type, key code, mouse coords, …) use `raw()` at the backend
+	// boundary; this escape hatch will retire in PR L (or earlier, when a
+	// native cgss::Event variant is introduced).
+	template <class B>
+	class basic_Event {
 	public:
-		Event();
-		Event(const Event& other);
-		Event(Event&& other) noexcept;
-		Event& operator=(const Event& other);
-		Event& operator=(Event&& other) noexcept;
-		~Event();
+		using native_type = typename B::native_event;
 
-		sf::Event& raw() noexcept;
-		const sf::Event& raw() const noexcept;
+		basic_Event();
+		basic_Event(const basic_Event& other);
+		basic_Event(basic_Event&& other) noexcept;
+		basic_Event& operator=(const basic_Event& other);
+		basic_Event& operator=(basic_Event&& other) noexcept;
+		~basic_Event();
+
+		native_type& raw() noexcept;
+		const native_type& raw() const noexcept;
 
 	private:
-		std::unique_ptr<sf::Event> m_event;
+		std::unique_ptr<typename B::native_event> m_event;
 	};
 
 }

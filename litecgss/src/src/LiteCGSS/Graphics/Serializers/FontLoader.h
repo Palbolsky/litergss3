@@ -3,8 +3,9 @@
 
 #include <string>
 
+#include "LiteCGSS/Graphics/FontFwd.h"
+
 namespace cgss {
-	class Font;
 
 	struct FontLoaderMethod {
 		static bool load(cgss::Font& font, const std::string& filename);

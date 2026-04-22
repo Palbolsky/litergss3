@@ -3,33 +3,34 @@
 
 #include <memory>
 
-namespace sf {
-	class Font;
-}
+#include "LiteCGSS/Backend/ActiveBackendFwd.h"
+#include "LiteCGSS/Graphics/FontFwd.h"
 
 namespace cgss {
 
-	// Opaque wrapper around the backend font (currently sf::Font). Uses pimpl so
-	// that public LiteCGSS headers do not need to include <SFML/Graphics/Font.hpp>.
-	// Copies perform a deep copy of the underlying sf::Font (which itself owns
-	// font data — so copies are relatively expensive).
+	// Templated wrapper over `Backend::native_font`. Consumers refer to it
+	// as `cgss::Font`. Copies perform a deep copy of the underlying native
+	// font (which itself owns font data — copies are relatively expensive).
 	//
-	// The raw() accessor is a temporary escape hatch used by implementation
-	// .cpp files; it will disappear once the backend is replaced.
-	class Font {
+	// `raw()` is the temporary escape hatch used by implementation .cpps;
+	// it will retire in PR L.
+	template <class B>
+	class basic_Font {
 	public:
-		Font();
-		Font(const Font& other);
-		Font(Font&& other) noexcept;
-		Font& operator=(const Font& other);
-		Font& operator=(Font&& other) noexcept;
-		~Font();
+		using native_type = typename B::native_font;
 
-		sf::Font& raw() noexcept;
-		const sf::Font& raw() const noexcept;
+		basic_Font();
+		basic_Font(const basic_Font& other);
+		basic_Font(basic_Font&& other) noexcept;
+		basic_Font& operator=(const basic_Font& other);
+		basic_Font& operator=(basic_Font&& other) noexcept;
+		~basic_Font();
+
+		native_type& raw() noexcept;
+		const native_type& raw() const noexcept;
 
 	private:
-		std::unique_ptr<sf::Font> m_font;
+		std::unique_ptr<typename B::native_font> m_font;
 	};
 
 }
