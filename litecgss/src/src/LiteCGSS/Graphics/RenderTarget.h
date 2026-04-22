@@ -1,32 +1,33 @@
 #ifndef CGSS_RENDER_TARGET_H
 #define CGSS_RENDER_TARGET_H
 
-namespace sf {
-	class RenderTarget;
-}
+#include "LiteCGSS/Backend/ActiveBackendFwd.h"
+#include "LiteCGSS/Graphics/RenderTargetFwd.h"
 
 namespace cgss {
 
-	// Opaque wrapper around the backend render target (currently sf::RenderTarget).
-	// Public LiteCGSS API uses this type instead of the SFML one so that the
-	// backend can be swapped without changing consumer-visible signatures.
+	// Templated wrapper over a reference to `Backend::native_render_target`.
+	// Non-owning (just a pointer); freely copyable. Consumers refer to it as
+	// `cgss::RenderTarget`.
 	//
-	// The raw() accessor is a temporary escape hatch: implementation .cpp files
-	// still call SFML directly via raw(). It will disappear once the backend is
-	// replaced and the rendering operations are wrapped natively.
-	class RenderTarget {
+	// `raw()` is the temporary escape hatch used by implementation .cpps;
+	// it will retire in PR L (replaced by `Backend::Ops::draw_*` direct calls).
+	template <class B>
+	class basic_RenderTarget {
 	public:
-		explicit RenderTarget(sf::RenderTarget& target) noexcept;
+		using native_type = typename B::native_render_target;
 
-		RenderTarget(const RenderTarget&) = default;
-		RenderTarget& operator=(const RenderTarget&) = default;
-		RenderTarget(RenderTarget&&) noexcept = default;
-		RenderTarget& operator=(RenderTarget&&) noexcept = default;
+		explicit basic_RenderTarget(native_type& target) noexcept;
 
-		sf::RenderTarget& raw() const noexcept { return *m_target; }
+		basic_RenderTarget(const basic_RenderTarget&) noexcept;
+		basic_RenderTarget& operator=(const basic_RenderTarget&) noexcept;
+		basic_RenderTarget(basic_RenderTarget&&) noexcept;
+		basic_RenderTarget& operator=(basic_RenderTarget&&) noexcept;
+
+		native_type& raw() const noexcept;
 
 	private:
-		sf::RenderTarget* m_target;
+		native_type* m_target;
 	};
 
 }
