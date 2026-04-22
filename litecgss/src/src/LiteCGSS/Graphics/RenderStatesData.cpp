@@ -1,10 +1,25 @@
-// RenderStatesData's body is SFML-coupled (uses sf::Shader::isAvailable,
-// sf::Shader::loadFromMemory, sf::Shader::setUniform with various types,
-// plus direct field access on sf::RenderStates members). Templating the
-// class would require 15-20 new shader-related backend ops; for now the
-// whole TU is guarded so non-SFML backends compile (the engine library
-// .a will simply contain no symbols for these methods — link errors only
-// surface if a downstream binary actually calls them).
+// TODO(raylib, TEMPORARY): this guard is a stopgap. Shaders are universal
+// (raylib has Shader too), so this should be templated rather than ifdef'd.
+// To remove the guard, add the following ops to each backend's Ops struct
+// (real impls for SFML, raylib equivalents using LoadShaderFromMemory /
+// SetShaderValue family for raylib):
+//   - shader_is_available() -> bool
+//   - shader_is_geometry_available() -> bool
+//   - shader_load_from_memory(shader, fragment_src, ShaderType) -> bool
+//   - shader_load_from_memory(shader, vertex_src, fragment_src) -> bool
+//   - shader_load_from_memory(shader, vertex_src, geometry_src, fragment_src) -> bool
+//   - shader_set_uniform_float(shader, name, float)
+//   - shader_set_uniform_int(shader, name, int)
+//   - shader_set_uniform_bool(shader, name, bool)
+//   - shader_set_uniform_vec{2,3,4}(shader, name, Glsl::Vec*)
+//   - shader_set_uniform_ivec{2,3,4}(shader, name, Glsl::Ivec*)
+//   - shader_set_uniform_bvec{2,3,4}(shader, name, Glsl::Bvec*)
+//   - shader_set_uniform_mat{3,4}(shader, name, Glsl::Mat*)
+//   - shader_set_uniform_texture(shader, name, native_texture)
+//   - shader_set_uniform_current_texture(shader, name)
+//   - shader_set_uniform_array_float(shader, name, scalars, length)
+// Then re-template `RenderStatesData` (and `RenderStates`) on B and migrate
+// all bodies through B::Ops::shader_*.
 #ifdef CGSS_BACKEND_SFML
 
 #include <sstream>

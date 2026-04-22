@@ -1,7 +1,5 @@
 #include <iostream>
 
-#include <SFML/Window/Event.hpp>
-#include <SFML/Window/Keyboard.hpp>
 #include "Views/DisplayWindow.h"
 #include "Views/Viewport.h"
 #include "Configuration/DisplayWindowSettings.h"
@@ -9,6 +7,12 @@
 #include "Graphics/Texture.h"
 #include "Graphics/Serializers/TextureSerializer.h"
 #include "LiteCGSS/Backend/ActiveBackend.h"
+#include "LiteCGSS/Backend/BackendCommon.h"
+
+#ifdef CGSS_BACKEND_SFML
+#include <SFML/Window/Event.hpp>
+#include <SFML/Window/Keyboard.hpp>
+#endif
 
 #include "sample_png.h"
 
@@ -41,10 +45,10 @@ void MemTest() {
 }
 
 static bool g_disposeView = false;
-static sf::Vector2i g_windowPosition { 100, 100 };
 
 static void HandleEvents(cgss::DisplayWindow& window, cgss::DisplayWindowSettings& settings) {
 	cgss::Event event;
+#ifdef CGSS_BACKEND_SFML
 	while (window.popEvent(event)) {
 		const auto& raw = cgss::backend::native_of(event);
 		switch(raw.type) {
@@ -100,6 +104,13 @@ static void HandleEvents(cgss::DisplayWindow& window, cgss::DisplayWindowSetting
 			break;
 		}
 	}
+#else
+	// TODO(raylib): cgss::Event has no backend-agnostic accessors yet
+	// (no cgss::EventType / cgss::KeyCode). Until those land, the playground
+	// just drains the event queue under non-SFML backends.
+	(void)window; (void)settings;
+	while (window.popEvent(event)) {}
+#endif
 }
 
 static void ViewTest() {
@@ -111,7 +122,7 @@ static void ViewTest() {
 	settings.title = "Playground";
 	auto window = cgss::DisplayWindow{ };
 
-	const auto windowPos = sf::Vector2i {
+	const auto windowPos = cgss::backend::Point2i {
 		static_cast<int>(cgss::DisplayWindow::DesktopWidth() - settings.video.width) / 2,
 		static_cast<int>(cgss::DisplayWindow::DesktopHeight() - settings.video.height) / 2
 	};

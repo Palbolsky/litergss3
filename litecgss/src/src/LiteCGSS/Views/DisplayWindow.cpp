@@ -145,12 +145,14 @@ void cgss::basic_DisplayWindow<B>::applyReload(DisplayWindowSettings settings, b
 			} else
 #endif
 			{
-				const auto style = m_settings.fullscreen ? sf::Style::Fullscreen : (sf::Style::Close | sf::Style::Titlebar);
-				m_gameWindow.create(
-					sf::VideoMode { scaledWidth, scaledHeight, m_settings.video.bitsPerPixel },
-					sf::String::fromUtf8(m_settings.title.begin(), m_settings.title.end()),
-					style,
-					cgss::internal::toSf(m_settings.context));
+				const cgss::backend::WindowCreateOptions opts {
+					scaledWidth,
+					scaledHeight,
+					static_cast<unsigned int>(m_settings.video.bitsPerPixel),
+					m_settings.fullscreen,
+					&m_settings.context,
+				};
+				B::Ops::window_create(m_gameWindow, opts, m_settings.title.c_str());
 			}
 		} else {
 			B::Ops::window_set_size(m_gameWindow, scaledWidth, scaledHeight);
@@ -221,7 +223,7 @@ cgss::RenderTarget cgss::basic_DisplayWindow<B>::configureAndGetRenderTarget(cgs
 		Ops::render_texture_clear(*m_draw.renderTexture);
 		return cgss::RenderTarget{*m_draw.renderTexture.get()};
 	}
-	return cgss::RenderTarget{m_gameWindow};
+	return cgss::RenderTarget{Ops::target_from_window(m_gameWindow)};
 }
 
 template <class B>

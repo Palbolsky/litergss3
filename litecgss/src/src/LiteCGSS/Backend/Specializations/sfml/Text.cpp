@@ -1,18 +1,21 @@
-// Text.cpp is intentionally SFML-coupled — it builds on ScrollText (a copy
-// of sf::Text vendored into the project). Per existing project policy
-// (memory: SFML isolation effort), ScrollText/Text stay SFML-only and
-// would need a wholly different impl under any non-SFML backend (raylib's
-// font/text rendering uses LoadFontFromMemory + DrawTextEx). The whole
-// TU is guarded so non-SFML backends compile.
-#ifdef CGSS_BACKEND_SFML
+// SFML implementation of cgss::TextItem / cgss::Text — selected by CMake
+// when CGSS_BACKEND=sfml (folder-based per-backend specialization). The
+// raylib equivalent lives in Backend/Specializations/raylib/Text.cpp and
+// provides stub no-op bodies for the same class methods.
+//
+// Per existing project policy (memory: SFML isolation effort), the
+// underlying ScrollText is intentionally SFML-coupled — its source stays
+// in Graphics/ScrollText.{h,cpp} since it's effectively a vendored copy
+// of sf::Text. A future raylib-native text implementation would build on
+// raylib's LoadFontFromMemory + DrawTextEx with its own glyph atlas.
 
 #include <cmath>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/String.hpp>
 #include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Internal/SfColorConv.h"
-#include "LoggerDrawables.h"
-#include "Text.h"
+#include "LiteCGSS/Graphics/LoggerDrawables.h"
+#include "LiteCGSS/Graphics/Text.h"
 
 SKA_LOGC_CONFIG(ska::LogLevel::Disabled, cgss::TextItem)
 
@@ -217,5 +220,3 @@ void cgss::Text::setFont(const cgss::Font& font) {
 	LOG_INFO << "Set font (family = " << cgss::backend::native_of(font).getInfo().family << ")";
 	m_proxy->m_text.setFont(cgss::backend::native_of(font));
 }
-
-#endif  // CGSS_BACKEND_SFML

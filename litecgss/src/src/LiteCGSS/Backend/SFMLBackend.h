@@ -202,6 +202,31 @@ namespace cgss::backend {
 		static inline void window_set_icon(native_window& w, unsigned int width, unsigned int height, const std::uint8_t* pixels) {
 			w.setIcon(width, height, pixels);
 		}
+		// Creates / re-creates the SFML window with the given options + title.
+		static inline void window_create(native_window& w, const WindowCreateOptions& opts, const char* title) {
+			const auto style = opts.fullscreen
+				? sf::Style::Fullscreen
+				: (sf::Style::Close | sf::Style::Titlebar);
+			sf::ContextSettings sfCtx{};
+			if (opts.context != nullptr) {
+				sfCtx = sf::ContextSettings(
+					opts.context->depthBits, opts.context->stencilBits,
+					opts.context->antialiasingLevel, opts.context->majorVersion,
+					opts.context->minorVersion, opts.context->attributeFlags,
+					opts.context->sRgbCapable);
+			}
+			w.create(
+				sf::VideoMode { opts.width, opts.height, opts.bitsPerPixel },
+				title,
+				style,
+				sfCtx);
+		}
+		// Returns a render-target reference that draws to the window. Under
+		// SFML this is just an upcast (sf::RenderWindow IS-A sf::RenderTarget).
+		// Other backends may stash a tag and dispatch their draw ops on it.
+		static inline native_render_target& target_from_window(native_window& w) noexcept {
+			return w;
+		}
 		// Draws the render texture's color buffer onto the window (used by
 		// post-processing). Encapsulates the SFML-specific local-sprite
 		// construction so the wrapper body stays backend-portable.

@@ -72,52 +72,11 @@ void cgss::ViewportItem::draw(cgss::RenderTarget& target) const {
 	Ops::target_set_view(native_of(target), originalView);
 }
 
-std::unique_ptr<cgss::Texture> cgss::ViewportItem::takeSnapshot() const {
-#ifdef CGSS_BACKEND_SFML
-	// Snapshot uses local `sf::RenderTexture` + `sf::Sprite` to render the
-	// viewport's contents into an off-screen target and then wrap that
-	// resulting native texture as a cgss::Texture. The whole choreography
-	// is SFML-shaped — non-SFML backends would need a different impl
-	// (raylib's BeginTextureMode/EndTextureMode pattern).
-	using Ops = cgss::backend::ActiveBackend::Ops;
-	using cgss::backend::native_of;
-
-	sf::RenderTexture render;
-	sf::Sprite renderSprite;
-	cgss::Camera renderView = ViewBox::clone();
-	cgss::RenderTarget renderTarget{render};
-	render.create(ViewBox::getWidth(), ViewBox::getHeight());
-	Ops::view_set_viewport(native_of(renderView), 0.f, 0.f, 1.f, 1.f);
-	render.setView(native_of(renderView));
-
-	const auto* renderStates = getRenderStates() == nullptr ? nullptr : &getRenderStates()->getRenderStates();
-	if (renderStates) {
-		// Clearing render
-		render.clear(sf::Color::Transparent);
-
-		// Drawing sprites
-		drawables().drawFast(renderTarget);
-		render.display();
-
-		sf::Texture copy = sf::Texture(render.getTexture());
-		renderSprite.setTexture(copy);
-		renderSprite.setPosition(0, 0);
-
-		// Draw the result
-		render.clear(sf::Color::Transparent);
-		render.draw(renderSprite, native_of(*renderStates));
-		render.display();
-	} else {
-		render.clear(sf::Color::Transparent);
-		drawables().drawFast(renderTarget);
-		render.display();
-	}
-
-	return std::make_unique<cgss::Texture>(cgss::Texture::create_from_native(sf::Texture(render.getTexture())));
-#else
-	return nullptr;
-#endif
-}
+// `cgss::ViewportItem::takeSnapshot` is defined per-backend in
+// `Backend/Specializations/{sfml,raylib}/ViewportTakeSnapshot.cpp` because
+// the off-screen render-and-grab choreography is fundamentally backend-
+// shaped (SFML's RenderTexture+Sprite+display vs raylib's
+// BeginTextureMode/EndTextureMode/LoadImageFromTexture).
 
 void cgss::ViewportItem::setupFullWindowView(cgss::RenderTarget& target) const {
 	using Ops = cgss::backend::ActiveBackend::Ops;

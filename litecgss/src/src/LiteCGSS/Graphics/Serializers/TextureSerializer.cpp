@@ -1,5 +1,18 @@
+// TODO(raylib, TEMPORARY): Texture serializer impls are SFML-typed
+// (sf::Texture::create/update/loadFromFile/loadFromMemory/copyToImage). To
+// remove the guard, add per-method specializations for raylib:
+//   - LoadImage / LoadImageFromMemory / LoadImageFromTexture (raylib path)
+//   - LoadTextureFromImage / UpdateTexture for the create+update flow
+//   - lodepng decode is backend-agnostic, only the texture upload step
+//     differs — the bulk of TextureLodePngDecode can stay shared.
+#ifdef CGSS_BACKEND_SFML
+
 #include <iostream>
+#include <SFML/Graphics/Texture.hpp>
+#include <SFML/Graphics/Image.hpp>
+#include <SFML/Graphics/Color.hpp>
 #include <lodepng.h>
+#include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Assets.h"
 #include "TextureSerializer.h"
 
@@ -27,7 +40,8 @@ static unsigned int TextureLodePngDecode(sf::Texture& texture, const char* rawDa
 	return result;
 }
 
-bool cgss::TextureMemorySerializeMethod::load(sf::Texture& texture, const MemorySerializerData& rawData, sf::Image&) {
+template <>
+bool cgss::basic_TextureMemorySerializeMethod<cgss::backend::SFMLBackend>::load(sf::Texture& texture, const MemorySerializerData& rawData, sf::Image&) {
 	const auto errorCode = TextureLodePngDecode(texture, reinterpret_cast<const char*>(rawData.first), rawData.second);
 	if (errorCode == 0) {
 		return true;
@@ -35,7 +49,8 @@ bool cgss::TextureMemorySerializeMethod::load(sf::Texture& texture, const Memory
 	return texture.loadFromMemory(rawData.first, rawData.second);
 }
 
-cgss::MemorySerializerData cgss::TextureMemorySerializeMethod::save(const sf::Texture& texture) {
+template <>
+cgss::MemorySerializerData cgss::basic_TextureMemorySerializeMethod<cgss::backend::SFMLBackend>::save(const sf::Texture& texture) {
 	sf::Image img = texture.copyToImage();
 
 	unsigned char* out = nullptr;
@@ -49,13 +64,15 @@ cgss::MemorySerializerData cgss::TextureMemorySerializeMethod::save(const sf::Te
 	return { out, size };
 }
 
-bool cgss::TextureEmptySerializeMethod::load(sf::Texture& texture, unsigned int width, unsigned int height, sf::Image& image) {
+template <>
+bool cgss::basic_TextureEmptySerializeMethod<cgss::backend::SFMLBackend>::load(sf::Texture& texture, unsigned int width, unsigned int height, sf::Image& image) {
 	image.create(width, height, sf::Color(0, 0, 0, 0));
 	return texture.loadFromImage(image);
 }
 
 #ifdef LITECGSS_USE_PHYSFS
-bool cgss::TextureAssetSerializeMethod::load(sf::Texture& texture, const std::string& filename, sf::Image&) {
+template <>
+bool cgss::basic_TextureAssetSerializeMethod<cgss::backend::SFMLBackend>::load(sf::Texture& texture, const std::string& filename, sf::Image&) {
 	if (!AssetFile::exists(filename)) {
 		return texture.loadFromFile(filename.c_str());
 	}
@@ -68,14 +85,16 @@ bool cgss::TextureAssetSerializeMethod::load(sf::Texture& texture, const std::st
 	}
 }
 
-unsigned int cgss::TextureAssetSerializeMethod::save(const sf::Texture& texture, const std::string& filename) {
+template <>
+unsigned int cgss::basic_TextureAssetSerializeMethod<cgss::backend::SFMLBackend>::save(const sf::Texture& texture, const std::string& filename) {
 	// Currently unsupported in an archive
 	// Should we ?
 	sf::Image img = texture.copyToImage();
 	return lodepng_encode32_file(filename.c_str(), img.getPixelsPtr(), img.getSize().x, img.getSize().y);
 }
 #else
-bool cgss::TextureFilesystemSerializeMethod::load(sf::Texture& texture, const std::string& filename, sf::Image&) {
+template <>
+bool cgss::basic_TextureFilesystemSerializeMethod<cgss::backend::SFMLBackend>::load(sf::Texture& texture, const std::string& filename, sf::Image&) {
 	const auto errorCode = TextureLodePngDecode(texture, filename.c_str(), 0);
 	if (errorCode == 0) {
 		return true;
@@ -83,8 +102,11 @@ bool cgss::TextureFilesystemSerializeMethod::load(sf::Texture& texture, const st
 	return texture.loadFromFile(filename.c_str());
 }
 
-unsigned int cgss::TextureFilesystemSerializeMethod::save(const sf::Texture& texture, const std::string& filename) {
+template <>
+unsigned int cgss::basic_TextureFilesystemSerializeMethod<cgss::backend::SFMLBackend>::save(const sf::Texture& texture, const std::string& filename) {
 	sf::Image img = texture.copyToImage();
 	return lodepng_encode32_file(filename.c_str(), img.getPixelsPtr(), img.getSize().x, img.getSize().y);
 }
 #endif
+
+#endif  // CGSS_BACKEND_SFML

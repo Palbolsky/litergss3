@@ -1,13 +1,25 @@
+// TODO(raylib, TEMPORARY): Image serializer impls are SFML-typed
+// (sf::Image::loadFromFile/loadFromMemory/create). To remove the guard,
+// add per-method specializations for raylib using LoadImage /
+// LoadImageFromMemory / GenImageColor; encode-to-PNG via lodepng is already
+// backend-agnostic and reusable.
+#ifdef CGSS_BACKEND_SFML
+
 #include <iostream>
+#include <SFML/Graphics/Image.hpp>
+#include <SFML/Graphics/Color.hpp>
 #include <lodepng.h>
+#include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Assets.h"
 #include "ImageSerializer.h"
 
-bool cgss::ImageMemorySerializeMethod::load(sf::Image& image, const MemorySerializerData& rawData) {
+template <>
+bool cgss::basic_ImageMemorySerializeMethod<cgss::backend::SFMLBackend>::load(sf::Image& image, const MemorySerializerData& rawData) {
 	return image.loadFromMemory(rawData.first, rawData.second);
 }
 
-cgss::MemorySerializerData cgss::ImageMemorySerializeMethod::save(const sf::Image& image) {
+template <>
+cgss::MemorySerializerData cgss::basic_ImageMemorySerializeMethod<cgss::backend::SFMLBackend>::save(const sf::Image& image) {
 	unsigned char* out = nullptr;
 	size_t size;
 	if (lodepng_encode32(&out, &size, image.getPixelsPtr(), image.getSize().x, image.getSize().y) != 0) {
@@ -17,13 +29,15 @@ cgss::MemorySerializerData cgss::ImageMemorySerializeMethod::save(const sf::Imag
 	return { out, size };
 }
 
-bool cgss::ImageEmptySerializeMethod::load(sf::Image& image, unsigned int width, unsigned int height) {
+template <>
+bool cgss::basic_ImageEmptySerializeMethod<cgss::backend::SFMLBackend>::load(sf::Image& image, unsigned int width, unsigned int height) {
 	image.create(width, height, sf::Color(0, 0, 0, 0));
 	return true;
 }
 
 #ifdef LITECGSS_USE_PHYSFS
-bool cgss::ImageAssetSerializeMethod::load(sf::Image& image, const std::string& filename) {
+template <>
+bool cgss::basic_ImageAssetSerializeMethod<cgss::backend::SFMLBackend>::load(sf::Image& image, const std::string& filename) {
 	if (!AssetFile::exists(filename)) {
 		return image.loadFromFile(filename.c_str());
 	}
@@ -36,17 +50,22 @@ bool cgss::ImageAssetSerializeMethod::load(sf::Image& image, const std::string& 
 	}
 }
 
-unsigned int cgss::ImageAssetSerializeMethod::save(const sf::Image& image, const std::string& filename) {
+template <>
+unsigned int cgss::basic_ImageAssetSerializeMethod<cgss::backend::SFMLBackend>::save(const sf::Image& image, const std::string& filename) {
 	// Currently unsupported in an archive
 	// Should we ?
 	return lodepng_encode32_file(filename.c_str(), image.getPixelsPtr(), image.getSize().x, image.getSize().y);
 }
 #else
-bool cgss::ImageFilesystemSerializeMethod::load(sf::Image& image, const std::string& filename) {
+template <>
+bool cgss::basic_ImageFilesystemSerializeMethod<cgss::backend::SFMLBackend>::load(sf::Image& image, const std::string& filename) {
 	return image.loadFromFile(filename.c_str());
 }
 
-unsigned int cgss::ImageFilesystemSerializeMethod::save(const sf::Image& image, const std::string& filename) {
+template <>
+unsigned int cgss::basic_ImageFilesystemSerializeMethod<cgss::backend::SFMLBackend>::save(const sf::Image& image, const std::string& filename) {
 	return lodepng_encode32_file(filename.c_str(), image.getPixelsPtr(), image.getSize().x, image.getSize().y);
 }
 #endif
+
+#endif  // CGSS_BACKEND_SFML

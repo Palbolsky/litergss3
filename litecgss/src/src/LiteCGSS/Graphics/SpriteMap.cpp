@@ -1,10 +1,14 @@
-// SpriteMap's body is SFML-coupled (uses sf::Sprite::setTexture/setPosition/
-// setOrigin/setScale/setTextureRect on a vector of unique_ptr<sf::Sprite>;
-// draws via target.draw(*sf::Sprite)). Templating it would require ~10
-// new sprite-related backend ops + restructuring m_sprites' inner type.
-// For now the whole TU is guarded so non-SFML backends compile (engine .a
-// has no SpriteMap symbols under raylib — link errors only if downstream
-// binaries call SpriteMap methods).
+// TODO(raylib, TEMPORARY): tile-grid sprite rendering is universal — this
+// should be templated, not ifdef'd. Most ops needed already exist
+// (`set_sprite_texture`, `set_sprite_texture_rect`, `sprite_set_position`,
+// `draw_sprite`); to remove the guard:
+//   1. Template `SpriteMapItem`/`SpriteMap` as basic_SpriteMap*<B>
+//   2. Switch `ActivableSprite::sprite` from `unique_ptr<sf::Sprite>` to
+//      `unique_ptr<typename B::native_sprite>`
+//   3. Add: sprite_set_origin(sprite, x, y), sprite_set_scale(sprite, sx, sy)
+//      ops (currently the body sets these directly via sf::Sprite methods)
+//   4. Migrate the .cpp body to call B::Ops::* throughout
+// ~5 new ops plus class templating; modest effort comparable to PR D.
 #ifdef CGSS_BACKEND_SFML
 
 #include <SFML/Graphics/RenderTarget.hpp>

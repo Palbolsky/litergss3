@@ -1,39 +1,59 @@
 #ifndef CGSS_TEXTURE_SERIALIZER_H
 #define CGSS_TEXTURE_SERIALIZER_H
 
-#include <SFML/Graphics/Texture.hpp>
-#include <SFML/Graphics/Image.hpp>
 #include "TextureLoaderSaver.h"
+#include "LiteCGSS/Backend/ActiveBackendFwd.h"
 #include "LiteCGSS/Common/Serializer.h"
 
 namespace cgss {
 #ifdef LITECGSS_USE_PHYSFS
-	struct TextureAssetSerializeMethod {
-		static bool load(sf::Texture& texture, const std::string& filename, sf::Image& image);
-		static unsigned int save(const sf::Texture& texture, const std::string& filename);
+	template <class B>
+	struct basic_TextureAssetSerializeMethod {
+		static bool load(typename B::native_texture& texture, const std::string& filename, typename B::native_image& image);
+		static unsigned int save(const typename B::native_texture& texture, const std::string& filename);
 	};
-	using TextureFileSerializeMethod = TextureAssetSerializeMethod;
+	template <class B>
+	using basic_TextureFileSerializeMethod = basic_TextureAssetSerializeMethod<B>;
 #else
-	struct TextureFilesystemSerializeMethod {
-		static bool load(sf::Texture& texture, const std::string& filename, sf::Image& image);
-		static unsigned int save(const sf::Texture& texture, const std::string& filename);
+	template <class B>
+	struct basic_TextureFilesystemSerializeMethod {
+		static bool load(typename B::native_texture& texture, const std::string& filename, typename B::native_image& image);
+		static unsigned int save(const typename B::native_texture& texture, const std::string& filename);
 	};
-	using TextureFileSerializeMethod = TextureFilesystemSerializeMethod;
-	
+	template <class B>
+	using basic_TextureFileSerializeMethod = basic_TextureFilesystemSerializeMethod<B>;
 #endif
-	using TextureFileSerializer = FileSerializer<TextureFileSerializeMethod, sf::Texture, TextureLoader, TextureSaver>;
 
-	struct TextureMemorySerializeMethod {
-		static bool load(sf::Texture& texture, const MemorySerializerData& data, sf::Image& image);
-		static MemorySerializerData save(const sf::Texture& texture);
+	template <class B>
+	using basic_TextureFileSerializer = FileSerializer<basic_TextureFileSerializeMethod<B>, typename B::native_texture, basic_TextureLoader<B>, basic_TextureSaver<B>>;
+
+	template <class B>
+	struct basic_TextureMemorySerializeMethod {
+		static bool load(typename B::native_texture& texture, const MemorySerializerData& rawData, typename B::native_image& image);
+		static MemorySerializerData save(const typename B::native_texture& texture);
 	};
 
-	using TextureMemorySerializer = MemorySerializer<TextureMemorySerializeMethod, sf::Texture, TextureLoader, TextureSaver>;
+	template <class B>
+	using basic_TextureMemorySerializer = MemorySerializer<basic_TextureMemorySerializeMethod<B>, typename B::native_texture, basic_TextureLoader<B>, basic_TextureSaver<B>>;
 
-	struct TextureEmptySerializeMethod {
-		static bool load(sf::Texture& texture, unsigned int width, unsigned int height, sf::Image& image);
+	template <class B>
+	struct basic_TextureEmptySerializeMethod {
+		static bool load(typename B::native_texture& texture, unsigned int width, unsigned int height, typename B::native_image& image);
 	};
 
-	using TextureEmptySerializer = Empty2DSerializer<TextureEmptySerializeMethod, sf::Texture, TextureLoader>;
+	template <class B>
+	using basic_TextureEmptySerializer = Empty2DSerializer<basic_TextureEmptySerializeMethod<B>, typename B::native_texture, basic_TextureLoader<B>>;
+
+#ifdef LITECGSS_USE_PHYSFS
+	using TextureAssetSerializeMethod = basic_TextureAssetSerializeMethod<cgss::backend::ActiveBackend>;
+#else
+	using TextureFilesystemSerializeMethod = basic_TextureFilesystemSerializeMethod<cgss::backend::ActiveBackend>;
+#endif
+	using TextureFileSerializeMethod    = basic_TextureFileSerializeMethod<cgss::backend::ActiveBackend>;
+	using TextureFileSerializer         = basic_TextureFileSerializer<cgss::backend::ActiveBackend>;
+	using TextureMemorySerializeMethod  = basic_TextureMemorySerializeMethod<cgss::backend::ActiveBackend>;
+	using TextureMemorySerializer       = basic_TextureMemorySerializer<cgss::backend::ActiveBackend>;
+	using TextureEmptySerializeMethod   = basic_TextureEmptySerializeMethod<cgss::backend::ActiveBackend>;
+	using TextureEmptySerializer        = basic_TextureEmptySerializer<cgss::backend::ActiveBackend>;
 }
 #endif

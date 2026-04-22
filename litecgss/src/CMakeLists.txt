@@ -18,6 +18,17 @@ file(GLOB_RECURSE SOURCES
 
 string(REGEX REPLACE "[^;]*CMakeFiles/[^;]+;?" "" SOURCES "${SOURCES}")
 
+# Exclude all per-backend impls from the main glob; we re-add only the
+# matching backend's folder below. This is the "PERMANENT per-backend"
+# bucket — TUs whose impl is fundamentally different across backends
+# (Text/ScrollText, DisplayWindowSnapshot, ViewportTakeSnapshot).
+list(FILTER SOURCES EXCLUDE REGEX "/LiteCGSS/Backend/Specializations/")
+file(GLOB_RECURSE BACKEND_IMPL_SOURCES
+	src/LiteCGSS/Backend/Specializations/${CGSS_BACKEND}/*.cpp
+	src/LiteCGSS/Backend/Specializations/${CGSS_BACKEND}/*.h
+)
+list(APPEND SOURCES ${BACKEND_IMPL_SOURCES})
+
 generate_source_groups("${SOURCES}" "${LITECGSS_ROOT_DIR}")
 
 add_library(LiteCGSS_engine ${SOURCES})

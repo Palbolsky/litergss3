@@ -85,6 +85,19 @@ namespace cgss::backend {
 		static inline bool window_wait_event(native_window&, native_event&) { return false; }
 		static inline Size2u desktop_size() noexcept { return {}; }
 		static inline void window_set_icon(native_window&, unsigned int, unsigned int, const std::uint8_t*) {}
+		// Stub: a real raylib impl would call SetConfigFlags() then InitWindow()
+		// (or no-op if a window is already initialised — raylib uses global
+		// window state, so this op effectively redirects to that singleton).
+		static inline void window_create(native_window&, const WindowCreateOptions&, const char*) {}
+		// Stub: raylib doesn't have a "window-as-render-target" concept (drawing
+		// to the screen is BeginDrawing/EndDrawing, not via a target object).
+		// A real impl would return a tagged sentinel and dispatch the draw_*
+		// ops on the tag. For now, returns a static placeholder RenderTexture
+		// — drawing to it goes nowhere visible.
+		static inline native_render_target& target_from_window(native_window&) noexcept {
+			static native_render_target placeholder = {};
+			return placeholder;
+		}
 		static inline void window_draw_render_texture(native_window&, const native_render_texture&, const native_render_states*) {}
 		static inline void window_draw_color_quad(native_window&, float, float, float, float, cgss::Color) {}
 

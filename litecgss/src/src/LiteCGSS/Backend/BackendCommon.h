@@ -44,4 +44,24 @@ namespace cgss::backend {
 
 }
 
+namespace cgss { struct DisplayWindowContextSettings; }
+
+namespace cgss::backend {
+
+	// Options POD for window creation — replaces the SFML-typed
+	// (sf::VideoMode + sf::String + sf::Style + sf::ContextSettings) bundle.
+	// Each backend's `window_create(window, options, title)` op interprets
+	// these its own way: SFML maps them directly to .create() args; raylib
+	// applies SetConfigFlags + InitWindow (or no-ops if its global window
+	// is already initialized).
+	struct WindowCreateOptions {
+		unsigned int width        = 0u;
+		unsigned int height       = 0u;
+		unsigned int bitsPerPixel = 32u;
+		bool         fullscreen   = false;
+		const cgss::DisplayWindowContextSettings* context = nullptr;
+	};
+
+}
+
 #endif

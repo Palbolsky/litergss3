@@ -1,9 +1,13 @@
-// DisplayWindowSnapshot is the SFML-only implementation of the snapshot/freeze/
-// transition machinery — under non-SFML backends, the header provides
-// `StubDisplayWindowSnapshot<...>` (a no-op) which DisplayWindow.h selects via
-// std::conditional_t. The whole TU body is therefore guarded so it doesn't
-// attempt to compile sf:: code paths under other backends.
-#ifdef CGSS_BACKEND_SFML
+// SFML implementation of cgss::DisplayWindowSnapshot — selected by CMake
+// when CGSS_BACKEND=sfml (folder-based per-backend specialization). Under
+// other backends, the StubDisplayWindowSnapshot template in
+// `Views/DisplayWindowSnapshot.h` takes its place via std::conditional_t,
+// so this TU is not compiled and these methods don't exist in the engine
+// .a — the snapshot/freeze/transition feature simply isn't available.
+//
+// The snapshot mechanism is fundamentally backend-shaped (sf::Texture's
+// "update from RenderWindow" API has no portable equivalent — raylib
+// uses LoadImageFromScreen, which is a totally different model).
 
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/RenderTexture.hpp>
@@ -14,8 +18,8 @@
 #include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Graphics/RenderStates.h"
 #include "LiteCGSS/Common/NormalizeNumbers.h"
-#include "DisplayWindow.h"
-#include "DisplayWindowSnapshot.h"
+#include "LiteCGSS/Views/DisplayWindow.h"
+#include "LiteCGSS/Views/DisplayWindowSnapshot.h"
 
 cgss::DisplayWindowSnapshot::DisplayWindowSnapshot(DisplayWindow& window) :
 	m_window(window) {
@@ -140,5 +144,3 @@ void cgss::DisplayWindowSnapshot::draw(sf::RenderWindow& window) {
 		}
 	}
 }
-
-#endif  // CGSS_BACKEND_SFML

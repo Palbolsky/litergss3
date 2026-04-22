@@ -1,6 +1,10 @@
-// FontLoader's body uses sf::Font::loadFromFile / loadFromMemory directly.
-// Templating it (and the matching backend op family) is out of scope for
-// the current PR M continuation; guard the TU so non-SFML backends compile.
+// TODO(raylib, TEMPORARY): font loading is universal (raylib has
+// LoadFontFromMemory). To remove the guard:
+//   - Add B::Ops::font_load_from_file(font, filename) -> bool
+//   - Add B::Ops::font_load_from_memory(font, data, size) -> bool
+//   - Migrate this .cpp's body to call them (drop sf::Font::loadFromFile /
+//     loadFromMemory direct calls; drop the sf::Font& local).
+// 2 ops + small body migration.
 #ifdef CGSS_BACKEND_SFML
 
 #include <iostream>

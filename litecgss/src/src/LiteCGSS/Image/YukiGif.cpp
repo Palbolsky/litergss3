@@ -1,6 +1,9 @@
-// YukiGif's draw/update path bulk-uploads gif pixels via sf::Texture::update
-// directly. Templating the pixel-update op + native_texture creation flow
-// is deferred; guard the TU so non-SFML backends compile.
+// TODO(raylib, TEMPORARY): GIF decoding via libnsgif is backend-agnostic; only
+// the per-frame texture upload is backend-specific. To remove the guard:
+//   - Add B::Ops::texture_update_pixels(texture, pixels, width, height, x, y)
+//     (raylib equivalent: UpdateTextureRec(texture, {x,y,w,h}, pixels))
+//   - Migrate the one call site (`texture.update(...)`) to use the op.
+// 1 op + 1-line migration.
 #ifdef CGSS_BACKEND_SFML
 
 /* Include cstddef first, otherwise libnsgif.hpp won't "compile" */
