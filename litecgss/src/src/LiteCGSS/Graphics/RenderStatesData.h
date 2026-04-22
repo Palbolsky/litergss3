@@ -5,22 +5,20 @@
 #include <string>
 #include <cstddef>
 
+#include "LiteCGSS/Backend/ActiveBackendFwd.h"
 #include "LiteCGSS/Graphics/BlendMode.h"
 #include "LiteCGSS/Graphics/DrawState.h"
 #include "LiteCGSS/Graphics/Glsl.h"
 #include "LiteCGSS/Graphics/ShaderType.h"
 #include "LiteCGSS/Graphics/TextureFwd.h"
 
-namespace sf {
-	class Shader;
-}
-
 namespace cgss {
 
-	class RenderStatesData {
+	template <class B>
+	class basic_RenderStatesData {
 	private:
-		cgss::DrawState m_drawState {};
-		std::unique_ptr<sf::Shader> m_shader {};
+		basic_DrawState<B> m_drawState {};
+		std::unique_ptr<typename B::native_shader> m_shader {};
 		bool m_shadersEnabled = false;
 
 		static bool SHADERS_ENABLED;
@@ -28,12 +26,12 @@ namespace cgss {
 		void updateShader();
 		static bool isAvailable();
 	public:
-		RenderStatesData();
-		RenderStatesData(RenderStatesData&&);
-		RenderStatesData(const RenderStatesData&) = delete;
-		RenderStatesData& operator=(const RenderStatesData&) = delete;
-		RenderStatesData& operator=(RenderStatesData&&);
-		virtual ~RenderStatesData();
+		basic_RenderStatesData();
+		basic_RenderStatesData(basic_RenderStatesData&&);
+		basic_RenderStatesData(const basic_RenderStatesData&) = delete;
+		basic_RenderStatesData& operator=(const basic_RenderStatesData&) = delete;
+		basic_RenderStatesData& operator=(basic_RenderStatesData&&);
+		virtual ~basic_RenderStatesData();
 
 		static void enableShaders(bool enable);
 		static bool enabledShaders();
@@ -76,13 +74,15 @@ namespace cgss {
 		void setShaderUniform(const std::string& name, const cgss::Glsl::Bvec4& vector);
 		void setShaderUniform(const std::string& name, const cgss::Glsl::Mat3& matrix);
 		void setShaderUniform(const std::string& name, const cgss::Glsl::Mat4& matrix);
-		void setShaderUniform(const std::string& name, const cgss::Texture& texture);
+		void setShaderUniform(const std::string& name, const basic_Texture<B>& texture);
 		void setShaderUniform(const std::string& name, cgss::CurrentTextureType);
 
 		void setShaderUniformArray(const std::string& name, const float* scalarArray, std::size_t length);
 
-		const cgss::DrawState& getRenderStates() const;
+		const basic_DrawState<B>& getRenderStates() const;
 	};
+
+	using RenderStatesData = basic_RenderStatesData<cgss::backend::ActiveBackend>;
 }
 
 #endif

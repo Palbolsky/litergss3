@@ -311,9 +311,8 @@ namespace cgss::backend {
 		}
 
 		// ---- Draw-state ops ----
-		// Native shader pointer is set/owned by RenderStatesData (currently
-		// non-templated; m_shader is `unique_ptr<sf::Shader>`). The op just
-		// stores the raw pointer into the native render states.
+		// Native shader pointer is owned by basic_RenderStatesData<B>; this
+		// op just stores the raw pointer into the native render states.
 		static inline void draw_state_set_shader(native_render_states& s, native_shader* shader) noexcept {
 			s.shader = shader;
 		}
@@ -350,6 +349,57 @@ namespace cgss::backend {
 				case BlendEquationSlot::Alpha: v = s.blendMode.alphaEquation; break;
 			}
 			return static_cast<cgss::BlendEquation>(v);
+		}
+
+		// ---- Shader ops ----
+		// Capability queries.
+		static inline bool shader_is_available()          { return sf::Shader::isAvailable(); }
+		static inline bool shader_is_geometry_available() { return sf::Shader::isGeometryAvailable(); }
+
+		// Compile from in-memory source. The 1-arg-typed form takes the cgss
+		// stage enum (Vertex / Fragment / Geometry); the 2-arg form is
+		// vertex+fragment; the 3-arg form is vertex+geometry+fragment.
+		static inline bool shader_load_from_memory(native_shader& sh, const std::string& src, cgss::ShaderType type) {
+			return sh.loadFromMemory(src, static_cast<sf::Shader::Type>(type));
+		}
+		static inline bool shader_load_from_memory(native_shader& sh, const std::string& vsrc, const std::string& fsrc) {
+			return sh.loadFromMemory(vsrc, fsrc);
+		}
+		static inline bool shader_load_from_memory(native_shader& sh, const std::string& vsrc, const std::string& gsrc, const std::string& fsrc) {
+			return sh.loadFromMemory(vsrc, gsrc, fsrc);
+		}
+
+		// Uniform setters — overload set on the value type.
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, float v) { sh.setUniform(name, v); }
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, int v)   { sh.setUniform(name, v); }
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, bool v)  { sh.setUniform(name, v); }
+
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const cgss::Glsl::Vec2& v) { sh.setUniform(name, sf::Glsl::Vec2(v.x, v.y)); }
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const cgss::Glsl::Vec3& v) { sh.setUniform(name, sf::Glsl::Vec3(v.x, v.y, v.z)); }
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const cgss::Glsl::Vec4& v) { sh.setUniform(name, sf::Glsl::Vec4(v.x, v.y, v.z, v.w)); }
+
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const cgss::Glsl::Ivec2& v) { sh.setUniform(name, sf::Glsl::Ivec2(v.x, v.y)); }
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const cgss::Glsl::Ivec3& v) { sh.setUniform(name, sf::Glsl::Ivec3(v.x, v.y, v.z)); }
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const cgss::Glsl::Ivec4& v) { sh.setUniform(name, sf::Glsl::Ivec4(v.x, v.y, v.z, v.w)); }
+
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const cgss::Glsl::Bvec2& v) { sh.setUniform(name, sf::Glsl::Bvec2(v.x, v.y)); }
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const cgss::Glsl::Bvec3& v) { sh.setUniform(name, sf::Glsl::Bvec3(v.x, v.y, v.z)); }
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const cgss::Glsl::Bvec4& v) { sh.setUniform(name, sf::Glsl::Bvec4(v.x, v.y, v.z, v.w)); }
+
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const cgss::Glsl::Mat3& m) { sh.setUniform(name, sf::Glsl::Mat3(m.array)); }
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const cgss::Glsl::Mat4& m) { sh.setUniform(name, sf::Glsl::Mat4(m.array)); }
+
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const native_texture& t) { sh.setUniform(name, t); }
+
+		// Bound-active-texture sentinel — separate name (not an overload of the
+		// value setter) because the cgss tag type carries no payload to dispatch
+		// on alongside the other overloads cleanly.
+		static inline void shader_set_uniform_current_texture(native_shader& sh, const std::string& name) {
+			sh.setUniform(name, sf::Shader::CurrentTexture);
+		}
+
+		static inline void shader_set_uniform_array(native_shader& sh, const std::string& name, const float* arr, std::size_t n) {
+			sh.setUniformArray(name, arr, n);
 		}
 
 		// ---- Render-target view ops ----

@@ -33,8 +33,12 @@
 #include "LiteCGSS/Common/Point.h"
 #include "LiteCGSS/Configuration/DisplayWindowContextSettings.h"
 #include "LiteCGSS/Graphics/BlendMode.h"
+#include "LiteCGSS/Graphics/Glsl.h"
+#include "LiteCGSS/Graphics/ShaderType.h"
 #include "LiteCGSS/Graphics/ShapeGeometry.h"
 #include "LiteCGSS/Graphics/Transformable.h"
+
+#include <string>
 
 namespace cgss::backend {
 
@@ -131,6 +135,43 @@ namespace cgss::backend {
 		static inline cgss::BlendFactor draw_state_get_blend_factor(const native_render_states&, BlendFactorSlot) noexcept { return cgss::BlendFactor::Zero; }
 		static inline void draw_state_set_blend_equation(native_render_states&, BlendEquationSlot, cgss::BlendEquation) noexcept {}
 		static inline cgss::BlendEquation draw_state_get_blend_equation(const native_render_states&, BlendEquationSlot) noexcept { return cgss::BlendEquation::Add; }
+
+		// ---- Shader ops (stubs) ----
+		// Real raylib equivalents would call LoadShaderFromMemory /
+		// SetShaderValue / GetShaderLocation; geometry shaders are not
+		// supported on raylib's GLES2 default — `shader_is_geometry_available`
+		// would return false in a real impl too.
+		static inline bool shader_is_available()          { return false; }
+		static inline bool shader_is_geometry_available() { return false; }
+
+		static inline bool shader_load_from_memory(native_shader&, const std::string&, cgss::ShaderType) { return false; }
+		static inline bool shader_load_from_memory(native_shader&, const std::string&, const std::string&) { return false; }
+		static inline bool shader_load_from_memory(native_shader&, const std::string&, const std::string&, const std::string&) { return false; }
+
+		static inline void shader_set_uniform(native_shader&, const std::string&, float) {}
+		static inline void shader_set_uniform(native_shader&, const std::string&, int)   {}
+		static inline void shader_set_uniform(native_shader&, const std::string&, bool)  {}
+
+		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Vec2&) {}
+		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Vec3&) {}
+		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Vec4&) {}
+
+		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Ivec2&) {}
+		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Ivec3&) {}
+		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Ivec4&) {}
+
+		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Bvec2&) {}
+		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Bvec3&) {}
+		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Bvec4&) {}
+
+		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Mat3&) {}
+		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Mat4&) {}
+
+		static inline void shader_set_uniform(native_shader&, const std::string&, const native_texture&) {}
+
+		static inline void shader_set_uniform_current_texture(native_shader&, const std::string&) {}
+
+		static inline void shader_set_uniform_array(native_shader&, const std::string&, const float*, std::size_t) {}
 
 		// ---- Render-target view ops (stubs) ----
 		static inline void target_set_view(native_render_target&, const native_view&) {}

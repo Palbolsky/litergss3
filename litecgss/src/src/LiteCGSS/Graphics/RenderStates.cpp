@@ -1,12 +1,14 @@
-#include <SFML/Graphics/Shader.hpp>
 #include "RenderStates.h"
+#include "LiteCGSS/Backend/ActiveBackend.h"
+
+namespace { using Ops = cgss::backend::ActiveBackend::Ops; }
 
 bool cgss::RenderStates::areGeometryShadersEnabled() {
-	return cgss::RenderStatesData::enabledShaders() && sf::Shader::isGeometryAvailable();
+	return cgss::RenderStatesData::enabledShaders() && Ops::shader_is_geometry_available();
 }
 
 bool cgss::RenderStates::areShadersEnabled() {
-	return cgss::RenderStatesData::enabledShaders() && sf::Shader::isAvailable();
+	return cgss::RenderStatesData::enabledShaders() && Ops::shader_is_available();
 }
 
 void cgss::RenderStates::enableShaders(bool enable) {
