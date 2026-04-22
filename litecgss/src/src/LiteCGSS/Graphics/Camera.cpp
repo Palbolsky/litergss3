@@ -30,9 +30,9 @@ template <class B>
 cgss::basic_Camera<B>::~basic_Camera() = default;
 
 template <class B>
-typename cgss::basic_Camera<B>::native_type& cgss::basic_Camera<B>::raw() noexcept { return *m_view; }
+typename cgss::basic_Camera<B>::native_type& cgss::basic_Camera<B>::native() noexcept { return *m_view; }
 
 template <class B>
-const typename cgss::basic_Camera<B>::native_type& cgss::basic_Camera<B>::raw() const noexcept { return *m_view; }
+const typename cgss::basic_Camera<B>::native_type& cgss::basic_Camera<B>::native() const noexcept { return *m_view; }
 
 template class cgss::basic_Camera<cgss::backend::ActiveBackend>;

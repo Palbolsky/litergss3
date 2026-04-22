@@ -8,6 +8,7 @@
 #include "Graphics/Sprite.h"
 #include "Graphics/Texture.h"
 #include "Graphics/Serializers/TextureSerializer.h"
+#include "LiteCGSS/Backend/ActiveBackend.h"
 
 #include "sample_png.h"
 
@@ -45,7 +46,7 @@ static sf::Vector2i g_windowPosition { 100, 100 };
 static void HandleEvents(cgss::DisplayWindow& window, cgss::DisplayWindowSettings& settings) {
 	cgss::Event event;
 	while (window.popEvent(event)) {
-		const auto& raw = event.raw();
+		const auto& raw = cgss::backend::native_of(event);
 		switch(raw.type) {
 		case sf::Event::EventType::Closed:
 			window.stop();

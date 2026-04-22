@@ -9,6 +9,7 @@
 #include "LoggerViews.h"
 #include "FramedView.h"
 #include "Viewport.h"
+#include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Rectangle.h"
 #include "LiteCGSS/Common/Internal/SfRectConv.h"
 
@@ -56,31 +57,31 @@ void cgss::FramedViewItem::draw(cgss::RenderTarget& target) const {
 
 void cgss::FramedViewItem::drawFast(cgss::RenderTarget& target) const {
 	/* Draw window */
-	sf::Texture* rawTexture = m_texture != nullptr ? &m_texture->raw() : nullptr;
+	sf::Texture* rawTexture = m_texture != nullptr ? &cgss::backend::native_of(*m_texture) : nullptr;
 	for (auto& vertice : m_vertices) {
-		target.raw().draw(*vertice, rawTexture);
+		cgss::backend::native_of(target).draw(*vertice, rawTexture);
 	}
 
 	/* draw internal */
 	auto targetView = ViewBox::clone();
-	auto originalView = sf::View{ target.raw().getView() };
+	auto originalView = sf::View{ cgss::backend::native_of(target).getView() };
 	auto parentView = m_parent.lock();
 	if (parentView != nullptr) {
 		drawCalculateView(*parentView, targetView);
 	}
 
-	if (targetView.raw().getViewport().height > 0 && targetView.raw().getViewport().width > 0) {
-		target.raw().setView(targetView.raw());
+	if (cgss::backend::native_of(targetView).getViewport().height > 0 && cgss::backend::native_of(targetView).getViewport().width > 0) {
+		cgss::backend::native_of(target).setView(cgss::backend::native_of(targetView));
 		drawables().drawFast(target);
 	}
 
 	/* Draw cursor & reset view */
-	target.raw().draw(*m_cursor);
-	target.raw().setView(originalView);
+	cgss::backend::native_of(target).draw(*m_cursor);
+	cgss::backend::native_of(target).setView(originalView);
 
 	if (m_paused) {
 		/* Draw pause */
-		target.raw().draw(*m_pause);
+		cgss::backend::native_of(target).draw(*m_pause);
 	}
 }
 
@@ -94,9 +95,9 @@ void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, cgss::Camera&
 	const auto vx0 = parentViewport.width / 2.f - (parentViewport.width / 2.f) / zoom; // <- When vp.zoom = 0.5, zoom = 2
 	const auto vy0 = parentViewport.height / 2.f - (parentViewport.height / 2.f) / zoom;
 
-	sf::Vector2f targetCenter = sf::Vector2f(targetView.raw().getCenter());
-	sf::Vector2f targetSize = sf::Vector2f(targetView.raw().getSize());
-	sf::FloatRect targetViewport = sf::FloatRect(targetView.raw().getViewport());
+	sf::Vector2f targetCenter = sf::Vector2f(cgss::backend::native_of(targetView).getCenter());
+	sf::Vector2f targetSize = sf::Vector2f(cgss::backend::native_of(targetView).getSize());
+	sf::FloatRect targetViewport = sf::FloatRect(cgss::backend::native_of(targetView).getViewport());
 
 	const auto sw = ViewBox::getScreenWidth();
 	const auto sh = ViewBox::getScreenHeight();
@@ -160,9 +161,9 @@ void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, cgss::Camera&
 	LOG_DEBUG << "Calculated view with center = " << targetCenter.x << ", " << targetCenter.y;
 
 	// Set the view
-	targetView.raw().setCenter(targetCenter);
-	targetView.raw().setSize(targetSize);
-	targetView.raw().setViewport(sf::FloatRect(targetViewport.left / sw, targetViewport.top / sh, targetViewport.width / sw, targetViewport.height / sh));
+	cgss::backend::native_of(targetView).setCenter(targetCenter);
+	cgss::backend::native_of(targetView).setSize(targetSize);
+	cgss::backend::native_of(targetView).setViewport(sf::FloatRect(targetViewport.left / sw, targetViewport.top / sh, targetViewport.width / sw, targetViewport.height / sh));
 }
 
 void cgss::FramedViewItem::updateVertices() {
@@ -688,7 +689,7 @@ void cgss::FramedViewItem::updateContentsOpacity() {
 }
 
 void cgss::FramedViewItem::setPauseSkin(cgss::Texture& texture) {
-	m_pause->setTexture(texture.raw());
+	m_pause->setTexture(cgss::backend::native_of(texture));
 	resetPausePosition();
 	updatePauseSprite();
 }
@@ -709,7 +710,7 @@ bool cgss::FramedViewItem::isPaused() const {
 }
 
 void cgss::FramedViewItem::setCursorSkin(cgss::Texture& texture) {
-	m_cursor->setTexture(texture.raw());
+	m_cursor->setTexture(cgss::backend::native_of(texture));
 	setCursorRectangle(m_cursorRect);
 	updateCursorSprite();
 }

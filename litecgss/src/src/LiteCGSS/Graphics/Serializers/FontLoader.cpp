@@ -1,6 +1,7 @@
 #include <iostream>
 #include <memory>
 #include <SFML/Graphics/Font.hpp>
+#include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Assets.h"
 #include "LiteCGSS/Graphics/Font.h"
 #include "FontLoader.h"
@@ -8,7 +9,7 @@
 static std::vector<std::unique_ptr<std::vector<char>>> gFonts;
 
 bool cgss::FontLoaderMethod::load(cgss::Font& font, const std::string& filename) {
-	sf::Font& raw = font.raw();
+	sf::Font& raw = cgss::backend::native_of(font);
 #ifdef LITECGSS_USE_PHYSFS
 	if (!AssetFile::exists(filename)) {
 		return raw.loadFromFile(filename.c_str());

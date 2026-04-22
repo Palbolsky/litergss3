@@ -19,7 +19,7 @@ template <class B>
 cgss::basic_RenderTarget<B>& cgss::basic_RenderTarget<B>::operator=(basic_RenderTarget&&) noexcept = default;
 
 template <class B>
-typename cgss::basic_RenderTarget<B>::native_type& cgss::basic_RenderTarget<B>::raw() const noexcept {
+typename cgss::basic_RenderTarget<B>::native_type& cgss::basic_RenderTarget<B>::native() const noexcept {
 	return *m_target;
 }
 

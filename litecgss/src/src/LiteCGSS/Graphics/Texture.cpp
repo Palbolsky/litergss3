@@ -152,10 +152,10 @@ template <class B>
 std::shared_ptr<typename cgss::basic_Texture<B>::native_type> cgss::basic_Texture<B>::ref() { return m_texture; }
 
 template <class B>
-typename cgss::basic_Texture<B>::native_type& cgss::basic_Texture<B>::raw() { return *m_texture.get(); }
+typename cgss::basic_Texture<B>::native_type& cgss::basic_Texture<B>::native() { return *m_texture.get(); }
 
 template <class B>
-const typename cgss::basic_Texture<B>::native_type& cgss::basic_Texture<B>::raw() const { return *m_texture.get(); }
+const typename cgss::basic_Texture<B>::native_type& cgss::basic_Texture<B>::native() const { return *m_texture.get(); }
 
 template <class B>
 cgss::TextureFactorNpot cgss::basic_Texture<B>::factorNpot() const {

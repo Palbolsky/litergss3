@@ -26,9 +26,9 @@ template <class B>
 cgss::basic_Event<B>::~basic_Event() = default;
 
 template <class B>
-typename cgss::basic_Event<B>::native_type& cgss::basic_Event<B>::raw() noexcept { return *m_event; }
+typename cgss::basic_Event<B>::native_type& cgss::basic_Event<B>::native() noexcept { return *m_event; }
 
 template <class B>
-const typename cgss::basic_Event<B>::native_type& cgss::basic_Event<B>::raw() const noexcept { return *m_event; }
+const typename cgss::basic_Event<B>::native_type& cgss::basic_Event<B>::native() const noexcept { return *m_event; }
 
 template class cgss::basic_Event<cgss::backend::ActiveBackend>;

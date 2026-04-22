@@ -19,6 +19,7 @@ namespace cgss {
 	template <class B>
 	class basic_Image {
 		template <class C> friend class basic_Texture;
+		friend struct cgss::backend::SFMLBackend::Ops;
 	public:
 		using native_type = typename B::native_image;
 
@@ -48,9 +49,9 @@ namespace cgss {
 
 		void createMaskFromColor(cgss::Color color, unsigned char alpha);
 
-		const native_type& raw() const noexcept;
-
 	private:
+		const native_type& native() const noexcept;
+
 		std::unique_ptr<typename B::native_image> m_image;
 	};
 }

@@ -29,9 +29,9 @@ template <class B>
 void cgss::basic_SpriteItem<B>::drawFast(cgss::RenderTarget& target) const {
 	sf::RenderStates states = ShaderRenderable::getValue() == nullptr
 		? sf::RenderStates::Default
-		: ShaderRenderable::getValue()->getRenderStates().raw();
+		: cgss::backend::native_of(ShaderRenderable::getValue()->getRenderStates());
 	states.transform *= B::Ops::build_transform(*m_transformable);
-	target.raw().draw(*m_sprite, states);
+	cgss::backend::native_of(target).draw(*m_sprite, states);
 }
 
 template <class B>

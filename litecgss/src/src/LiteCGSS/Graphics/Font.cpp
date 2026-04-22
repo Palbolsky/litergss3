@@ -26,9 +26,9 @@ template <class B>
 cgss::basic_Font<B>::~basic_Font() = default;
 
 template <class B>
-typename cgss::basic_Font<B>::native_type& cgss::basic_Font<B>::raw() noexcept { return *m_font; }
+typename cgss::basic_Font<B>::native_type& cgss::basic_Font<B>::native() noexcept { return *m_font; }
 
 template <class B>
-const typename cgss::basic_Font<B>::native_type& cgss::basic_Font<B>::raw() const noexcept { return *m_font; }
+const typename cgss::basic_Font<B>::native_type& cgss::basic_Font<B>::native() const noexcept { return *m_font; }
 
 template class cgss::basic_Font<cgss::backend::ActiveBackend>;

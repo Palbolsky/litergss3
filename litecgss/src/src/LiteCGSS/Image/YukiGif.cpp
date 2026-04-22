@@ -3,6 +3,7 @@
 #include <libnsgif.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include "YukiGif.h"
+#include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Graphics/Texture.h"
 
 #define BYTES_PER_PIXEL 4
@@ -57,7 +58,7 @@ cgss::YukiGif::~YukiGif() {
 }
 
 void cgss::YukiGif::drawOn(cgss::Texture& texture) const {
-	texture.raw().update(reinterpret_cast<sf::Uint8*>(m_gif->frame_image), m_gif->width, m_gif->height, 0, 0);
+	cgss::backend::native_of(texture).update(reinterpret_cast<sf::Uint8*>(m_gif->frame_image), m_gif->width, m_gif->height, 0, 0);
 }
 
 bool cgss::YukiGif::update(cgss::Texture& texture) {

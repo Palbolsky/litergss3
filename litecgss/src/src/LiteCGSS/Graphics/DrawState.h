@@ -18,6 +18,7 @@ namespace cgss {
 	// it will retire in PR L.
 	template <class B>
 	class basic_DrawState {
+		friend struct cgss::backend::SFMLBackend::Ops;
 	public:
 		using native_type = typename B::native_render_states;
 
@@ -30,10 +31,10 @@ namespace cgss {
 
 		explicit basic_DrawState(const native_type& raw);
 
-		native_type& raw() noexcept;
-		const native_type& raw() const noexcept;
-
 	private:
+		native_type& native() noexcept;
+		const native_type& native() const noexcept;
+
 		std::unique_ptr<typename B::native_render_states> m_raw;
 	};
 

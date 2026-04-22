@@ -25,6 +25,7 @@ namespace cgss {
 	// (with native types complete) is available.
 	template <class B>
 	class basic_Texture {
+		friend struct cgss::backend::SFMLBackend::Ops;
 	public:
 		using native_type = typename B::native_texture;
 
@@ -65,12 +66,13 @@ namespace cgss {
 
 		std::weak_ptr<native_type> weak();
 		std::shared_ptr<native_type> ref();
-		native_type& raw();
-		const native_type& raw() const;
 
 		TextureFactorNpot factorNpot() const;
 
 	private:
+		native_type& native();
+		const native_type& native() const;
+
 		static unsigned int getNpotSize(unsigned int size);
 		bool hasImage() const;
 

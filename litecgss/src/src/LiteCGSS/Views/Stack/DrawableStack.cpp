@@ -1,6 +1,7 @@
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/View.hpp>
 #include "DrawableStack.h"
+#include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Graphics/Text.h"
 #include "LiteCGSS/Graphics/Sprite.h"
 
@@ -20,7 +21,7 @@ static ska::PeriodicTracer<cgss::LoggerStack, ska::LogLevel::Debug> DrawableStac
 void cgss::DrawableStack::draw(cgss::Camera& defview, cgss::RenderTarget& target) const  {
 	DrawableStackTracer.SKA_LOG_PERIODIC_TRACE(LOG_FREQUENCY);
 	for (auto& element: *this) {
-		target.raw().setView(defview.raw());
+		cgss::backend::native_of(target).setView(cgss::backend::native_of(defview));
 		element->tryDraw(target);
 	}
 }

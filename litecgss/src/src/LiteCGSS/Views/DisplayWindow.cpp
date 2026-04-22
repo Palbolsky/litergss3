@@ -202,16 +202,16 @@ void cgss::basic_DisplayWindow<B>::notifyWindowSizeChange() {
 template <class B>
 cgss::RenderTarget cgss::basic_DisplayWindow<B>::configureAndGetRenderTarget(cgss::Camera& defview) {
 	// Setting the default view parameters
-	defview.raw().setSize(static_cast<float>(m_draw.screenWidth), static_cast<float>(m_draw.screenHeight));
-	defview.raw().setCenter(round(m_draw.screenWidth / 2.0f), round(m_draw.screenHeight / 2.0f));
+	cgss::backend::native_of(defview).setSize(static_cast<float>(m_draw.screenWidth), static_cast<float>(m_draw.screenHeight));
+	cgss::backend::native_of(defview).setCenter(round(m_draw.screenWidth / 2.0f), round(m_draw.screenHeight / 2.0f));
 
 	// Appying the default view to the Window (used in postProcessing())
-	m_gameWindow.setView(defview.raw());
+	m_gameWindow.setView(cgss::backend::native_of(defview));
 
 	// If the m_renderTexture is defined, we use it instead of the m_gameWindow (shader processing)
 	if (m_draw.renderTexture != nullptr) {
 		// Set the default view
-		m_draw.renderTexture->setView(defview.raw());
+		m_draw.renderTexture->setView(cgss::backend::native_of(defview));
 		// It's not cleard so we perform the clear operation
 		m_draw.renderTexture->clear();
 		return cgss::RenderTarget{*m_draw.renderTexture.get()};
@@ -271,7 +271,7 @@ void cgss::basic_DisplayWindow<B>::draw() {
 
 template <class B>
 bool cgss::basic_DisplayWindow<B>::popEvent(cgss::Event& event) {
-	return m_eventPolicyPolling ? m_gameWindow.pollEvent(event.raw()) : m_gameWindow.waitEvent(event.raw());
+	return m_eventPolicyPolling ? m_gameWindow.pollEvent(cgss::backend::native_of(event)) : m_gameWindow.waitEvent(cgss::backend::native_of(event));
 }
 
 template <class B>
@@ -302,7 +302,7 @@ void cgss::basic_DisplayWindow<B>::postProcessing() {
 		if (m_draw.renderState == nullptr) {
 			m_gameWindow.draw(sp);
 		} else {
-			m_gameWindow.draw(sp, m_draw.renderState->raw());
+			m_gameWindow.draw(sp, cgss::backend::native_of(*m_draw.renderState));
 		}
 	}
 
@@ -358,7 +358,7 @@ void cgss::basic_DisplayWindow<B>::setScale(double scale) {
 
 template <class B>
 void cgss::basic_DisplayWindow<B>::setIcon(const cgss::Image& image) {
-	const auto& raw = image.raw();
+	const auto& raw = cgss::backend::native_of(image);
 	m_gameWindow.setIcon(raw.getSize().x, raw.getSize().y, raw.getPixelsPtr());
 }
 

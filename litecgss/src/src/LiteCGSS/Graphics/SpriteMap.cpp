@@ -2,6 +2,7 @@
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include "SpriteMap.h"
+#include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Internal/SfRectConv.h"
 #include "LoggerDrawables.h"
 
@@ -29,7 +30,7 @@ void cgss::SpriteMapItem::drawFast(cgss::RenderTarget& target) const {
 	LOG_INFO << "Drawing " << m_sprites.size() << " sprites";
 	for (const auto& activableSprite: m_sprites) {
 		if (activableSprite.active) {
-			target.raw().draw(*activableSprite.sprite);
+			cgss::backend::native_of(target).draw(*activableSprite.sprite);
 		}
 	}
 }
@@ -56,7 +57,7 @@ void cgss::SpriteMap::setTile(std::size_t index, const cgss::IntRect& tile, cgss
 	}
 	LOG_DEBUG << "Activate tile index = " << index << " tileRect = " << tile.left << ", " << tile.top << ", " << tile.width << ", " << tile.height;
 	auto& sprite = m_proxy->m_sprites[index];
-	sprite.sprite->setTexture(texture.raw());
+	sprite.sprite->setTexture(cgss::backend::native_of(texture));
 	sprite.sprite->setTextureRect(cgss::internal::toSf(tile));
 	sprite.active = true;
 }

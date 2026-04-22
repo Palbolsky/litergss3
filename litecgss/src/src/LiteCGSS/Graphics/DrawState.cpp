@@ -30,9 +30,9 @@ template <class B>
 cgss::basic_DrawState<B>::~basic_DrawState() = default;
 
 template <class B>
-typename cgss::basic_DrawState<B>::native_type& cgss::basic_DrawState<B>::raw() noexcept { return *m_raw; }
+typename cgss::basic_DrawState<B>::native_type& cgss::basic_DrawState<B>::native() noexcept { return *m_raw; }
 
 template <class B>
-const typename cgss::basic_DrawState<B>::native_type& cgss::basic_DrawState<B>::raw() const noexcept { return *m_raw; }
+const typename cgss::basic_DrawState<B>::native_type& cgss::basic_DrawState<B>::native() const noexcept { return *m_raw; }
 
 template class cgss::basic_DrawState<cgss::backend::ActiveBackend>;

@@ -17,6 +17,7 @@ namespace cgss {
 	// it will retire in PR L.
 	template <class B>
 	class basic_Camera {
+		friend struct cgss::backend::SFMLBackend::Ops;
 	public:
 		using native_type = typename B::native_view;
 
@@ -29,10 +30,10 @@ namespace cgss {
 
 		explicit basic_Camera(const native_type& view);
 
-		native_type& raw() noexcept;
-		const native_type& raw() const noexcept;
-
 	private:
+		native_type& native() noexcept;
+		const native_type& native() const noexcept;
+
 		std::unique_ptr<typename B::native_view> m_view;
 	};
 

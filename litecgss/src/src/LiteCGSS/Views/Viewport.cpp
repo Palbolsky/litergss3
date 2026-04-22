@@ -5,6 +5,7 @@
 #include <SFML/Graphics/View.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include "Viewport.h"
+#include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Rectangle.h"
 #include "LiteCGSS/Common/Internal/SfRectConv.h"
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
@@ -37,7 +38,7 @@ cgss::RenderStatesData* cgss::ViewportItem::getRenderStates() {
 }
 
 void cgss::ViewportItem::draw(cgss::RenderTarget& target) const {
-	sf::View originalView = sf::View(target.raw().getView());
+	sf::View originalView = sf::View(cgss::backend::native_of(target).getView());
 
 	const auto* renderStates = getRenderStates() == nullptr ? nullptr : &getRenderStates()->getRenderStates();
 	if (renderStates) {
@@ -59,13 +60,13 @@ void cgss::ViewportItem::draw(cgss::RenderTarget& target) const {
 		setupFullWindowView(target);
 
 		// Draw the result
-		target.raw().draw(*m_windowData.userRenderSprite, renderStates->raw());
+		cgss::backend::native_of(target).draw(*m_windowData.userRenderSprite, cgss::backend::native_of(*renderStates));
 	} else {
 		ViewBox::onRenderTarget(target, false);
 		drawables().drawFast(target);
 	}
 
-	target.raw().setView(originalView);
+	cgss::backend::native_of(target).setView(originalView);
 }
 
 std::unique_ptr<cgss::Texture> cgss::ViewportItem::takeSnapshot() const {
@@ -74,8 +75,8 @@ std::unique_ptr<cgss::Texture> cgss::ViewportItem::takeSnapshot() const {
 	cgss::Camera renderView = ViewBox::clone();
 	cgss::RenderTarget renderTarget{render};
 	render.create(ViewBox::getWidth(), ViewBox::getHeight());
-	renderView.raw().setViewport(sf::FloatRect(0.0f, 0.0f, 1.0f, 1.0f));
-	render.setView(renderView.raw());
+	cgss::backend::native_of(renderView).setViewport(sf::FloatRect(0.0f, 0.0f, 1.0f, 1.0f));
+	render.setView(cgss::backend::native_of(renderView));
 
 	const auto* renderStates = getRenderStates() == nullptr ? nullptr : &getRenderStates()->getRenderStates();
 	if (renderStates) {
@@ -92,7 +93,7 @@ std::unique_ptr<cgss::Texture> cgss::ViewportItem::takeSnapshot() const {
 
 		// Draw the result
 		render.clear(sf::Color::Transparent);
-		render.draw(renderSprite, renderStates->raw());
+		render.draw(renderSprite, cgss::backend::native_of(*renderStates));
 		render.display();
 	} else {
 		render.clear(sf::Color::Transparent);
@@ -106,10 +107,10 @@ std::unique_ptr<cgss::Texture> cgss::ViewportItem::takeSnapshot() const {
 void cgss::ViewportItem::setupFullWindowView(cgss::RenderTarget& target) const {
 	long height = getScreenHeight();
 	long width = getScreenWidth();
-	sf::View defview = target.raw().getDefaultView();
+	sf::View defview = cgss::backend::native_of(target).getDefaultView();
 	defview.setSize(static_cast<float>(width), static_cast<float>(height));
 	defview.setCenter(round(width / 2.0f), round(height / 2.0f));
-	target.raw().setView(defview);
+	cgss::backend::native_of(target).setView(defview);
 }
 
 void cgss::Viewport::sortZ() {

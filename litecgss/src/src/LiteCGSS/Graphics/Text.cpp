@@ -1,6 +1,7 @@
 #include <cmath>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/String.hpp>
+#include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Internal/SfColorConv.h"
 #include "LoggerDrawables.h"
 #include "Text.h"
@@ -19,7 +20,7 @@ void cgss::TextItem::draw(cgss::RenderTarget& target) const {
 }
 
 void cgss::TextItem::drawFast(cgss::RenderTarget& target) const {
-	target.raw().draw(m_text);
+	cgss::backend::native_of(target).draw(m_text);
 }
 
 std::uint8_t cgss::Text::getOpacity() const {
@@ -205,6 +206,6 @@ void cgss::Text::setString(const std::string& text) {
 }
 
 void cgss::Text::setFont(const cgss::Font& font) {
-	LOG_INFO << "Set font (family = " << font.raw().getInfo().family << ")";
-	m_proxy->m_text.setFont(font.raw());
+	LOG_INFO << "Set font (family = " << cgss::backend::native_of(font).getInfo().family << ")";
+	m_proxy->m_text.setFont(cgss::backend::native_of(font));
 }

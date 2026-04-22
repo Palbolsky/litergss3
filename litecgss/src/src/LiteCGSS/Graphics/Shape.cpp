@@ -14,16 +14,16 @@ cgss::basic_ShapeItem<B>::basic_ShapeItem(basic_Shape<B>* owner, ShapeGeometry g
 
 template <class B>
 void cgss::basic_ShapeItem<B>::draw(cgss::RenderTarget& target) const {
-	sf::RenderStates states = m_renderStates.raw();
+	sf::RenderStates states = cgss::backend::native_of(m_renderStates);
 	states.transform *= B::Ops::build_transform(*m_transformable);
-	B::Ops::draw_shape(target.raw(), m_geometry, m_linkedTexture.get(), states);
+	B::Ops::draw_shape(cgss::backend::native_of(target), m_geometry, m_linkedTexture.get(), states);
 }
 
 template <class B>
 void cgss::basic_ShapeItem<B>::drawFast(cgss::RenderTarget& target) const {
 	sf::RenderStates states;
 	states.transform = B::Ops::build_transform(*m_transformable);
-	B::Ops::draw_shape(target.raw(), m_geometry, m_linkedTexture.get(), states);
+	B::Ops::draw_shape(cgss::backend::native_of(target), m_geometry, m_linkedTexture.get(), states);
 }
 
 template <class B>

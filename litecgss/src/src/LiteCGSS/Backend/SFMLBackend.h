@@ -121,6 +121,21 @@ namespace cgss::backend {
 			};
 		}
 
+		// ---- Wrapper native accessors ----
+		// Backend-side replacement for the (now-private) `wrapper.raw()`
+		// escape hatch. Each cgss wrapper friends this Ops struct so impl-
+		// side .cpp files can reach the underlying native handle while
+		// consumers cannot. Use the free `cgss::backend::native_of` helper
+		// below at call sites — it forwards through here.
+		template <class W>
+		static inline auto& native_of(W& w) noexcept {
+			return w.native();
+		}
+		template <class W>
+		static inline const auto& native_of(const W& w) noexcept {
+			return w.native();
+		}
+
 		// ---- Transform composition ----
 		static inline sf::Transform build_transform(const cgss::Transformable& xf) noexcept {
 			sf::Transform t;
@@ -292,6 +307,20 @@ namespace cgss::backend {
 			i.createMaskFromColor(sf::Color(color.r, color.g, color.b, color.a), alpha);
 		}
 	};
+
+	// Free-function helper that forwards to the active backend's
+	// Ops::native_of. Lets impl .cpps write `cgss::backend::native_of(target)`
+	// (or `native_of(target)` via ADL since wrappers live in `cgss` and the
+	// active backend in `cgss::backend`) instead of fully-qualifying the
+	// per-backend Ops path.
+	template <class W>
+	inline auto& native_of(W& w) noexcept {
+		return SFMLBackend::Ops::native_of(w);
+	}
+	template <class W>
+	inline const auto& native_of(const W& w) noexcept {
+		return SFMLBackend::Ops::native_of(w);
+	}
 
 }
 

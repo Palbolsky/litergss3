@@ -8,6 +8,7 @@
 #include <SFML/Graphics/Texture.hpp>
 
 #include "RenderStatesData.h"
+#include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Graphics/Internal/SfShaderConv.h"
 #include "LiteCGSS/Graphics/Texture.h"
 
@@ -41,7 +42,7 @@ void cgss::RenderStatesData::updateShader() {
 		m_shader = nullptr;
 	}
 
-	m_drawState.raw().shader = m_shader.get();
+	cgss::backend::native_of(m_drawState).shader = m_shader.get();
 }
 
 bool cgss::RenderStatesData::isAvailable() {
@@ -57,51 +58,51 @@ void cgss::RenderStatesData::enableShader(bool enable) {
 }
 
 void cgss::RenderStatesData::setBlendColorSrcFactor(cgss::BlendFactor colorSrcFactor) {
-	m_drawState.raw().blendMode.colorSrcFactor = cgss::internal::toSf(colorSrcFactor);
+	cgss::backend::native_of(m_drawState).blendMode.colorSrcFactor = cgss::internal::toSf(colorSrcFactor);
 }
 
 void cgss::RenderStatesData::setBlendColorDstFactor(cgss::BlendFactor colorDstFactor) {
-	m_drawState.raw().blendMode.colorDstFactor = cgss::internal::toSf(colorDstFactor);
+	cgss::backend::native_of(m_drawState).blendMode.colorDstFactor = cgss::internal::toSf(colorDstFactor);
 }
 
 void cgss::RenderStatesData::setBlendAlphaSrcFactor(cgss::BlendFactor alphaSrcFactor) {
-	m_drawState.raw().blendMode.alphaSrcFactor = cgss::internal::toSf(alphaSrcFactor);
+	cgss::backend::native_of(m_drawState).blendMode.alphaSrcFactor = cgss::internal::toSf(alphaSrcFactor);
 }
 
 void cgss::RenderStatesData::setBlendAlphaDstFactor(cgss::BlendFactor alphaDstFactor) {
-	m_drawState.raw().blendMode.alphaDstFactor = cgss::internal::toSf(alphaDstFactor);
+	cgss::backend::native_of(m_drawState).blendMode.alphaDstFactor = cgss::internal::toSf(alphaDstFactor);
 }
 
 void cgss::RenderStatesData::setBlendColorEquation(cgss::BlendEquation colorEquation) {
-	m_drawState.raw().blendMode.colorEquation = cgss::internal::toSf(colorEquation);
+	cgss::backend::native_of(m_drawState).blendMode.colorEquation = cgss::internal::toSf(colorEquation);
 }
 
 void cgss::RenderStatesData::setBlendAlphaEquation(cgss::BlendEquation alphaEquation) {
-	m_drawState.raw().blendMode.alphaEquation = cgss::internal::toSf(alphaEquation);
+	cgss::backend::native_of(m_drawState).blendMode.alphaEquation = cgss::internal::toSf(alphaEquation);
 }
 
 cgss::BlendFactor cgss::RenderStatesData::getBlendColorSrcFactor() const {
-	return cgss::internal::fromSf(m_drawState.raw().blendMode.colorSrcFactor);
+	return cgss::internal::fromSf(cgss::backend::native_of(m_drawState).blendMode.colorSrcFactor);
 }
 
 cgss::BlendFactor cgss::RenderStatesData::getBlendColorDstFactor() const {
-	return cgss::internal::fromSf(m_drawState.raw().blendMode.colorDstFactor);
+	return cgss::internal::fromSf(cgss::backend::native_of(m_drawState).blendMode.colorDstFactor);
 }
 
 cgss::BlendFactor cgss::RenderStatesData::getBlendAlphaSrcFactor() const {
-	return cgss::internal::fromSf(m_drawState.raw().blendMode.alphaSrcFactor);
+	return cgss::internal::fromSf(cgss::backend::native_of(m_drawState).blendMode.alphaSrcFactor);
 }
 
 cgss::BlendFactor cgss::RenderStatesData::getBlendAlphaDstFactor() const {
-	return cgss::internal::fromSf(m_drawState.raw().blendMode.alphaDstFactor);
+	return cgss::internal::fromSf(cgss::backend::native_of(m_drawState).blendMode.alphaDstFactor);
 }
 
 cgss::BlendEquation cgss::RenderStatesData::getBlendColorEquation() const {
-	return cgss::internal::fromSf(m_drawState.raw().blendMode.colorEquation);
+	return cgss::internal::fromSf(cgss::backend::native_of(m_drawState).blendMode.colorEquation);
 }
 
 cgss::BlendEquation cgss::RenderStatesData::getBlendAlphaEquation() const {
-	return cgss::internal::fromSf(m_drawState.raw().blendMode.alphaEquation);
+	return cgss::internal::fromSf(cgss::backend::native_of(m_drawState).blendMode.alphaEquation);
 }
 
 bool cgss::RenderStatesData::loadShaderFromMemory(const std::string &shader, cgss::ShaderType type) {
@@ -248,7 +249,7 @@ void cgss::RenderStatesData::setShaderUniform(const std::string& name, cgss::Cur
 
 void cgss::RenderStatesData::setShaderUniform(const std::string& name, const cgss::Texture& texture) {
 	if (m_shader != nullptr) {
-		m_shader->setUniform(name, texture.raw());
+		m_shader->setUniform(name, cgss::backend::native_of(texture));
 	}
 }
 

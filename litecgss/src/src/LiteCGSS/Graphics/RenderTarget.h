@@ -14,6 +14,7 @@ namespace cgss {
 	// it will retire in PR L (replaced by `Backend::Ops::draw_*` direct calls).
 	template <class B>
 	class basic_RenderTarget {
+		friend struct cgss::backend::SFMLBackend::Ops;
 	public:
 		using native_type = typename B::native_render_target;
 
@@ -24,9 +25,9 @@ namespace cgss {
 		basic_RenderTarget(basic_RenderTarget&&) noexcept;
 		basic_RenderTarget& operator=(basic_RenderTarget&&) noexcept;
 
-		native_type& raw() const noexcept;
-
 	private:
+		native_type& native() const noexcept;
+
 		native_type* m_target;
 	};
 

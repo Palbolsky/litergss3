@@ -3,6 +3,7 @@
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/Color.hpp>
+#include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Graphics/RenderStates.h"
 #include "LiteCGSS/Common/NormalizeNumbers.h"
@@ -45,8 +46,8 @@ void cgss::DisplayWindowSnapshot::freeze(const sf::RenderWindow& window) {
 	}
 	m_window.draw();
 	m_freezeTexture = std::make_unique<Texture>();
-	takeSnapshotOn(window, m_freezeTexture->raw());
-	m_freezeSprite = std::make_unique<sf::Sprite>(m_freezeTexture->raw());
+	takeSnapshotOn(window, cgss::backend::native_of(*m_freezeTexture));
+	m_freezeSprite = std::make_unique<sf::Sprite>(cgss::backend::native_of(*m_freezeTexture));
 	m_freezeSprite->setScale(1.0f / static_cast<float>(m_window.scale()), 1.0f / static_cast<float>(m_window.scale()));
 }
 
@@ -126,7 +127,7 @@ void cgss::DisplayWindowSnapshot::draw(sf::RenderWindow& window) {
 	// Display transition sprite
 	if (m_freezeSprite != nullptr) {
 		if (m_rgssTransition) {
-			window.draw(*m_freezeSprite, m_freezeShader.data().getRenderStates().raw());
+			window.draw(*m_freezeSprite, cgss::backend::native_of(m_freezeShader.data().getRenderStates()));
 		} else {
 			window.draw(*m_freezeSprite);
 		}

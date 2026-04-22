@@ -157,7 +157,7 @@ void cgss::basic_Image<B>::createMaskFromColor(cgss::Color color, unsigned char 
 }
 
 template <class B>
-const typename cgss::basic_Image<B>::native_type& cgss::basic_Image<B>::raw() const noexcept {
+const typename cgss::basic_Image<B>::native_type& cgss::basic_Image<B>::native() const noexcept {
 	return *m_image;
 }
 
