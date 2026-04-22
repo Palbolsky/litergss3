@@ -18,7 +18,7 @@ namespace cgss {
 	// it will retire in PR L.
 	template <class B>
 	class basic_DrawState {
-		friend struct cgss::backend::SFMLBackend::Ops;
+		friend struct cgss::backend::ActiveBackend::Ops;
 	public:
 		using native_type = typename B::native_render_states;
 

@@ -17,7 +17,7 @@ namespace cgss {
 	// it will retire in PR L.
 	template <class B>
 	class basic_Camera {
-		friend struct cgss::backend::SFMLBackend::Ops;
+		friend struct cgss::backend::ActiveBackend::Ops;
 	public:
 		using native_type = typename B::native_view;
 

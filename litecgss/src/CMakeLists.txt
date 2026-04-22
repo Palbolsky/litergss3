@@ -38,6 +38,10 @@ target_include_directories(LiteCGSS_engine
 	PUBLIC ${LITE_CGSS_EXTERNAL}/libnsgif
 	${LITECGSS_PHYSFS_TARGET_INCLUDE_DIR}
 	PUBLIC ../external/skalog/src/src)
+if(CGSS_BACKEND STREQUAL "raylib")
+	# Header-only use of raylib for PR M scope (b): types only, no link.
+	target_include_directories(LiteCGSS_engine PUBLIC ${LITE_CGSS_EXTERNAL}/raylib)
+endif()
 if (NOT BUILD_SHARED_LIBS)
 	set_property(TARGET LiteCGSS_engine PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()

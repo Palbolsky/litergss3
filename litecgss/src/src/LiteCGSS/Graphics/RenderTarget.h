@@ -14,7 +14,7 @@ namespace cgss {
 	// it will retire in PR L (replaced by `Backend::Ops::draw_*` direct calls).
 	template <class B>
 	class basic_RenderTarget {
-		friend struct cgss::backend::SFMLBackend::Ops;
+		friend struct cgss::backend::ActiveBackend::Ops;
 	public:
 		using native_type = typename B::native_render_target;
 

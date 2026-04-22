@@ -19,7 +19,7 @@ namespace cgss {
 	template <class B>
 	class basic_Image {
 		template <class C> friend class basic_Texture;
-		friend struct cgss::backend::SFMLBackend::Ops;
+		friend struct cgss::backend::ActiveBackend::Ops;
 	public:
 		using native_type = typename B::native_image;
 

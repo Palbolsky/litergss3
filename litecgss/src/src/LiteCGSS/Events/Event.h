@@ -14,7 +14,7 @@ namespace cgss {
 	// full backend header included; consumers cannot escape the abstraction.
 	template <class B>
 	class basic_Event {
-		friend struct cgss::backend::SFMLBackend::Ops;
+		friend struct cgss::backend::ActiveBackend::Ops;
 	public:
 		using native_type = typename B::native_event;
 

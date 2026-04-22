@@ -12,6 +12,8 @@
 // `SFMLBackend::Ops` with all the inline static methods. Any TU that calls
 // `Backend::Ops::*` must include the full SFMLBackend.h.
 
+#include "LiteCGSS/Backend/BackendCommon.h"
+
 namespace sf {
 	class RenderTarget;
 	class Texture;
@@ -28,13 +30,6 @@ namespace sf {
 }
 
 namespace cgss::backend {
-
-	// Plain POD return type for size queries from the backend. Used to avoid
-	// leaking native vector types (sf::Vector2u) into wrapper signatures.
-	struct Size2u {
-		unsigned int x;
-		unsigned int y;
-	};
 
 	struct SFMLBackend {
 		// ---- Native typedefs ----
