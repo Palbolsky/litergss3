@@ -112,7 +112,7 @@ void cgss::DisplayWindowSnapshot::transition(long time, Texture* texture) {
 std::unique_ptr<cgss::Texture> cgss::DisplayWindowSnapshot::takeSnapshot(const sf::RenderWindow& window) const {
 	sf::Texture raw;
 	takeSnapshotOn(window, raw);
-	return std::make_unique<cgss::Texture>(cgss::Texture::create(std::move(raw)));
+	return std::make_unique<cgss::Texture>(cgss::Texture::create_from_native(std::move(raw)));
 }
 
 void cgss::DisplayWindowSnapshot::stop() {

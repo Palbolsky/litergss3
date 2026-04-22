@@ -9,14 +9,13 @@
 #include "LiteCGSS/Graphics/DrawState.h"
 #include "LiteCGSS/Graphics/Glsl.h"
 #include "LiteCGSS/Graphics/ShaderType.h"
+#include "LiteCGSS/Graphics/TextureFwd.h"
 
 namespace sf {
 	class Shader;
 }
 
 namespace cgss {
-
-	class Texture;
 
 	class RenderStatesData {
 	private:

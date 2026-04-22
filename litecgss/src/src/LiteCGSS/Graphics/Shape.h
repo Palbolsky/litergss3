@@ -12,8 +12,9 @@
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
 
+#include "LiteCGSS/Graphics/TextureFwd.h"
+
 namespace cgss {
-	class Texture;
 	class View;
 	class Shape;
 

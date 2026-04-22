@@ -28,7 +28,7 @@ void cgss::SpriteItem::drawFast(cgss::RenderTarget& target) const {
 	sf::RenderStates states = ShaderRenderable::getValue() == nullptr
 		? sf::RenderStates::Default
 		: ShaderRenderable::getValue()->getRenderStates().raw();
-	states.transform *= cgss::backend::SFMLBackend::build_transform(*m_transformable);
+	states.transform *= cgss::backend::SFMLBackend::Ops::build_transform(*m_transformable);
 	target.raw().draw(*m_sprite, states);
 }
 

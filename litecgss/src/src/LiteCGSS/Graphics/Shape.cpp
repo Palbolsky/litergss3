@@ -21,13 +21,13 @@ cgss::ShapeItem::ShapeItem(Shape* owner, ShapeData shape) :
 
 void cgss::ShapeItem::draw(cgss::RenderTarget& target) const {
 	sf::RenderStates states = m_renderStates.raw();
-	states.transform *= cgss::backend::SFMLBackend::build_transform(*m_transformable);
+	states.transform *= cgss::backend::SFMLBackend::Ops::build_transform(*m_transformable);
 	target.raw().draw(*m_shape, states);
 }
 
 void cgss::ShapeItem::drawFast(cgss::RenderTarget& target) const {
 	sf::RenderStates states;
-	states.transform = cgss::backend::SFMLBackend::build_transform(*m_transformable);
+	states.transform = cgss::backend::SFMLBackend::Ops::build_transform(*m_transformable);
 	target.raw().draw(*m_shape, states);
 }
 

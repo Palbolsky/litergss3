@@ -4,11 +4,11 @@
 #include <cstddef>
 #include <memory>
 
+#include "LiteCGSS/Graphics/TextureFwd.h"
+
 struct gif_animation;
 
 namespace cgss {
-	class Texture;
-
 	class YukiGif {
 	public:
 		static double& FrameDelta();

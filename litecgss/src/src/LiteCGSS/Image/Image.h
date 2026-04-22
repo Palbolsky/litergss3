@@ -15,10 +15,10 @@ namespace sf {
 
 namespace cgss {
 	class Rectangle;
-	class Texture;
+	template <class B> class basic_Texture;
 
 	class Image {
-		friend class Texture;
+		template <class B> friend class basic_Texture;
 	public:
 		Image();
 		~Image();

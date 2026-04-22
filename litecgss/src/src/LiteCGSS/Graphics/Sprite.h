@@ -14,8 +14,9 @@ namespace sf {
 	class Texture;
 }
 
+#include "LiteCGSS/Graphics/TextureFwd.h"
+
 namespace cgss {
-	class Texture;
 	class Sprite;
 	class View;
 	class RenderStates;

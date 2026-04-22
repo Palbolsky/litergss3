@@ -2,10 +2,9 @@
 #define CGSS_SNAPSHOT_CAPTURABLE_H
 
 #include <memory>
+#include "LiteCGSS/Graphics/TextureFwd.h"
 
 namespace cgss {
-	class Texture;
-
 	class SnapshotCapturable {
 	public:
 		SnapshotCapturable() = default;

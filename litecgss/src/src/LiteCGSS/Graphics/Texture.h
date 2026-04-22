@@ -1,17 +1,13 @@
 #ifndef CGSS_TEXTURE_H
 #define CGSS_TEXTURE_H
 
-#include <vector>
 #include <array>
 #include <memory>
+#include <string>
+#include "LiteCGSS/Backend/ActiveBackendFwd.h"
 #include "LiteCGSS/Common/Color.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
 #include "Serializers/TextureLoaderSaver.h"
-
-namespace sf {
-	class Texture;
-	class Image;
-}
 
 namespace cgss {
 	class Rectangle;
@@ -21,18 +17,31 @@ namespace cgss {
 
 	using TextureFactorNpot = std::array<double, 2>;
 
-	class Texture {
+	// Templated wrapper over `Backend::native_texture` (+ a backing image
+	// for software pixel ops). Consumers refer to it as `cgss::Texture` —
+	// the alias near the bottom of this header binds B to the build-selected
+	// backend. All special members and methods are declared (not defined)
+	// here; the bodies live in Texture.cpp where the full backend header
+	// (with native types complete) is available.
+	template <class B>
+	class basic_Texture {
 	public:
-		Texture();
-		Texture(const Texture& other);
-		Texture(Texture&& other) noexcept;
-		Texture& operator=(const Texture& other);
-		Texture& operator=(Texture&& other) noexcept;
-		virtual ~Texture();
+		using native_type = typename B::native_texture;
 
-		static Texture create(const DisplayWindow& window, const std::string& filename);
-		static Texture create(const std::string& filename);
-		static Texture create(sf::Texture texture);
+		basic_Texture();
+		basic_Texture(const basic_Texture& other);
+		basic_Texture(basic_Texture&& other) noexcept;
+		basic_Texture& operator=(const basic_Texture& other);
+		basic_Texture& operator=(basic_Texture&& other) noexcept;
+		virtual ~basic_Texture();
+
+		static basic_Texture create(const DisplayWindow& window, const std::string& filename);
+		static basic_Texture create(const std::string& filename);
+
+		// Backend-coupling hatch: adopt an existing native texture. Only meant
+		// for internal callers that already operate in backend-specific terms
+		// (e.g. snapshot capture). Portable code should not use this.
+		static basic_Texture create_from_native(typename B::native_texture native);
 
 		void update();
 		void update(const Image& image);
@@ -40,12 +49,12 @@ namespace cgss {
 		struct Size { unsigned int x; unsigned int y; };
 		Size getSize() const;
 
-		void blit(unsigned long x, unsigned long y, const Texture& srcTexture, const Rectangle& rect);
+		void blit(unsigned long x, unsigned long y, const basic_Texture& srcTexture, const Rectangle& rect);
 		void fillRect(long x, long y, unsigned int width, unsigned int height, cgss::Color color);
 		void clearRect(long x, long y, unsigned int width, unsigned int height);
 		void setSmooth(bool smooth);
 
-		Texture clone() const;
+		basic_Texture clone() const;
 
 		bool load(const TextureLoader& loader);
 		unsigned int write(TextureSaver& saver) const;
@@ -54,10 +63,10 @@ namespace cgss {
 
 		bool create(int sw, int sh);
 
-		std::weak_ptr<sf::Texture> weak();
-		std::shared_ptr<sf::Texture> ref();
-		sf::Texture& raw();
-		const sf::Texture& raw() const;
+		std::weak_ptr<native_type> weak();
+		std::shared_ptr<native_type> ref();
+		native_type& raw();
+		const native_type& raw() const;
 
 		TextureFactorNpot factorNpot() const;
 
@@ -66,13 +75,15 @@ namespace cgss {
 		bool hasImage() const;
 
 		bool m_loaded = false;
-		std::shared_ptr<sf::Texture> m_texture;
-		std::unique_ptr<sf::Image> m_image;
+		std::shared_ptr<typename B::native_texture> m_texture;
+		std::unique_ptr<typename B::native_image> m_image;
 	};
 
+	using Texture = basic_Texture<cgss::backend::ActiveBackend>;
+
 	namespace meta {
-		template<>
-		struct Log<Texture> {
+		template <class B>
+		struct Log<basic_Texture<B>> {
 			static constexpr auto classname = "Texture";
 		};
 	}

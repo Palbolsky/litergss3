@@ -100,7 +100,7 @@ std::unique_ptr<cgss::Texture> cgss::ViewportItem::takeSnapshot() const {
 		render.display();
 	}
 
-	return std::make_unique<cgss::Texture>(cgss::Texture::create(sf::Texture(render.getTexture())));
+	return std::make_unique<cgss::Texture>(cgss::Texture::create_from_native(sf::Texture(render.getTexture())));
 }
 
 void cgss::ViewportItem::setupFullWindowView(cgss::RenderTarget& target) const {

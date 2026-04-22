@@ -12,8 +12,9 @@ namespace sf {
 	class Sprite;
 }
 
+#include "LiteCGSS/Graphics/TextureFwd.h"
+
 namespace cgss {
-	class Texture;
 	class SpriteMapItem;
 	class View;
 	class SpriteMap;

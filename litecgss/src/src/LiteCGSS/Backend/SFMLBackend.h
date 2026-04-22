@@ -1,16 +1,15 @@
 #ifndef CGSS_BACKEND_SFML_BACKEND_H
 #define CGSS_BACKEND_SFML_BACKEND_H
 
-// SFML 2.6 reference backend. Header-only by design: every operation is a
-// `static inline` thunk over the underlying SFML call, so release builds
-// inline the wrapper down to the direct call.
+// Full SFML 2.6 reference backend: includes SFMLBackendFwd.h (typedefs +
+// capability tags) and defines `SFMLBackend::Ops` with all inline static
+// thunks. Header-only by design — every operation is `static inline` so
+// release builds inline the wrapper down to the direct SFML call.
 //
-// The typedef and thunk surface grows as wrappers are templated on
-// `Backend` (see plan PR C onward). PR A seeds only: native typedefs,
-// capability tags, the value-type conversions formerly in
-// Common/Internal/Sf*Conv.h + Graphics/Internal/SfShaderConv.h +
-// Configuration/Internal/SfContextSettingsConv.h, and one proof-of-concept
-// draw thunk.
+// Include this only from implementation .cpp files. Public templates use
+// SFMLBackendFwd.h to avoid pulling SFML into consumer TUs.
+
+#include "LiteCGSS/Backend/SFMLBackendFwd.h"
 
 #include <SFML/Graphics/BlendMode.hpp>
 #include <SFML/Graphics/Color.hpp>
@@ -25,6 +24,7 @@
 #include <SFML/Graphics/Shader.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Texture.hpp>
+#include <SFML/Graphics/Transform.hpp>
 #include <SFML/Graphics/VertexArray.hpp>
 #include <SFML/Graphics/View.hpp>
 #include <SFML/Window/ContextSettings.hpp>
@@ -38,29 +38,12 @@
 #include "LiteCGSS/Graphics/ShaderType.h"
 #include "LiteCGSS/Graphics/Transformable.h"
 
-#include <SFML/Graphics/Transform.hpp>
-
 namespace cgss::backend {
 
-	struct SFMLBackend {
-		// ---- Native typedefs ----
-		using native_render_target  = sf::RenderTarget;
-		using native_texture        = sf::Texture;
-		using native_image          = sf::Image;
-		using native_sprite         = sf::Sprite;
-		using native_view           = sf::View;
-		using native_render_states  = sf::RenderStates;
-		using native_font           = sf::Font;
-		using native_event          = sf::Event;
-		using native_window         = sf::RenderWindow;
-		using native_render_texture = sf::RenderTexture;
-		using native_shader         = sf::Shader;
-		using native_vertex_array   = sf::VertexArray;
-
-		// ---- Capability tags ----
-		static constexpr bool has_window      = true;
-		static constexpr bool has_event_pump  = true;
-		static constexpr bool owns_gpu_memory = true;
+	// Definition of the nested Ops struct forward-declared in SFMLBackendFwd.h.
+	// Each method is a thin `static inline` thunk over an SFML call so the
+	// compiler can inline it through the wrapper template at the use site.
+	struct SFMLBackend::Ops {
 
 		// ---- Value conversions ----
 		// IntRect
@@ -131,10 +114,6 @@ namespace cgss::backend {
 		}
 
 		// ---- Transform composition ----
-		// Builds an sf::Transform equivalent to the transform that sf::Transformable
-		// applies internally, from the cgss::Transformable's own state. Sign of the
-		// angle is flipped to match SFML's rotation convention (clockwise when Y
-		// points down, as with screen coordinates).
 		static inline sf::Transform build_transform(const cgss::Transformable& xf) noexcept {
 			sf::Transform t;
 			t.translate(xf.getX(), xf.getY());
@@ -144,11 +123,47 @@ namespace cgss::backend {
 			return t;
 		}
 
-		// ---- Draw thunks (seed; grown per wrapper PR) ----
+		// ---- Draw thunks ----
 		static inline void draw_sprite(native_render_target& target,
 		                               const native_sprite& sprite,
 		                               const native_render_states& states) {
 			target.draw(sprite, states);
+		}
+
+		// ---- Texture / Image ops ----
+		static inline void set_smooth(native_texture& t, bool smooth) noexcept {
+			t.setSmooth(smooth);
+		}
+
+		static inline Size2u get_texture_size(const native_texture& t) noexcept {
+			const auto sz = t.getSize();
+			return { sz.x, sz.y };
+		}
+
+		static inline Size2u get_image_size(const native_image& i) noexcept {
+			const auto sz = i.getSize();
+			return { sz.x, sz.y };
+		}
+
+		static inline bool create_texture(native_texture& t, unsigned int width, unsigned int height) {
+			return t.create(width, height);
+		}
+
+		static inline void update_texture_from_image(native_texture& t, const native_image& i) {
+			t.update(i);
+		}
+
+		static inline void copy_image(native_image& dst, const native_image& src) {
+			dst = src;
+		}
+
+		static inline void image_set_pixel(native_image& i, unsigned int x, unsigned int y, cgss::Color c) {
+			i.setPixel(x, y, sf::Color(c.r, c.g, c.b, c.a));
+		}
+
+		static inline void image_blit(native_image& dst, unsigned int x, unsigned int y,
+		                              const native_image& src, const cgss::IntRect& srcRect) {
+			dst.copy(src, x, y, sf::IntRect(srcRect.left, srcRect.top, srcRect.width, srcRect.height));
 		}
 	};
 
