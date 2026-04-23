@@ -1,0 +1,3 @@
+[submodule "external/litecgss2"]
+	path = external/litecgss2
+	url = https://gitlab.com/NuriYuri/litecgss.git
