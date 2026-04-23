@@ -134,6 +134,10 @@ if(NOT CGSS_BACKEND STREQUAL "raylib")
 endif()
 if(NOT CGSS_BACKEND STREQUAL "sfml")
 	list(FILTER LITECGSS_PRIVATE_SOURCES EXCLUDE REGEX "/LiteCGSS/Backend/Internal/SFML")
+	# ScrollText.{h,cpp} is a vendored copy of sf::Text — inherently SFML-
+	# coupled. Non-sfml backends provide their own ScrollText under
+	# Backend/Specializations/<backend>/ScrollText.{h,cpp}.
+	list(FILTER LITECGSS_PRIVATE_SOURCES EXCLUDE REGEX "/LiteCGSS/Graphics/ScrollText\\.")
 endif()
 
 set(LITECGSS_ALL_SOURCES

@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.10)
 project(LiteCGSS_test)
 
 FOREACH(subdir ${SUBDIRS})
+	# Reset per-iteration — CMake variables persist across FOREACH, so
+	# leftover values from an earlier subdir's cmake.conf would leak into
+	# subdirs that don't set them (e.g. Loaders' sfml-specific sources
+	# leaking into Profiling under CGSS_BACKEND=raylib).
+	SET(SUBDIR_SOURCES "")
+	SET(SUBDIR_LIBS "")
 	include(${subdir}/cmake.conf)
 
 	if(NOT("${SUBDIR_LIBS}" MATCHES "[^ ]?physfs[$ ]?") OR LITECGSS_USE_PHYSFS)

@@ -15,7 +15,11 @@
 #include <iostream>
 #include <vector>
 
-#include <SFML/Graphics/RenderTexture.hpp>
+#if defined(CGSS_BACKEND_SFML)
+#  include <SFML/Graphics/RenderTexture.hpp>
+#elif defined(CGSS_BACKEND_RAYLIB)
+#  include <raylib.h>
+#endif
 
 #include "LiteCGSS/Graphics/Camera.h"
 #include "LiteCGSS/Graphics/GraphicsStackItem.h"
@@ -81,12 +85,17 @@ BenchResult runBench(std::size_t stackSize, std::size_t iterations) {
         stack.add(makeItem(i));
     }
 
-    // sf::RenderTexture is constructed but never create()-d: no GL context
-    // is required because the mock draw()/drawFast() bodies never touch the
-    // target. DrawableStack::draw() does call Ops::target_set_view(), which
-    // on SFML 2 is a plain member-variable assignment on sf::RenderTarget —
+    // Native render target constructed but never initialized for real GPU
+    // use: no GL context is required because the mock draw()/drawFast()
+    // bodies never touch the target. DrawableStack::draw() does call
+    // Ops::target_set_view(), which on both backends is a cheap assignment
+    // (SFML 2: sf::RenderTarget member; raylib: a thread-local stash) —
     // still safe without a GL context.
+#if defined(CGSS_BACKEND_SFML)
     sf::RenderTexture dummy;
+#elif defined(CGSS_BACKEND_RAYLIB)
+    ::RenderTexture dummy{};
+#endif
     cgss::RenderTarget target{dummy};
     cgss::Camera camera;
 
