@@ -41,6 +41,7 @@
 #include "LiteCGSS/Graphics/Glsl.h"
 #include "LiteCGSS/Graphics/ShaderType.h"
 #include "LiteCGSS/Graphics/ShapeGeometry.h"
+#include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Graphics/Transformable.h"
 
 #include <string>
@@ -53,6 +54,20 @@ namespace cgss::backend {
 		static inline auto& native_of(W& w) noexcept { return w.native(); }
 		template <class W>
 		static inline const auto& native_of(const W& w) noexcept { return w.native(); }
+
+		// Shared / weak access to a Texture's native backing — see
+		// SFMLBackend.h for rationale. Replaces the removed public
+		// basic_Texture::ref() / weak() escape hatch.
+		template <class B2>
+		static inline std::shared_ptr<typename B2::native_texture>
+		texture_share(cgss::basic_Texture<B2>& t) noexcept {
+			return t.m_texture;
+		}
+		template <class B2>
+		static inline std::weak_ptr<typename B2::native_texture>
+		texture_weak(cgss::basic_Texture<B2>& t) noexcept {
+			return t.m_texture;
+		}
 
 		// ---- Transform composition ----
 		// Placeholder — raylib has no sf::Transform analogue (its draw functions
@@ -354,6 +369,13 @@ namespace cgss::backend {
 
 		// ---- Render texture ops (stubs) ----
 		static inline bool render_texture_create(native_render_texture&, unsigned int, unsigned int) { return false; }
+		// Depth-aware creation stub. Real raylib bodies would use
+		// `LoadRenderTexture(w, h)` vs `LoadRenderTextureDepthTex(w, h)`
+		// (raylib has both; the Depth variant attaches a depth texture
+		// instead of a depth renderbuffer so the depth is sampleable for
+		// post-processing). Stays a stub for now — raylib's RenderTexture
+		// Ops are not yet implemented beyond this signature for parity.
+		static inline bool render_texture_create_with_depth(native_render_texture&, unsigned int, unsigned int, bool) { return false; }
 		static inline void render_texture_set_smooth(native_render_texture&, bool) {}
 		static inline const native_texture& render_texture_get_texture(const native_render_texture& rt) { return rt.texture; }
 		static inline void render_texture_set_view(native_render_texture&, const native_view&) {}

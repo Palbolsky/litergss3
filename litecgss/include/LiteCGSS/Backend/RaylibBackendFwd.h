@@ -103,6 +103,19 @@ namespace cgss::backend {
 		static constexpr bool has_input_touch       = true;
 		static constexpr bool has_wheel_state_query = true;
 
+		// 3D capability tags — see SFMLBackendFwd.h. Raylib does ship basic
+		// 3D primitives (Camera3D, Mesh, DrawMesh, depth buffer via
+		// LoadRenderTextureDepthTex) but cgss's current wrappers don't
+		// surface them — tags stay false until the matching cgss:: public
+		// API lands. Future raylib specializations that use those paths
+		// should flip the relevant tag and gate their code with it.
+		static constexpr bool supports_3d                 = false;
+		static constexpr bool supports_depth_buffer       = false;
+		static constexpr bool supports_perspective_camera = false;
+		static constexpr bool supports_mesh_primitive     = false;
+		static constexpr bool supports_compute_shader     = false;
+		static constexpr bool supports_instanced_draw     = false;
+
 		struct Ops;
 	};
 

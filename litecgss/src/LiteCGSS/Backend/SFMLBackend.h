@@ -52,6 +52,7 @@
 #include "LiteCGSS/Graphics/Glsl.h"
 #include "LiteCGSS/Graphics/ShaderType.h"
 #include "LiteCGSS/Graphics/ShapeGeometry.h"
+#include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Graphics/Transformable.h"
 
 namespace cgss::backend {
@@ -82,6 +83,23 @@ namespace cgss::backend {
 		template <class W>
 		static inline const auto& native_of(const W& w) noexcept {
 			return w.native();
+		}
+
+		// Shared-ownership handle on a Texture's native backing. Replaces
+		// the public `basic_Texture::ref()` escape hatch (now removed).
+		// Used by Sprite/Shape setTexture to keep the native alive across
+		// the lifetime of the drawable regardless of whether the source
+		// cgss::Texture is still in scope. `Ops` is friend of basic_Texture,
+		// so this reaches the private m_texture member directly.
+		template <class B2>
+		static inline std::shared_ptr<typename B2::native_texture>
+		texture_share(cgss::basic_Texture<B2>& t) noexcept {
+			return t.m_texture;
+		}
+		template <class B2>
+		static inline std::weak_ptr<typename B2::native_texture>
+		texture_weak(cgss::basic_Texture<B2>& t) noexcept {
+			return t.m_texture;
 		}
 
 		// ---- Transform composition ----
@@ -496,6 +514,21 @@ namespace cgss::backend {
 		// ---- Render texture ops ----
 		static inline bool render_texture_create(native_render_texture& rt, unsigned int w, unsigned int h) {
 			return rt.create(w, h);
+		}
+		// Depth-aware creation — used by Viewport::setDepth3D and other
+		// consumers that plan to composite 3D content into a 2D pipeline.
+		// SFML 2.6's sf::RenderTexture.create(w, h, settings) accepts a
+		// sf::ContextSettings carrying the depth-buffer bit count; any
+		// non-zero value allocates a depth attachment. Mapping cgss's
+		// boolean flag to a typical 24-bit depth buffer is sufficient for
+		// the 2D-composition use case; real 3D backends (bgfx) will add
+		// finer-grained Ops later per the umbrella plan's §6b.
+		static inline bool render_texture_create_with_depth(native_render_texture& rt, unsigned int w, unsigned int h, bool with_depth) {
+			if (!with_depth) return rt.create(w, h);
+			sf::ContextSettings ctx{};
+			ctx.depthBits   = 24;
+			ctx.stencilBits = 8;
+			return rt.create(w, h, ctx);
 		}
 		static inline void render_texture_set_smooth(native_render_texture& rt, bool smooth) {
 			rt.setSmooth(smooth);

@@ -104,7 +104,7 @@ void cgss::basic_SpriteItem<B>::setOpacity(std::uint8_t opacity) {
 
 template <class B>
 void cgss::basic_Sprite<B>::setTexture(basic_Texture<B>& texture, bool resetRect) {
-	this->m_proxy->m_linkedTexture = texture.ref();
+	this->m_proxy->m_linkedTexture = B::Ops::texture_share(texture);
 	B::Ops::set_sprite_texture(*this->m_proxy->m_sprite, *this->m_proxy->m_linkedTexture, resetRect);
 	if (resetRect) {
 		this->m_proxy->GraphicsStackItem::setValue(B::Ops::get_sprite_texture_rect(*this->m_proxy->m_sprite));

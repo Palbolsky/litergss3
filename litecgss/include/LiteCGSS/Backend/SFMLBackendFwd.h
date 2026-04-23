@@ -77,6 +77,18 @@ namespace cgss::backend {
 		static constexpr bool has_input_touch       = false;
 		static constexpr bool has_wheel_state_query = false;
 
+		// 3D capability tags — all false on SFML (2D-only renderer). Sized
+		// for a future bgfx-backed Bgfx3DBackend per the umbrella plan's
+		// §6a. Downstream API that gates on any of these (e.g. 3D camera,
+		// mesh primitives) must `if constexpr` check and static_assert-reject
+		// on 2D-only backends at compile time.
+		static constexpr bool supports_3d                 = false;
+		static constexpr bool supports_depth_buffer       = false;
+		static constexpr bool supports_perspective_camera = false;
+		static constexpr bool supports_mesh_primitive     = false;
+		static constexpr bool supports_compute_shader     = false;
+		static constexpr bool supports_instanced_draw     = false;
+
 		// All inline thunks live on the nested Ops struct, defined in
 		// SFMLBackend.h. Forward-declared here so wrappers can name
 		// `B::Ops::method` in member declarations / dependent contexts.

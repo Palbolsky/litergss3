@@ -155,12 +155,6 @@ bool cgss::basic_Texture<B>::create(int sw, int sh) {
 }
 
 template <class B>
-std::weak_ptr<typename cgss::basic_Texture<B>::native_type> cgss::basic_Texture<B>::weak() { return m_texture; }
-
-template <class B>
-std::shared_ptr<typename cgss::basic_Texture<B>::native_type> cgss::basic_Texture<B>::ref() { return m_texture; }
-
-template <class B>
 typename cgss::basic_Texture<B>::native_type& cgss::basic_Texture<B>::native() { return *m_texture.get(); }
 
 template <class B>

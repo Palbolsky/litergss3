@@ -64,8 +64,14 @@ namespace cgss {
 
 		bool create(int sw, int sh);
 
-		std::weak_ptr<native_type> weak();
-		std::shared_ptr<native_type> ref();
+		// NOTE: the public `ref()` / `weak()` escape hatches that used to
+		// live here have been removed (step B of the abstraction plan). The
+		// shared_ptr<native_texture> they returned was a clean-boundary
+		// violation. Internal cgss users (Sprite / Shape setTexture) now go
+		// through `Ops::texture_share(tex)`. External consumers that
+		// legitimately need a native handle (video decoders, platform
+		// plugins) should include `LiteCGSS/Extension/NativeAccess.h` and
+		// use `cgss::extension::native(tex)` — opt-in via CGSS_ENABLE_EXTENSION_SPI.
 
 		TextureFactorNpot factorNpot() const;
 

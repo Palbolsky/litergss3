@@ -56,7 +56,7 @@ void cgss::basic_Shape<B>::setRenderState(cgss::DrawState states) {
 
 template <class B>
 void cgss::basic_Shape<B>::setTexture(basic_Texture<B>* texture, bool resetRect) {
-	this->m_proxy->m_linkedTexture = texture != nullptr ? texture->ref() : nullptr;
+	this->m_proxy->m_linkedTexture = texture != nullptr ? B::Ops::texture_share(*texture) : nullptr;
 	if (resetRect && this->m_proxy->m_linkedTexture != nullptr) {
 		const auto sz = B::Ops::get_texture_size(*this->m_proxy->m_linkedTexture);
 		this->m_proxy->setValue(cgss::IntRect{ 0, 0, static_cast<int>(sz.x), static_cast<int>(sz.y) });
