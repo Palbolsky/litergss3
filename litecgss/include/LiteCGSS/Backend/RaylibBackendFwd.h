@@ -14,6 +14,8 @@
 // uniformly; the actual abstraction lives in Ops.
 
 #include "LiteCGSS/Backend/BackendCommon.h"
+#include "LiteCGSS/Common/Color.h"
+#include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Events/EventPayloads.h"
 #include "LiteCGSS/Events/EventType.h"
 
@@ -23,8 +25,44 @@ namespace cgss::backend {
 
 	namespace raylib {
 		struct Window {};
-		struct Sprite {};
+		// Stateful sprite mirror of sf::Sprite. raylib's draw model is
+		// immediate-mode (DrawTexturePro takes all draw args as parameters),
+		// so there is no native "Sprite" to carry the configured state
+		// between setter calls and the eventual draw. This struct fills that
+		// gap — the `set_sprite_*` / `sprite_set_*` Ops write into these
+		// fields; `draw_sprite[_with_transform]` reads them back and issues
+		// the DrawTexturePro call.
+		//
+		// `texture` is a non-owning pointer — the cgss::basic_Sprite proxy
+		// holds a shared_ptr<native_texture> in m_linkedTexture to keep the
+		// ::Texture alive for the sprite's lifetime.
+		struct Sprite {
+			const ::Texture* texture = nullptr;
+			cgss::Color      color { 255u, 255u, 255u, 255u };
+			// {0,0,0,0} means "not explicitly set" — draw path will fall
+			// back to the full texture extents at render time.
+			cgss::IntRect    textureRect {};
+			float            x = 0.f, y = 0.f;
+			float            originX = 0.f, originY = 0.f;
+			float            scaleX = 1.f, scaleY = 1.f;
+		};
 		struct RenderStates {};
+
+		// sf::View-compatible view descriptor. raylib has Camera2D (offset /
+		// target / zoom / rotation) but no built-in concept of a normalized
+		// render-target viewport rect. cgss::ViewBox manipulates the view via
+		// sf::View-style set_center / set_size / set_viewport, so the backend
+		// owns the full 4-field model here and derives the effective
+		// screen-pixel transform at draw time (see draw_sprite_impl in
+		// RaylibBackend.h and raylib_detail::currentView()).
+		struct View {
+			float cx = 0.f, cy = 0.f;     // sf::View::setCenter — world coords
+			float sizeX = 0.f, sizeY = 0.f; // sf::View::setSize — world-space window
+			// sf::View::setViewport — normalized [0..1] rect on the render target.
+			float vpX = 0.f, vpY = 0.f;
+			float vpW = 1.f, vpH = 1.f;
+			float rotation = 0.f;          // degrees, sf::View::setRotation
+		};
 		// Placeholder 2D transform — raylib draws with position/rotation/scale
 		// as separate args, so there is no native "Transform" type. This POD
 		// lets `basic_SpriteItem<RaylibBackend>` declare a
@@ -70,7 +108,7 @@ namespace cgss::backend {
 		using native_texture        = ::Texture;
 		using native_image          = ::Image;
 		using native_sprite         = raylib::Sprite;
-		using native_view           = ::Camera2D;
+		using native_view           = raylib::View;
 		using native_render_states  = raylib::RenderStates;
 		using native_font           = ::Font;
 		using native_event          = raylib::Event;

@@ -50,6 +50,19 @@ set(LITE_CGSS_EXTERNAL ${CMAKE_CURRENT_SOURCE_DIR}/external)
 
 if(CGSS_BACKEND STREQUAL "sfml")
   find_package(SFML 2 REQUIRED COMPONENTS graphics window system)
+elseif(CGSS_BACKEND STREQUAL "raylib")
+  # raylib 5.0 header ships via the submodule (external/raylib/raylib.h);
+  # the library itself must be installed system-wide (or point CMake at
+  # a custom install via -Draylib_DIR=/path/to/raylib/cmake). On Linux
+  # the standard path is to clone raylib, `cmake --install`, then this
+  # find_package picks it up.
+  #
+  # Note: raylib's 5.0 git tag shipped with `PROJECT_VERSION 4.5.0` still
+  # in src/CMakeLists.txt — a raylib-upstream bug. Installs from that tag
+  # report themselves as 4.5.0 to CMake even though the header is 5.0.
+  # We don't enforce a version here; the submodule's raylib.h (consulted
+  # at compile time) sets the API contract.
+  find_package(raylib REQUIRED)
 endif()
 
 function(generate_source_groups src_files src_dir)
@@ -137,6 +150,8 @@ add_library(LiteCGSS_engine ${LITECGSS_ALL_SOURCES})
 set(TARGET_LIBS skalog)
 if(CGSS_BACKEND STREQUAL "sfml")
 	set(TARGET_LIBS ${TARGET_LIBS} sfml-graphics sfml-window sfml-system)
+elseif(CGSS_BACKEND STREQUAL "raylib")
+	set(TARGET_LIBS ${TARGET_LIBS} raylib)
 endif()
 if(LITECGSS_USE_PHYSFS)
 	set(TARGET_LIBS ${TARGET_LIBS} physfs-static)

@@ -43,6 +43,29 @@ namespace cgss::backend::raylib_detail {
 		std::deque<cgss::backend::raylib::Event> g_queue{};
 		bool                                  g_windowClosed = false;
 
+		// Once-per-frame refill latch. raylib's per-frame state queries
+		// (GetMouseDelta, GetMouseWheelMoveV, GetTouchPosition, ...) return
+		// constant values until the next EndDrawing triggers PollInputEvents.
+		// Without this latch, draining the queue via `while(popEvent)` would
+		// trigger tryPopEvent -> empty -> refillQueue -> pollMouse re-emits
+		// the same MouseMoved event -> pop -> empty -> refill again... a
+		// single mouse move freezes the main loop. The latch is cleared by
+		// endFrameRefill() called from window_display at frame boundary.
+		bool                                  g_frameRefillDone = false;
+
+		// Current-view tracking — see header comment on setCurrentView.
+		cgss::backend::raylib::View           g_currentView{};
+		bool                                  g_scissorActive = false;
+
+		bool viewNeedsScissor(const cgss::backend::raylib::View& v) noexcept {
+			// Scissor only when the viewport is a strict sub-region of the
+			// render target. Full-rect viewports skip the scissor call to
+			// avoid clipping anything drawn outside pipelines that don't
+			// participate in the cgss::ViewBox system (e.g. the brightness
+			// overlay in postProcessing).
+			return !(v.vpX == 0.f && v.vpY == 0.f && v.vpW == 1.f && v.vpH == 1.f);
+		}
+
 		void pushEvent(const cgss::backend::raylib::Event& ev) {
 			g_queue.push_back(ev);
 		}
@@ -280,8 +303,9 @@ namespace cgss::backend::raylib_detail {
 	}
 
 	bool tryPopEvent(cgss::backend::raylib::Event& out) noexcept {
-		if (g_queue.empty()) {
+		if (g_queue.empty() && !g_frameRefillDone) {
 			refillQueue();
+			g_frameRefillDone = true;
 		}
 		if (g_queue.empty()) return false;
 		out = g_queue.front();
@@ -298,6 +322,41 @@ namespace cgss::backend::raylib_detail {
 		// prior session).
 		g_prev = PrevFrameState{};
 		g_queue.clear();
+		g_frameRefillDone = false;
+	}
+
+	void setCurrentView(const cgss::backend::raylib::View& v) noexcept {
+		// Close any scissor left from the previous view so the next draws
+		// aren't clipped by a stale region.
+		if (g_scissorActive) {
+			EndScissorMode();
+			g_scissorActive = false;
+		}
+		g_currentView = v;
+		if (!IsWindowReady() || !viewNeedsScissor(v)) return;
+		const float sw = static_cast<float>(GetScreenWidth());
+		const float sh = static_cast<float>(GetScreenHeight());
+		BeginScissorMode(
+			static_cast<int>(v.vpX * sw),
+			static_cast<int>(v.vpY * sh),
+			static_cast<int>(v.vpW * sw),
+			static_cast<int>(v.vpH * sh));
+		g_scissorActive = true;
+	}
+
+	const cgss::backend::raylib::View& currentView() noexcept {
+		return g_currentView;
+	}
+
+	void endCurrentScissor() noexcept {
+		if (g_scissorActive) {
+			EndScissorMode();
+			g_scissorActive = false;
+		}
+	}
+
+	void markFrameBoundary() noexcept {
+		g_frameRefillDone = false;
 	}
 
 }

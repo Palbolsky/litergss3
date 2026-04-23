@@ -1,4 +1,4 @@
-#include <SFML/Window/VideoMode.hpp>
+#include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/NormalizeNumbers.h"
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
 
@@ -9,38 +9,40 @@ static cgss::detail::DisplayWindowVideoSettingsData BuildData(
 	double scale) {
 
 	/* Default video mode */
-	sf::VideoMode vmode(640, 480, 32);
+	unsigned int vmWidth = 640;
+	unsigned int vmHeight = 480;
+	unsigned int vmBitsPerPixel = 32;
 
-	int bitsPerPixelDefault = 32;
+	// bitsPerPixel is no longer queryable at the backend layer (raylib has
+	// no equivalent of sf::VideoMode::bitsPerPixel); modern displays are
+	// effectively always 32-bit, so we keep that as the implicit default.
+	const int bitsPerPixelDefault = 32;
 	long maxWidth = 0xFFFFFF;
 	long maxHeight = 0xFFFFFF;
-	std::vector<sf::VideoMode> modes = sf::VideoMode::getFullscreenModes();
+	const auto desktop = cgss::backend::ActiveBackend::Ops::desktop_size();
 
-	/* If there's a fullscreen mode */
-	if (modes.size() > 0) {
-		maxWidth = modes[0].width;
-		maxHeight = modes[0].height;
-		bitsPerPixelDefault = modes[0].bitsPerPixel;
-		vmode.bitsPerPixel = modes[0].bitsPerPixel;
+	if (desktop.x > 0 && desktop.y > 0) {
+		maxWidth = desktop.x;
+		maxHeight = desktop.y;
 	}
 
 	/* Adjust Width */
 	if (width != -1) {
-		vmode.width = cgss::normalize_long(width, 0, maxWidth);
+		vmWidth = cgss::normalize_long(width, 0, maxWidth);
 	}
 
 	/* Adjust Height */
 	if (height != -1) {
-		vmode.height = cgss::normalize_long(height, 0, maxHeight);
+		vmHeight = cgss::normalize_long(height, 0, maxHeight);
 	}
 
 	/* Adjust Scale */
 	const double normalized_scale = scale < 0.0 ? 1.0 : cgss::normalize_double(scale, 0.1, 10);
 
 	/* Adjust Bits per pixel */
-	vmode.bitsPerPixel = (bitsPerPixel != -1) ? bitsPerPixelDefault : cgss::normalize_long(bitsPerPixel, 16, bitsPerPixelDefault);
+	vmBitsPerPixel = (bitsPerPixel != -1) ? bitsPerPixelDefault : cgss::normalize_long(bitsPerPixel, 16, bitsPerPixelDefault);
 
-	return { vmode.bitsPerPixel, vmode.width, vmode.height, normalized_scale };
+	return { vmBitsPerPixel, vmWidth, vmHeight, normalized_scale };
 }
 
 

@@ -1,21 +1,37 @@
-// Raylib stub for cgss::FramedViewItem / cgss::FramedView. Selected by CMake
-// when CGSS_BACKEND=raylib (folder-based per-backend specialization). All
-// methods are no-op stubs — a real raylib impl would build on
-// DrawTextureNPatch (raylib's built-in 9-slice draw) instead of composing
-// per-section vertex arrays.
+// Raylib implementation of cgss::FramedViewItem / cgss::FramedView. Selected
+// by CMake when CGSS_BACKEND=raylib (folder-based per-backend specialization).
 //
-// The SFML specialization holds 9-slice skin state (vertex arrays, pause/cursor
-// sprites) in a private `cgss::detail::FramedViewImpl` struct. Under raylib the
-// equivalent state will live here — for now we just define an empty struct so
-// the public `unique_ptr<detail::FramedViewImpl> m_impl` has a complete type
-// at destruction.
+// Scope: the minimum to render child drawables inside a framed region with
+// the correct view transform (handled via the RaylibBackend view ops —
+// set_view installs the scissored viewport automatically). The 9-slice skin
+// (SFML uses vertex arrays; raylib's natural fit is DrawTextureNPatch) and
+// the cursor/pause sprites are NOT yet drawn — they no-op when `m_texture`
+// is null, which covers the common "unskinned framed view" case exercised
+// by the playground. A real skin pass would populate m_impl with cached
+// NPatchInfo / cursor ::Texture pointers and render them in drawFast.
+//
+// drawCalculateView (SFML's parent-viewport clipping math) is also skipped
+// here: for the playground and any framed view whose rect fits inside its
+// parent viewport, ViewBox::clone() produces a correct view. Nested views
+// that extend outside their parent would benefit from reintroducing the
+// same math used in the SFML specialization.
 
 #include "LiteCGSS/Views/FramedView.h"
+#include "LiteCGSS/Views/Viewport.h"
 #include "LiteCGSS/Views/LoggerViews.h"
+#include "LiteCGSS/Backend/ActiveBackend.h"
+#include "LiteCGSS/Common/Rectangle.h"
 
+SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::FramedViewItem)
+
+#define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Debug, cgss::FramedViewItem)
+#define LOG_INFO  SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info,  cgss::FramedViewItem)
+#define LOG_WARN  SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Warn,  cgss::FramedViewItem)
+
+// Placeholder impl struct — populated by a future skin/cursor/pause pass.
 struct cgss::detail::FramedViewImpl {
-	// Empty placeholder. A raylib-native 9-slice impl would store its
-	// NPatchInfo + Texture refs here.
+	// Reserved for future raylib-native skin state: NPatchInfo + cached
+	// ::Texture pointers for the cursor and pause overlays.
 };
 
 cgss::FramedViewItem::FramedViewItem(FramedView*, MainEventDispatcher& eventDispatcher, DisplayWindowUserData windowData, const DisplayWindowSettings& windowSettings, std::weak_ptr<ViewportItem> parent) :
@@ -28,47 +44,145 @@ cgss::FramedViewItem::FramedViewItem(FramedView*, MainEventDispatcher& eventDisp
 
 cgss::FramedViewItem::~FramedViewItem() = default;
 
-bool cgss::FramedViewItem::onViewportChange(cgss::ViewportChangeEvent&) { return true; }
-void cgss::FramedViewItem::bindRectangleViewport(Rectangle*) {}
-void cgss::FramedViewItem::draw(cgss::RenderTarget&) const {}
-void cgss::FramedViewItem::drawFast(cgss::RenderTarget&) const {}
-void cgss::FramedViewItem::drawCalculateView(ViewportItem&, cgss::Camera&) const {}
-void cgss::FramedViewItem::update() {}
-void cgss::FramedViewItem::onMove() {}
-void cgss::FramedViewItem::onResize() {}
-void cgss::FramedViewItem::updateCursorSprite() {}
+bool cgss::FramedViewItem::onViewportChange(cgss::ViewportChangeEvent& event) {
+	if (m_bondRectViewport == nullptr) return true;
+	m_bondRectViewport->setValue(event.viewportBox);
+	return true;
+}
+
+void cgss::FramedViewItem::bindRectangleViewport(Rectangle* output) {
+	m_bondRectViewport = output;
+}
+
+void cgss::FramedViewItem::draw(cgss::RenderTarget& target) const {
+	drawFast(target);
+}
+
+void cgss::FramedViewItem::drawFast(cgss::RenderTarget& target) const {
+	using Ops = cgss::backend::ActiveBackend::Ops;
+	using cgss::backend::native_of;
+
+	// Skin / cursor / pause draw passes not implemented yet — they require
+	// the ported NPatchInfo-based 9-slice path. When m_texture is non-null
+	// an unskinned framed view is still functional (just invisible outline).
+
+	auto originalView = Ops::target_get_view(native_of(target));
+	auto targetView = ViewBox::clone();
+
+	const auto vp = Ops::view_get_viewport(native_of(targetView));
+	if (vp.height > 0 && vp.width > 0) {
+		Ops::target_set_view(native_of(target), native_of(targetView));
+		drawables().drawFast(target);
+	}
+	Ops::target_set_view(native_of(target), originalView);
+}
+
+void cgss::FramedViewItem::drawCalculateView(ViewportItem& /*parent*/, cgss::Camera& /*targetView*/) const {
+	// Parent-aware clipping is skipped in this backend — see file header.
+}
+
+void cgss::FramedViewItem::update() {
+	updatePauseSprite();
+	updateCursorSprite();
+	m_counter = (m_counter + 1) % 128;
+}
+
+void cgss::FramedViewItem::onMove() {
+	updateVertices();
+	updateView();
+}
+
+void cgss::FramedViewItem::onResize() {
+	updateVertices();
+	updateView();
+}
+
+void cgss::FramedViewItem::updateVertices() {
+	// 9-slice skin vertex rebuild — deferred to the skin/NPatch port.
+	if (m_locked || m_wantedWidth <= 0 || m_wantedHeight <= 0) return;
+	updateBackOpacity();
+	resetPausePosition();
+	updateContents();
+}
+
+void cgss::FramedViewItem::updateView() {
+	const long offset_x  = m_windowBuilder[4];
+	const long offset_y  = m_windowBuilder[5];
+	const long offset_x2 = m_windowBuilderExtended ? m_windowBuilder[6] : offset_x;
+	const long offset_y2 = m_windowBuilderExtended ? m_windowBuilder[7] : offset_y;
+	const long x      = static_cast<long>(m_x) + offset_x;
+	const long y      = static_cast<long>(m_y) + offset_y;
+	long width        = static_cast<long>(m_wantedWidth)  - offset_x - offset_x2;
+	long height       = static_cast<long>(m_wantedHeight) - offset_y - offset_y2;
+	if (width  < 0) width  = 0;
+	if (height < 0) height = 0;
+	LOG_INFO << "View updated to x = " << x << " y = " << y << " width = " << width << " height = " << height;
+	resize(width, height);
+	moveViewport(static_cast<float>(x), static_cast<float>(y));
+}
+
+void cgss::FramedViewItem::move(float x, float y) {
+	m_x = x;
+	m_y = y;
+	updateView();
+}
+
+// Cursor / pause state bookkeeping — animates but draws nothing until the
+// skin path lands. Keeps opacity-driven state updates consistent with SFML.
 void cgss::FramedViewItem::updatePauseSprite() {}
+void cgss::FramedViewItem::updateCursorSprite() {}
 void cgss::FramedViewItem::resetPausePosition() {}
-void cgss::FramedViewItem::updateContents() {}
+void cgss::FramedViewItem::updateContents() {
+	setCursorRectangle(m_cursorRect);
+}
 void cgss::FramedViewItem::updateBackOpacity() {}
-void cgss::FramedViewItem::updateContentsOpacity() {}
+void cgss::FramedViewItem::updateContentsOpacity() {
+	const auto opacity = static_cast<uint8_t>((m_opacity * m_contentOpacity) / 255.f);
+	drawables().updateContentsOpacity(opacity);
+}
 void cgss::FramedViewItem::updateVerticesBlt(long, long) {}
 void cgss::FramedViewItem::updateVerticesStretch(long, long) {}
 void cgss::FramedViewItem::allocateVerticesBlt(long, long, long, long) {}
 void cgss::FramedViewItem::allocateVerticesStretch() {}
-void cgss::FramedViewItem::updateVertices() {}
-void cgss::FramedViewItem::updateView() {}
 
 void cgss::FramedViewItem::setBuilder(std::array<long, 6> windowBuilder) {
+	LOG_INFO << "Setting window builder 6";
 	std::copy(std::begin(windowBuilder), std::begin(windowBuilder) + 6, std::begin(m_windowBuilder));
 	m_windowBuilderExtended = false;
+	updateVertices();
+	updateView();
 }
+
 void cgss::FramedViewItem::setBuilder(std::array<long, 8> windowBuilder) {
+	LOG_INFO << "Setting window builder 8";
 	m_windowBuilder = std::move(windowBuilder);
 	m_windowBuilderExtended = true;
+	updateVertices();
+	updateView();
 }
 
 long cgss::FramedViewItem::getPauseX() const { return m_pauseX.value_or(0); }
 long cgss::FramedViewItem::getPauseY() const { return m_pauseY.value_or(0); }
 
-void cgss::FramedViewItem::setBackOpacity(uint8_t backOpacity) { m_backOpacity = backOpacity; }
+void cgss::FramedViewItem::setBackOpacity(uint8_t backOpacity) {
+	m_backOpacity = backOpacity;
+	updateBackOpacity();
+}
 std::uint8_t cgss::FramedViewItem::getBackOpacity() const { return m_backOpacity; }
 
-void cgss::FramedViewItem::lock()             { m_locked = true; }
-void cgss::FramedViewItem::unlock()           { m_locked = false; }
-bool cgss::FramedViewItem::isLocked() const   { return m_locked; }
+void cgss::FramedViewItem::lock() {
+	m_locked = true;
+	LOG_INFO << "Locked";
+}
+void cgss::FramedViewItem::unlock() {
+	m_locked = false;
+	LOG_INFO << "Unlocked, updating vertices";
+	updateVertices();
+}
+bool cgss::FramedViewItem::isLocked() const { return m_locked; }
 
 cgss::IntRect cgss::FramedViewItem::getCursorRectangle() const { return m_cursorRect; }
+
 void cgss::FramedViewItem::setCursorRectangle(cgss::IntRect rect) {
 	setValue(rect);
 	m_cursorRect = std::move(rect);
@@ -83,25 +197,35 @@ void cgss::FramedViewItem::setPausePosition(float x, float y) {
 bool cgss::FramedViewItem::isPaused() const { return m_paused; }
 
 void cgss::FramedViewItem::setCursorSkin(cgss::Texture&) {}
-void cgss::FramedViewItem::active(bool active)   { m_active = active; }
-bool cgss::FramedViewItem::isActive() const      { return m_active; }
+void cgss::FramedViewItem::active(bool active) { m_active = active; }
+bool cgss::FramedViewItem::isActive() const    { return m_active; }
 
-void cgss::FramedViewItem::stretch(bool stretch) { m_stretch = stretch; }
-bool cgss::FramedViewItem::isStretched() const   { return m_stretch; }
-
-void cgss::FramedViewItem::setOpacity(uint8_t opacity) { m_opacity = opacity; }
-uint8_t cgss::FramedViewItem::getOpacity() const       { return m_opacity; }
-
-void cgss::FramedViewItem::setContentsOpacity(uint8_t opacity) { m_contentOpacity = opacity; }
-uint8_t cgss::FramedViewItem::getContentsOpacity() const       { return m_contentOpacity; }
-
-void cgss::FramedViewItem::setSkin(cgss::Texture* skin) { m_texture = skin; }
-cgss::Texture* cgss::FramedViewItem::getSkin() const    { return m_texture; }
-
-void cgss::FramedViewItem::move(float x, float y) {
-	m_x = x;
-	m_y = y;
+void cgss::FramedViewItem::stretch(bool stretch) {
+	m_stretch = stretch;
+	updateVertices();
 }
+bool cgss::FramedViewItem::isStretched() const { return m_stretch; }
+
+void cgss::FramedViewItem::setOpacity(uint8_t opacity) {
+	m_opacity = opacity;
+	updateBackOpacity();
+	updateContentsOpacity();
+}
+uint8_t cgss::FramedViewItem::getOpacity() const { return m_opacity; }
+
+void cgss::FramedViewItem::setContentsOpacity(uint8_t opacity) {
+	m_contentOpacity = opacity;
+	updateContentsOpacity();
+}
+uint8_t cgss::FramedViewItem::getContentsOpacity() const { return m_contentOpacity; }
+
+void cgss::FramedViewItem::setSkin(cgss::Texture* skin) {
+	m_texture = skin;
+	LOG_INFO << "Skin set";
+	updateVertices();
+}
+cgss::Texture* cgss::FramedViewItem::getSkin() const { return m_texture; }
+
 void cgss::FramedViewItem::updateFromValue(const cgss::IntRect* rectangle) {
 	setCursorRectangle(rectangle == nullptr ? cgss::IntRect{} : *rectangle);
 }

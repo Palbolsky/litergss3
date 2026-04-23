@@ -122,13 +122,21 @@ static void ViewTest() {
 	settings.title = "Playground";
 	auto window = cgss::DisplayWindow{ };
 
+	// Desktop-size queries and window-position setters need a live native
+	// window under raylib (GetMonitorWidth / SetWindowPosition dispatch to
+	// glfw, which asserts on a null handle). Reload first so InitWindow runs,
+	// then center. SFML tolerates the reverse order but the window is never
+	// actually repositioned there either — so the reordered form is correct
+	// on both backends.
+	const auto videoWidth  = settings.video.width;
+	const auto videoHeight = settings.video.height;
+	window.reload(std::move(settings), true);
+
 	const auto windowPos = cgss::backend::Point2i {
-		static_cast<int>(cgss::DisplayWindow::DesktopWidth() - settings.video.width) / 2,
-		static_cast<int>(cgss::DisplayWindow::DesktopHeight() - settings.video.height) / 2
+		static_cast<int>(cgss::DisplayWindow::DesktopWidth() - videoWidth) / 2,
+		static_cast<int>(cgss::DisplayWindow::DesktopHeight() - videoHeight) / 2
 	};
 	window.move(windowPos.x, windowPos.y);
-
-	window.reload(std::move(settings), true);
 
 	auto viewport = window.addView<cgss::Viewport>();
 	auto serializer = cgss::TextureMemorySerializer{ {g_sample_png, g_sample_png_length}, false };

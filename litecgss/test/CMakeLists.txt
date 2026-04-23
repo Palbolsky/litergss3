@@ -5,21 +5,32 @@ add_compile_options("--coverage")
 add_link_options("--coverage")
 FIND_PROGRAM( GCOVR_PATH gcovr )
 
-SET(GTEST_INSTALL_DIR ${LITECGSS_ROOT_DIR}/external/gtest)
-
-# Download and unpack googletest at configure time
-configure_file(${CMAKE_CURRENT_LIST_DIR}/external/CMakeLists.txt.in ${GTEST_INSTALL_DIR}/download/CMakeLists.txt)
-
 include_directories(${LITECGSS_ROOT_DIR}/include)
 include_directories(${LITECGSS_ROOT_DIR}/src)
 
 add_definitions(-DLITE_CGSS_TEST_DIR="${LITECGSS_ROOT_DIR}/test")
 
-# Add googletest directly to our build. This defines
-# the gtest and gtest_main targets.
-add_subdirectory(${GTEST_INSTALL_DIR}/src
-                 ${GTEST_INSTALL_DIR}/build
-                 EXCLUDE_FROM_ALL)
+# Google Test — prefer the system install (apt install libgtest-dev on
+# Debian/Ubuntu). Fall back to FetchContent if not installed.
+find_package(GTest QUIET)
+if(NOT GTest_FOUND)
+  message(STATUS "GTest not found system-wide; fetching googletest via FetchContent")
+  include(FetchContent)
+  FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+  )
+  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+  set(BUILD_GMOCK ON CACHE BOOL "" FORCE)
+  FetchContent_MakeAvailable(googletest)
+endif()
+
+# Per-project CMakeLists link `gmock_main` unprefixed. Create an alias so
+# both the system-installed (GTest::gmock_main) and the FetchContent paths
+# expose the same target name.
+if(TARGET GTest::gmock_main AND NOT TARGET gmock_main)
+  add_library(gmock_main ALIAS GTest::gmock_main)
+endif()
 
 MACRO(SUBDIRLIST result curdir)
 	FILE(GLOB children RELATIVE ${curdir} ${curdir}/*)

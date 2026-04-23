@@ -31,6 +31,26 @@ namespace cgss::backend::raylib_detail {
 	bool isWindowClosed() noexcept;
 	void resetWindowClosed() noexcept;
 
+	// Current-view tracking. sf::View's "set it on the target and leave it"
+	// semantic has no raylib analogue (Camera2D is scoped by
+	// BeginMode2D/EndMode2D; scissor by BeginScissorMode/EndScissorMode).
+	// Instead, target_set_view stashes the view here and the draw ops read
+	// it to compute per-call screen-space positions + manage the scissor
+	// state for sub-viewport clipping. Single-threaded by design, matching
+	// raylib's own rendering model.
+	void                     setCurrentView(const cgss::backend::raylib::View& v) noexcept;
+	const cgss::backend::raylib::View& currentView() noexcept;
+	// Drop any active scissor started by setCurrentView. Called from
+	// window_display before EndDrawing to leave GL state tidy across frames.
+	void                     endCurrentScissor() noexcept;
+
+	// Frame-boundary signal. Called from window_display so the next frame's
+	// event-queue drain can re-enter refillQueue once (see g_frameRefillDone
+	// in the .cpp for the rationale — GetMouseDelta and friends are
+	// frame-level state that stays constant until raylib's PollInputEvents,
+	// so we must not re-poll them within a single frame).
+	void                     markFrameBoundary() noexcept;
+
 }
 
 #endif

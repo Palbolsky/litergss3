@@ -122,24 +122,45 @@ namespace cgss::backend {
 		// lifecycle keeps its existing shape.
 		// `::Color{}` fully-qualifies raylib's global Color — plain `Color`
 		// here resolves to `cgss::Color` via enclosing namespace lookup.
+		//
+		// Pre-InitWindow guard rationale: every window_* op below dispatches
+		// to a raylib entrypoint that ultimately reaches glfw with the
+		// process-global window handle. If InitWindow hasn't run, that handle
+		// is NULL and glfw's debug asserts fire. SFML's equivalent setters on
+		// a not-yet-created sf::RenderWindow are silent no-ops, so gating
+		// here matches the SFML contract and makes the cgss::DisplayWindow
+		// API backend-uniform.
 		static inline void window_clear(native_window&) {
+			if (!IsWindowReady()) return;
 			BeginDrawing();
 			ClearBackground(::Color{ 0, 0, 0, 255 });
 		}
 		static inline void window_display(native_window&) {
+			if (!IsWindowReady()) return;
+			// Close any scissor region installed by target_set_view during
+			// the frame so the next frame starts from a clean GL state.
+			raylib_detail::endCurrentScissor();
 			EndDrawing();
+			// Clear the once-per-frame refill latch so the next frame's
+			// event drain polls raylib's freshly-updated input state.
+			raylib_detail::markFrameBoundary();
 		}
 		static inline void window_set_title(native_window&, const char* title) {
+			if (!IsWindowReady()) return;
 			SetWindowTitle(title);
 		}
 		static inline void window_set_size(native_window&, unsigned int w, unsigned int h) {
+			if (!IsWindowReady()) return;
 			SetWindowSize(static_cast<int>(w), static_cast<int>(h));
 		}
 		static inline Size2u window_get_size(const native_window&) noexcept {
+			// GetScreenWidth/Height read CORE globals (no glfw call) and
+			// return 0 pre-InitWindow — safe without a gate.
 			return { static_cast<unsigned int>(GetScreenWidth()),
 			         static_cast<unsigned int>(GetScreenHeight()) };
 		}
 		static inline void window_set_mouse_cursor_visible(native_window&, bool visible) {
+			if (!IsWindowReady()) return;
 			if (visible) ShowCursor(); else HideCursor();
 		}
 		// Vsync under raylib: FLAG_VSYNC_HINT is a pre-InitWindow config
@@ -155,14 +176,33 @@ namespace cgss::backend {
 		static inline void window_set_framerate_limit(native_window&, unsigned int fps) {
 			SetTargetFPS(static_cast<int>(fps));
 		}
+		// Both map to glfwSetWindowPos / glfwGetWindowPos which assert on a
+		// null window handle. Match SFML's "no-op before creation" semantics
+		// by gating on IsWindowReady() — same pattern used for window_close /
+		// window_is_open above.
 		static inline void window_set_position(native_window&, int x, int y) {
+			if (!IsWindowReady()) return;
 			SetWindowPosition(x, y);
 		}
 		static inline Point2i window_get_position(const native_window&) noexcept {
+			if (!IsWindowReady()) return { 0, 0 };
 			const auto p = GetWindowPosition();
 			return { static_cast<int>(p.x), static_cast<int>(p.y) };
 		}
+		// Raylib's GetCurrentMonitor / GetMonitorWidth route through glfw's
+		// monitor API, which requires an initialized glfw context (i.e. an
+		// InitWindow-created window). Pre-window calls produce "GLFW: Failed
+		// to find selected monitor" warnings and return 0. Return {0, 0}
+		// explicitly so callers can detect the unavailable state without the
+		// console noise.
+		//
+		// Known contract divergence from SFML: sf::VideoMode::getDesktopMode()
+		// is a global OS query that works any time; the raylib backend can
+		// only answer this after the window is created. Callers that need
+		// pre-window monitor info (to e.g. size the window to a fraction of
+		// the desktop) must guard on the returned zero dims.
 		static inline Size2u desktop_size() noexcept {
+			if (!IsWindowReady()) return { 0u, 0u };
 			const int m = GetCurrentMonitor();
 			return { static_cast<unsigned int>(GetMonitorWidth(m)),
 			         static_cast<unsigned int>(GetMonitorHeight(m)) };
@@ -170,6 +210,7 @@ namespace cgss::backend {
 		// Raw-pixel icon setter. Raylib's SetWindowIcon takes a raylib::Image;
 		// build one from the pixel buffer, push, destroy.
 		static inline void window_set_icon(native_window&, unsigned int width, unsigned int height, const std::uint8_t* pixels) {
+			if (!IsWindowReady()) return;
 			::Image img{};
 			// Const-cast is safe: SetWindowIcon copies the pixel data.
 			img.data    = const_cast<std::uint8_t*>(pixels);
@@ -182,6 +223,7 @@ namespace cgss::backend {
 		// File-path icon setter — each backend owns the decoder so ext/
 		// doesn't need to drag in a format-specific library.
 		static inline void window_set_icon_from_file(native_window&, const char* path) {
+			if (!IsWindowReady()) return;
 			::Image img = LoadImage(path);
 			if (img.data == nullptr) return;
 			SetWindowIcon(img);
@@ -353,8 +395,16 @@ namespace cgss::backend {
 			const int id = GetTouchPointId(static_cast<int>(index));
 			return id < 0 ? 0u : static_cast<unsigned int>(id);
 		}
-		static inline native_view window_get_default_view(const native_window&) { return {}; }
-		static inline void window_set_view(native_window&, const native_view&) {}
+		static inline native_view window_get_default_view(const native_window&) {
+			// Default view: full-screen viewport, world-space window matching
+			// the native pixel dimensions, origin at top-left (center at half).
+			const float w = IsWindowReady() ? static_cast<float>(GetScreenWidth())  : 0.f;
+			const float h = IsWindowReady() ? static_cast<float>(GetScreenHeight()) : 0.f;
+			return native_view{ w * 0.5f, h * 0.5f, w, h, 0.f, 0.f, 1.f, 1.f, 0.f };
+		}
+		static inline void window_set_view(native_window&, const native_view& v) {
+			raylib_detail::setCurrentView(v);
+		}
 		static inline cgss::DisplayWindowContextSettings window_get_settings(const native_window&) {
 			return {};
 		}
@@ -396,24 +446,39 @@ namespace cgss::backend {
 		static inline bool render_texture_create_with_depth(native_render_texture&, unsigned int, unsigned int, bool) { return false; }
 		static inline void render_texture_set_smooth(native_render_texture&, bool) {}
 		static inline const native_texture& render_texture_get_texture(const native_render_texture& rt) { return rt.texture; }
-		static inline void render_texture_set_view(native_render_texture&, const native_view&) {}
+		static inline void render_texture_set_view(native_render_texture&, const native_view& v) {
+			raylib_detail::setCurrentView(v);
+		}
 		static inline void render_texture_display(native_render_texture&) {}
 		static inline void render_texture_clear(native_render_texture&) {}
 		static inline void render_texture_clear_color(native_render_texture&, cgss::Color) {}
 
-		// ---- View ops (stubs) ----
-		// raylib's Camera2D models offset/target/rotation/zoom (transform-
-		// based), unlike sf::View's rectangular world-space region. A
-		// faithful mapping needs auxiliary state per cgss::Camera; for now
-		// these stubs no-op so the abstraction compiles.
-		static inline Size2f view_get_size(const native_view&) noexcept { return {}; }
-		static inline void view_set_size(native_view&, float, float) noexcept {}
-		static inline Size2f view_get_center(const native_view& v) noexcept { return { v.target.x, v.target.y }; }
-		static inline void view_set_center(native_view& v, float x, float y) noexcept { v.target = { x, y }; }
-		static inline Box2f view_get_viewport(const native_view&) noexcept { return {}; }
-		static inline void view_set_viewport(native_view&, float, float, float, float) noexcept {}
-		static inline void view_reset(native_view&, float, float, float, float) noexcept {}
-		static inline void view_zoom(native_view& v, float factor) noexcept { v.zoom *= factor; }
+		// ---- View ops ----
+		// raylib::View stores sf::View-compatible state (center / size /
+		// normalized viewport / rotation). The effective Camera2D-style
+		// transform is computed on-demand in draw_sprite_impl from this
+		// state + the current GetScreenWidth/Height.
+		static inline Size2f view_get_size(const native_view& v) noexcept { return { v.sizeX, v.sizeY }; }
+		static inline void   view_set_size(native_view& v, float w, float h) noexcept { v.sizeX = w; v.sizeY = h; }
+		static inline Size2f view_get_center(const native_view& v) noexcept { return { v.cx, v.cy }; }
+		static inline void   view_set_center(native_view& v, float x, float y) noexcept { v.cx = x; v.cy = y; }
+		static inline Box2f  view_get_viewport(const native_view& v) noexcept { return { v.vpX, v.vpY, v.vpW, v.vpH }; }
+		static inline void   view_set_viewport(native_view& v, float x, float y, float w, float h) noexcept {
+			v.vpX = x; v.vpY = y; v.vpW = w; v.vpH = h;
+		}
+		// sf::View::reset(rect): replace center+size with the rect's params.
+		static inline void view_reset(native_view& v, float left, float top, float width, float height) noexcept {
+			v.cx = left + width  * 0.5f;
+			v.cy = top  + height * 0.5f;
+			v.sizeX = width;
+			v.sizeY = height;
+			v.rotation = 0.f;
+		}
+		// sf::View::zoom(factor): scale the world-space window by `factor`.
+		static inline void view_zoom(native_view& v, float factor) noexcept {
+			v.sizeX *= factor;
+			v.sizeY *= factor;
+		}
 		static inline void view_set_rotation(native_view& v, float angle) noexcept { v.rotation = angle; }
 
 		// ---- Draw-state ops (stubs) ----
@@ -488,27 +553,151 @@ namespace cgss::backend {
 
 		static inline void shader_set_uniform_array(native_shader&, const std::string&, const float*, std::size_t) {}
 
-		// ---- Render-target view ops (stubs) ----
-		static inline void target_set_view(native_render_target&, const native_view&) {}
-		static inline native_view target_get_view(const native_render_target&) { return {}; }
-		static inline native_view target_get_default_view(const native_render_target&) { return {}; }
+		// ---- Render-target view ops ----
+		// target_set_view is the cross-cutting op the draw pipeline uses to
+		// install a view (defview, viewport view, framed view, etc.) for the
+		// upcoming draw calls. The raylib impl stashes the view in
+		// raylib_detail::currentView() and — if the view has a sub-viewport —
+		// opens a matching scissor. Callers restore the previous view by
+		// invoking target_set_view again with the saved native_view value.
+		static inline void target_set_view(native_render_target&, const native_view& v) {
+			raylib_detail::setCurrentView(v);
+		}
+		static inline native_view target_get_view(const native_render_target&) {
+			return raylib_detail::currentView();
+		}
+		// For a render-texture target, the default view's world-space window
+		// matches the texture's extent. We don't know the caller's target
+		// here (the `::RenderTexture&` is sometimes the window-placeholder;
+		// sometimes a real RT) — use the ::Texture dimensions when valid,
+		// else fall back to the screen size.
+		static inline native_view target_get_default_view(const native_render_target& t) {
+			if (t.texture.id != 0) {
+				const float w = static_cast<float>(t.texture.width);
+				const float h = static_cast<float>(t.texture.height);
+				return native_view{ w * 0.5f, h * 0.5f, w, h, 0.f, 0.f, 1.f, 1.f, 0.f };
+			}
+			const float w = IsWindowReady() ? static_cast<float>(GetScreenWidth())  : 0.f;
+			const float h = IsWindowReady() ? static_cast<float>(GetScreenHeight()) : 0.f;
+			return native_view{ w * 0.5f, h * 0.5f, w, h, 0.f, 0.f, 1.f, 1.f, 0.f };
+		}
 
-		// ---- Draw thunks (stubs) ----
-		static inline void draw_sprite(native_render_target&, const native_sprite&, const native_render_states&) {}
-		static inline void draw_sprite_with_transform(native_render_target&, const native_sprite&, const native_transform&, const native_render_states*) {}
+		// ---- Sprite state helpers ----
+		// Internal: resolve the effective source rectangle for a draw —
+		// falls back to the full texture extents when the caller never
+		// called setTextureRect (textureRect is zero-initialized).
+		static inline cgss::IntRect resolve_sprite_src_rect(const native_sprite& s) noexcept {
+			if (s.textureRect.width == 0 && s.textureRect.height == 0 && s.texture != nullptr) {
+				return cgss::IntRect{
+					0, 0,
+					static_cast<int>(s.texture->width),
+					static_cast<int>(s.texture->height)
+				};
+			}
+			return s.textureRect;
+		}
+
+		// Resolve the effective screen-pixel translation + uniform zoom
+		// implied by the currently-installed raylib::View. Matches sf::View
+		// semantics: a world point (wx, wy) maps to screen pixel
+		//     screen = viewport_px_center + (world - view_center) * zoom
+		// where viewport_px_center = (vpX + vpW/2) * screenW,
+		//       zoom              = (vpW * screenW) / sizeX (uniform fallback).
+		struct ViewDerived { float tx = 0.f, ty = 0.f, zoomX = 1.f, zoomY = 1.f, rotation = 0.f; };
+		static inline ViewDerived derive_current_view() noexcept {
+			const auto& v = raylib_detail::currentView();
+			ViewDerived d;
+			d.rotation = v.rotation;
+			if (v.sizeX == 0.f || v.sizeY == 0.f) return d;
+			const float sw = static_cast<float>(IsWindowReady() ? GetScreenWidth()  : 0);
+			const float sh = static_cast<float>(IsWindowReady() ? GetScreenHeight() : 0);
+			d.zoomX = (v.vpW * sw) / v.sizeX;
+			d.zoomY = (v.vpH * sh) / v.sizeY;
+			const float vpCenterX = v.vpX * sw + v.vpW * sw * 0.5f;
+			const float vpCenterY = v.vpY * sh + v.vpH * sh * 0.5f;
+			d.tx = vpCenterX - v.cx * d.zoomX;
+			d.ty = vpCenterY - v.cy * d.zoomY;
+			return d;
+		}
+
+		// Shared DrawTexturePro assembler used by all three draw overloads.
+		// Converts cgss::Transformable / sprite-local state into raylib's
+		// src/dst/origin/rotation form, applying the currently-installed
+		// raylib::View transform (see derive_current_view above).
+		//
+		// `ox`/`oy` are in SOURCE-pixel coordinates (matching SFML/cgss
+		// convention); raylib's origin is post-scale DESTINATION pixels, so
+		// we multiply by the effective scale. Negative `srcRect.width`
+		// encodes horizontal mirror — raylib's DrawTexturePro honors the
+		// sign directly (same as SFML).
+		static inline void draw_sprite_impl(const native_sprite& s,
+		                                    float posX, float posY,
+		                                    float ox, float oy,
+		                                    float scaleX, float scaleY,
+		                                    float angleDegrees) {
+			if (s.texture == nullptr || s.texture->id == 0) return;
+			const auto rect = resolve_sprite_src_rect(s);
+			const float absW = static_cast<float>(rect.width  < 0 ? -rect.width  : rect.width);
+			const float absH = static_cast<float>(rect.height < 0 ? -rect.height : rect.height);
+			const auto vd = derive_current_view();
+			const float effScaleX = scaleX * vd.zoomX;
+			const float effScaleY = scaleY * vd.zoomY;
+			::Rectangle src{
+				static_cast<float>(rect.left), static_cast<float>(rect.top),
+				static_cast<float>(rect.width), static_cast<float>(rect.height) };
+			::Rectangle dst{
+				vd.tx + posX * vd.zoomX,
+				vd.ty + posY * vd.zoomY,
+				absW * effScaleX,
+				absH * effScaleY };
+			::Vector2 origin{ ox * effScaleX, oy * effScaleY };
+			DrawTexturePro(*s.texture, src, dst, origin, angleDegrees + vd.rotation,
+			               ::Color{ s.color.r, s.color.g, s.color.b, s.color.a });
+		}
+
+		// ---- Draw thunks ----
+		// Render-states arg is accepted for Ops-symmetry; raylib has no
+		// sf::RenderStates analogue (shader / blend-mode / transform
+		// composition is handled via BeginShaderMode + blend-mode calls),
+		// so states are ignored here. Shader support in the sprite path is
+		// tracked separately.
+		static inline void draw_sprite(native_render_target&, const native_sprite& s, const native_render_states&) {
+			draw_sprite_impl(s, s.x, s.y, s.originX, s.originY, s.scaleX, s.scaleY, 0.f);
+		}
+		static inline void draw_sprite_with_transform(native_render_target&,
+		                                              const native_sprite& s,
+		                                              const native_transform& xform,
+		                                              const native_render_states* /*base_states*/) {
+			// cgss::Transformable angle is CW-positive (matches raylib's
+			// DrawTexturePro rotation convention), so pass angle as-is.
+			draw_sprite_impl(s, xform.x, xform.y, xform.ox, xform.oy, xform.scaleX, xform.scaleY, xform.angle);
+		}
 		static inline void draw_shape_with_transform(native_render_target&, const cgss::ShapeGeometry&, const native_texture*, const native_transform&, const native_render_states*) {}
 
-		// ---- Sprite ops (stubs) ----
-		static inline cgss::Color get_sprite_color(const native_sprite&) noexcept { return cgss::Colors::White; }
-		static inline void set_sprite_color(native_sprite&, cgss::Color) noexcept {}
-		static inline cgss::IntRect get_sprite_texture_rect(const native_sprite&) noexcept { return {}; }
-		static inline void set_sprite_texture_rect(native_sprite&, const cgss::IntRect&) noexcept {}
-		static inline void set_sprite_texture(native_sprite&, const native_texture&, bool) noexcept {}
-		static inline void sprite_set_position(native_sprite&, float, float) noexcept {}
-		static inline void sprite_set_origin(native_sprite&, float, float) noexcept {}
-		static inline void sprite_set_scale(native_sprite&, float, float) noexcept {}
-		static inline void draw_sprite(native_render_target&, const native_sprite&) {}
-		static inline Size2u get_sprite_bound_texture_size(const native_sprite&) noexcept { return { 0u, 0u }; }
+		// ---- Sprite ops ----
+		static inline cgss::Color get_sprite_color(const native_sprite& s) noexcept { return s.color; }
+		static inline void set_sprite_color(native_sprite& s, cgss::Color c) noexcept { s.color = c; }
+		static inline cgss::IntRect get_sprite_texture_rect(const native_sprite& s) noexcept {
+			return resolve_sprite_src_rect(s);
+		}
+		static inline void set_sprite_texture_rect(native_sprite& s, const cgss::IntRect& r) noexcept { s.textureRect = r; }
+		static inline void set_sprite_texture(native_sprite& s, const native_texture& t, bool resetRect) noexcept {
+			s.texture = &t;
+			if (resetRect) {
+				s.textureRect = cgss::IntRect{ 0, 0, static_cast<int>(t.width), static_cast<int>(t.height) };
+			}
+		}
+		static inline void sprite_set_position(native_sprite& s, float x, float y) noexcept { s.x = x; s.y = y; }
+		static inline void sprite_set_origin(native_sprite& s, float ox, float oy) noexcept { s.originX = ox; s.originY = oy; }
+		static inline void sprite_set_scale(native_sprite& s, float sx, float sy) noexcept { s.scaleX = sx; s.scaleY = sy; }
+		static inline void draw_sprite(native_render_target&, const native_sprite& s) {
+			draw_sprite_impl(s, s.x, s.y, s.originX, s.originY, s.scaleX, s.scaleY, 0.f);
+		}
+		static inline Size2u get_sprite_bound_texture_size(const native_sprite& s) noexcept {
+			if (s.texture == nullptr) return { 0u, 0u };
+			return { static_cast<unsigned int>(s.texture->width),
+			         static_cast<unsigned int>(s.texture->height) };
+		}
 
 		// ---- Shape ops (stubs) ----
 		static inline void draw_shape(native_render_target&, const cgss::ShapeGeometry&, const native_texture*, const native_render_states&) {}
@@ -518,8 +707,8 @@ namespace cgss::backend {
 
 		// ---- Texture ops ----
 		static inline void set_smooth(native_texture& t, bool smooth) noexcept {
-			// real impl would call SetTextureFilter(t, smooth ? TEXTURE_FILTER_BILINEAR : TEXTURE_FILTER_POINT);
-			(void)t; (void)smooth;
+			if (t.id == 0) return;
+			SetTextureFilter(t, smooth ? TEXTURE_FILTER_BILINEAR : TEXTURE_FILTER_POINT);
 		}
 
 		static inline Size2u get_texture_size(const native_texture& t) noexcept {
