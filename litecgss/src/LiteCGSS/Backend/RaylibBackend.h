@@ -44,10 +44,12 @@ extern "C" {
 }
 #endif
 
+#include <cmath>
 #include <cstdint>
 #include <cstddef>
 #include <cstring>
 #include <optional>
+#include <vector>
 
 #include "LiteCGSS/Common/Color.h"
 #include "LiteCGSS/Common/IntRect.h"
@@ -408,16 +410,44 @@ namespace cgss::backend {
 		static inline cgss::DisplayWindowContextSettings window_get_settings(const native_window&) {
 			return {};
 		}
-		// Create the process-global raylib window. Idempotent: if raylib's
-		// window is already initialised (e.g. reload path), no-op. Fullscreen
-		// and context settings beyond size/title are ignored — raylib has no
-		// equivalent of sf::ContextSettings (bits-per-pixel / MSAA / etc. are
-		// configured via SetConfigFlags pre-init; callers that need those
-		// must set them before window_create via window_set_vsync-style Ops).
+		// Create — or re-configure — the process-global raylib window. Two
+		// code paths fold into this one Op to match SFML's single-call
+		// `sf::RenderWindow::create` contract:
+		//
+		//   * First invocation (IsWindowReady() == false): set the config
+		//     flags, InitWindow, and unlatch the close flag.
+		//   * Subsequent invocations (reload path — Alt+Enter fullscreen
+		//     toggle, resolution change, title change): raylib has no
+		//     "recreate" verb (CloseWindow + InitWindow would destroy the
+		//     GL context and every texture), so we apply the diff in place.
+		//     ToggleBorderlessWindowed is preferred over ToggleFullscreen
+		//     because it keeps the monitor's native mode and avoids the
+		//     exclusive-fullscreen surface dance — SFML's `sf::Style::
+		//     Fullscreen` changes the display mode, raylib's borderless
+		//     variant is the closer analogue to what modern users expect
+		//     and doesn't glitch on compositing Wayland/X11 sessions.
 		static inline void window_create(native_window&, const WindowCreateOptions& opts, const char* title) {
-			if (IsWindowReady()) return;
+			if (IsWindowReady()) {
+				if (title != nullptr) SetWindowTitle(title);
+				// Don't resize while fullscreen — raylib ignores SetWindowSize
+				// in fullscreen modes anyway and it would desync on return.
+				const bool borderlessNow = IsWindowState(FLAG_BORDERLESS_WINDOWED_MODE);
+				const bool exclusiveNow  = IsWindowFullscreen();
+				const bool fsNow         = borderlessNow || exclusiveNow;
+				if (!fsNow) {
+					SetWindowSize(static_cast<int>(opts.width), static_cast<int>(opts.height));
+				}
+				if (fsNow != opts.fullscreen) {
+					// Round-trip exclusive fullscreen back to windowed before
+					// switching to borderless — toggling one while the other
+					// is active leaves raylib in an inconsistent state.
+					if (exclusiveNow) ToggleFullscreen();
+					ToggleBorderlessWindowed();
+				}
+				return;
+			}
 			SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-			if (opts.fullscreen) SetConfigFlags(FLAG_FULLSCREEN_MODE);
+			if (opts.fullscreen) SetConfigFlags(FLAG_BORDERLESS_WINDOWED_MODE);
 			InitWindow(static_cast<int>(opts.width),
 			           static_cast<int>(opts.height),
 			           title != nullptr ? title : "LiteRGSS");
@@ -433,7 +463,14 @@ namespace cgss::backend {
 			return placeholder;
 		}
 		static inline void window_draw_render_texture(native_window&, const native_render_texture&, const native_render_states*) {}
-		static inline void window_draw_color_quad(native_window&, float, float, float, float, cgss::Color) {}
+		// Solid-color overlay on the window (used for brightness fade etc.).
+		// Bypasses the view transform: draws directly in window pixel space.
+		static inline void window_draw_color_quad(native_window&, float x, float y, float w, float h, cgss::Color c) {
+			if (!IsWindowReady()) return;
+			DrawRectangle(static_cast<int>(x), static_cast<int>(y),
+			              static_cast<int>(w), static_cast<int>(h),
+			              ::Color{ c.r, c.g, c.b, c.a });
+		}
 
 		// ---- Render texture ops (stubs) ----
 		static inline bool render_texture_create(native_render_texture&, unsigned int, unsigned int) { return false; }
@@ -672,7 +709,14 @@ namespace cgss::backend {
 			// DrawTexturePro rotation convention), so pass angle as-is.
 			draw_sprite_impl(s, xform.x, xform.y, xform.ox, xform.oy, xform.scaleX, xform.scaleY, xform.angle);
 		}
-		static inline void draw_shape_with_transform(native_render_target&, const cgss::ShapeGeometry&, const native_texture*, const native_transform&, const native_render_states*) {}
+		static inline void draw_shape_with_transform(native_render_target&,
+		                                             const cgss::ShapeGeometry& g,
+		                                             const native_texture* tex,
+		                                             const native_transform& xform,
+		                                             const native_render_states* /*base_states*/) {
+			draw_shape_untransformed(g, tex, xform.x, xform.y, xform.ox, xform.oy,
+			                          xform.scaleX, xform.scaleY, xform.angle);
+		}
 
 		// ---- Sprite ops ----
 		static inline cgss::Color get_sprite_color(const native_sprite& s) noexcept { return s.color; }
@@ -699,11 +743,188 @@ namespace cgss::backend {
 			         static_cast<unsigned int>(s.texture->height) };
 		}
 
-		// ---- Shape ops (stubs) ----
-		static inline void draw_shape(native_render_target&, const cgss::ShapeGeometry&, const native_texture*, const native_render_states&) {}
-		static inline cgss::Point get_shape_point(const cgss::ShapeGeometry&, std::size_t) { return {}; }
+		// ---- Shape ops ----
+		// Rectangle / Circle support both fill and outline; Convex supports
+		// fill (TriangleFan from the first vertex) and outline (LineStrip).
+		// Textured shapes are NOT implemented — raylib's only textured-shape
+		// primitive is DrawTexturePoly which requires pre-computed tex-coord
+		// arrays that don't map onto ShapeGeometry cleanly. A textured
+		// request falls through to solid-fill as a first-pass approximation.
+
+		// Internal: apply the current view + an incoming transform to a
+		// world-space point. Used by every shape-drawing path below.
+		struct TransformedPoint { float x = 0.f, y = 0.f; };
+		static inline TransformedPoint transform_point(float wx, float wy,
+		                                               float posX, float posY,
+		                                               float ox, float oy,
+		                                               float scaleX, float scaleY,
+		                                               float angleDegrees,
+		                                               const ViewDerived& vd) noexcept {
+			// Local -> world (origin-based + scale + rotation + translate).
+			const float lx = (wx - ox) * scaleX;
+			const float ly = (wy - oy) * scaleY;
+			const float rad = (angleDegrees + vd.rotation) * 0.01745329252f; // deg -> rad
+			const float c = std::cos(rad);
+			const float s = std::sin(rad);
+			const float rxWorld = lx * c - ly * s + posX;
+			const float ryWorld = lx * s + ly * c + posY;
+			// World -> screen via current view.
+			return { vd.tx + rxWorld * vd.zoomX, vd.ty + ryWorld * vd.zoomY };
+		}
+
+		static inline void draw_shape_untransformed(const cgss::ShapeGeometry& g,
+		                                            const native_texture* /*tex*/,
+		                                            float posX, float posY,
+		                                            float ox, float oy,
+		                                            float scaleX, float scaleY,
+		                                            float angleDegrees) {
+			const auto vd = derive_current_view();
+			const ::Color fill{ g.fillColor.r, g.fillColor.g, g.fillColor.b, g.fillColor.a };
+			const ::Color outline{ g.outlineColor.r, g.outlineColor.g, g.outlineColor.b, g.outlineColor.a };
+			const float effScaleX = scaleX * vd.zoomX;
+			const float effScaleY = scaleY * vd.zoomY;
+
+			switch (g.type) {
+			case cgss::ShapeType::Rectangle: {
+				::Rectangle dst{
+					vd.tx + posX * vd.zoomX,
+					vd.ty + posY * vd.zoomY,
+					g.width  * effScaleX,
+					g.height * effScaleY };
+				::Vector2 origin{ ox * effScaleX, oy * effScaleY };
+				DrawRectanglePro(dst, origin, angleDegrees + vd.rotation, fill);
+				if (g.outlineThickness > 0.f) {
+					// Manual 4-line outline so rotation is honored (raylib's
+					// DrawRectangleLinesEx is axis-aligned only). Corners in
+					// shape-local space then transformed to screen.
+					const auto p0 = transform_point(0.f,      0.f,      posX, posY, ox, oy, scaleX, scaleY, angleDegrees, vd);
+					const auto p1 = transform_point(g.width,  0.f,      posX, posY, ox, oy, scaleX, scaleY, angleDegrees, vd);
+					const auto p2 = transform_point(g.width,  g.height, posX, posY, ox, oy, scaleX, scaleY, angleDegrees, vd);
+					const auto p3 = transform_point(0.f,      g.height, posX, posY, ox, oy, scaleX, scaleY, angleDegrees, vd);
+					const float t = g.outlineThickness * vd.zoomX; // uniform-ish
+					DrawLineEx(::Vector2{p0.x,p0.y}, ::Vector2{p1.x,p1.y}, t, outline);
+					DrawLineEx(::Vector2{p1.x,p1.y}, ::Vector2{p2.x,p2.y}, t, outline);
+					DrawLineEx(::Vector2{p2.x,p2.y}, ::Vector2{p3.x,p3.y}, t, outline);
+					DrawLineEx(::Vector2{p3.x,p3.y}, ::Vector2{p0.x,p0.y}, t, outline);
+				}
+				break;
+			}
+			case cgss::ShapeType::Circle: {
+				// Center of the cgss circle is (radius, radius) in local
+				// coords — matches sf::CircleShape where the bounding box
+				// origin is the top-left and getPoint(i) distributes around
+				// the centered inscribed circle.
+				const auto center = transform_point(g.radius, g.radius,
+				                                    posX, posY, ox, oy, scaleX, scaleY, angleDegrees, vd);
+				// raylib's DrawCircle is point-only — use CircleSector for
+				// the fill so we can control segment count. Scale radius by
+				// the effective zoom × scale. Use min(x,y) to stay circular
+				// (no ellipse support — DrawEllipse exists but doesn't take
+				// segments).
+				const float effR = g.radius * (effScaleX < effScaleY ? effScaleX : effScaleY);
+				const int   segs = g.pointCount > 3 ? static_cast<int>(g.pointCount) : 3;
+				DrawCircleSector(::Vector2{center.x, center.y}, effR, 0.f, 360.f, segs, fill);
+				if (g.outlineThickness > 0.f) {
+					const float t = g.outlineThickness * vd.zoomX;
+					const float inner = effR > t ? effR - t * 0.5f : effR * 0.5f;
+					const float outer = effR + t * 0.5f;
+					DrawRing(::Vector2{center.x, center.y}, inner, outer, 0.f, 360.f, segs, outline);
+				}
+				break;
+			}
+			case cgss::ShapeType::Convex: {
+				if (g.points.size() < 3) break;
+				// Transform each local point into screen coords, then build a
+				// triangle fan for fill + line strip for outline. The fan is
+				// rooted at points[0] so the polygon must be convex (matches
+				// sf::ConvexShape's constraint).
+				std::vector<::Vector2> screen;
+				screen.reserve(g.points.size() + 1);
+				for (const auto& p : g.points) {
+					const auto tp = transform_point(p.x, p.y, posX, posY, ox, oy, scaleX, scaleY, angleDegrees, vd);
+					screen.push_back(::Vector2{tp.x, tp.y});
+				}
+				// DrawTriangleFan signature: (points, pointCount, color).
+				// Iterates in CCW order; if our input is CW we'd need to
+				// reverse, but cgss/SFML convex-shape convention is CCW.
+				DrawTriangleFan(screen.data(), static_cast<int>(screen.size()), fill);
+				if (g.outlineThickness > 0.f) {
+					screen.push_back(screen.front()); // close the loop
+					DrawLineStrip(screen.data(), static_cast<int>(screen.size()), outline);
+				}
+				break;
+			}
+			}
+		}
+
+		static inline void draw_shape(native_render_target&, const cgss::ShapeGeometry& g,
+		                              const native_texture* tex, const native_render_states&) {
+			// Without a transform, render states are the sprite's own
+			// (all zeros in current cgss::Shape flow); fall through to the
+			// identity transform.
+			draw_shape_untransformed(g, tex, 0.f, 0.f, 0.f, 0.f, 1.f, 1.f, 0.f);
+		}
+
+		// get_shape_point: analytical per-type since no native shape is
+		// retained. Matches sf::Shape::getPoint semantics (local coords).
+		static inline cgss::Point get_shape_point(const cgss::ShapeGeometry& g, std::size_t index) {
+			switch (g.type) {
+			case cgss::ShapeType::Rectangle: {
+				switch (index % 4) {
+				case 0: return cgss::Point{ 0.f,     0.f };
+				case 1: return cgss::Point{ g.width, 0.f };
+				case 2: return cgss::Point{ g.width, g.height };
+				default: return cgss::Point{ 0.f,    g.height };
+				}
+			}
+			case cgss::ShapeType::Circle: {
+				const float pc = static_cast<float>(g.pointCount == 0 ? 1 : g.pointCount);
+				const float theta = (static_cast<float>(index) / pc) * 6.2831853071795864f;
+				return cgss::Point{
+					g.radius + std::cos(theta) * g.radius,
+					g.radius + std::sin(theta) * g.radius };
+			}
+			case cgss::ShapeType::Convex:
+				if (index < g.points.size()) return g.points[index];
+				return {};
+			}
+			return {};
+		}
+
+		// get_shape_global_bounds: axis-aligned bounding box of the shape
+		// after the transform is applied. Matches sf::Shape::getGlobalBounds
+		// for the non-rotated case; for rotated shapes we return the axis-
+		// aligned bound of the rotated box rather than the unrotated box
+		// (SFML semantics). Good enough for getWidth()/getHeight() callers.
 		struct Bounds2f { float width = 0.f; float height = 0.f; };
-		static inline Bounds2f get_shape_global_bounds(const cgss::ShapeGeometry&, const cgss::Transformable&) { return {}; }
+		static inline Bounds2f get_shape_global_bounds(const cgss::ShapeGeometry& g, const cgss::Transformable& xf) {
+			float localW = 0.f, localH = 0.f;
+			switch (g.type) {
+			case cgss::ShapeType::Rectangle: localW = g.width;       localH = g.height;       break;
+			case cgss::ShapeType::Circle:    localW = g.radius * 2;  localH = g.radius * 2;   break;
+			case cgss::ShapeType::Convex: {
+				// min/max sweep over convex vertices.
+				if (g.points.empty()) break;
+				float minX = g.points[0].x, maxX = minX;
+				float minY = g.points[0].y, maxY = minY;
+				for (const auto& p : g.points) {
+					if (p.x < minX) minX = p.x; else if (p.x > maxX) maxX = p.x;
+					if (p.y < minY) minY = p.y; else if (p.y > maxY) maxY = p.y;
+				}
+				localW = maxX - minX;
+				localH = maxY - minY;
+				break;
+			}
+			}
+			const float rad = xf.getAngle() * 0.01745329252f;
+			const float c = std::cos(rad), s = std::sin(rad);
+			const float sw = localW * xf.getScaleX();
+			const float sh = localH * xf.getScaleY();
+			// AABB of the rotated rect (c + s always positive absolute).
+			const float absc = c < 0 ? -c : c;
+			const float abss = s < 0 ? -s : s;
+			return Bounds2f{ sw * absc + sh * abss, sw * abss + sh * absc };
+		}
 
 		// ---- Texture ops ----
 		static inline void set_smooth(native_texture& t, bool smooth) noexcept {

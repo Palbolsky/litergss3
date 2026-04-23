@@ -3,16 +3,16 @@
 #include "LiteCGSS/Views/DisplayWindow.h"
 #include "LiteCGSS/Views/Viewport.h"
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
+#include "LiteCGSS/Graphics/Shape.h"
+#include "LiteCGSS/Graphics/ShapeGeometry.h"
 #include "LiteCGSS/Graphics/Sprite.h"
 #include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Graphics/Serializers/TextureSerializer.h"
 #include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Backend/BackendCommon.h"
 
-#ifdef CGSS_BACKEND_SFML
-#include <SFML/Window/Event.hpp>
-#include <SFML/Window/Keyboard.hpp>
-#endif
+#include "LiteCGSS/Events/EventType.h"
+#include "LiteCGSS/Events/KeyCode.h"
 
 #include "sample_png.h"
 
@@ -47,70 +47,63 @@ void MemTest() {
 static bool g_disposeView = false;
 
 static void HandleEvents(cgss::DisplayWindow& window, cgss::DisplayWindowSettings& settings) {
+	using Ops = cgss::backend::ActiveBackend::Ops;
+	using cgss::backend::native_of;
+
 	cgss::Event event;
-#ifdef CGSS_BACKEND_SFML
 	while (window.popEvent(event)) {
-		const auto& raw = cgss::backend::native_of(event);
-		switch(raw.type) {
-		case sf::Event::EventType::Closed:
+		const auto& native = native_of(event);
+		switch (Ops::event_type(native)) {
+		case cgss::EventType::Closed:
 			window.stop();
 			break;
-		case sf::Event::EventType::KeyPressed:
-			switch (raw.key.code) {
-				case sf::Keyboard::F1:
+		case cgss::EventType::KeyPressed:
+			if (auto key = Ops::event_as_key_press(native)) {
+				switch (key->code) {
+				case cgss::KeyCode::F1:
 					if (window.screenHeight() > 15 && window.screenWidth() > 20) {
 						window.resizeScreen(window.screenWidth() - 20, window.screenHeight() - 15);
 						settings.video.height = window.screenHeight();
-						settings.video.width = window.screenWidth();
+						settings.video.width  = window.screenWidth();
 					}
 					break;
-				case sf::Keyboard::F2:
+				case cgss::KeyCode::F2:
 					window.resizeScreen(window.screenWidth() + 20, window.screenHeight() + 15);
 					settings.video.height = window.screenHeight();
-					settings.video.width = window.screenWidth();
+					settings.video.width  = window.screenWidth();
 					break;
-				case sf::Keyboard::F3:
+				case cgss::KeyCode::F3:
 					g_disposeView = true;
 					break;
-				case sf::Keyboard::F5:
+				case cgss::KeyCode::F5:
 					window.move(window.getX() - 10, window.getY() - 10);
 					break;
-				case sf::Keyboard::F6:
+				case cgss::KeyCode::F6:
 					window.move(window.getX() + 10, window.getY() + 10);
 					break;
-				case sf::Keyboard::Escape:
+				case cgss::KeyCode::Escape:
 					window.stop();
 					break;
-				case sf::Keyboard::Enter:
-					if (raw.key.alt) {
+				case cgss::KeyCode::Enter:
+					if (key->alt) {
 						settings.fullscreen = !settings.fullscreen;
 						window.reload(settings);
 					}
 					break;
 				default:
-				break;
+					break;
+				}
 			}
 			break;
-		case sf::Event::EventType::KeyReleased:
-			switch (raw.key.code) {
-				case sf::Keyboard::Escape:
-					g_disposeView = false;
-					break;
-				default:
-				break;
+		case cgss::EventType::KeyReleased:
+			if (auto key = Ops::event_as_key_release(native)) {
+				if (key->code == cgss::KeyCode::Escape) g_disposeView = false;
 			}
 			break;
 		default:
 			break;
 		}
 	}
-#else
-	// TODO(raylib): cgss::Event has no backend-agnostic accessors yet
-	// (no cgss::EventType / cgss::KeyCode). Until those land, the playground
-	// just drains the event queue under non-SFML backends.
-	(void)window; (void)settings;
-	while (window.popEvent(event)) {}
-#endif
 }
 
 static void ViewTest() {
@@ -179,6 +172,30 @@ static void ViewTest() {
 	sprite2.setTexture(texture);
 	sprite2.move(200, 100);
 	sprite2.setColor({128, 128, 255});
+
+	// Rectangle shape on the viewport — filled yellow with a red outline.
+	// Draws behind the sprites because Drawable Z defaults to 0 and sprites
+	// were added earlier (stable iteration order).
+	cgss::ShapeGeometry rectGeom;
+	rectGeom.type = cgss::ShapeType::Rectangle;
+	rectGeom.width = 80.f;
+	rectGeom.height = 60.f;
+	rectGeom.fillColor = cgss::Color{255, 220, 80, 255};
+	rectGeom.outlineColor = cgss::Color{200, 40, 40, 255};
+	rectGeom.outlineThickness = 3.f;
+	auto rectShape = cgss::Shape::create(viewport, rectGeom);
+	rectShape.move(260, 190);
+
+	// Circle shape on the window level — filled cyan with a black outline.
+	cgss::ShapeGeometry circleGeom;
+	circleGeom.type = cgss::ShapeType::Circle;
+	circleGeom.radius = 30.f;
+	circleGeom.pointCount = 32;
+	circleGeom.fillColor = cgss::Color{60, 200, 220, 255};
+	circleGeom.outlineColor = cgss::Color{20, 20, 30, 255};
+	circleGeom.outlineThickness = 2.f;
+	auto circleShape = cgss::Shape::create(window, circleGeom);
+	circleShape.move(310, 40);
 
 	viewport.move(50, 50);
 
