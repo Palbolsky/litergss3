@@ -28,6 +28,12 @@ namespace cgss {
 		bool m_mirror = false;
 		float m_wantedX = 0;
 		float m_wantedY = 0;
+		// Cached backend-native transform — rebuilt only when
+		// `Transformable::transformVersion()` diverges from the version we
+		// captured on the last draw. Kept behind unique_ptr so the full
+		// `native_transform` type stays out of the public header.
+		mutable std::unique_ptr<typename B::native_transform> m_cachedTransform;
+		mutable std::uint32_t m_cachedTransformVersion = 0;
 	public:
 		basic_SpriteItem(basic_Sprite<B>* owner);
 		virtual ~basic_SpriteItem();

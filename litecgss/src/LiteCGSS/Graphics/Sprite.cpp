@@ -31,7 +31,15 @@ void cgss::basic_SpriteItem<B>::drawFast(cgss::RenderTarget& target) const {
 	const auto* base = ShaderRenderable::getValue() == nullptr
 		? nullptr
 		: &native_of(ShaderRenderable::getValue()->getRenderStates());
-	B::Ops::draw_sprite_transformed(native_of(target), *m_sprite, *m_transformable, base);
+	const auto version = m_transformable->transformVersion();
+	if (!m_cachedTransform) {
+		m_cachedTransform = std::make_unique<typename B::native_transform>();
+	}
+	if (version != m_cachedTransformVersion) {
+		*m_cachedTransform = B::Ops::build_transform(*m_transformable);
+		m_cachedTransformVersion = version;
+	}
+	B::Ops::draw_sprite_with_transform(native_of(target), *m_sprite, *m_cachedTransform, base);
 }
 
 template <class B>

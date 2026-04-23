@@ -27,6 +27,7 @@ namespace sf {
 	class RenderTexture;
 	class Shader;
 	class VertexArray;
+	class Transform;
 }
 
 namespace cgss::backend {
@@ -45,6 +46,7 @@ namespace cgss::backend {
 		using native_render_texture = sf::RenderTexture;
 		using native_shader         = sf::Shader;
 		using native_vertex_array   = sf::VertexArray;
+		using native_transform      = sf::Transform;
 
 		// ---- Capability tags ----
 		static constexpr bool has_window      = true;

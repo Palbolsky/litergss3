@@ -27,8 +27,16 @@ namespace cgss {
 		std::shared_ptr<typename B::native_texture> m_linkedTexture = nullptr;
 		Transformable* m_transformable = nullptr;
 		cgss::DrawState m_renderStates {};
+		// Cached backend-native transform — mirrors the pattern in
+		// basic_SpriteItem; see Sprite.h for the rationale.
+		mutable std::unique_ptr<typename B::native_transform> m_cachedTransform;
+		mutable std::uint32_t m_cachedTransformVersion = 0;
 	public:
 		basic_ShapeItem(basic_Shape<B>* owner, ShapeGeometry geometry);
+		// Out-of-line destructor: `unique_ptr<native_transform>` needs the
+		// complete type at destruction, only available in the backend-specific
+		// Shape.cpp TU.
+		~basic_ShapeItem();
 		void draw(cgss::RenderTarget& target) const override;
 		void drawFast(cgss::RenderTarget& target) const override;
 		void updateFromValue(const cgss::IntRect* rectangle) override;

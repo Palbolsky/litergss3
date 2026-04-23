@@ -1,6 +1,8 @@
 #ifndef CGSS_TRANSFORMABLE_H
 #define CGSS_TRANSFORMABLE_H
 
+#include <cstdint>
+
 namespace cgss {
 
 	// 2D transform state (position, origin, rotation, scale). The state is
@@ -11,6 +13,10 @@ namespace cgss {
 	// Angle is stored as given by the user; the sign convention for the
 	// chosen backend is applied inside `build_transform` (SFML flips the
 	// sign to match screen-space Y-down rotation direction).
+	//
+	// `m_version` is bumped by every setter so callers (Sprite/Shape items)
+	// can cache a backend-native matrix derived from this state and rebuild
+	// only when the version they saw last differs.
 	class Transformable {
 	public:
 		virtual ~Transformable() = default;
@@ -26,12 +32,14 @@ namespace cgss {
 		float getScaleX() const { return m_scaleX; }
 		float getScaleY() const { return m_scaleY; }
 
-		void move(float x, float y) { m_x = x; m_y = y; }
-		void moveOrigin(float ox, float oy) { m_ox = ox; m_oy = oy; }
+		std::uint32_t transformVersion() const { return m_version; }
 
-		void setAngle(float angle) { m_angle = angle; }
+		void move(float x, float y) { m_x = x; m_y = y; ++m_version; }
+		void moveOrigin(float ox, float oy) { m_ox = ox; m_oy = oy; ++m_version; }
 
-		void scale(float xScale, float yScale) { m_scaleX = xScale; m_scaleY = yScale; }
+		void setAngle(float angle) { m_angle = angle; ++m_version; }
+
+		void scale(float xScale, float yScale) { m_scaleX = xScale; m_scaleY = yScale; ++m_version; }
 
 	protected:
 		Transformable() = default;
@@ -44,6 +52,7 @@ namespace cgss {
 		float m_angle = 0.f;
 		float m_scaleX = 1.f;
 		float m_scaleY = 1.f;
+		std::uint32_t m_version = 1;
 	};
 
 }

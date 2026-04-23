@@ -21,8 +21,11 @@ static ska::PeriodicTracer<cgss::LoggerStack, ska::LogLevel::Debug> DrawableStac
 void cgss::DrawableStack::draw(cgss::Camera& defview, cgss::RenderTarget& target) const  {
 	using Ops = cgss::backend::ActiveBackend::Ops;
 	DrawableStackTracer.SKA_LOG_PERIODIC_TRACE(LOG_FREQUENCY);
+	// Apply the default view once. View-mutating items (ViewportItem,
+	// FramedViewItem) save+restore the incoming view themselves, so it is
+	// invariant across iterations — no per-element re-set needed.
+	Ops::target_set_view(cgss::backend::native_of(target), cgss::backend::native_of(defview));
 	for (auto& element: *this) {
-		Ops::target_set_view(cgss::backend::native_of(target), cgss::backend::native_of(defview));
 		element->tryDraw(target);
 	}
 }

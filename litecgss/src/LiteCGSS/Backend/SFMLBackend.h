@@ -371,27 +371,28 @@ namespace cgss::backend {
 			target.draw(sprite, states);
 		}
 
-		// Draws the sprite with the cgss::Transformable's transform composed
-		// in, optionally over a base render state (for shaders). Encapsulates
-		// the sf::RenderStates assembly that callers used to do inline.
-		static inline void draw_sprite_transformed(native_render_target& target,
-		                                           const native_sprite& sprite,
-		                                           const cgss::Transformable& xf,
-		                                           const native_render_states* base_states) {
+		// Draws the sprite with a caller-prebuilt transform composed in,
+		// optionally over a base render state (for shaders). Callers (Sprite /
+		// Shape items) cache the `native_transform` keyed by
+		// `Transformable::transformVersion()` and only rebuild it via
+		// `build_transform` when the transform state actually mutates.
+		static inline void draw_sprite_with_transform(native_render_target& target,
+		                                              const native_sprite& sprite,
+		                                              const native_transform& xform,
+		                                              const native_render_states* base_states) {
 			sf::RenderStates states = base_states == nullptr ? sf::RenderStates::Default : *base_states;
-			states.transform *= build_transform(xf);
+			states.transform *= xform;
 			target.draw(sprite, states);
 		}
 
-		// Draws the shape with the cgss::Transformable's transform composed
-		// in, optionally over a base render state.
-		static inline void draw_shape_transformed(native_render_target& target,
-		                                          const cgss::ShapeGeometry& g,
-		                                          const native_texture* tex,
-		                                          const cgss::Transformable& xf,
-		                                          const native_render_states* base_states) {
+		// Shape counterpart of the above.
+		static inline void draw_shape_with_transform(native_render_target& target,
+		                                             const cgss::ShapeGeometry& g,
+		                                             const native_texture* tex,
+		                                             const native_transform& xform,
+		                                             const native_render_states* base_states) {
 			sf::RenderStates states = base_states == nullptr ? sf::RenderStates::Default : *base_states;
-			states.transform *= build_transform(xf);
+			states.transform *= xform;
 			draw_shape(target, g, tex, states);
 		}
 

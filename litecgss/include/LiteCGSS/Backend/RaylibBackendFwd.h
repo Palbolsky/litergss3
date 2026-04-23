@@ -24,6 +24,17 @@ namespace cgss::backend {
 		struct Sprite {};
 		struct Event {};
 		struct RenderStates {};
+		// Placeholder 2D transform — raylib draws with position/rotation/scale
+		// as separate args, so there is no native "Transform" type. This POD
+		// lets `basic_SpriteItem<RaylibBackend>` declare a
+		// `unique_ptr<native_transform>` cache member in the public header
+		// without pulling in anything raylib-specific.
+		struct Transform {
+			float x = 0.f, y = 0.f;
+			float ox = 0.f, oy = 0.f;
+			float angle = 0.f;
+			float scaleX = 1.f, scaleY = 1.f;
+		};
 	}
 
 	struct RaylibBackend {
@@ -40,6 +51,7 @@ namespace cgss::backend {
 		using native_render_texture = ::RenderTexture;
 		using native_shader         = ::Shader;
 		using native_vertex_array   = ::Mesh;
+		using native_transform      = raylib::Transform;
 
 		// ---- Capability tags ----
 		static constexpr bool has_window      = true;

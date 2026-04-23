@@ -13,16 +13,35 @@ cgss::basic_ShapeItem<B>::basic_ShapeItem(basic_Shape<B>* owner, ShapeGeometry g
 }
 
 template <class B>
+cgss::basic_ShapeItem<B>::~basic_ShapeItem() = default;
+
+template <class B>
 void cgss::basic_ShapeItem<B>::draw(cgss::RenderTarget& target) const {
 	using cgss::backend::native_of;
 	const auto& base = native_of(m_renderStates);
-	B::Ops::draw_shape_transformed(native_of(target), m_geometry, m_linkedTexture.get(), *m_transformable, &base);
+	const auto version = m_transformable->transformVersion();
+	if (!m_cachedTransform) {
+		m_cachedTransform = std::make_unique<typename B::native_transform>();
+	}
+	if (version != m_cachedTransformVersion) {
+		*m_cachedTransform = B::Ops::build_transform(*m_transformable);
+		m_cachedTransformVersion = version;
+	}
+	B::Ops::draw_shape_with_transform(native_of(target), m_geometry, m_linkedTexture.get(), *m_cachedTransform, &base);
 }
 
 template <class B>
 void cgss::basic_ShapeItem<B>::drawFast(cgss::RenderTarget& target) const {
 	using cgss::backend::native_of;
-	B::Ops::draw_shape_transformed(native_of(target), m_geometry, m_linkedTexture.get(), *m_transformable, nullptr);
+	const auto version = m_transformable->transformVersion();
+	if (!m_cachedTransform) {
+		m_cachedTransform = std::make_unique<typename B::native_transform>();
+	}
+	if (version != m_cachedTransformVersion) {
+		*m_cachedTransform = B::Ops::build_transform(*m_transformable);
+		m_cachedTransformVersion = version;
+	}
+	B::Ops::draw_shape_with_transform(native_of(target), m_geometry, m_linkedTexture.get(), *m_cachedTransform, nullptr);
 }
 
 template <class B>

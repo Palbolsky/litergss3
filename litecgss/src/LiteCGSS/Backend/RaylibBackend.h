@@ -51,16 +51,11 @@ namespace cgss::backend {
 
 		// ---- Transform composition ----
 		// Placeholder — raylib has no sf::Transform analogue (its draw functions
-		// take position/rotation/scale as separate args). Returns a small POD
-		// to satisfy the call-site type system.
-		struct Transform2D {
-			float x = 0.f, y = 0.f;
-			float ox = 0.f, oy = 0.f;
-			float angle = 0.f;
-			float scaleX = 1.f, scaleY = 1.f;
-		};
-		static inline Transform2D build_transform(const cgss::Transformable& xf) noexcept {
-			return Transform2D{ xf.getX(), xf.getY(), xf.getOx(), xf.getOy(), xf.getAngle(), xf.getScaleX(), xf.getScaleY() };
+		// take position/rotation/scale as separate args). The native_transform
+		// POD (`raylib::Transform` in the fwd header) is populated here so the
+		// Sprite/Shape item cache path compiles uniformly across backends.
+		static inline native_transform build_transform(const cgss::Transformable& xf) noexcept {
+			return native_transform{ xf.getX(), xf.getY(), xf.getOx(), xf.getOy(), xf.getAngle(), xf.getScaleX(), xf.getScaleY() };
 		}
 
 		// ---- Window ops with raylib global-function equivalents ----
@@ -196,8 +191,8 @@ namespace cgss::backend {
 
 		// ---- Draw thunks (stubs) ----
 		static inline void draw_sprite(native_render_target&, const native_sprite&, const native_render_states&) {}
-		static inline void draw_sprite_transformed(native_render_target&, const native_sprite&, const cgss::Transformable&, const native_render_states*) {}
-		static inline void draw_shape_transformed(native_render_target&, const cgss::ShapeGeometry&, const native_texture*, const cgss::Transformable&, const native_render_states*) {}
+		static inline void draw_sprite_with_transform(native_render_target&, const native_sprite&, const native_transform&, const native_render_states*) {}
+		static inline void draw_shape_with_transform(native_render_target&, const cgss::ShapeGeometry&, const native_texture*, const native_transform&, const native_render_states*) {}
 
 		// ---- Sprite ops (stubs) ----
 		static inline cgss::Color get_sprite_color(const native_sprite&) noexcept { return cgss::Colors::White; }
