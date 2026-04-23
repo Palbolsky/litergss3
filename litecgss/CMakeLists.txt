@@ -152,6 +152,12 @@ if(CGSS_BACKEND STREQUAL "sfml")
 	set(TARGET_LIBS ${TARGET_LIBS} sfml-graphics sfml-window sfml-system)
 elseif(CGSS_BACKEND STREQUAL "raylib")
 	set(TARGET_LIBS ${TARGET_LIBS} raylib)
+	if(WIN32)
+		# Safety net: raylib's Windows build needs winmm (timeBeginPeriod).
+		# Normally propagated transitively by find_package(raylib), but some
+		# MinGW installs ship libraylib.a without the interface link libs.
+		set(TARGET_LIBS ${TARGET_LIBS} winmm)
+	endif()
 endif()
 if(LITECGSS_USE_PHYSFS)
 	set(TARGET_LIBS ${TARGET_LIBS} physfs-static)
