@@ -1,7 +1,7 @@
 #include <LiteCGSS2/Common/RaylibWrapper.h>
 #include "LiteRGSS.h"
 #include "RubyValue.h"
-#include <LiteCGSS2/Common/NormalizeNumbers.h>
+#include <LiteCGSS/Common/NormalizeNumbers.h>
 #include "Color.h"
 #include "Image.h"
 

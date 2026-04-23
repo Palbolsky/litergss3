@@ -2,7 +2,8 @@
 #define Sprite_H
 
 #include "RubyValue.h"
-#include <LiteCGSS2/Common/NormalizeNumbers.h>
+#include <LiteCGSS2/Common/RaylibWrapper.h>
+#include <LiteCGSS/Common/NormalizeNumbers.h>
 
 void Init_Sprite();
 extern VALUE rb_cSprite;

@@ -1,7 +1,9 @@
-#include <LiteCGSS2/Common/RaylibWrapper.h>
+// Color.cpp does NOT use any raylib symbol; the legacy RaylibWrapper
+// include was transitive noise — dropped. Normalize helper lives at the
+// new path under LiteCGSS/ (no legacy "2" suffix).
 #include "LiteRGSS.h"
 #include "RubyValue.h"
-#include <LiteCGSS2/Common/NormalizeNumbers.h>
+#include <LiteCGSS/Common/NormalizeNumbers.h>
 #include "Color.h"
 
 VALUE rb_cColor = Qnil;

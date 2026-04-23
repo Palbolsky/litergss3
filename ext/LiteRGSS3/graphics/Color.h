@@ -2,7 +2,7 @@
 #define Color_H
 
 #include "RubyValue.h"
-#include <LiteCGSS2/Common/NormalizeNumbers.h>
+#include <LiteCGSS/Common/NormalizeNumbers.h>
 
 void Init_Color();
 extern VALUE rb_cColor;

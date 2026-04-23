@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <functional>
 #include "RubyValue.h"
-#include <LiteCGSS2/Common/Meta/metadata.h>
+#include <LiteCGSS/Common/Meta/metadata.h>
 #include <type_traits>
 
 extern VALUE rb_eRGSSError;

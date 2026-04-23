@@ -4,7 +4,7 @@
 #include <LiteCGSS2/Common/RaylibWrapper.h>
 #include "RubyValue.h"
 #include "Color.h"
-#include <LiteCGSS2/Common/NormalizeNumbers.h>
+#include <LiteCGSS/Common/NormalizeNumbers.h>
 
 void Init_Image();
 extern VALUE rb_cImage;

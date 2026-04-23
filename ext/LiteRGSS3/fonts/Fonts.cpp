@@ -1,6 +1,6 @@
 #include <iostream>
 #include <vector>
-#include <LiteCGSS2/Common/NormalizeNumbers.h>
+#include <LiteCGSS/Common/NormalizeNumbers.h>
 #include "LiteRGSS.h"
 #include "Color.h"
 #include "Fonts.h"

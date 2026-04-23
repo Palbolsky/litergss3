@@ -1,7 +1,7 @@
 require 'fileutils'
 require 'rake/extensiontask'
 
-ext_name = 'LiteRGSS'
+ext_name = 'LiteRGSS3'
 litergss_root_dir = File.expand_path(File.dirname(__FILE__))
 
 spec = Gem::Specification.new do |s|
@@ -12,8 +12,8 @@ spec = Gem::Specification.new do |s|
   s.description = "LiteRGSS3 stands for Lite Ruby Game Scripting System and is an enhanced open-source version of the original RGSS written by Enterbrain."
   s.authors = ["Nuri Yuri", "Ota", "Palbolsky", "Scorbutics", "SuperFola", "nthoang-apcs"]
   s.homepage = "https://pokemonworkshop.com"
-  s.extensions = FileList["ext/LiteRGSS/extconf.rb"]
-  s.files = FileList["ext/LiteRGSS/*.h", "ext/LiteRGSS/*.hpp", "ext/LiteRGSS/*.c", "ext/LiteRGSS/*.cpp"]
+  s.extensions = FileList["ext/LiteRGSS3/extconf.rb"]
+  s.files = FileList["ext/LiteRGSS3/*.h", "ext/LiteRGSS3/*.hpp", "ext/LiteRGSS3/*.c", "ext/LiteRGSS3/*.cpp"]
   #s.metadata = { "source_code_uri" => "https://github.com/pokemonworkshop/litergss3", "documentation_uri" => "https://psdk.pokemonworkshop.fr/yard/LiteRGSS.html" }
   s.required_ruby_version = '>= 3.0.0'
 end

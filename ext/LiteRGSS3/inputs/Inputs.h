@@ -2,7 +2,8 @@
 #define Inputs_H
 
 #include "RubyValue.h"
-#include <LiteCGSS2/Common/RaylibWrapper.h>
+
+#include "LiteCGSS/Backend/ActiveBackend.h"
 
 extern VALUE rb_mInputs;
 
