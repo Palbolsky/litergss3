@@ -21,19 +21,13 @@ puts "[LiteRGSS3] Building with CGSS_BACKEND=#{cgss_backend}"
 # Include paths:
 #  -I<litecgss_root>/include : public cgss headers (Events/KeyCode.h, etc.)
 #  -I<litecgss_root>/src     : backend headers (Backend/ActiveBackend.h)
-#  -I/usr/include/LiteCGSS2/ : legacy path. Still the source-of-truth for
-#                              <LiteCGSS2/Common/RaylibWrapper.h>, included
-#                              by ext/graphics and ext/fonts. RaylibWrapper
-#                              namespaces raylib.h — can't be replaced by
-#                              the submodule's headers (the submodule
-#                              includes raylib.h at global scope, which
-#                              makes a namespaced re-wrap impossible once
-#                              a cgss backend header has loaded it).
-#                              Retiring this path requires migrating
-#                              ext/graphics + ext/fonts to cgss wrappers
-#                              (cgss::Image, Sprite, Font) + the extension
-#                              SPI where needed. Tracked as future cleanup.
-$INCFLAGS << " -I/usr/include/LiteCGSS2/ -I'$(srcdir)/../../'"
+#  -I<raylib_include>        : raylib.h / rlgl.h (ext/{graphics,fonts} are
+#                              raylib-coupled — see the matching header
+#                              comments in those files)
+# The legacy /usr/include/LiteCGSS2/ path was retired in the phase-1
+# cleanup: every ext/ TU now includes <raylib.h> directly (no more
+# namespaced wrapper) and the submodule's /LiteCGSS/ headers (no "2").
+$INCFLAGS << " -I'$(srcdir)/../../'"
 $INCFLAGS << " -I'" + litecgss_root_dir + "/include'"
 $INCFLAGS << " -I'" + litecgss_root_dir + "/src'"
 $INCFLAGS << " -I'#{raylib_include}'"

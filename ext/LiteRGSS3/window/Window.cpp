@@ -25,6 +25,11 @@ int base_width  = 640;
 int base_height = 480;
 double window_scale = 1.0;
 
+cgss::backend::ActiveBackend::native_window* get_active_native_window()
+{
+	return g_window.get();
+}
+
 static void ensureWindow()
 {
 	// Window methods other than open_window require an instance. The

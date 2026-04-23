@@ -1,7 +1,12 @@
-#include <LiteCGSS2/Common/RaylibWrapper.h>
+// Backend-agnostic Ruby Image binding. Routes all operations through
+// cgss::Image + backend Ops — no raylib:: or sf:: symbols reach this TU.
+// File I/O uses the ImageFileSerializer family; PNG-bytes export uses
+// ImageMemorySerializer.
+
 #include "LiteRGSS.h"
 #include "RubyValue.h"
 #include <LiteCGSS/Common/NormalizeNumbers.h>
+#include <LiteCGSS/Image/Serializers/ImageSerializer.h>
 #include "Color.h"
 #include "Image.h"
 
@@ -11,13 +16,12 @@ VALUE rb_cImage = Qnil;
 
 static void image_free(void *ptr)
 {
-    auto *img = static_cast<ImageData *>(ptr);
-    if (img->valid())
-        raylib::UnloadImage(img->image);
-    delete img;
+    // cgss::Image's destructor releases the native backing via
+    // Ops::image_destroy. Nothing to do here beyond `delete`.
+    delete static_cast<ImageData *>(ptr);
 }
 
-static void image_mark(void *ptr) {}
+static void image_mark(void *ptr) { (void)ptr; }
 
 static const rb_data_type_t image_type = {
     "ImageData",
@@ -55,16 +59,16 @@ VALUE rb_Image_Initialize(int argc, VALUE *argv, VALUE self)
     {
         rb_check_type(arg1, T_STRING);
         const char *filename = StringValueCStr(arg1);
-        img->image = raylib_LoadImage(filename);
+        img->image = cgss::Image::create(std::string{filename});
         if (!img->valid())
             rb_raise(rb_eRuntimeError, "Failed to load image from file: %s", filename);
     }
     else if (arg2 == Qtrue)
     {
         rb_check_type(arg1, T_STRING);
-        unsigned char *data = (unsigned char *)RSTRING_PTR(arg1);
-        int length = (int)RSTRING_LEN(arg1);
-        img->image = raylib::LoadImageFromMemory(".png", data, length);
+        const char *data = RSTRING_PTR(arg1);
+        const std::size_t length = static_cast<std::size_t>(RSTRING_LEN(arg1));
+        img->image = cgss::Image::create(data, length);
         if (!img->valid())
             rb_raise(rb_eRuntimeError, "Failed to load image from memory");
     }
@@ -72,11 +76,11 @@ VALUE rb_Image_Initialize(int argc, VALUE *argv, VALUE self)
     {
         rb_check_type(arg1, T_FIXNUM);
         rb_check_type(arg2, T_FIXNUM);
-        int w = NUM2INT(arg1);
-        int h = NUM2INT(arg2);
+        const int w = NUM2INT(arg1);
+        const int h = NUM2INT(arg2);
         if (w <= 0 || h <= 0)
             rb_raise(rb_eRuntimeError, "Invalid image size (%d x %d)", w, h);
-        img->image = raylib::GenImageColor(w, h, {0, 0, 0, 0});
+        img->image = cgss::Image::create(static_cast<unsigned int>(w), static_cast<unsigned int>(h));
     }
 
     return self;
@@ -88,18 +92,14 @@ VALUE rb_Image_InitializeCopy(VALUE self, VALUE other)
     auto *dst = get_image(self);
     auto *src = get_image(other);
     if (src->valid())
-        dst->image = raylib::ImageCopy(src->image);
+        dst->image = src->image;  // cgss::Image copy-assign = deep copy of pixels
     return self;
 }
 
 VALUE rb_Image_Dispose(VALUE self)
 {
     auto *img = get_image(self);
-    if (img->valid())
-    {
-        raylib::UnloadImage(img->image);
-        img->image = {};
-    }
+    img->image = cgss::Image{};   // replacing triggers old image's destructor
     img->disposed = true;
     return self;
 }
@@ -112,13 +112,13 @@ VALUE rb_Image_Disposed(VALUE self)
 VALUE rb_Image_Width(VALUE self)
 {
     check_disposed(get_image(self));
-    return INT2NUM(get_image(self)->width());
+    return UINT2NUM(get_image(self)->width());
 }
 
 VALUE rb_Image_Height(VALUE self)
 {
     check_disposed(get_image(self));
-    return INT2NUM(get_image(self)->height());
+    return UINT2NUM(get_image(self)->height());
 }
 
 VALUE rb_Image_Rect(VALUE self)
@@ -128,8 +128,8 @@ VALUE rb_Image_Rect(VALUE self)
     VALUE ary = rb_ary_new_capa(4);
     rb_ary_push(ary, INT2NUM(0));
     rb_ary_push(ary, INT2NUM(0));
-    rb_ary_push(ary, INT2NUM(img->width()));
-    rb_ary_push(ary, INT2NUM(img->height()));
+    rb_ary_push(ary, UINT2NUM(img->width()));
+    rb_ary_push(ary, UINT2NUM(img->height()));
     return ary;
 }
 
@@ -137,13 +137,12 @@ VALUE rb_Image_getPixel(VALUE self, VALUE x, VALUE y)
 {
     check_disposed(get_image(self));
     auto *img = get_image(self);
-    int px = NUM2INT(x);
-    int py = NUM2INT(y);
-    if (px < 0 || py < 0 || px >= img->width() || py >= img->height())
-        return Qnil;
-
-    raylib::Color c = raylib::GetImageColor(img->image, px, py);
-    VALUE args[4] = {INT2NUM(c.r), INT2NUM(c.g), INT2NUM(c.b), INT2NUM(c.a)};
+    const int px = NUM2INT(x);
+    const int py = NUM2INT(y);
+    if (px < 0 || py < 0) return Qnil;
+    const auto pixel = img->image.getPixel(static_cast<unsigned int>(px), static_cast<unsigned int>(py));
+    if (!pixel) return Qnil;
+    VALUE args[4] = { INT2NUM(pixel->r), INT2NUM(pixel->g), INT2NUM(pixel->b), INT2NUM(pixel->a) };
     return rb_class_new_instance(4, args, rb_cColor);
 }
 
@@ -151,25 +150,23 @@ VALUE rb_Image_getPixelAlpha(VALUE self, VALUE x, VALUE y)
 {
     check_disposed(get_image(self));
     auto *img = get_image(self);
-    int px = NUM2INT(x);
-    int py = NUM2INT(y);
-    if (px < 0 || py < 0 || px >= img->width() || py >= img->height())
-        return INT2NUM(0);
-    return INT2NUM(raylib::GetImageColor(img->image, px, py).a);
+    const int px = NUM2INT(x);
+    const int py = NUM2INT(y);
+    if (px < 0 || py < 0) return INT2NUM(0);
+    const auto pixel = img->image.getPixel(static_cast<unsigned int>(px), static_cast<unsigned int>(py));
+    return INT2NUM(pixel ? pixel->a : 0);
 }
 
 VALUE rb_Image_setPixel(VALUE self, VALUE x, VALUE y, VALUE color)
 {
     check_disposed(get_image(self));
     auto *img = get_image(self);
-    int px = NUM2INT(x);
-    int py = NUM2INT(y);
-    if (px < 0 || py < 0 || px >= img->width() || py >= img->height())
-        return self;
-
+    const int px = NUM2INT(x);
+    const int py = NUM2INT(y);
+    if (px < 0 || py < 0) return self;
     ColorData *cd = get_color_data(color);
-    raylib::Color c = {cd->r, cd->g, cd->b, cd->a};
-    raylib::ImageDrawPixel(&img->image, px, py, c);
+    img->image.setPixel(static_cast<unsigned int>(px), static_cast<unsigned int>(py),
+                        cgss::Color{cd->r, cd->g, cd->b, cd->a});
     return self;
 }
 
@@ -177,14 +174,12 @@ VALUE rb_Image_fillRect(VALUE self, VALUE x, VALUE y, VALUE w, VALUE h, VALUE co
 {
     check_disposed(get_image(self));
     auto *img = get_image(self);
-
     ColorData *cd = get_color_data(color);
-    raylib::Color c = {cd->r, cd->g, cd->b, cd->a};
-
-    raylib::Rectangle rect = {
-        (float)NUM2INT(x), (float)NUM2INT(y),
-        (float)NUM2INT(w), (float)NUM2INT(h)};
-    raylib::ImageDrawRectangleRec(&img->image, rect, c);
+    img->image.fillRect(cgss::Color{cd->r, cd->g, cd->b, cd->a},
+                        static_cast<unsigned int>(NUM2INT(x)),
+                        static_cast<unsigned int>(NUM2INT(y)),
+                        static_cast<unsigned int>(NUM2INT(w)),
+                        static_cast<unsigned int>(NUM2INT(h)));
     return self;
 }
 
@@ -192,10 +187,11 @@ VALUE rb_Image_clearRect(VALUE self, VALUE x, VALUE y, VALUE w, VALUE h)
 {
     check_disposed(get_image(self));
     auto *img = get_image(self);
-    raylib::Rectangle rect = {
-        (float)NUM2INT(x), (float)NUM2INT(y),
-        (float)NUM2INT(w), (float)NUM2INT(h)};
-    raylib::ImageDrawRectangleRec(&img->image, rect, {0, 0, 0, 0});
+    img->image.fillRect(cgss::Colors::Transparent,
+                        static_cast<unsigned int>(NUM2INT(x)),
+                        static_cast<unsigned int>(NUM2INT(y)),
+                        static_cast<unsigned int>(NUM2INT(w)),
+                        static_cast<unsigned int>(NUM2INT(h)));
     return self;
 }
 
@@ -204,19 +200,18 @@ VALUE rb_Image_blt(VALUE self, VALUE x, VALUE y, VALUE src_image, VALUE rect)
     check_disposed(get_image(self));
     auto *dst = get_image(self);
     auto *src = get_image(src_image);
-    if (!src->valid())
-        return self;
+    if (!src->valid()) return self;
 
     Check_Type(rect, T_ARRAY);
-    raylib::Rectangle src_rect = {
-        (float)NUM2INT(rb_ary_entry(rect, 0)),
-        (float)NUM2INT(rb_ary_entry(rect, 1)),
-        (float)NUM2INT(rb_ary_entry(rect, 2)),
-        (float)NUM2INT(rb_ary_entry(rect, 3))};
-    raylib::Rectangle dst_rect = {
-        (float)NUM2INT(x), (float)NUM2INT(y),
-        src_rect.width, src_rect.height};
-    raylib::ImageDraw(&dst->image, src->image, src_rect, dst_rect, raylib::WHITE);
+    cgss::IntRect src_rect{
+        NUM2INT(rb_ary_entry(rect, 0)),
+        NUM2INT(rb_ary_entry(rect, 1)),
+        NUM2INT(rb_ary_entry(rect, 2)),
+        NUM2INT(rb_ary_entry(rect, 3))};
+    dst->image.blit(src->image,
+                    static_cast<unsigned int>(NUM2INT(x)),
+                    static_cast<unsigned int>(NUM2INT(y)),
+                    src_rect);
     return self;
 }
 
@@ -225,23 +220,21 @@ VALUE rb_Image_stretchBlt(VALUE self, VALUE dst_rect, VALUE src_image, VALUE src
     check_disposed(get_image(self));
     auto *dst = get_image(self);
     auto *src = get_image(src_image);
-    if (!src->valid())
-        return self;
+    if (!src->valid()) return self;
 
     Check_Type(dst_rect, T_ARRAY);
     Check_Type(src_rect, T_ARRAY);
-
-    raylib::Rectangle srect = {
-        (float)NUM2INT(rb_ary_entry(src_rect, 0)),
-        (float)NUM2INT(rb_ary_entry(src_rect, 1)),
-        (float)NUM2INT(rb_ary_entry(src_rect, 2)),
-        (float)NUM2INT(rb_ary_entry(src_rect, 3))};
-    raylib::Rectangle drect = {
-        (float)NUM2INT(rb_ary_entry(dst_rect, 0)),
-        (float)NUM2INT(rb_ary_entry(dst_rect, 1)),
-        (float)NUM2INT(rb_ary_entry(dst_rect, 2)),
-        (float)NUM2INT(rb_ary_entry(dst_rect, 3))};
-    raylib::ImageDraw(&dst->image, src->image, srect, drect, raylib::WHITE);
+    cgss::IntRect srect{
+        NUM2INT(rb_ary_entry(src_rect, 0)),
+        NUM2INT(rb_ary_entry(src_rect, 1)),
+        NUM2INT(rb_ary_entry(src_rect, 2)),
+        NUM2INT(rb_ary_entry(src_rect, 3))};
+    cgss::IntRect drect{
+        NUM2INT(rb_ary_entry(dst_rect, 0)),
+        NUM2INT(rb_ary_entry(dst_rect, 1)),
+        NUM2INT(rb_ary_entry(dst_rect, 2)),
+        NUM2INT(rb_ary_entry(dst_rect, 3))};
+    dst->image.stretchBlit(src->image, drect, srect);
     return self;
 }
 
@@ -250,21 +243,9 @@ VALUE rb_Image_createMask(VALUE self, VALUE color, VALUE alpha)
     check_disposed(get_image(self));
     auto *img = get_image(self);
     ColorData *cd = get_color_data(color);
-    raylib::Color mask_color = {cd->r, cd->g, cd->b, cd->a};
-    uint8_t target_alpha = (uint8_t)cgss::normalize_long(NUM2LONG(alpha), 0, 255);
-
-    for (int py = 0; py < img->height(); py++)
-    {
-        for (int px = 0; px < img->width(); px++)
-        {
-            raylib::Color c = raylib::GetImageColor(img->image, px, py);
-            if (c.r == mask_color.r && c.g == mask_color.g && c.b == mask_color.b)
-            {
-                c.a = target_alpha;
-                raylib::ImageDrawPixel(&img->image, px, py, c);
-            }
-        }
-    }
+    const auto target_alpha = static_cast<unsigned char>(
+        cgss::normalize_long(NUM2LONG(alpha), 0, 255));
+    img->image.createMaskFromColor(cgss::Color{cd->r, cd->g, cd->b, cd->a}, target_alpha);
     return self;
 }
 
@@ -272,13 +253,22 @@ VALUE rb_Image_toPNG(VALUE self)
 {
     check_disposed(get_image(self));
     auto *img = get_image(self);
-    int data_size = 0;
-    unsigned char *data = raylib::ExportImageToMemory(img->image, ".png", &data_size);
-    if (data == nullptr)
-        return Qnil;
-    VALUE str = rb_str_new((const char *)data, data_size);
-    raylib::MemFree(data);
-    return str;
+
+    // shouldFree=true → the serializer's destructor releases the buffer
+    // allocated by basic_ImageMemorySerializeMethod::save.
+    cgss::ImageMemorySerializer saver{ { nullptr, 0u }, true };
+    // write() delegates to the saver's Saver<>::save — which stores the
+    // PNG-encoded bytes into the serializer's internal buffer.
+    if (img->image.write(saver) != 0u) return Qnil;
+
+    VALUE result = Qnil;
+    saver.finalizeMemory([&result](const cgss::MemorySerializerData& mem) {
+        if (mem.first != nullptr && mem.second > 0) {
+            result = rb_str_new(reinterpret_cast<const char*>(mem.first),
+                                static_cast<long>(mem.second));
+        }
+    });
+    return result;
 }
 
 VALUE rb_Image_toPNGFile(VALUE self, VALUE filename)
@@ -286,7 +276,8 @@ VALUE rb_Image_toPNGFile(VALUE self, VALUE filename)
     check_disposed(get_image(self));
     rb_check_type(filename, T_STRING);
     auto *img = get_image(self);
-    return raylib::ExportImage(img->image, StringValueCStr(filename)) ? Qtrue : Qfalse;
+    cgss::ImageFileSerializer saver{ std::string{StringValueCStr(filename)} };
+    return img->image.write(saver) == 0u ? Qtrue : Qfalse;
 }
 
 void Init_Image()

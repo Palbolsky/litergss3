@@ -2,21 +2,18 @@
 #define Sprite_H
 
 #include "RubyValue.h"
-#include <LiteCGSS2/Common/RaylibWrapper.h>
+
+#include <LiteCGSS/Common/IntRect.h>
 #include <LiteCGSS/Common/NormalizeNumbers.h>
+#include <LiteCGSS/Graphics/Texture.h>
 
 void Init_Sprite();
 extern VALUE rb_cSprite;
 
-/*namespace meta
-{
-    template <>
-    struct Log<Sprite>
-    {
-        static constexpr auto classname = "Sprite";
-    };
-}*/
-
+// Ruby Sprite data. All rendering state is cross-backend (cgss::Texture
+// for the GPU backing; plain floats for transform). The per-frame draw()
+// routes through Ops::draw_texture_pro — raylib: DrawTexturePro;
+// SFML: emulated via sf::Sprite on the active render target.
 struct SpriteData
 {
     float x = 0.0f;
@@ -35,7 +32,10 @@ struct SpriteData
 
     int z = 0;
 
-    raylib::Texture2D *texture = nullptr; // not owned
+    // GPU-resident texture. Empty (default-constructed) means "no bitmap
+    // assigned" — `has_texture` tells draw() whether to render.
+    cgss::Texture texture;
+    bool has_texture = false;
     int src_x = 0;
     int src_y = 0;
     int src_width = 0;

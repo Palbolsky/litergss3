@@ -3,12 +3,10 @@
 
 #include "RubyValue.h"
 
-// Note: the <LiteCGSS2/Common/RaylibWrapper.h> include that used to live
-// here was a transitive-propagation vehicle for the ext/graphics and
-// ext/fonts TUs. Those TUs now #include it directly; this shared header
-// stays backend-neutral so the inputs/* files (which route through
-// LiteCGSS backend Ops and don't need raylib symbols) can include
-// LiteRGSS.h cleanly. Step B removes the RaylibWrapper dependency entirely.
+// Shared top-level header. Intentionally backend-neutral: the inputs/ +
+// events/ + window/ layers route through cgss backend Ops and don't need
+// raylib symbols; the raylib-coupled graphics/ + fonts/ TUs include
+// <raylib.h> directly in their own headers.
 
 extern VALUE rb_mLiteRGSS;
 extern VALUE rb_mConfig;

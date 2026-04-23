@@ -1,10 +1,21 @@
-#include <LiteCGSS2/Common/RaylibWrapper.h>
+// Backend-agnostic Ruby Sprite binding. Texture storage uses cgss::Texture;
+// immediate-mode drawing routes through Ops::draw_texture_pro on the
+// active window's render target (raylib: current BeginDrawing context;
+// SFML: sf::RenderWindow / sf::RenderTexture).
+
 #include "LiteRGSS.h"
 #include "RubyValue.h"
+#include "window/Window.h"
+#include <LiteCGSS/Backend/ActiveBackend.h>
 #include <LiteCGSS/Common/NormalizeNumbers.h>
 #include "Sprite.h"
 #include "Image.h"
 #include "Viewport.h"
+
+namespace {
+	using Backend = cgss::backend::ActiveBackend;
+	using Ops = Backend::Ops;
+}
 
 VALUE rb_cSprite = Qnil;
 
@@ -12,22 +23,16 @@ VALUE rb_cSprite = Qnil;
 
 static void sprite_free(void *ptr)
 {
-    auto *s = static_cast<SpriteData *>(ptr);
-
-    if (s->texture)
-    {
-        raylib::UnloadTexture(*s->texture);
-        delete s->texture;
-    }
-
-    delete s;
+    // cgss::Texture owns its GPU backing via a shared_ptr with a custom
+    // deleter that calls Ops::texture_destroy on the last reference.
+    // Nothing to do here beyond `delete`.
+    delete static_cast<SpriteData *>(ptr);
 }
 
 static void sprite_mark(void *ptr)
 {
     auto *s = static_cast<SpriteData *>(ptr);
-    if (s == nullptr)
-        return;
+    if (s == nullptr) return;
     rb_gc_mark(s->rBitmap);
     rb_gc_mark(s->rViewport);
 }
@@ -84,6 +89,7 @@ VALUE rb_Sprite_Disposed(VALUE self)
 
 VALUE rb_Sprite_Copy(VALUE self)
 {
+    (void)self;
     rb_raise(rb_eRuntimeError, "Sprites cannot be cloned or duplicated.");
     return self;
 }
@@ -103,177 +109,68 @@ VALUE rb_Sprite_setBitmap(VALUE self, VALUE val)
 
     s->rBitmap = val;
 
-    if (NIL_P(val))
-    {
-        s->texture = nullptr;
+    if (NIL_P(val)) {
+        s->texture = cgss::Texture{};
+        s->has_texture = false;
         return val;
     }
 
     ImageData *img = get_image(val);
-
-    if (!img->valid())
-    {
-        s->texture = nullptr;
+    if (!img->valid()) {
+        s->texture = cgss::Texture{};
+        s->has_texture = false;
         return val;
     }
 
-    if (s->texture)
-    {
-        raylib::UnloadTexture(*s->texture);
-        delete s->texture;
-        s->texture = nullptr;
-    }
-    s->texture = new raylib::Texture2D(raylib::LoadTextureFromImage(img->image));
+    // Allocate a fresh GPU texture sized to the image + upload its pixels.
+    // Replacing s->texture drops the old shared_ptr; its custom deleter
+    // invokes Ops::texture_destroy to release the prior GPU backing.
+    s->texture = cgss::Texture::create(img->image);
+    s->has_texture = true;
 
     s->src_x = 0;
     s->src_y = 0;
-    s->src_width = img->width();
-    s->src_height = img->height();
+    s->src_width = static_cast<int>(img->width());
+    s->src_height = static_cast<int>(img->height());
 
     return val;
 }
 
-VALUE rb_Sprite_getX(VALUE self)
-{
-    check_disposed(get_sprite(self));
-    return DBL2NUM(get_sprite(self)->x);
-}
-VALUE rb_Sprite_getY(VALUE self)
-{
-    check_disposed(get_sprite(self));
-    return DBL2NUM(get_sprite(self)->y);
-}
+VALUE rb_Sprite_getX(VALUE self) { check_disposed(get_sprite(self)); return DBL2NUM(get_sprite(self)->x); }
+VALUE rb_Sprite_getY(VALUE self) { check_disposed(get_sprite(self)); return DBL2NUM(get_sprite(self)->y); }
+VALUE rb_Sprite_setX(VALUE self, VALUE v) { check_disposed(get_sprite(self)); get_sprite(self)->x = (float)NUM2DBL(v); return v; }
+VALUE rb_Sprite_setY(VALUE self, VALUE v) { check_disposed(get_sprite(self)); get_sprite(self)->y = (float)NUM2DBL(v); return v; }
 
-VALUE rb_Sprite_setX(VALUE self, VALUE v)
-{
-    check_disposed(get_sprite(self));
-    get_sprite(self)->x = (float)NUM2DBL(v);
-    return v;
-}
+VALUE rb_Sprite_getZ(VALUE self) { check_disposed(get_sprite(self)); return INT2NUM(get_sprite(self)->z); }
+VALUE rb_Sprite_setZ(VALUE self, VALUE v) { check_disposed(get_sprite(self)); get_sprite(self)->z = NUM2INT(v); return v; }
 
-VALUE rb_Sprite_setY(VALUE self, VALUE v)
-{
-    check_disposed(get_sprite(self));
-    get_sprite(self)->y = (float)NUM2DBL(v);
-    return v;
-}
+VALUE rb_Sprite_getOX(VALUE self) { check_disposed(get_sprite(self)); return DBL2NUM(get_sprite(self)->ox); }
+VALUE rb_Sprite_getOY(VALUE self) { check_disposed(get_sprite(self)); return DBL2NUM(get_sprite(self)->oy); }
+VALUE rb_Sprite_setOX(VALUE self, VALUE v) { check_disposed(get_sprite(self)); get_sprite(self)->ox = (float)NUM2DBL(v); return v; }
+VALUE rb_Sprite_setOY(VALUE self, VALUE v) { check_disposed(get_sprite(self)); get_sprite(self)->oy = (float)NUM2DBL(v); return v; }
 
-// --- z ---
+VALUE rb_Sprite_getVisible(VALUE self) { check_disposed(get_sprite(self)); return get_sprite(self)->visible ? Qtrue : Qfalse; }
+VALUE rb_Sprite_setVisible(VALUE self, VALUE v) { check_disposed(get_sprite(self)); get_sprite(self)->visible = RTEST(v); return v; }
 
-VALUE rb_Sprite_getZ(VALUE self)
-{
-    check_disposed(get_sprite(self));
-    return INT2NUM(get_sprite(self)->z);
-}
+VALUE rb_Sprite_getAngle(VALUE self) { check_disposed(get_sprite(self)); return DBL2NUM(get_sprite(self)->angle); }
+VALUE rb_Sprite_setAngle(VALUE self, VALUE v) { check_disposed(get_sprite(self)); get_sprite(self)->angle = (float)NUM2DBL(v); return v; }
 
-VALUE rb_Sprite_setZ(VALUE self, VALUE v)
-{
-    check_disposed(get_sprite(self));
-    get_sprite(self)->z = NUM2INT(v);
-    return v;
-}
-
-// --- ox / oy ---
-
-VALUE rb_Sprite_getOX(VALUE self)
-{
-    check_disposed(get_sprite(self));
-    return DBL2NUM(get_sprite(self)->ox);
-}
-VALUE rb_Sprite_getOY(VALUE self)
-{
-    check_disposed(get_sprite(self));
-    return DBL2NUM(get_sprite(self)->oy);
-}
-
-VALUE rb_Sprite_setOX(VALUE self, VALUE v)
-{
-    check_disposed(get_sprite(self));
-    get_sprite(self)->ox = (float)NUM2DBL(v);
-    return v;
-}
-
-VALUE rb_Sprite_setOY(VALUE self, VALUE v)
-{
-    check_disposed(get_sprite(self));
-    get_sprite(self)->oy = (float)NUM2DBL(v);
-    return v;
-}
-
-// --- visible ---
-
-VALUE rb_Sprite_getVisible(VALUE self)
-{
-    check_disposed(get_sprite(self));
-    return get_sprite(self)->visible ? Qtrue : Qfalse;
-}
-
-VALUE rb_Sprite_setVisible(VALUE self, VALUE v)
-{
-    check_disposed(get_sprite(self));
-    get_sprite(self)->visible = RTEST(v);
-    return v;
-}
-
-// --- angle ---
-
-VALUE rb_Sprite_getAngle(VALUE self)
-{
-    check_disposed(get_sprite(self));
-    return DBL2NUM(get_sprite(self)->angle);
-}
-
-VALUE rb_Sprite_setAngle(VALUE self, VALUE v)
-{
-    check_disposed(get_sprite(self));
-    get_sprite(self)->angle = (float)NUM2DBL(v);
-    return v;
-}
-
-// --- zoom_x / zoom_y / zoom= ---
-
-VALUE rb_Sprite_getZoomX(VALUE self)
-{
-    check_disposed(get_sprite(self));
-    return DBL2NUM(get_sprite(self)->zoom_x);
-}
-VALUE rb_Sprite_getZoomY(VALUE self)
-{
-    check_disposed(get_sprite(self));
-    return DBL2NUM(get_sprite(self)->zoom_y);
-}
-
-VALUE rb_Sprite_setZoomX(VALUE self, VALUE v)
-{
-    check_disposed(get_sprite(self));
-    get_sprite(self)->zoom_x = (float)NUM2DBL(v);
-    return v;
-}
-
-VALUE rb_Sprite_setZoomY(VALUE self, VALUE v)
-{
-    check_disposed(get_sprite(self));
-    get_sprite(self)->zoom_y = (float)NUM2DBL(v);
-    return v;
-}
+VALUE rb_Sprite_getZoomX(VALUE self) { check_disposed(get_sprite(self)); return DBL2NUM(get_sprite(self)->zoom_x); }
+VALUE rb_Sprite_getZoomY(VALUE self) { check_disposed(get_sprite(self)); return DBL2NUM(get_sprite(self)->zoom_y); }
+VALUE rb_Sprite_setZoomX(VALUE self, VALUE v) { check_disposed(get_sprite(self)); get_sprite(self)->zoom_x = (float)NUM2DBL(v); return v; }
+VALUE rb_Sprite_setZoomY(VALUE self, VALUE v) { check_disposed(get_sprite(self)); get_sprite(self)->zoom_y = (float)NUM2DBL(v); return v; }
 
 VALUE rb_Sprite_setZoom(VALUE self, VALUE v)
 {
     check_disposed(get_sprite(self));
-    float z = (float)NUM2DBL(v);
-    get_sprite(self)->zoom_x = z;
-    get_sprite(self)->zoom_y = z;
+    const float z = (float)NUM2DBL(v);
+    auto *s = get_sprite(self);
+    s->zoom_x = z;
+    s->zoom_y = z;
     return v;
 }
 
-// --- opacity ---
-
-VALUE rb_Sprite_getOpacity(VALUE self)
-{
-    check_disposed(get_sprite(self));
-    return INT2NUM(get_sprite(self)->opacity);
-}
-
+VALUE rb_Sprite_getOpacity(VALUE self) { check_disposed(get_sprite(self)); return INT2NUM(get_sprite(self)->opacity); }
 VALUE rb_Sprite_setOpacity(VALUE self, VALUE v)
 {
     check_disposed(get_sprite(self));
@@ -281,22 +178,8 @@ VALUE rb_Sprite_setOpacity(VALUE self, VALUE v)
     return v;
 }
 
-// --- mirror ---
-
-VALUE rb_Sprite_getMirror(VALUE self)
-{
-    check_disposed(get_sprite(self));
-    return get_sprite(self)->mirror ? Qtrue : Qfalse;
-}
-
-VALUE rb_Sprite_setMirror(VALUE self, VALUE v)
-{
-    check_disposed(get_sprite(self));
-    get_sprite(self)->mirror = RTEST(v);
-    return v;
-}
-
-// --- src_rect as [x, y, w, h] ---
+VALUE rb_Sprite_getMirror(VALUE self) { check_disposed(get_sprite(self)); return get_sprite(self)->mirror ? Qtrue : Qfalse; }
+VALUE rb_Sprite_setMirror(VALUE self, VALUE v) { check_disposed(get_sprite(self)); get_sprite(self)->mirror = RTEST(v); return v; }
 
 VALUE rb_Sprite_getRect(VALUE self)
 {
@@ -322,8 +205,6 @@ VALUE rb_Sprite_setRect(VALUE self, VALUE val)
     return val;
 }
 
-// --- set_position / set_origin ---
-
 VALUE rb_Sprite_setPosition(VALUE self, VALUE x, VALUE y)
 {
     check_disposed(get_sprite(self));
@@ -342,43 +223,48 @@ VALUE rb_Sprite_setOrigin(VALUE self, VALUE x, VALUE y)
     return self;
 }
 
-// --- viewport ---
-
-VALUE rb_Sprite_getViewport(VALUE self)
-{
-    check_disposed(get_sprite(self));
-    return get_sprite(self)->rViewport;
-}
+VALUE rb_Sprite_getViewport(VALUE self) { check_disposed(get_sprite(self)); return get_sprite(self)->rViewport; }
 
 // --- draw (called from Ruby render loop) ---
 
 VALUE rb_Sprite_draw(VALUE self)
 {
     auto *s = get_sprite(self);
-    if (s->rViewport != Qnil)
-    {
+    if (s->disposed || !s->visible || !s->has_texture) return self;
+
+    if (s->rViewport != Qnil) {
         auto *vp = get_viewport(s->rViewport);
-        if (vp->disposed || !vp->visible)
-            return self;
+        if (vp->disposed || !vp->visible) return self;
     }
 
-    raylib::Rectangle src = {
-        (float)s->src_x,
-        (float)s->src_y,
-        (float)(s->mirror ? -s->src_width : s->src_width),
-        (float)s->src_height};
+    auto* window = get_active_native_window();
+    if (window == nullptr) return self;
 
-    raylib::Rectangle dst = {
-        s->x,
-        s->y,
-        (float)s->src_width * s->zoom_x,
-        (float)s->src_height * s->zoom_y};
+    // Route through the extension SPI to reach the native texture inside
+    // the cgss::Texture wrapper. Ops::texture_share returns a shared_ptr;
+    // we use it for the live native reference.
+    auto nativePtr = Ops::texture_share(s->texture);
+    if (!nativePtr) return self;
 
-    raylib::Vector2 origin = {s->ox * s->zoom_x, s->oy * s->zoom_y};
+    auto& target = Ops::target_from_window(*window);
 
-    raylib::Color tint = {255, 255, 255, s->opacity};
+    const cgss::IntRect src{
+        s->src_x, s->src_y,
+        s->mirror ? -s->src_width : s->src_width,
+        s->src_height };
 
-    raylib::DrawTexturePro(*s->texture, src, dst, origin, s->angle, tint);
+    Ops::draw_texture_pro(
+        target,
+        *nativePtr,
+        src,
+        s->x, s->y,
+        static_cast<float>(s->src_width)  * s->zoom_x,
+        static_cast<float>(s->src_height) * s->zoom_y,
+        s->ox * s->zoom_x,
+        s->oy * s->zoom_y,
+        s->angle,
+        cgss::Color{ 255, 255, 255, s->opacity });
+
     return self;
 }
 

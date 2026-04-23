@@ -1,11 +1,19 @@
-#include <LiteCGSS2/Common/RaylibWrapper.h>
+// Backend-agnostic Ruby Viewport binding. begin_draw / end_draw route
+// through Ops::viewport_begin / viewport_end — raylib: BeginScissorMode +
+// rlPushMatrix+translate+scale; SFML: sf::View with viewport+size+center
+// emulation (see SFMLBackend.h).
+
 #include "LiteRGSS.h"
 #include "RubyValue.h"
 #include "Viewport.h"
 #include "window/Window.h"
 
-using raylib::Matrix;
-#include "rlgl.h"
+#include <LiteCGSS/Backend/ActiveBackend.h>
+
+namespace {
+	using Backend = cgss::backend::ActiveBackend;
+	using Ops = Backend::Ops;
+}
 
 VALUE rb_cViewport = Qnil;
 
@@ -22,8 +30,6 @@ static const rb_data_type_t viewport_type = {
     nullptr,
     nullptr,
     RUBY_TYPED_FREE_IMMEDIATELY};
-
-// --- Helper functions ---
 
 ViewportData *get_viewport(VALUE self)
 {
@@ -63,89 +69,22 @@ VALUE rb_Viewport_Initialize(int argc, VALUE *argv, VALUE self)
     return self;
 }
 
-VALUE rb_Viewport_Dispose(VALUE self)
-{
-    get_viewport(self)->disposed = true;
-    return self;
-}
+VALUE rb_Viewport_Dispose(VALUE self) { get_viewport(self)->disposed = true; return self; }
+VALUE rb_Viewport_Disposed(VALUE self) { return get_viewport(self)->disposed ? Qtrue : Qfalse; }
+VALUE rb_Viewport_Copy(VALUE self) { (void)self; rb_raise(rb_eRuntimeError, "Viewports cannot be cloned or duplicated."); return self; }
 
-VALUE rb_Viewport_Disposed(VALUE self)
-{
-    return get_viewport(self)->disposed ? Qtrue : Qfalse;
-}
-
-VALUE rb_Viewport_Copy(VALUE self)
-{
-    rb_raise(rb_eRuntimeError, "Viewports cannot be cloned or duplicated.");
-    return self;
-}
-
-VALUE rb_Viewport_getOX(VALUE self)
-{
-    check_disposed(get_viewport(self));
-    return INT2NUM(get_viewport(self)->ox);
-}
-VALUE rb_Viewport_setOX(VALUE self, VALUE val)
-{
-    check_disposed(get_viewport(self));
-    get_viewport(self)->ox = NUM2INT(val);
-    return val;
-}
-VALUE rb_Viewport_getOY(VALUE self)
-{
-    check_disposed(get_viewport(self));
-    return INT2NUM(get_viewport(self)->oy);
-}
-VALUE rb_Viewport_setOY(VALUE self, VALUE val)
-{
-    check_disposed(get_viewport(self));
-    get_viewport(self)->oy = NUM2INT(val);
-    return val;
-}
-VALUE rb_Viewport_getVisible(VALUE self)
-{
-    check_disposed(get_viewport(self));
-    return get_viewport(self)->visible ? Qtrue : Qfalse;
-}
-VALUE rb_Viewport_setVisible(VALUE self, VALUE val)
-{
-    check_disposed(get_viewport(self));
-    get_viewport(self)->visible = RTEST(val);
-    return val;
-}
-VALUE rb_Viewport_getZ(VALUE self)
-{
-    check_disposed(get_viewport(self));
-    return INT2NUM(get_viewport(self)->z);
-}
-VALUE rb_Viewport_setZ(VALUE self, VALUE val)
-{
-    check_disposed(get_viewport(self));
-    get_viewport(self)->z = NUM2INT(val);
-    return val;
-}
-VALUE rb_Viewport_getZoom(VALUE self)
-{
-    check_disposed(get_viewport(self));
-    return DBL2NUM(get_viewport(self)->zoom);
-}
-VALUE rb_Viewport_setZoom(VALUE self, VALUE val)
-{
-    check_disposed(get_viewport(self));
-    get_viewport(self)->zoom = (float)NUM2DBL(val);
-    return val;
-}
-VALUE rb_Viewport_getAngle(VALUE self)
-{
-    check_disposed(get_viewport(self));
-    return DBL2NUM(get_viewport(self)->angle);
-}
-VALUE rb_Viewport_setAngle(VALUE self, VALUE val)
-{
-    check_disposed(get_viewport(self));
-    get_viewport(self)->angle = (float)(NUM2INT(val) % 360);
-    return val;
-}
+VALUE rb_Viewport_getOX(VALUE self) { check_disposed(get_viewport(self)); return INT2NUM(get_viewport(self)->ox); }
+VALUE rb_Viewport_setOX(VALUE self, VALUE val) { check_disposed(get_viewport(self)); get_viewport(self)->ox = NUM2INT(val); return val; }
+VALUE rb_Viewport_getOY(VALUE self) { check_disposed(get_viewport(self)); return INT2NUM(get_viewport(self)->oy); }
+VALUE rb_Viewport_setOY(VALUE self, VALUE val) { check_disposed(get_viewport(self)); get_viewport(self)->oy = NUM2INT(val); return val; }
+VALUE rb_Viewport_getVisible(VALUE self) { check_disposed(get_viewport(self)); return get_viewport(self)->visible ? Qtrue : Qfalse; }
+VALUE rb_Viewport_setVisible(VALUE self, VALUE val) { check_disposed(get_viewport(self)); get_viewport(self)->visible = RTEST(val); return val; }
+VALUE rb_Viewport_getZ(VALUE self) { check_disposed(get_viewport(self)); return INT2NUM(get_viewport(self)->z); }
+VALUE rb_Viewport_setZ(VALUE self, VALUE val) { check_disposed(get_viewport(self)); get_viewport(self)->z = NUM2INT(val); return val; }
+VALUE rb_Viewport_getZoom(VALUE self) { check_disposed(get_viewport(self)); return DBL2NUM(get_viewport(self)->zoom); }
+VALUE rb_Viewport_setZoom(VALUE self, VALUE val) { check_disposed(get_viewport(self)); get_viewport(self)->zoom = (float)NUM2DBL(val); return val; }
+VALUE rb_Viewport_getAngle(VALUE self) { check_disposed(get_viewport(self)); return DBL2NUM(get_viewport(self)->angle); }
+VALUE rb_Viewport_setAngle(VALUE self, VALUE val) { check_disposed(get_viewport(self)); get_viewport(self)->angle = (float)(NUM2INT(val) % 360); return val; }
 
 VALUE rb_Viewport_getRect(VALUE self)
 {
@@ -174,31 +113,39 @@ VALUE rb_Viewport_setRect(VALUE self, VALUE val)
 VALUE rb_Viewport_beginDraw(VALUE self)
 {
     auto *vp = get_viewport(self);
-    if (vp->disposed || !vp->visible)
-        return self;
+    if (vp->disposed || !vp->visible) return self;
 
-    float scale = get_window_scale();
+    auto* window = get_active_native_window();
+    if (window == nullptr) return self;
+    auto& target = Ops::target_from_window(*window);
 
-    int scaled_x = (int)(vp->x * scale);
-    int scaled_y = (int)(vp->y * scale);
-    int scaled_width = (int)(vp->width * scale);
-    int scaled_height = (int)(vp->height * scale);
+    const float scale = get_window_scale();
 
-    raylib::BeginScissorMode(scaled_x, scaled_y, scaled_width, scaled_height);
+    const int scaled_x = (int)(vp->x * scale);
+    const int scaled_y = (int)(vp->y * scale);
+    const int scaled_width  = (int)(vp->width  * scale);
+    const int scaled_height = (int)(vp->height * scale);
 
-    raylib::DrawRectangle(scaled_x, scaled_y, scaled_width, scaled_height, raylib::WHITE);
+    Ops::viewport_begin(target,
+                        scaled_x, scaled_y, scaled_width, scaled_height,
+                        -vp->ox * scale, -vp->oy * scale,
+                        scale * vp->zoom, scale * vp->zoom);
 
-    rlPushMatrix();
-    rlTranslatef(-vp->ox * scale, -vp->oy * scale, 0.0f);
-    rlScalef(scale * vp->zoom, scale * vp->zoom, 1.0f);
+    // Debug/background fill preserved from the legacy raylib-direct impl.
+    // Sprites drawn later overlay on top.
+    Ops::draw_filled_rect(target,
+                          scaled_x, scaled_y, scaled_width, scaled_height,
+                          cgss::Colors::White);
 
     return self;
 }
 
 VALUE rb_Viewport_endDraw(VALUE self)
 {
-    rlPopMatrix();
-    raylib::EndScissorMode();
+    auto* window = get_active_native_window();
+    if (window == nullptr) return self;
+    auto& target = Ops::target_from_window(*window);
+    Ops::viewport_end(target);
     return self;
 }
 

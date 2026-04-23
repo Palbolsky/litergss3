@@ -1,6 +1,14 @@
+// Backend-agnostic Ruby Fonts binding. Font storage uses cgss::Font; all
+// load/destroy routes through backend Ops. The per-font atlas release is
+// handled by cgss::Font's destructor (which calls Ops::font_destroy on
+// the last-held instance).
+
 #include <iostream>
 #include <vector>
+
 #include <LiteCGSS/Common/NormalizeNumbers.h>
+#include <LiteCGSS/Graphics/Font.h>
+
 #include "LiteRGSS.h"
 #include "Color.h"
 #include "Fonts.h"
@@ -13,43 +21,48 @@ ID rb_Fonts_ivOColor = Qnil;
 ID rb_Fonts_ivSColor = Qnil;
 
 std::vector<unsigned int> rb_Fonts_Size_Tbl;
-std::vector<raylib::Font> rb_Fonts_font_tbl;
+// cgss::Font is non-copy-assignable in practice (the copy-ctor does a
+// deep copy of the native font, which is expensive for SFML's font-face
+// data and non-trivial for raylib's GPU atlas). Store as unique_ptr so
+// vector re-sizing moves pointers rather than copying Fonts.
+static std::vector<std::unique_ptr<cgss::Font>> g_fontTable;
 
 VALUE rb_Fonts_clear_all(VALUE self)
 {
     rb_Fonts_Size_Tbl.clear();
     rb_Fonts_Size_Tbl.shrink_to_fit();
-    rb_Fonts_font_tbl.clear();
-    rb_Fonts_font_tbl.shrink_to_fit();
+    // Dropping the unique_ptrs triggers each cgss::Font's dtor, which
+    // routes through Ops::font_destroy to release the GPU atlas / SFML
+    // font-face backing.
+    g_fontTable.clear();
+    g_fontTable.shrink_to_fit();
     return self;
 }
 
 VALUE rb_Fonts_load_font(VALUE self, VALUE id, VALUE str)
 {
-    unsigned long position = cgss::normalize_long(rb_num2long(id), 0, 255);
+    const unsigned long position = cgss::normalize_long(rb_num2long(id), 0, 255);
     rb_check_type(str, T_STRING);
-    while (rb_Fonts_font_tbl.size() <= position)
-    {
-        rb_Fonts_font_tbl.push_back(raylib::Font());
+    while (g_fontTable.size() <= position) {
+        g_fontTable.push_back(std::make_unique<cgss::Font>());
     }
-    raylib::LoadFont(RSTRING_PTR(str));
+    // load() replaces any prior content (destroying the old atlas first).
+    g_fontTable[position]->load(std::string{RSTRING_PTR(str)});
     return self;
 }
 
-raylib::Font &rb_Fonts_get_font(unsigned long id)
+cgss::Font& rb_Fonts_get_font(unsigned long id)
 {
-    if (rb_Fonts_font_tbl.size() <= id)
-    {
+    if (g_fontTable.size() <= id || !g_fontTable[id]) {
         rb_raise(rb_eRGSSError, "Unable to fetch font n°%d.", static_cast<int>(id));
     }
-    return rb_Fonts_font_tbl[id];
+    return *g_fontTable[id];
 }
 
 VALUE rb_Fonts_set_default_size(VALUE self, VALUE id, VALUE size)
 {
-    unsigned long position = rb_num2long(id);
-    while (rb_Fonts_Size_Tbl.size() <= position)
-    {
+    const unsigned long position = rb_num2long(id);
+    while (rb_Fonts_Size_Tbl.size() <= position) {
         rb_Fonts_Size_Tbl.push_back(16);
     }
     rb_Fonts_Size_Tbl[position] = static_cast<unsigned int>(rb_num2long(size));
@@ -58,8 +71,7 @@ VALUE rb_Fonts_set_default_size(VALUE self, VALUE id, VALUE size)
 
 VALUE rb_Fonts_define_fill_color(VALUE self, VALUE id, VALUE color)
 {
-    if (rb_obj_is_kind_of(color, rb_cColor) != Qtrue)
-    {
+    if (rb_obj_is_kind_of(color, rb_cColor) != Qtrue) {
         rb_raise(rb_eTypeError, "Expected Color got %s.", RSTRING_PTR(rb_class_name(CLASS_OF(color))));
         return self;
     }
@@ -69,8 +81,7 @@ VALUE rb_Fonts_define_fill_color(VALUE self, VALUE id, VALUE color)
 
 VALUE rb_Fonts_define_outline_color(VALUE self, VALUE id, VALUE color)
 {
-    if (rb_obj_is_kind_of(color, rb_cColor) != Qtrue)
-    {
+    if (rb_obj_is_kind_of(color, rb_cColor) != Qtrue) {
         rb_raise(rb_eTypeError, "Expected Color got %s.", RSTRING_PTR(rb_class_name(CLASS_OF(color))));
         return self;
     }
@@ -80,8 +91,7 @@ VALUE rb_Fonts_define_outline_color(VALUE self, VALUE id, VALUE color)
 
 VALUE rb_Fonts_define_shadow_color(VALUE self, VALUE id, VALUE color)
 {
-    if (rb_obj_is_kind_of(color, rb_cColor) != Qtrue)
-    {
+    if (rb_obj_is_kind_of(color, rb_cColor) != Qtrue) {
         rb_raise(rb_eTypeError, "Expected Color got %s.", RSTRING_PTR(rb_class_name(CLASS_OF(color))));
         return self;
     }
@@ -91,9 +101,8 @@ VALUE rb_Fonts_define_shadow_color(VALUE self, VALUE id, VALUE color)
 
 VALUE rb_Fonts_get_default_size(VALUE self, VALUE id)
 {
-    std::size_t lid = rb_num2long(id);
-    if (lid >= rb_Fonts_Size_Tbl.size())
-    {
+    const std::size_t lid = rb_num2long(id);
+    if (lid >= rb_Fonts_Size_Tbl.size()) {
         return LONG2FIX(16);
     }
     return rb_int2inum(static_cast<long>(rb_Fonts_Size_Tbl[lid]));
