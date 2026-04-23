@@ -35,12 +35,19 @@
 #include <SFML/Graphics/View.hpp>
 #include <SFML/Window/ContextSettings.hpp>
 #include <SFML/Window/Event.hpp>
+#include <SFML/Window/Joystick.hpp>
+#include <SFML/Window/Keyboard.hpp>
+#include <SFML/Window/Mouse.hpp>
+
+#include <optional>
 
 #include "LiteCGSS/Backend/Internal/SFMLConversions.h"
 #include "LiteCGSS/Common/Color.h"
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Configuration/DisplayWindowContextSettings.h"
 #include "LiteCGSS/Common/Point.h"
+#include "LiteCGSS/Events/EventPayloads.h"
+#include "LiteCGSS/Events/EventType.h"
 #include "LiteCGSS/Graphics/BlendMode.h"
 #include "LiteCGSS/Graphics/Glsl.h"
 #include "LiteCGSS/Graphics/ShaderType.h"
@@ -135,6 +142,287 @@ namespace cgss::backend {
 		static inline bool window_wait_event(native_window& w, native_event& ev) {
 			return w.waitEvent(ev);
 		}
+
+		// ---- Event translation ops ----
+		// Translate an already-polled `sf::Event` to cgss-typed payloads.
+		// Numeric layout of cgss enums was chosen (see KeyCode.h,
+		// EventType.h, MouseButton.h) so most sf types just need a
+		// `static_cast`. Gamepad button/axis and the deprecated-wheel event
+		// need real re-mapping — handled by the small `to_cgss_*` helpers
+		// defined at the bottom of this struct.
+
+		static inline cgss::EventType event_type(const native_event& e) noexcept {
+			// SFML's MouseWheelMoved (type 7) is deprecated but still emitted;
+			// collapse it to MouseWheelScrolled for consumers.
+			if (e.type == sf::Event::MouseWheelMoved) {
+				return cgss::EventType::MouseWheelScrolled;
+			}
+			return static_cast<cgss::EventType>(e.type);
+		}
+
+		static inline std::optional<cgss::KeyEvent> event_as_key_press(const native_event& e) {
+			if (e.type != sf::Event::KeyPressed) return std::nullopt;
+			return cgss::KeyEvent{
+				static_cast<cgss::KeyCode>(e.key.code),
+				e.key.alt, e.key.control, e.key.shift, e.key.system
+			};
+		}
+		static inline std::optional<cgss::KeyEvent> event_as_key_release(const native_event& e) {
+			if (e.type != sf::Event::KeyReleased) return std::nullopt;
+			return cgss::KeyEvent{
+				static_cast<cgss::KeyCode>(e.key.code),
+				e.key.alt, e.key.control, e.key.shift, e.key.system
+			};
+		}
+		static inline std::optional<cgss::TextEvent> event_as_text_entered(const native_event& e) {
+			if (e.type != sf::Event::TextEntered) return std::nullopt;
+			return cgss::TextEvent{ e.text.unicode };
+		}
+		static inline std::optional<cgss::SizeEvent> event_as_resize(const native_event& e) {
+			if (e.type != sf::Event::Resized) return std::nullopt;
+			return cgss::SizeEvent{ e.size.width, e.size.height };
+		}
+		static inline std::optional<cgss::MouseMoveEvent> event_as_mouse_move(const native_event& e) {
+			if (e.type != sf::Event::MouseMoved) return std::nullopt;
+			return cgss::MouseMoveEvent{ e.mouseMove.x, e.mouseMove.y };
+		}
+		static inline std::optional<cgss::MouseButtonEvent> event_as_mouse_button_press(const native_event& e) {
+			if (e.type != sf::Event::MouseButtonPressed) return std::nullopt;
+			return cgss::MouseButtonEvent{
+				static_cast<cgss::MouseButton>(e.mouseButton.button),
+				e.mouseButton.x, e.mouseButton.y
+			};
+		}
+		static inline std::optional<cgss::MouseButtonEvent> event_as_mouse_button_release(const native_event& e) {
+			if (e.type != sf::Event::MouseButtonReleased) return std::nullopt;
+			return cgss::MouseButtonEvent{
+				static_cast<cgss::MouseButton>(e.mouseButton.button),
+				e.mouseButton.x, e.mouseButton.y
+			};
+		}
+		static inline std::optional<cgss::MouseWheelEvent> event_as_mouse_wheel(const native_event& e) {
+			if (e.type == sf::Event::MouseWheelScrolled) {
+				return cgss::MouseWheelEvent{
+					e.mouseWheelScroll.delta,
+					e.mouseWheelScroll.x, e.mouseWheelScroll.y,
+					e.mouseWheelScroll.wheel == sf::Mouse::HorizontalWheel
+				};
+			}
+			if (e.type == sf::Event::MouseWheelMoved) {
+				// Deprecated SFML event; carries no wheel-axis info. Assume
+				// vertical (the only wheel this event ever reported).
+				return cgss::MouseWheelEvent{
+					static_cast<float>(e.mouseWheel.delta),
+					e.mouseWheel.x, e.mouseWheel.y, false
+				};
+			}
+			return std::nullopt;
+		}
+		static inline std::optional<cgss::GamepadButtonEvent> event_as_gamepad_button_press(const native_event& e) {
+			if (e.type != sf::Event::JoystickButtonPressed) return std::nullopt;
+			return cgss::GamepadButtonEvent{
+				e.joystickButton.joystickId,
+				from_sfml_joystick_button(e.joystickButton.button)
+			};
+		}
+		static inline std::optional<cgss::GamepadButtonEvent> event_as_gamepad_button_release(const native_event& e) {
+			if (e.type != sf::Event::JoystickButtonReleased) return std::nullopt;
+			return cgss::GamepadButtonEvent{
+				e.joystickButton.joystickId,
+				from_sfml_joystick_button(e.joystickButton.button)
+			};
+		}
+		static inline std::optional<cgss::GamepadMoveEvent> event_as_gamepad_move(const native_event& e) {
+			if (e.type != sf::Event::JoystickMoved) return std::nullopt;
+			return cgss::GamepadMoveEvent{
+				e.joystickMove.joystickId,
+				from_sfml_joystick_axis(e.joystickMove.axis),
+				e.joystickMove.position / 100.f // SFML [-100..100] -> cgss [-1..1]
+			};
+		}
+		static inline std::optional<cgss::GamepadConnectEvent> event_as_gamepad_connect(const native_event& e) {
+			if (e.type != sf::Event::JoystickConnected) return std::nullopt;
+			return cgss::GamepadConnectEvent{ e.joystickConnect.joystickId };
+		}
+		static inline std::optional<cgss::GamepadConnectEvent> event_as_gamepad_disconnect(const native_event& e) {
+			if (e.type != sf::Event::JoystickDisconnected) return std::nullopt;
+			return cgss::GamepadConnectEvent{ e.joystickConnect.joystickId };
+		}
+		static inline std::optional<cgss::TouchEvent> event_as_touch(const native_event& e) {
+			cgss::TouchPhase phase;
+			switch (e.type) {
+				case sf::Event::TouchBegan: phase = cgss::TouchPhase::Began; break;
+				case sf::Event::TouchMoved: phase = cgss::TouchPhase::Moved; break;
+				case sf::Event::TouchEnded: phase = cgss::TouchPhase::Ended; break;
+				default: return std::nullopt;
+			}
+			return cgss::TouchEvent{ e.touch.finger, e.touch.x, e.touch.y, phase };
+		}
+		static inline std::optional<cgss::SensorEvent> event_as_sensor(const native_event& e) {
+			if (e.type != sf::Event::SensorChanged) return std::nullopt;
+			return cgss::SensorEvent{
+				static_cast<cgss::SensorType>(e.sensor.type),
+				e.sensor.x, e.sensor.y, e.sensor.z
+			};
+		}
+
+		// ---- Input ops (synchronous state queries) ----
+
+		// Keyboard — cgss::KeyCode values 0..100 match sf::Keyboard::Key. cgss
+		// extensions (>=101: CapsLock, NumLock, ...) are not in SFML 2.6's
+		// base enum, so they return false here. A future upgrade can wire
+		// them via sf::Keyboard::Scan.
+		static inline bool keyboard_is_key_pressed(cgss::KeyCode code) {
+			const auto i = static_cast<int>(code);
+			if (i < 0 || i >= static_cast<int>(sf::Keyboard::KeyCount)) return false;
+			return sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(i));
+		}
+
+		// Mouse
+		static inline bool mouse_is_button_pressed(cgss::MouseButton btn) {
+			const auto i = static_cast<int>(btn);
+			// VerticalWheel/HorizontalWheel are event-only under SFML.
+			if (i < 0 || i >= static_cast<int>(sf::Mouse::ButtonCount)) return false;
+			return sf::Mouse::isButtonPressed(static_cast<sf::Mouse::Button>(i));
+		}
+		static inline Point2i mouse_get_position() {
+			const auto p = sf::Mouse::getPosition();
+			return { p.x, p.y };
+		}
+		static inline Point2i mouse_get_position(const native_window& w) {
+			const auto p = sf::Mouse::getPosition(w);
+			return { p.x, p.y };
+		}
+		static inline void mouse_set_position(int x, int y) {
+			sf::Mouse::setPosition(sf::Vector2i{ x, y });
+		}
+		static inline void mouse_set_position(int x, int y, const native_window& w) {
+			sf::Mouse::setPosition(sf::Vector2i{ x, y }, w);
+		}
+		// SFML 2.6 exposes wheel delta only via events — no state query.
+		// Callers must gate on `has_wheel_state_query` before calling.
+		static inline float mouse_wheel_delta() noexcept { return 0.f; }
+
+		// Gamepad — sf::Joystick uses opaque 0..31 button indices, so
+		// `gamepad_is_button_pressed(GamepadButton)` needs a cgss->index
+		// mapping via `to_sfml_joystick_button`. The mapping follows XInput
+		// on Linux (SDL GameController layout) and may misalign on other
+		// drivers; callers that need exact button indices can use
+		// `gamepad_is_raw_button_pressed(id, idx)` as an escape hatch in a
+		// future revision.
+		static inline bool gamepad_is_connected(unsigned int id) {
+			return sf::Joystick::isConnected(id);
+		}
+		static inline bool gamepad_is_button_pressed(unsigned int id, cgss::GamepadButton btn) {
+			const auto idx = to_sfml_joystick_button(btn);
+			if (idx < 0) return false;
+			return sf::Joystick::isButtonPressed(id, static_cast<unsigned int>(idx));
+		}
+		static inline bool gamepad_is_button_released(unsigned int id, cgss::GamepadButton btn) {
+			return !gamepad_is_button_pressed(id, btn);
+		}
+		static inline float gamepad_axis_position(unsigned int id, cgss::GamepadAxis axis) {
+			return sf::Joystick::getAxisPosition(id, to_sfml_joystick_axis(axis)) / 100.f;
+		}
+		static inline unsigned int gamepad_axis_count(unsigned int id) {
+			// SFML has no "axis count" — approximate with button count or
+			// hardcode AxisCount. Return 0 for disconnected pads.
+			if (!sf::Joystick::isConnected(id)) return 0u;
+			return static_cast<unsigned int>(sf::Joystick::AxisCount);
+		}
+		static inline const char* gamepad_name(unsigned int id) {
+			// sf::String -> stable C string. Return empty string on
+			// disconnected. Note: the returned pointer is backed by a
+			// function-local static, so it is overwritten by subsequent calls.
+			static std::string name;
+			if (!sf::Joystick::isConnected(id)) { name.clear(); return name.c_str(); }
+			name = sf::Joystick::getIdentification(id).name.toAnsiString();
+			return name.c_str();
+		}
+		static inline void gamepad_set_vibration(unsigned int /*id*/, float /*left*/, float /*right*/, float /*ms*/) {
+			// SFML 2.6 has no rumble / vibration API. No-op; loggers can
+			// observe the first call via a scratch flag (out of scope here).
+		}
+		static inline void gamepad_update() {
+			sf::Joystick::update();
+		}
+
+		// Touch — SFML exposes touch only through events, not sync state.
+		// `has_input_touch = false` on this backend; these are present for
+		// Ops-symmetry with raylib.
+		static inline unsigned int touch_count() noexcept { return 0u; }
+		static inline Point2i      touch_position(unsigned int /*index*/) noexcept { return {}; }
+		static inline unsigned int touch_id(unsigned int /*index*/) noexcept { return 0u; }
+
+	private:
+		// cgss::GamepadButton <-> sf::Joystick raw button index. SFML treats
+		// joystick buttons as opaque indices; this mapping follows the
+		// common XInput-style layout (SDL GameController convention) as seen
+		// on Linux with Xbox / DualShock / Nintendo Switch Pro controllers.
+		// Dpad buttons (LeftFace*) are reported as PovX/PovY axes on XInput,
+		// not buttons — they return -1 (unmapped, false).
+		static inline int to_sfml_joystick_button(cgss::GamepadButton b) noexcept {
+			switch (b) {
+				case cgss::GamepadButton::RightFaceDown:  return 0; // A / Cross
+				case cgss::GamepadButton::RightFaceRight: return 1; // B / Circle
+				case cgss::GamepadButton::RightFaceLeft:  return 2; // X / Square
+				case cgss::GamepadButton::RightFaceUp:    return 3; // Y / Triangle
+				case cgss::GamepadButton::LeftTrigger1:   return 4; // LB
+				case cgss::GamepadButton::RightTrigger1:  return 5; // RB
+				case cgss::GamepadButton::MiddleLeft:     return 6; // Back / Select
+				case cgss::GamepadButton::MiddleRight:    return 7; // Start
+				case cgss::GamepadButton::LeftThumb:      return 8; // LSB
+				case cgss::GamepadButton::RightThumb:     return 9; // RSB
+				case cgss::GamepadButton::Middle:         return 10; // Guide
+				// LeftFace* (dpad), LeftTrigger2/RightTrigger2 (analog as axes)
+				// and Unknown are not direct button indices under XInput.
+				default: return -1;
+			}
+		}
+		static inline cgss::GamepadButton from_sfml_joystick_button(unsigned int idx) noexcept {
+			switch (idx) {
+				case 0:  return cgss::GamepadButton::RightFaceDown;
+				case 1:  return cgss::GamepadButton::RightFaceRight;
+				case 2:  return cgss::GamepadButton::RightFaceLeft;
+				case 3:  return cgss::GamepadButton::RightFaceUp;
+				case 4:  return cgss::GamepadButton::LeftTrigger1;
+				case 5:  return cgss::GamepadButton::RightTrigger1;
+				case 6:  return cgss::GamepadButton::MiddleLeft;
+				case 7:  return cgss::GamepadButton::MiddleRight;
+				case 8:  return cgss::GamepadButton::LeftThumb;
+				case 9:  return cgss::GamepadButton::RightThumb;
+				case 10: return cgss::GamepadButton::Middle;
+				default: return cgss::GamepadButton::Unknown;
+			}
+		}
+		// cgss::GamepadAxis <-> sf::Joystick::Axis. X/Y = left stick,
+		// U/V = right stick (XInput convention on Linux), Z/R = triggers.
+		static inline sf::Joystick::Axis to_sfml_joystick_axis(cgss::GamepadAxis a) noexcept {
+			switch (a) {
+				case cgss::GamepadAxis::LeftX:        return sf::Joystick::X;
+				case cgss::GamepadAxis::LeftY:        return sf::Joystick::Y;
+				case cgss::GamepadAxis::RightX:       return sf::Joystick::U;
+				case cgss::GamepadAxis::RightY:       return sf::Joystick::V;
+				case cgss::GamepadAxis::LeftTrigger:  return sf::Joystick::Z;
+				case cgss::GamepadAxis::RightTrigger: return sf::Joystick::R;
+			}
+			return sf::Joystick::X;
+		}
+		static inline cgss::GamepadAxis from_sfml_joystick_axis(sf::Joystick::Axis a) noexcept {
+			switch (a) {
+				case sf::Joystick::X: return cgss::GamepadAxis::LeftX;
+				case sf::Joystick::Y: return cgss::GamepadAxis::LeftY;
+				case sf::Joystick::U: return cgss::GamepadAxis::RightX;
+				case sf::Joystick::V: return cgss::GamepadAxis::RightY;
+				case sf::Joystick::Z: return cgss::GamepadAxis::LeftTrigger;
+				case sf::Joystick::R: return cgss::GamepadAxis::RightTrigger;
+				case sf::Joystick::PovX: return cgss::GamepadAxis::LeftX;
+				case sf::Joystick::PovY: return cgss::GamepadAxis::LeftY;
+			}
+			return cgss::GamepadAxis::LeftX;
+		}
+	public:
+
 		// Desktop-mode static query (independent of any window instance).
 		static inline Size2u desktop_size() noexcept {
 			const auto m = sf::VideoMode::getDesktopMode();

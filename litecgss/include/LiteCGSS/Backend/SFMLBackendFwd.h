@@ -66,6 +66,17 @@ namespace cgss::backend {
 		// should gate on this tag.
 		static constexpr bool window_is_stateful = true;
 
+		// Input capability tags — allow ext/ Ruby bindings (and any
+		// consumer) to `if constexpr` gate the synchronous `Ops::*_is_pressed`
+		// / `*_position` family. SFML covers keyboard/mouse/gamepad; it has
+		// no sync touch API (SFML exposes touch only via event pump) and no
+		// sync mouse-wheel state (wheel arrives as events only).
+		static constexpr bool has_input_keyboard    = true;
+		static constexpr bool has_input_mouse       = true;
+		static constexpr bool has_input_gamepad     = true;
+		static constexpr bool has_input_touch       = false;
+		static constexpr bool has_wheel_state_query = false;
+
 		// All inline thunks live on the nested Ops struct, defined in
 		// SFMLBackend.h. Forward-declared here so wrappers can name
 		// `B::Ops::method` in member declarations / dependent contexts.

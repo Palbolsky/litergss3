@@ -112,6 +112,17 @@ file(GLOB_RECURSE LITECGSS_BACKEND_IMPL_SOURCES CONFIGURE_DEPENDS
 	src/LiteCGSS/Backend/Specializations/${CGSS_BACKEND}/*.h
 )
 
+# Backend-gated files under src/LiteCGSS/Backend/Internal/ — their impls
+# depend on a specific backend's headers (e.g. RaylibEventQueue.cpp
+# includes <raylib.h>) so they must not be compiled under other backends.
+# Prefixed with the backend name for the filter to work.
+if(NOT CGSS_BACKEND STREQUAL "raylib")
+	list(FILTER LITECGSS_PRIVATE_SOURCES EXCLUDE REGEX "/LiteCGSS/Backend/Internal/Raylib")
+endif()
+if(NOT CGSS_BACKEND STREQUAL "sfml")
+	list(FILTER LITECGSS_PRIVATE_SOURCES EXCLUDE REGEX "/LiteCGSS/Backend/Internal/SFML")
+endif()
+
 set(LITECGSS_ALL_SOURCES
 	${LITECGSS_PUBLIC_HEADERS}
 	${LITECGSS_PRIVATE_SOURCES}

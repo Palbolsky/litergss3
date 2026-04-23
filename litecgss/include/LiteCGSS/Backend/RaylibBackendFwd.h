@@ -14,6 +14,8 @@
 // uniformly; the actual abstraction lives in Ops.
 
 #include "LiteCGSS/Backend/BackendCommon.h"
+#include "LiteCGSS/Events/EventPayloads.h"
+#include "LiteCGSS/Events/EventType.h"
 
 #include <raylib.h>
 
@@ -22,7 +24,6 @@ namespace cgss::backend {
 	namespace raylib {
 		struct Window {};
 		struct Sprite {};
-		struct Event {};
 		struct RenderStates {};
 		// Placeholder 2D transform — raylib draws with position/rotation/scale
 		// as separate args, so there is no native "Transform" type. This POD
@@ -34,6 +35,32 @@ namespace cgss::backend {
 			float ox = 0.f, oy = 0.f;
 			float angle = 0.f;
 			float scaleX = 1.f, scaleY = 1.f;
+		};
+
+		// Native event for the raylib backend. Raylib has no unified sf::Event
+		// analogue — its input API is polled state (IsKeyDown, GetKeyPressed,
+		// IsMouseButtonDown, ...). RaylibEventQueue.cpp synthesizes a queue
+		// by diffing per-frame state and pushes these tagged PODs; the
+		// `event_as_*` Ops read the appropriate payload field based on `type`.
+		//
+		// Plain struct (not a union) — payload structs are ~16 bytes each,
+		// total footprint ~100 bytes. Keeps `raylib::Event` trivially copyable
+		// and aggregate-constructible, avoiding the union-with-non-trivial-
+		// members dance that cgss::* payloads' default-initializers would
+		// otherwise require.
+		struct Event {
+			cgss::EventType type = cgss::EventType::Closed;
+			cgss::KeyEvent            key;
+			cgss::TextEvent           text;
+			cgss::SizeEvent           size;
+			cgss::MouseMoveEvent      mouseMove;
+			cgss::MouseButtonEvent    mouseButton;
+			cgss::MouseWheelEvent     mouseWheel;
+			cgss::GamepadButtonEvent  gamepadButton;
+			cgss::GamepadMoveEvent    gamepadMove;
+			cgss::GamepadConnectEvent gamepadConnect;
+			cgss::TouchEvent          touch;
+			cgss::SensorEvent         sensor;
 		};
 	}
 
@@ -66,6 +93,15 @@ namespace cgss::backend {
 		// window_get_default_view, window_set_view, window_get_settings) stay
 		// as no-op stubs for Ops symmetry; callers must gate on this tag.
 		static constexpr bool window_is_stateful = false;
+
+		// Input capability tags — see SFMLBackendFwd.h for rationale.
+		// Raylib exposes all four input families (keyboard, mouse, gamepad,
+		// touch) as polled state + has a sync mouse-wheel delta query.
+		static constexpr bool has_input_keyboard    = true;
+		static constexpr bool has_input_mouse       = true;
+		static constexpr bool has_input_gamepad     = true;
+		static constexpr bool has_input_touch       = true;
+		static constexpr bool has_wheel_state_query = true;
 
 		struct Ops;
 	};

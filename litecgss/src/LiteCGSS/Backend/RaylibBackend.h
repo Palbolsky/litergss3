@@ -24,14 +24,19 @@
 // anything.
 
 #include "LiteCGSS/Backend/RaylibBackendFwd.h"
+#include "LiteCGSS/Backend/Internal/RaylibEventQueue.h"
+#include "LiteCGSS/Backend/Internal/RaylibKeyTranslation.h"
 
 #include <cstdint>
 #include <cstddef>
+#include <optional>
 
 #include "LiteCGSS/Common/Color.h"
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Common/Point.h"
 #include "LiteCGSS/Configuration/DisplayWindowContextSettings.h"
+#include "LiteCGSS/Events/EventPayloads.h"
+#include "LiteCGSS/Events/EventType.h"
 #include "LiteCGSS/Graphics/BlendMode.h"
 #include "LiteCGSS/Graphics/Glsl.h"
 #include "LiteCGSS/Graphics/ShaderType.h"
@@ -88,8 +93,164 @@ namespace cgss::backend {
 		// Kept as no-op stubs for BackendConcept symmetry; callers must gate
 		// on `RaylibBackend::window_is_stateful` (= false) and avoid these.
 		static inline void window_set_active(native_window&, bool) {}
-		static inline bool window_poll_event(native_window&, native_event&) { return false; }
-		static inline bool window_wait_event(native_window&, native_event&) { return false; }
+		// Drain one synthesized event from the raylib event queue. See
+		// Backend/Internal/RaylibEventQueue.cpp for the state-diffing logic
+		// that produces these events from raylib's polled-only API.
+		static inline bool window_poll_event(native_window&, native_event& ev) {
+			return raylib_detail::tryPopEvent(ev);
+		}
+		// raylib has no blocking-wait primitive; fall back to the poll form.
+		static inline bool window_wait_event(native_window&, native_event& ev) {
+			return raylib_detail::tryPopEvent(ev);
+		}
+
+		// ---- Event translation ops ----
+		// native_event (raylib::Event) is already populated by the synthetic
+		// queue with typed payloads — just read the matching field based on
+		// the event type tag.
+		static inline cgss::EventType event_type(const native_event& e) noexcept { return e.type; }
+
+		static inline std::optional<cgss::KeyEvent> event_as_key_press(const native_event& e) {
+			if (e.type != cgss::EventType::KeyPressed) return std::nullopt;
+			return e.key;
+		}
+		static inline std::optional<cgss::KeyEvent> event_as_key_release(const native_event& e) {
+			if (e.type != cgss::EventType::KeyReleased) return std::nullopt;
+			return e.key;
+		}
+		static inline std::optional<cgss::TextEvent> event_as_text_entered(const native_event& e) {
+			if (e.type != cgss::EventType::TextEntered) return std::nullopt;
+			return e.text;
+		}
+		static inline std::optional<cgss::SizeEvent> event_as_resize(const native_event& e) {
+			if (e.type != cgss::EventType::Resized) return std::nullopt;
+			return e.size;
+		}
+		static inline std::optional<cgss::MouseMoveEvent> event_as_mouse_move(const native_event& e) {
+			if (e.type != cgss::EventType::MouseMoved) return std::nullopt;
+			return e.mouseMove;
+		}
+		static inline std::optional<cgss::MouseButtonEvent> event_as_mouse_button_press(const native_event& e) {
+			if (e.type != cgss::EventType::MouseButtonPressed) return std::nullopt;
+			return e.mouseButton;
+		}
+		static inline std::optional<cgss::MouseButtonEvent> event_as_mouse_button_release(const native_event& e) {
+			if (e.type != cgss::EventType::MouseButtonReleased) return std::nullopt;
+			return e.mouseButton;
+		}
+		static inline std::optional<cgss::MouseWheelEvent> event_as_mouse_wheel(const native_event& e) {
+			if (e.type != cgss::EventType::MouseWheelScrolled) return std::nullopt;
+			return e.mouseWheel;
+		}
+		static inline std::optional<cgss::GamepadButtonEvent> event_as_gamepad_button_press(const native_event& e) {
+			if (e.type != cgss::EventType::JoystickButtonPressed) return std::nullopt;
+			return e.gamepadButton;
+		}
+		static inline std::optional<cgss::GamepadButtonEvent> event_as_gamepad_button_release(const native_event& e) {
+			if (e.type != cgss::EventType::JoystickButtonReleased) return std::nullopt;
+			return e.gamepadButton;
+		}
+		static inline std::optional<cgss::GamepadMoveEvent> event_as_gamepad_move(const native_event& e) {
+			if (e.type != cgss::EventType::JoystickMoved) return std::nullopt;
+			return e.gamepadMove;
+		}
+		static inline std::optional<cgss::GamepadConnectEvent> event_as_gamepad_connect(const native_event& e) {
+			if (e.type != cgss::EventType::JoystickConnected) return std::nullopt;
+			return e.gamepadConnect;
+		}
+		static inline std::optional<cgss::GamepadConnectEvent> event_as_gamepad_disconnect(const native_event& e) {
+			if (e.type != cgss::EventType::JoystickDisconnected) return std::nullopt;
+			return e.gamepadConnect;
+		}
+		static inline std::optional<cgss::TouchEvent> event_as_touch(const native_event& e) {
+			switch (e.type) {
+				case cgss::EventType::TouchBegan:
+				case cgss::EventType::TouchMoved:
+				case cgss::EventType::TouchEnded:
+					return e.touch;
+				default:
+					return std::nullopt;
+			}
+		}
+		// Sensor: raylib has no sensor API. Always nullopt.
+		static inline std::optional<cgss::SensorEvent> event_as_sensor(const native_event&) { return std::nullopt; }
+
+		// ---- Input ops (synchronous state queries) ----
+
+		static inline bool keyboard_is_key_pressed(cgss::KeyCode code) {
+			const int k = raylib_detail::toRaylibKey(code);
+			if (k == KEY_NULL) return false;
+			return IsKeyDown(k);
+		}
+
+		static inline bool mouse_is_button_pressed(cgss::MouseButton btn) {
+			const int i = static_cast<int>(btn);
+			// VerticalWheel/HorizontalWheel are cgss sentinels (10, 11) —
+			// not raylib buttons. Range-gate against raylib's 0..6 buttons.
+			if (i < 0 || i > MOUSE_BUTTON_BACK) return false;
+			return IsMouseButtonDown(i);
+		}
+		static inline Point2i mouse_get_position() {
+			const auto p = GetMousePosition();
+			return { static_cast<int>(p.x), static_cast<int>(p.y) };
+		}
+		static inline Point2i mouse_get_position(const native_window&) {
+			// raylib has no window-relative mouse query — global is the same
+			// thing (raylib only owns one window).
+			return mouse_get_position();
+		}
+		static inline void mouse_set_position(int x, int y) {
+			SetMousePosition(x, y);
+		}
+		static inline void mouse_set_position(int x, int y, const native_window&) {
+			SetMousePosition(x, y);
+		}
+		static inline float mouse_wheel_delta() noexcept {
+			return GetMouseWheelMove();
+		}
+
+		static inline bool gamepad_is_connected(unsigned int id) {
+			return IsGamepadAvailable(static_cast<int>(id));
+		}
+		// cgss::GamepadButton numeric layout matches raylib GAMEPAD_BUTTON_*
+		// 1:1 (Unknown=0..RightThumb=17), so static_cast suffices.
+		static inline bool gamepad_is_button_pressed(unsigned int id, cgss::GamepadButton btn) {
+			return IsGamepadButtonDown(static_cast<int>(id), static_cast<int>(btn));
+		}
+		static inline bool gamepad_is_button_released(unsigned int id, cgss::GamepadButton btn) {
+			return IsGamepadButtonReleased(static_cast<int>(id), static_cast<int>(btn));
+		}
+		// cgss::GamepadAxis numeric layout matches raylib GAMEPAD_AXIS_* 1:1.
+		static inline float gamepad_axis_position(unsigned int id, cgss::GamepadAxis axis) {
+			return GetGamepadAxisMovement(static_cast<int>(id), static_cast<int>(axis));
+		}
+		static inline unsigned int gamepad_axis_count(unsigned int id) {
+			const int n = GetGamepadAxisCount(static_cast<int>(id));
+			return n < 0 ? 0u : static_cast<unsigned int>(n);
+		}
+		static inline const char* gamepad_name(unsigned int id) {
+			return GetGamepadName(static_cast<int>(id));
+		}
+		// Vibration: raylib 5.0 (vendored) has no public SetGamepadVibration
+		// API — that lands in 5.1+. No-op here; a future raylib bump can
+		// wire this up. Matches SFML backend behaviour (also no-op).
+		static inline void gamepad_set_vibration(unsigned int /*id*/, float /*left*/, float /*right*/, float /*ms*/) {}
+		static inline void gamepad_update() {
+			PollInputEvents();
+		}
+
+		static inline unsigned int touch_count() noexcept {
+			const int n = GetTouchPointCount();
+			return n < 0 ? 0u : static_cast<unsigned int>(n);
+		}
+		static inline Point2i touch_position(unsigned int index) {
+			const auto p = GetTouchPosition(static_cast<int>(index));
+			return { static_cast<int>(p.x), static_cast<int>(p.y) };
+		}
+		static inline unsigned int touch_id(unsigned int index) {
+			const int id = GetTouchPointId(static_cast<int>(index));
+			return id < 0 ? 0u : static_cast<unsigned int>(id);
+		}
 		static inline native_view window_get_default_view(const native_window&) { return {}; }
 		static inline void window_set_view(native_window&, const native_view&) {}
 		static inline cgss::DisplayWindowContextSettings window_get_settings(const native_window&) {
