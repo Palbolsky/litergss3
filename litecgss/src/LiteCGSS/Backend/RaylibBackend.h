@@ -63,28 +63,97 @@ namespace cgss::backend {
 			return native_transform{ xf.getX(), xf.getY(), xf.getOx(), xf.getOy(), xf.getAngle(), xf.getScaleX(), xf.getScaleY() };
 		}
 
-		// ---- Window ops with raylib global-function equivalents ----
-		// raylib uses GLOBAL window state (InitWindow / CloseWindow / etc.) — the
-		// `raylib::Window` placeholder is empty. A real impl would call raylib's
-		// free functions (CloseWindow / WindowShouldClose / BeginDrawing+
-		// ClearBackground / EndDrawing / SetWindowTitle / SetWindowSize /
-		// GetScreenWidth+Height / HideCursor+ShowCursor / SetConfigFlags pre-init /
-		// SetTargetFPS / SetWindowPosition / GetWindowPosition / SetWindowIcon /
-		// InitWindow / GetMonitorWidth+Height) and ignore the placeholder arg.
-		static inline void window_close(native_window&) {}
-		static inline bool window_is_open(const native_window&) { return false; }
-		static inline void window_clear(native_window&) {}
-		static inline void window_display(native_window&) {}
-		static inline void window_set_title(native_window&, const char*) {}
-		static inline void window_set_size(native_window&, unsigned int, unsigned int) {}
-		static inline Size2u window_get_size(const native_window&) noexcept { return {}; }
-		static inline void window_set_mouse_cursor_visible(native_window&, bool) {}
-		static inline void window_set_vsync(native_window&, bool) {}
-		static inline void window_set_framerate_limit(native_window&, unsigned int) {}
-		static inline void window_set_position(native_window&, int, int) {}
-		static inline Point2i window_get_position(const native_window&) noexcept { return {}; }
-		static inline Size2u desktop_size() noexcept { return {}; }
-		static inline void window_set_icon(native_window&, unsigned int, unsigned int, const std::uint8_t*) {}
+		// ---- Window ops — raylib uses GLOBAL window state ----
+		// raylib's `raylib::Window` placeholder is empty; all methods below
+		// ignore the reference argument and call raylib's free functions
+		// against the single process-global window. `window_is_stateful =
+		// false` on the backend Fwd signals this to any consumer that cares.
+		//
+		// Close latching: raylib's WindowShouldClose() returns true once the
+		// user clicks the X or presses Esc (with default config). We AND
+		// together that signal with an explicit `window_close()` call via a
+		// process-global flag in raylib_detail — matches SFML's sticky
+		// `!w.isOpen()` semantics.
+		static inline void window_close(native_window&) {
+			if (IsWindowReady()) CloseWindow();
+			raylib_detail::markWindowClosed();
+		}
+		static inline bool window_is_open(const native_window&) {
+			if (!IsWindowReady()) return false;
+			if (raylib_detail::isWindowClosed()) return false;
+			return !WindowShouldClose();
+		}
+		// Raylib's draw-frame protocol is BeginDrawing + ClearBackground
+		// ... user draws ... EndDrawing. Map cgss's clear/display pair onto
+		// Begin+Clear / EndDrawing so the ext/ Ruby Window.update/present
+		// lifecycle keeps its existing shape.
+		// `::Color{}` fully-qualifies raylib's global Color — plain `Color`
+		// here resolves to `cgss::Color` via enclosing namespace lookup.
+		static inline void window_clear(native_window&) {
+			BeginDrawing();
+			ClearBackground(::Color{ 0, 0, 0, 255 });
+		}
+		static inline void window_display(native_window&) {
+			EndDrawing();
+		}
+		static inline void window_set_title(native_window&, const char* title) {
+			SetWindowTitle(title);
+		}
+		static inline void window_set_size(native_window&, unsigned int w, unsigned int h) {
+			SetWindowSize(static_cast<int>(w), static_cast<int>(h));
+		}
+		static inline Size2u window_get_size(const native_window&) noexcept {
+			return { static_cast<unsigned int>(GetScreenWidth()),
+			         static_cast<unsigned int>(GetScreenHeight()) };
+		}
+		static inline void window_set_mouse_cursor_visible(native_window&, bool visible) {
+			if (visible) ShowCursor(); else HideCursor();
+		}
+		// Vsync under raylib: FLAG_VSYNC_HINT is a pre-InitWindow config
+		// flag. Post-init we best-effort fall back to SetTargetFPS (matching
+		// the previous raylib-direct Ruby Window.set_vsync behaviour).
+		static inline void window_set_vsync(native_window&, bool enable) {
+			if (!IsWindowReady()) {
+				if (enable) SetConfigFlags(FLAG_VSYNC_HINT);
+			} else {
+				SetTargetFPS(enable ? 60 : 0);
+			}
+		}
+		static inline void window_set_framerate_limit(native_window&, unsigned int fps) {
+			SetTargetFPS(static_cast<int>(fps));
+		}
+		static inline void window_set_position(native_window&, int x, int y) {
+			SetWindowPosition(x, y);
+		}
+		static inline Point2i window_get_position(const native_window&) noexcept {
+			const auto p = GetWindowPosition();
+			return { static_cast<int>(p.x), static_cast<int>(p.y) };
+		}
+		static inline Size2u desktop_size() noexcept {
+			const int m = GetCurrentMonitor();
+			return { static_cast<unsigned int>(GetMonitorWidth(m)),
+			         static_cast<unsigned int>(GetMonitorHeight(m)) };
+		}
+		// Raw-pixel icon setter. Raylib's SetWindowIcon takes a raylib::Image;
+		// build one from the pixel buffer, push, destroy.
+		static inline void window_set_icon(native_window&, unsigned int width, unsigned int height, const std::uint8_t* pixels) {
+			::Image img{};
+			// Const-cast is safe: SetWindowIcon copies the pixel data.
+			img.data    = const_cast<std::uint8_t*>(pixels);
+			img.width   = static_cast<int>(width);
+			img.height  = static_cast<int>(height);
+			img.mipmaps = 1;
+			img.format  = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
+			SetWindowIcon(img);
+		}
+		// File-path icon setter — each backend owns the decoder so ext/
+		// doesn't need to drag in a format-specific library.
+		static inline void window_set_icon_from_file(native_window&, const char* path) {
+			::Image img = LoadImage(path);
+			if (img.data == nullptr) return;
+			SetWindowIcon(img);
+			UnloadImage(img);
+		}
 
 		// ---- Instance-only window ops (SFML model only) ----
 		// raylib has no equivalent concept: context-activate, per-event pump
@@ -256,10 +325,21 @@ namespace cgss::backend {
 		static inline cgss::DisplayWindowContextSettings window_get_settings(const native_window&) {
 			return {};
 		}
-		// Stub: a real raylib impl would call SetConfigFlags() then InitWindow()
-		// (or no-op if a window is already initialised — raylib uses global
-		// window state, so this op effectively redirects to that singleton).
-		static inline void window_create(native_window&, const WindowCreateOptions&, const char*) {}
+		// Create the process-global raylib window. Idempotent: if raylib's
+		// window is already initialised (e.g. reload path), no-op. Fullscreen
+		// and context settings beyond size/title are ignored — raylib has no
+		// equivalent of sf::ContextSettings (bits-per-pixel / MSAA / etc. are
+		// configured via SetConfigFlags pre-init; callers that need those
+		// must set them before window_create via window_set_vsync-style Ops).
+		static inline void window_create(native_window&, const WindowCreateOptions& opts, const char* title) {
+			if (IsWindowReady()) return;
+			SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+			if (opts.fullscreen) SetConfigFlags(FLAG_FULLSCREEN_MODE);
+			InitWindow(static_cast<int>(opts.width),
+			           static_cast<int>(opts.height),
+			           title != nullptr ? title : "LiteRGSS");
+			raylib_detail::resetWindowClosed();
+		}
 		// Stub: raylib doesn't have a "window-as-render-target" concept (drawing
 		// to the screen is BeginDrawing/EndDrawing, not via a target object).
 		// A real impl would return a tagged sentinel and dispatch the draw_*

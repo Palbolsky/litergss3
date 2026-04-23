@@ -431,6 +431,15 @@ namespace cgss::backend {
 		static inline void window_set_icon(native_window& w, unsigned int width, unsigned int height, const std::uint8_t* pixels) {
 			w.setIcon(width, height, pixels);
 		}
+		// File-path icon loader. Each backend owns the decoder so ext/
+		// doesn't have to drag in a format-specific library. On failure
+		// (unreadable / unsupported format) the icon is left unchanged.
+		static inline void window_set_icon_from_file(native_window& w, const char* path) {
+			sf::Image img;
+			if (!img.loadFromFile(path)) return;
+			const auto size = img.getSize();
+			w.setIcon(size.x, size.y, img.getPixelsPtr());
+		}
 		// Creates / re-creates the SFML window with the given options + title.
 		static inline void window_create(native_window& w, const WindowCreateOptions& opts, const char* title) {
 			const auto style = opts.fullscreen

@@ -23,6 +23,14 @@ namespace cgss::backend::raylib_detail {
 	// this. Exposed for tests that want to force a refill.
 	void refillQueue();
 
+	// Window close latch — shared between RaylibBackend::Ops::window_close
+	// (sets it explicitly) and window_is_open (checks it). Needed because
+	// raylib's WindowShouldClose() is a transient query tied to OS input
+	// state, not a sticky "was closed" flag like sf::Window::isOpen().
+	void markWindowClosed() noexcept;
+	bool isWindowClosed() noexcept;
+	void resetWindowClosed() noexcept;
+
 }
 
 #endif

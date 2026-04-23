@@ -26,7 +26,6 @@ namespace cgss::backend::raylib_detail {
 
 		struct PrevFrameState {
 			bool  initialized = false;
-			bool  closedLatched = false;
 			bool  windowFocused = true;
 
 			std::array<bool, kMaxRaylibKey> keyDown{};
@@ -42,6 +41,7 @@ namespace cgss::backend::raylib_detail {
 
 		PrevFrameState                        g_prev{};
 		std::deque<cgss::backend::raylib::Event> g_queue{};
+		bool                                  g_windowClosed = false;
 
 		void pushEvent(const cgss::backend::raylib::Event& ev) {
 			g_queue.push_back(ev);
@@ -250,10 +250,12 @@ namespace cgss::backend::raylib_detail {
 			}
 
 			// Close — latch once so we don't spam Closed events while the
-			// user-code hasn't torn down the window yet.
-			if (!g_prev.closedLatched && WindowShouldClose()) {
+			// user-code hasn't torn down the window yet. The latch lives in
+			// g_windowClosed and is also set by explicit window_close() calls
+			// via markWindowClosed() — single source of truth for "closed".
+			if (!g_windowClosed && WindowShouldClose()) {
 				pushEvent(makeEvent(cgss::EventType::Closed));
-				g_prev.closedLatched = true;
+				g_windowClosed = true;
 			}
 		}
 	}
@@ -285,6 +287,17 @@ namespace cgss::backend::raylib_detail {
 		out = g_queue.front();
 		g_queue.pop_front();
 		return true;
+	}
+
+	void markWindowClosed() noexcept { g_windowClosed = true; }
+	bool isWindowClosed() noexcept   { return g_windowClosed; }
+	void resetWindowClosed() noexcept {
+		g_windowClosed = false;
+		// On re-open, also clear previous-frame input state so the new
+		// window starts fresh (no spurious press/release events from the
+		// prior session).
+		g_prev = PrevFrameState{};
+		g_queue.clear();
 	}
 
 }
