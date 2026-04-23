@@ -13,9 +13,39 @@
 // bottom emits symbols for the build-selected backend. Consumers see the
 // template declaration in Texture.h and link to the symbols emitted here.
 
+namespace {
+	// Custom shared_ptr deleter — routes through Ops::texture_destroy so
+	// raylib's GPU backing (unique_id) is released. SFML's Ops::texture_destroy
+	// is a no-op (sf::Texture's own dtor frees GPU), so the cost there is
+	// just a virtual-call-free lambda.
+	template <class B>
+	inline std::shared_ptr<typename B::native_texture> makeNativeTextureShared() {
+		return std::shared_ptr<typename B::native_texture>(
+			new typename B::native_texture(),
+			[](typename B::native_texture* p) {
+				if (p != nullptr) {
+					B::Ops::texture_destroy(*p);
+					delete p;
+				}
+			});
+	}
+
+	template <class B>
+	inline std::shared_ptr<typename B::native_texture> makeNativeTextureShared(typename B::native_texture&& src) {
+		return std::shared_ptr<typename B::native_texture>(
+			new typename B::native_texture(std::move(src)),
+			[](typename B::native_texture* p) {
+				if (p != nullptr) {
+					B::Ops::texture_destroy(*p);
+					delete p;
+				}
+			});
+	}
+}
+
 template <class B>
 cgss::basic_Texture<B>::basic_Texture() :
-	m_texture(std::make_shared<typename B::native_texture>()),
+	m_texture(makeNativeTextureShared<B>()),
 	m_image(std::make_unique<typename B::native_image>()) {
 }
 
@@ -67,7 +97,22 @@ cgss::basic_Texture<B> cgss::basic_Texture<B>::create(const std::string& filenam
 template <class B>
 cgss::basic_Texture<B> cgss::basic_Texture<B>::create_from_native(typename B::native_texture native) {
 	auto result = basic_Texture{};
-	result.m_texture = std::make_shared<typename B::native_texture>(std::move(native));
+	// Override the default-constructed m_texture with one holding the
+	// adopted native, using the same Ops-backed deleter as the default ctor.
+	result.m_texture = makeNativeTextureShared<B>(std::move(native));
+	result.m_loaded = true;
+	return result;
+}
+
+template <class B>
+cgss::basic_Texture<B> cgss::basic_Texture<B>::create(const basic_Image<B>& image) {
+	auto result = basic_Texture{};
+	// texture_create_from_image allocates GPU storage sized to the image
+	// + uploads pixels — raylib: LoadTextureFromImage; SFML: loadFromImage.
+	// basic_Texture friends basic_Image so image.m_image is reachable.
+	B::Ops::texture_create_from_image(*result.m_texture, *image.m_image);
+	// Cache the CPU side too so later `update()` (no-arg) can refresh.
+	B::Ops::copy_image(*result.m_image, *image.m_image);
 	result.m_loaded = true;
 	return result;
 }

@@ -12,6 +12,7 @@
 #include "LiteCGSS/Backend/SFMLBackendFwd.h"
 
 #include <cstdint>
+#include <vector>
 
 #include <SFML/Graphics/BlendMode.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
@@ -629,6 +630,11 @@ namespace cgss::backend {
 		static inline bool font_load_from_memory(native_font& f, const void* data, std::size_t size) {
 			return f.loadFromMemory(data, size);
 		}
+		// No-op on SFML — sf::Font's dtor releases its font-face data via
+		// its own unique_ptr<sf::Font> deleter. Exposed for Ops-symmetry
+		// with RaylibBackend::Ops::font_destroy, which must call UnloadFont
+		// on the POD.
+		static inline void font_destroy(native_font&) noexcept {}
 
 		// ---- Shader ops ----
 		// Capability queries.
@@ -878,6 +884,114 @@ namespace cgss::backend {
 			t.update(pixels, width, height, x, y);
 		}
 
+		// Create a GPU-backed texture from a CPU-side image (SFML's
+		// loadFromImage allocates GPU storage + uploads). Used by
+		// ext/Sprite to move bitmap data onto the GPU.
+		static inline void texture_create_from_image(native_texture& t, const native_image& i) {
+			t.loadFromImage(i);
+		}
+
+		// Release a texture's backing. sf::Texture's own destructor frees
+		// GPU memory, but when reassigning an existing sf::Texture (e.g.
+		// the ext Sprite swapping bitmaps) we need a fresh empty state.
+		// SFML has no explicit "unload" — construct-and-swap does the job.
+		static inline void texture_destroy(native_texture& t) noexcept {
+			t = native_texture{};
+		}
+
+		// ---- Viewport scope: scissor + transform push/pop (SFML emulation) ----
+		// SFML has no native scissor — approximated via sf::View's viewport
+		// (normalized [0,1] rect on the render target). Transform is baked
+		// into the view's center/size. A file-static view stack supports
+		// nested viewport_begin calls (matches raylib's rlPushMatrix stack).
+		//
+		// Thread-safety: single-threaded render only, matching raylib.
+	private:
+		static inline std::vector<sf::View>& viewStack() {
+			static std::vector<sf::View> stack;
+			return stack;
+		}
+	public:
+		static inline void viewport_begin(native_render_target& target,
+		                                  int clipX, int clipY, int clipW, int clipH,
+		                                  float offsetX, float offsetY,
+		                                  float scaleX, float scaleY) {
+			viewStack().push_back(target.getView());
+			const auto size = target.getSize();
+			const float fw = static_cast<float>(size.x);
+			const float fh = static_cast<float>(size.y);
+			sf::View v;
+			// Viewport (normalized [0,1] rect on the render target) — clips
+			// drawing to the intended window-pixel region.
+			v.setViewport(sf::FloatRect(
+				fw > 0 ? static_cast<float>(clipX) / fw : 0.f,
+				fh > 0 ? static_cast<float>(clipY) / fh : 0.f,
+				fw > 0 ? static_cast<float>(clipW) / fw : 1.f,
+				fh > 0 ? static_cast<float>(clipH) / fh : 1.f));
+			// Content size in world coordinates so that (0,0)..(clipW,clipH)
+			// maps 1:1 in window pixels, then scale inversely to match
+			// raylib's rlScalef semantics (rlScalef zooms content *into*
+			// the viewport; a larger scale means larger visible content).
+			const float worldW = scaleX > 0.f ? static_cast<float>(clipW) / scaleX : static_cast<float>(clipW);
+			const float worldH = scaleY > 0.f ? static_cast<float>(clipH) / scaleY : static_cast<float>(clipH);
+			v.setSize(worldW, worldH);
+			// Center so that the top-left of the visible area is at
+			// (-offsetX/scaleX, -offsetY/scaleY) in world space — matches
+			// rlTranslatef before rlScalef in raylib.
+			v.setCenter(-offsetX / (scaleX > 0 ? scaleX : 1.f) + worldW * 0.5f,
+			            -offsetY / (scaleY > 0 ? scaleY : 1.f) + worldH * 0.5f);
+			target.setView(v);
+		}
+		static inline void viewport_end(native_render_target& target) {
+			auto& stack = viewStack();
+			if (!stack.empty()) {
+				target.setView(stack.back());
+				stack.pop_back();
+			}
+		}
+
+		// Filled rect fill. SFML: sf::RectangleShape drawn on the target.
+		static inline void draw_filled_rect(native_render_target& target,
+		                                    int x, int y, int w, int h, cgss::Color c) {
+			sf::RectangleShape r(sf::Vector2f(static_cast<float>(w), static_cast<float>(h)));
+			r.setPosition(static_cast<float>(x), static_cast<float>(y));
+			r.setFillColor(sf::Color(c.r, c.g, c.b, c.a));
+			target.draw(r);
+		}
+
+		// Immediate-mode textured draw — SFML emulates raylib's DrawTexturePro
+		// via sf::Sprite (configured + drawn through the render target).
+		//
+		// Negative `srcRect.width` encodes horizontal mirror — sf::IntRect
+		// supports negative dimensions too, matching the raylib convention.
+		//
+		// Origin mapping: raylib's DrawTexturePro takes origin in destination-
+		// pixel coordinates (post-scale). sf::Sprite's setOrigin is in
+		// texture-pixel coordinates (pre-scale). Convert: `sfOrigin =
+		// rlOrigin / scale` where `scale = dstW / |srcW|`.
+		static inline void draw_texture_pro(
+				native_render_target& target,
+				const native_texture& tex,
+				const cgss::IntRect& srcRect,
+				float dstX, float dstY, float dstWidth, float dstHeight,
+				float originX, float originY,
+				float angleDegrees, cgss::Color tint) {
+			sf::Sprite sprite(tex);
+			sprite.setTextureRect(sf::IntRect(srcRect.left, srcRect.top,
+			                                  srcRect.width, srcRect.height));
+			const float absSrcW = srcRect.width  < 0 ? -static_cast<float>(srcRect.width)  : static_cast<float>(srcRect.width);
+			const float absSrcH = srcRect.height < 0 ? -static_cast<float>(srcRect.height) : static_cast<float>(srcRect.height);
+			const float scaleX = absSrcW > 0.f ? dstWidth  / absSrcW : 1.f;
+			const float scaleY = absSrcH > 0.f ? dstHeight / absSrcH : 1.f;
+			sprite.setScale(scaleX, scaleY);
+			sprite.setOrigin(scaleX != 0.f ? originX / scaleX : 0.f,
+			                 scaleY != 0.f ? originY / scaleY : 0.f);
+			sprite.setPosition(dstX, dstY);
+			sprite.setRotation(angleDegrees);
+			sprite.setColor(sf::Color(tint.r, tint.g, tint.b, tint.a));
+			target.draw(sprite);
+		}
+
 		static inline void copy_image(native_image& dst, const native_image& src) {
 			dst = src;
 		}
@@ -908,6 +1022,11 @@ namespace cgss::backend {
 		static inline void image_create_mask_from_color(native_image& i, cgss::Color color, std::uint8_t alpha) {
 			i.createMaskFromColor(sf::Color(color.r, color.g, color.b, color.a), alpha);
 		}
+		// No-op on SFML — sf::Image's own destructor (called when its
+		// unique_ptr<sf::Image> deleter runs) handles pixel release. This
+		// Op exists for Ops-symmetry with RaylibBackend::Ops::image_destroy,
+		// which must explicitly call UnloadImage on the POD.
+		static inline void image_destroy(native_image&) noexcept {}
 	};
 
 	// Free-function helper that forwards to the active backend's

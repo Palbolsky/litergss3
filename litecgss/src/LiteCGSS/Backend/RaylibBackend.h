@@ -27,8 +27,26 @@
 #include "LiteCGSS/Backend/Internal/RaylibEventQueue.h"
 #include "LiteCGSS/Backend/Internal/RaylibKeyTranslation.h"
 
+// rlgl.h — raylib's immediate-mode matrix stack (rlPushMatrix/rlTranslatef/
+// rlScalef). Used by viewport_begin/end Ops. Lives alongside raylib.h on
+// any real raylib install; minimal submodule checkouts may skip it.
+// When absent, forward-declare the four functions we use so the header
+// stays compilable in stripped-down environments (CI image build-tests,
+// etc.). A real build links against libraylib and resolves the symbols.
+#if __has_include(<rlgl.h>)
+#  include <rlgl.h>
+#else
+extern "C" {
+	void rlPushMatrix(void);
+	void rlPopMatrix(void);
+	void rlTranslatef(float x, float y, float z);
+	void rlScalef(float x, float y, float z);
+}
+#endif
+
 #include <cstdint>
 #include <cstddef>
+#include <cstring>
 #include <optional>
 
 #include "LiteCGSS/Common/Color.h"
@@ -405,10 +423,33 @@ namespace cgss::backend {
 		static inline void draw_state_set_blend_equation(native_render_states&, BlendEquationSlot, cgss::BlendEquation) noexcept {}
 		static inline cgss::BlendEquation draw_state_get_blend_equation(const native_render_states&, BlendEquationSlot) noexcept { return cgss::BlendEquation::Add; }
 
-		// ---- Font ops (stubs) ----
-		// Real raylib equivalents: LoadFontEx(filename, ...) / LoadFontFromMemory(...)
-		static inline bool font_load_from_file(native_font&, const char*) { return false; }
-		static inline bool font_load_from_memory(native_font&, const void*, std::size_t) { return false; }
+		// ---- Font ops ----
+		static inline bool font_load_from_file(native_font& f, const char* filename) {
+			if (f.texture.id != 0) UnloadFont(f);
+			f = LoadFont(filename);
+			// raylib's LoadFont returns a default Font on failure — the
+			// atlas texture id == 0 signals that.
+			return f.texture.id != 0;
+		}
+		static inline bool font_load_from_memory(native_font& f, const void* data, std::size_t size) {
+			if (f.texture.id != 0) UnloadFont(f);
+			// LoadFontFromMemory needs a file-type hint (e.g. ".ttf").
+			// We assume .ttf here — callers with other formats should
+			// call LoadFontFromMemory directly via the extension SPI.
+			f = LoadFontFromMemory(".ttf",
+			                       reinterpret_cast<const unsigned char*>(data),
+			                       static_cast<int>(size),
+			                       32,    // default character size
+			                       nullptr, 0);
+			return f.texture.id != 0;
+		}
+		// Release the GPU atlas a raylib Font owns. Safe on zero-initialized.
+		static inline void font_destroy(native_font& f) noexcept {
+			if (f.texture.id != 0) {
+				UnloadFont(f);
+				f = native_font{};
+			}
+		}
 
 		// ---- Shader ops (stubs) ----
 		// Real raylib equivalents would call LoadShaderFromMemory /
@@ -492,52 +533,168 @@ namespace cgss::backend {
 		}
 
 		static inline void update_texture_from_image(native_texture& t, const native_image& i) {
-			// real impl: UpdateTexture(t, i.data);
-			(void)t; (void)i;
+			UpdateTexture(t, i.data);
 		}
 
-		// Real raylib equivalent: UpdateTextureRec(t, {x,y,w,h}, pixels);
-		static inline void texture_update_pixels(native_texture&, const std::uint8_t*,
-		                                        unsigned int, unsigned int,
-		                                        unsigned int, unsigned int) {}
+		// Create a GPU-backed texture from a CPU-side image. Releases any
+		// existing GPU backing first. Used by ext/Sprite to move bitmap
+		// data onto the GPU for drawing.
+		static inline void texture_create_from_image(native_texture& t, const native_image& i) {
+			if (t.id != 0) UnloadTexture(t);
+			t = LoadTextureFromImage(i);
+		}
+
+		// Deep-release a texture's GPU backing. Safe on zero-initialized
+		// textures (id == 0).
+		static inline void texture_destroy(native_texture& t) noexcept {
+			if (t.id != 0) {
+				UnloadTexture(t);
+				t = native_texture{};
+			}
+		}
+
+		// ---- Viewport scope: scissor + transform push/pop ----
+		// RGSS-style Viewport semantics: clip rendering to `clipRect` (in
+		// window-pixel coordinates) and translate+scale content within.
+		// Paired begin/end calls push/pop raylib's implicit rlGL matrix
+		// stack — nesting is allowed up to raylib's rlPushMatrix limit.
+		static inline void viewport_begin(native_render_target& /*target*/,
+		                                  int clipX, int clipY, int clipW, int clipH,
+		                                  float offsetX, float offsetY,
+		                                  float scaleX, float scaleY) {
+			BeginScissorMode(clipX, clipY, clipW, clipH);
+			rlPushMatrix();
+			rlTranslatef(offsetX, offsetY, 0.f);
+			rlScalef(scaleX, scaleY, 1.f);
+		}
+		static inline void viewport_end(native_render_target& /*target*/) {
+			rlPopMatrix();
+			EndScissorMode();
+		}
+
+		// Filled rect fill (used by ext/Viewport's begin_draw to show the
+		// viewport area). Immediate-mode — draws directly to the current
+		// BeginDrawing context.
+		static inline void draw_filled_rect(native_render_target& /*target*/,
+		                                    int x, int y, int w, int h, cgss::Color c) {
+			DrawRectangle(x, y, w, h, ::Color{ c.r, c.g, c.b, c.a });
+		}
+
+		// Immediate-mode textured draw with source-rect, destination-rect,
+		// origin, rotation and tint — matches the RGSS sprite render model.
+		// Target parameter is accepted for Ops-symmetry with SFML (raylib's
+		// drawing is implicit on the current BeginDrawing context).
+		//
+		// `srcRect` may have negative width for horizontal mirror — raylib's
+		// DrawTexturePro honors that directly.
+		static inline void draw_texture_pro(
+				native_render_target& /*target*/,
+				const native_texture& tex,
+				const cgss::IntRect& srcRect,
+				float dstX, float dstY, float dstWidth, float dstHeight,
+				float originX, float originY,
+				float angleDegrees, cgss::Color tint) {
+			::Rectangle src{
+				static_cast<float>(srcRect.left),  static_cast<float>(srcRect.top),
+				static_cast<float>(srcRect.width), static_cast<float>(srcRect.height) };
+			::Rectangle dst{ dstX, dstY, dstWidth, dstHeight };
+			::Vector2 origin{ originX, originY };
+			DrawTexturePro(tex, src, dst, origin, angleDegrees,
+			               ::Color{ tint.r, tint.g, tint.b, tint.a });
+		}
+
+		// Update a sub-rectangle of a texture from a raw pixel buffer. The
+		// source buffer layout must be R8G8B8A8 at the given stride; raylib
+		// handles the upload via UpdateTextureRec.
+		static inline void texture_update_pixels(native_texture& t, const std::uint8_t* pixels,
+		                                        unsigned int x, unsigned int y,
+		                                        unsigned int w, unsigned int h) {
+			::Rectangle r{ static_cast<float>(x), static_cast<float>(y),
+			               static_cast<float>(w), static_cast<float>(h) };
+			UpdateTextureRec(t, r, pixels);
+		}
 
 		// ---- Image ops ----
 		static inline Size2u get_image_size(const native_image& i) noexcept {
 			return { static_cast<unsigned int>(i.width), static_cast<unsigned int>(i.height) };
 		}
 
+		// Deep copy pixel data — raylib's ImageCopy allocates a new backing.
+		// The destination's existing data (if any) is released first so we
+		// don't leak.
 		static inline void copy_image(native_image& dst, const native_image& src) {
-			// raylib-real: dst = ImageCopy(src);
-			// stub: shallow POD assign — NOT a deep copy of pixel data
-			dst = src;
+			if (dst.data != nullptr) UnloadImage(dst);
+			dst = ImageCopy(src);
 		}
 
 		static inline void image_set_pixel(native_image& i, unsigned int x, unsigned int y, cgss::Color c) {
-			// real: ImageDrawPixel(&i, x, y, {c.r, c.g, c.b, c.a});
-			(void)i; (void)x; (void)y; (void)c;
+			ImageDrawPixel(&i, static_cast<int>(x), static_cast<int>(y),
+			               ::Color{ c.r, c.g, c.b, c.a });
 		}
 
 		static inline cgss::Color image_get_pixel(const native_image& i, unsigned int x, unsigned int y) {
-			(void)i; (void)x; (void)y;
-			return cgss::Colors::Black;
+			const ::Color c = GetImageColor(i, static_cast<int>(x), static_cast<int>(y));
+			return cgss::Color{ c.r, c.g, c.b, c.a };
 		}
 
 		static inline void image_blit(native_image& dst, unsigned int x, unsigned int y,
 		                              const native_image& src, const cgss::IntRect& srcRect,
 		                              bool applyAlpha = false) {
-			(void)dst; (void)x; (void)y; (void)src; (void)srcRect; (void)applyAlpha;
+			(void)applyAlpha; // raylib's ImageDraw always alpha-blends.
+			::Rectangle sr{ static_cast<float>(srcRect.left),  static_cast<float>(srcRect.top),
+			                static_cast<float>(srcRect.width), static_cast<float>(srcRect.height) };
+			::Rectangle dr{ static_cast<float>(x),             static_cast<float>(y),
+			                static_cast<float>(srcRect.width), static_cast<float>(srcRect.height) };
+			// Fully-qualified ::Color{} to avoid the raylib WHITE macro
+			// colliding with `cgss::Color` via namespace lookup.
+			ImageDraw(&dst, src, sr, dr, ::Color{ 255, 255, 255, 255 });
 		}
 
 		static inline const std::uint8_t* get_image_pixels_ptr(const native_image& i) noexcept {
 			return reinterpret_cast<const std::uint8_t*>(i.data);
 		}
 
+		// Create a raylib Image from a raw R8G8B8A8 buffer. Releases any
+		// existing image data first. The input buffer is copied — raylib
+		// takes ownership of a fresh allocation.
 		static inline void image_create_with_pixels(native_image& i, unsigned int w, unsigned int h, const std::uint8_t* pixels) {
-			(void)i; (void)w; (void)h; (void)pixels;
+			if (i.data != nullptr) UnloadImage(i);
+			::Image tmp{};
+			// raylib has no direct "create-from-pixels" function that matches
+			// our R8G8B8A8 contract. Use GenImageColor to get a sized image
+			// in the right format, then memcpy the pixel data in.
+			// `::Color{0,0,0,0}` — raylib's BLANK macro expands to
+			// `Color{...}` which resolves to cgss::Color inside this
+			// namespace; fully qualify to force the raylib type.
+			tmp = GenImageColor(static_cast<int>(w), static_cast<int>(h), ::Color{ 0, 0, 0, 0 });
+			// GenImageColor returns PIXELFORMAT_UNCOMPRESSED_R8G8B8A8.
+			const std::size_t byteCount = static_cast<std::size_t>(w) * h * 4u;
+			std::memcpy(tmp.data, pixels, byteCount);
+			i = tmp;
 		}
 
+		// Set alpha of all pixels matching `color` (RGB-exact) to the given
+		// alpha. Raylib has no direct equivalent; iterate pixels.
 		static inline void image_create_mask_from_color(native_image& i, cgss::Color color, std::uint8_t alpha) {
-			(void)i; (void)color; (void)alpha;
+			for (int y = 0; y < i.height; ++y) {
+				for (int x = 0; x < i.width; ++x) {
+					const ::Color p = GetImageColor(i, x, y);
+					if (p.r == color.r && p.g == color.g && p.b == color.b) {
+						ImageDrawPixel(&i, x, y, ::Color{ p.r, p.g, p.b, alpha });
+					}
+				}
+			}
+		}
+
+		// Deep-free image backing. basic_Image's unique_ptr<native_image>
+		// deleter calls raylib::UnloadImage when the pod's data pointer is
+		// non-null. Exposed as an Op so the wrapper destructor can invoke
+		// it without needing raylib symbols in its public header.
+		static inline void image_destroy(native_image& i) noexcept {
+			if (i.data != nullptr) {
+				UnloadImage(i);
+				i = native_image{};
+			}
 		}
 	};
 

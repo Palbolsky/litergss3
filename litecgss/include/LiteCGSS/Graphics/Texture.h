@@ -38,6 +38,9 @@ namespace cgss {
 
 		static basic_Texture create(const DisplayWindow& window, const std::string& filename);
 		static basic_Texture create(const std::string& filename);
+		// Allocate a GPU texture sized to the source image and upload its
+		// pixels. Used by ext/Sprite to promote a CPU image into a drawable.
+		static basic_Texture create(const basic_Image<B>& image);
 
 		// Backend-coupling hatch: adopt an existing native texture. Only meant
 		// for internal callers that already operate in backend-specific terms

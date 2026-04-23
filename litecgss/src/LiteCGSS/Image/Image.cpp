@@ -11,8 +11,17 @@ template <class B>
 cgss::basic_Image<B>::basic_Image() :
 	m_image(std::make_unique<typename B::native_image>()) {}
 
+// Custom destructor — raylib's `::Image` is a POD with no destructor that
+// knows to call `UnloadImage`, so pixel backing would leak on a default
+// `= default` dtor. Route through `Ops::image_destroy` which each backend
+// implements to match its native semantics (SFML no-op: sf::Image's own
+// dtor self-releases via unique_ptr<sf::Image>).
 template <class B>
-cgss::basic_Image<B>::~basic_Image() = default;
+cgss::basic_Image<B>::~basic_Image() {
+	if (m_image) {
+		B::Ops::image_destroy(*m_image);
+	}
+}
 
 template <class B>
 cgss::basic_Image<B>::basic_Image(const basic_Image& image) :
@@ -36,20 +45,23 @@ cgss::basic_Image<B>& cgss::basic_Image<B>::operator=(basic_Image&& image) noexc
 template <class B>
 cgss::basic_Image<B> cgss::basic_Image<B>::create(const std::string& filename) {
 	auto image = basic_Image{};
-	// SerializeMethod is SFML-typed (PR K's deferred half).
-	if constexpr (std::is_same_v<B, cgss::backend::SFMLBackend>) {
-		ImageFileSerializeMethod::load(*image.m_image, filename);
-	}
+	basic_ImageFileSerializeMethod<B>::load(*image.m_image, filename);
 	return image;
 }
 
 template <class B>
 cgss::basic_Image<B> cgss::basic_Image<B>::create(const char* rawMemory, std::size_t rawMemorySize) {
 	auto image = basic_Image{};
-	if constexpr (std::is_same_v<B, cgss::backend::SFMLBackend>) {
-		const MemorySerializerData data { reinterpret_cast<unsigned char*>(const_cast<char*>(rawMemory)), rawMemorySize };
-		ImageMemorySerializeMethod::load(*image.m_image, data);
-	}
+	const MemorySerializerData data {
+		reinterpret_cast<unsigned char*>(const_cast<char*>(rawMemory)), rawMemorySize };
+	basic_ImageMemorySerializeMethod<B>::load(*image.m_image, data);
+	return image;
+}
+
+template <class B>
+cgss::basic_Image<B> cgss::basic_Image<B>::create(unsigned int width, unsigned int height) {
+	auto image = basic_Image{};
+	basic_ImageEmptySerializeMethod<B>::load(*image.m_image, width, height);
 	return image;
 }
 
@@ -77,6 +89,11 @@ cgss::IntRect cgss::basic_Image<B>::box() const {
 template <class B>
 void cgss::basic_Image<B>::blit(const basic_Image& source, unsigned int x, unsigned int y, const Rectangle& rect, bool applyAlpha) {
 	B::Ops::image_blit(*m_image, x, y, *source.m_image, rect.getValue(), applyAlpha);
+}
+
+template <class B>
+void cgss::basic_Image<B>::blit(const basic_Image& source, unsigned int x, unsigned int y, const cgss::IntRect& rect, bool applyAlpha) {
+	B::Ops::image_blit(*m_image, x, y, *source.m_image, rect, applyAlpha);
 }
 
 template <class B>
@@ -112,6 +129,15 @@ bool cgss::basic_Image<B>::setPixel(unsigned int x, unsigned int y, const cgss::
 		return true;
 	}
 	return false;
+}
+
+template <class B>
+void cgss::basic_Image<B>::stretchBlit(const basic_Image& imageSource, const cgss::IntRect& destinationRect, const cgss::IntRect& sourceRect, bool mixedAlpha) {
+	// Delegate to the Rectangle overload by constructing BondElement
+	// wrappers — the per-pixel loop below is identical in either form.
+	cgss::Rectangle dr; dr.setValue(destinationRect);
+	cgss::Rectangle sr; sr.setValue(sourceRect);
+	stretchBlit(imageSource, dr, sr, mixedAlpha);
 }
 
 template <class B>

@@ -27,11 +27,17 @@ namespace cgss {
 		basic_Font& operator=(basic_Font&& other) noexcept;
 		~basic_Font();
 
+		// Load a font from a .ttf / .otf file. Returns true on success.
+		// On failure, the font state is left unloaded (isLoaded() == false).
+		bool load(const std::string& filename);
+		bool isLoaded() const noexcept { return m_loaded; }
+
 	private:
 		native_type& native() noexcept;
 		const native_type& native() const noexcept;
 
 		std::unique_ptr<typename B::native_font> m_font;
+		bool m_loaded = false;
 	};
 
 }
