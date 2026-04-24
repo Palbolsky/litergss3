@@ -27,6 +27,7 @@ void MemTest() {
 	settings.video.width = 400;
 	settings.video.height = 300;
 	settings.title = "MemTest";
+	settings.vSync = true;
 	auto window = cgss::DisplayWindow{ settings };
 
 	auto viewport = window.addView<cgss::Viewport>();
@@ -137,6 +138,7 @@ static void ViewTest() {
 	settings.video.width = 400;
 	settings.video.height = 300;
 	settings.title = "Playground";
+	settings.vSync = true;
 	auto window = cgss::DisplayWindow{ };
 
 	// Desktop-size queries and window-position setters need a live native
