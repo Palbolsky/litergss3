@@ -47,6 +47,7 @@ extern "C" {
 #include <cmath>
 #include <cstdint>
 #include <cstddef>
+#include <cstdlib>
 #include <cstring>
 #include <optional>
 #include <vector>
@@ -109,8 +110,19 @@ namespace cgss::backend {
 		// together that signal with an explicit `window_close()` call via a
 		// process-global flag in raylib_detail — matches SFML's sticky
 		// `!w.isOpen()` semantics.
+		//
+		// We deliberately do NOT call raylib's CloseWindow() here. CloseWindow
+		// tears down the process-global GL context, which invalidates every
+		// live raylib Texture/Font the app is still holding. In practice
+		// window_close fires mid-event-loop (user presses Esc / clicks X) and
+		// the textures that sprites + viewports wrap are released *after* the
+		// loop returns, as their owning scopes unwind. Running CloseWindow
+		// before those shared_ptr<Texture> deleters fire makes UnloadTexture
+		// segfault (rlUnloadTexture → glDeleteTextures with no current
+		// context). The actual CloseWindow is registered as an atexit handler
+		// in window_create, so it runs after main() returns — by which point
+		// every automatic/static texture has already been unloaded.
 		static inline void window_close(native_window&) {
-			if (IsWindowReady()) CloseWindow();
 			raylib_detail::markWindowClosed();
 		}
 		static inline bool window_is_open(const native_window&) {
@@ -444,6 +456,9 @@ namespace cgss::backend {
 					if (exclusiveNow) ToggleFullscreen();
 					ToggleBorderlessWindowed();
 				}
+				// Reload path: a prior window_close() latched g_windowClosed.
+				// Clear it so `window_is_open` can see the reused window again.
+				raylib_detail::resetWindowClosed();
 				return;
 			}
 			SetConfigFlags(FLAG_WINDOW_RESIZABLE);
@@ -452,6 +467,16 @@ namespace cgss::backend {
 			           static_cast<int>(opts.height),
 			           title != nullptr ? title : "LiteRGSS");
 			raylib_detail::resetWindowClosed();
+			// Defer CloseWindow to process exit. window_close() only flips the
+			// sticky-closed flag, so nothing else tears down raylib's GL
+			// context; atexit runs after main() returns, i.e. after all
+			// automatic/static shared_ptr<Texture> deleters have unloaded
+			// their GPU backings against a still-live context. std::atexit
+			// registers once (idempotent for the single-window lifetime
+			// raylib enforces; this branch only runs on the first InitWindow).
+			std::atexit(+[]() noexcept {
+				if (IsWindowReady()) CloseWindow();
+			});
 		}
 		// Stub: raylib doesn't have a "window-as-render-target" concept (drawing
 		// to the screen is BeginDrawing/EndDrawing, not via a target object).
