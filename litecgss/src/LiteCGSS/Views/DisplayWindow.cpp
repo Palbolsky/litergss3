@@ -149,6 +149,7 @@ void cgss::basic_DisplayWindow<B>::applyReload(DisplayWindowSettings settings, b
 					scaledHeight,
 					static_cast<unsigned int>(m_settings.video.bitsPerPixel),
 					m_settings.fullscreen,
+					m_settings.vSync,
 					&m_settings.context,
 				};
 				B::Ops::window_create(m_gameWindow, opts, m_settings.title.c_str());

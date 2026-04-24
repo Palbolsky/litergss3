@@ -54,11 +54,16 @@ namespace cgss::backend {
 	// these its own way: SFML maps them directly to .create() args; raylib
 	// applies SetConfigFlags + InitWindow (or no-ops if its global window
 	// is already initialized).
+	//
+	// `vsync` is only read pre-init by raylib (FLAG_VSYNC_HINT must be set
+	// before InitWindow). SFML accepts vsync post-create, so it ignores this
+	// field and relies on the subsequent `window_set_vsync` call.
 	struct WindowCreateOptions {
 		unsigned int width        = 0u;
 		unsigned int height       = 0u;
 		unsigned int bitsPerPixel = 32u;
 		bool         fullscreen   = false;
+		bool         vsync        = false;
 		const cgss::DisplayWindowContextSettings* context = nullptr;
 	};
 

@@ -181,15 +181,20 @@ namespace cgss::backend {
 			if (!IsWindowReady()) return;
 			if (visible) ShowCursor(); else HideCursor();
 		}
-		// Vsync under raylib: FLAG_VSYNC_HINT is a pre-InitWindow config
-		// flag. Post-init we best-effort fall back to SetTargetFPS (matching
-		// the previous raylib-direct Ruby Window.set_vsync behaviour).
+		// Vsync under raylib: FLAG_VSYNC_HINT is latched at InitWindow time
+		// (set via WindowCreateOptions.vsync in window_create), so runtime
+		// toggling is best-effort. Post-init we fall back to a soft FPS cap
+		// matching the previous raylib-direct Ruby Window.set_vsync behaviour
+		// — true hardware vsync requires recreating the GL context, which
+		// raylib doesn't support. Pre-init callers land here if someone
+		// invokes window_set_vsync before window_create; applying the flag is
+		// harmless (window_create will re-set it anyway).
 		static inline void window_set_vsync(native_window&, bool enable) {
 			if (!IsWindowReady()) {
 				if (enable) SetConfigFlags(FLAG_VSYNC_HINT);
-			} else {
-				SetTargetFPS(enable ? 60 : 0);
+				return;
 			}
+			SetTargetFPS(enable ? 60 : 0);
 		}
 		static inline void window_set_framerate_limit(native_window&, unsigned int fps) {
 			SetTargetFPS(static_cast<int>(fps));
@@ -467,6 +472,10 @@ namespace cgss::backend {
 			}
 			SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 			if (opts.fullscreen) SetConfigFlags(FLAG_BORDERLESS_WINDOWED_MODE);
+			// FLAG_VSYNC_HINT is latched into the GL context at InitWindow
+			// time and cannot be toggled afterwards; this is the only place
+			// real hardware vsync can be enabled under raylib.
+			if (opts.vsync) SetConfigFlags(FLAG_VSYNC_HINT);
 			InitWindow(static_cast<int>(opts.width),
 			           static_cast<int>(opts.height),
 			           title != nullptr ? title : "LiteRGSS");
