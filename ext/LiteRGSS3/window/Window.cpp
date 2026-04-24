@@ -5,6 +5,7 @@
 #include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Events/Event.h"
 
+#include <filesystem>
 #include <memory>
 
 namespace {
@@ -94,7 +95,14 @@ VALUE rb_Window_setTitle(VALUE self, VALUE title)
 VALUE rb_Window_setIcon(VALUE self, VALUE path)
 {
 	ensureWindow();
-	Ops::window_set_icon_from_file(*g_window, StringValueCStr(path));
+	const char* p = StringValueCStr(path);
+	// Raylib's LoadImage returns an Image with data==nullptr on missing
+	// files and our backend's window_set_icon_from_file silently no-ops in
+	// that case. Guard here so callers get a Ruby-visible error.
+	if (!std::filesystem::exists(p)) {
+		rb_raise(rb_eRuntimeError, "Icon file not found: %s", p);
+	}
+	Ops::window_set_icon_from_file(*g_window, p);
 	return self;
 }
 
@@ -147,9 +155,10 @@ VALUE rb_Window_desktopHeight(VALUE self)
 
 VALUE rb_Window_update(VALUE self)
 {
+	(void)self;
 	ensureWindow();
 	Ops::window_clear(*g_window);
-	return self;
+	return Ops::window_is_open(*g_window) ? Qtrue : Qfalse;
 }
 
 VALUE rb_Window_present(VALUE self)
