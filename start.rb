@@ -5,35 +5,41 @@ puts "=== LiteRGSS Test ==="
 # Toggle this to mute mouse move spam in the console
 LOG_MOUSE_MOVE = false
 
+Mouse    = LiteRGSS::Inputs::Mouse
+Keyboard = LiteRGSS::Inputs::Keyboard
+
 # Check that base modules are accessible
 puts "\n[Modules]"
 p LiteRGSS::Error
 p LiteRGSS::Config
+p Mouse
+p Keyboard
 
-# Mouse button constants don't require an open window
+# Mouse button constants don't require an open window.
+# Constants are PascalCase (sourced from cgss::MouseButton).
 puts "\n[Mouse Constants]"
-puts "Left        = #{LiteRGSS::Mouse::Left}"
-puts "LEFT        = #{LiteRGSS::Mouse::LEFT}"
-puts "Right       = #{LiteRGSS::Mouse::Right}"
-puts "RIGHT       = #{LiteRGSS::Mouse::RIGHT}"
-puts "Middle      = #{LiteRGSS::Mouse::Middle}"
-puts "XButton1    = #{LiteRGSS::Mouse::XButton1}"
-puts "XButton2    = #{LiteRGSS::Mouse::XButton2}"
-puts "VertWheel   = #{LiteRGSS::Mouse::VerticalWheel}"
-puts "HorizWheel  = #{LiteRGSS::Mouse::HorizontalWheel}"
+puts "Left        = #{Mouse::Left}"
+puts "Right       = #{Mouse::Right}"
+puts "Middle      = #{Mouse::Middle}"
+puts "XButton1    = #{Mouse::XButton1}"
+puts "XButton2    = #{Mouse::XButton2}"
+puts "VertWheel   = #{Mouse::VerticalWheel}"
+puts "HorizWheel  = #{Mouse::HorizontalWheel}"
 
-# Keyboard constants don't require an open window either
+# Keyboard constants don't require an open window either.
+# Canonical names come from cgss::KeyCode (SFML 2.6 layout);
+# Zero..Nine are raylib-style aliases for Num0..Num9.
 puts "\n[Keyboard Constants]"
-puts "A        = #{LiteRGSS::Keyboard::A}"
-puts "Escape   = #{LiteRGSS::Keyboard::Escape}"
-puts "Enter    = #{LiteRGSS::Keyboard::Enter}"
-puts "Space    = #{LiteRGSS::Keyboard::Space}"
-puts "Left     = #{LiteRGSS::Keyboard::Left}"
-puts "Right    = #{LiteRGSS::Keyboard::Right}"
-puts "Up       = #{LiteRGSS::Keyboard::Up}"
-puts "Down     = #{LiteRGSS::Keyboard::Down}"
-puts "LShift   = #{LiteRGSS::Keyboard::LShift}"
-puts "LControl = #{LiteRGSS::Keyboard::LControl}"
+puts "A        = #{Keyboard::A}"
+puts "Escape   = #{Keyboard::Escape}"
+puts "Enter    = #{Keyboard::Enter}"
+puts "Space    = #{Keyboard::Space}"
+puts "Left     = #{Keyboard::Left}"
+puts "Right    = #{Keyboard::Right}"
+puts "Up       = #{Keyboard::Up}"
+puts "Down     = #{Keyboard::Down}"
+puts "LShift   = #{Keyboard::LShift}"
+puts "LControl = #{Keyboard::LControl}"
 
 # Open the window before any input polling
 puts "\n[Window]"
@@ -43,119 +49,86 @@ puts "Window opened"
 
 # Snapshot of mouse state right after window init
 puts "\n[Mouse State]"
-puts "Position    = #{LiteRGSS::Mouse.position.inspect}"
-puts "Press Left  = #{LiteRGSS::Mouse.press?(LiteRGSS::Mouse::Left)}"
-puts "Press Right = #{LiteRGSS::Mouse.press?(LiteRGSS::Mouse::Right)}"
+puts "Position    = #{Mouse.position.inspect}"
+puts "Press Left  = #{Mouse.press?(Mouse::Left)}"
+puts "Press Right = #{Mouse.press?(Mouse::Right)}"
 
 # Warp the cursor to a fixed position and verify
 puts "\n[Mouse Set Position]"
-LiteRGSS::Mouse.set_position(100, 200)
-puts "After set_position(100, 200) = #{LiteRGSS::Mouse.position.inspect}"
+Mouse.set_position(100, 200)
+puts "After set_position(100, 200) = #{Mouse.position.inspect}"
 
 # Map button names to their constants for easy iteration
 MOUSE_BUTTONS = {
-  "Left"     => LiteRGSS::Mouse::Left,
-  "Right"    => LiteRGSS::Mouse::Right,
-  "Middle"   => LiteRGSS::Mouse::Middle,
-  "XButton1" => LiteRGSS::Mouse::XButton1,
-  "XButton2" => LiteRGSS::Mouse::XButton2,
+  "Left"     => Mouse::Left,
+  "Right"    => Mouse::Right,
+  "Middle"   => Mouse::Middle,
+  "XButton1" => Mouse::XButton1,
+  "XButton2" => Mouse::XButton2,
 }
 
 # Map key names to their constants for easy iteration
 KEYBOARD_KEYS = {
   # Letters
-  "A" => LiteRGSS::Keyboard::A,
-  "B" => LiteRGSS::Keyboard::B,
-  "C" => LiteRGSS::Keyboard::C,
-  "D" => LiteRGSS::Keyboard::D,
-  "E" => LiteRGSS::Keyboard::E,
-  "F" => LiteRGSS::Keyboard::F,
-  "G" => LiteRGSS::Keyboard::G,
-  "H" => LiteRGSS::Keyboard::H,
-  "I" => LiteRGSS::Keyboard::I,
-  "J" => LiteRGSS::Keyboard::J,
-  "K" => LiteRGSS::Keyboard::K,
-  "L" => LiteRGSS::Keyboard::L,
-  "M" => LiteRGSS::Keyboard::M,
-  "N" => LiteRGSS::Keyboard::N,
-  "O" => LiteRGSS::Keyboard::O,
-  "P" => LiteRGSS::Keyboard::P,
-  "Q" => LiteRGSS::Keyboard::Q,
-  "R" => LiteRGSS::Keyboard::R,
-  "S" => LiteRGSS::Keyboard::S,
-  "T" => LiteRGSS::Keyboard::T,
-  "U" => LiteRGSS::Keyboard::U,
-  "V" => LiteRGSS::Keyboard::V,
-  "W" => LiteRGSS::Keyboard::W,
-  "X" => LiteRGSS::Keyboard::X,
-  "Y" => LiteRGSS::Keyboard::Y,
-  "Z" => LiteRGSS::Keyboard::Z,
-  # Numbers
-  "Zero"  => LiteRGSS::Keyboard::Zero,
-  "One"   => LiteRGSS::Keyboard::One,
-  "Two"   => LiteRGSS::Keyboard::Two,
-  "Three" => LiteRGSS::Keyboard::Three,
-  "Four"  => LiteRGSS::Keyboard::Four,
-  "Five"  => LiteRGSS::Keyboard::Five,
-  "Six"   => LiteRGSS::Keyboard::Six,
-  "Seven" => LiteRGSS::Keyboard::Seven,
-  "Eight" => LiteRGSS::Keyboard::Eight,
-  "Nine"  => LiteRGSS::Keyboard::Nine,
+  "A" => Keyboard::A, "B" => Keyboard::B, "C" => Keyboard::C, "D" => Keyboard::D,
+  "E" => Keyboard::E, "F" => Keyboard::F, "G" => Keyboard::G, "H" => Keyboard::H,
+  "I" => Keyboard::I, "J" => Keyboard::J, "K" => Keyboard::K, "L" => Keyboard::L,
+  "M" => Keyboard::M, "N" => Keyboard::N, "O" => Keyboard::O, "P" => Keyboard::P,
+  "Q" => Keyboard::Q, "R" => Keyboard::R, "S" => Keyboard::S, "T" => Keyboard::T,
+  "U" => Keyboard::U, "V" => Keyboard::V, "W" => Keyboard::W, "X" => Keyboard::X,
+  "Y" => Keyboard::Y, "Z" => Keyboard::Z,
+  # Numbers (Zero..Nine are raylib-style aliases for Num0..Num9)
+  "Zero"  => Keyboard::Zero,  "One"   => Keyboard::One,   "Two"   => Keyboard::Two,
+  "Three" => Keyboard::Three, "Four"  => Keyboard::Four,  "Five"  => Keyboard::Five,
+  "Six"   => Keyboard::Six,   "Seven" => Keyboard::Seven, "Eight" => Keyboard::Eight,
+  "Nine"  => Keyboard::Nine,
   # Special
-  "Space"     => LiteRGSS::Keyboard::Space,
-  "Escape"    => LiteRGSS::Keyboard::Escape,
-  "Enter"     => LiteRGSS::Keyboard::Enter,
-  "Tab"       => LiteRGSS::Keyboard::Tab,
-  "Backspace" => LiteRGSS::Keyboard::Backspace,
-  "Insert"    => LiteRGSS::Keyboard::Insert,
-  "Delete"    => LiteRGSS::Keyboard::Delete,
+  "Space"     => Keyboard::Space,
+  "Escape"    => Keyboard::Escape,
+  "Enter"     => Keyboard::Enter,
+  "Tab"       => Keyboard::Tab,
+  "Backspace" => Keyboard::Backspace,
+  "Insert"    => Keyboard::Insert,
+  "Delete"    => Keyboard::Delete,
   # Arrows
-  "Right" => LiteRGSS::Keyboard::Right,
-  "Left"  => LiteRGSS::Keyboard::Left,
-  "Down"  => LiteRGSS::Keyboard::Down,
-  "Up"    => LiteRGSS::Keyboard::Up,
+  "Right" => Keyboard::Right,
+  "Left"  => Keyboard::Left,
+  "Down"  => Keyboard::Down,
+  "Up"    => Keyboard::Up,
   # Navigation
-  "PageUp"   => LiteRGSS::Keyboard::PageUp,
-  "PageDown" => LiteRGSS::Keyboard::PageDown,
-  "Home"     => LiteRGSS::Keyboard::Home,
-  "End"      => LiteRGSS::Keyboard::End,
+  "PageUp"   => Keyboard::PageUp,
+  "PageDown" => Keyboard::PageDown,
+  "Home"     => Keyboard::Home,
+  "End"      => Keyboard::End,
   # Modifiers
-  "LShift"   => LiteRGSS::Keyboard::LShift,
-  "LControl" => LiteRGSS::Keyboard::LControl,
-  "LAlt"     => LiteRGSS::Keyboard::LAlt,
-  "RShift"   => LiteRGSS::Keyboard::RShift,
-  "RControl" => LiteRGSS::Keyboard::RControl,
-  "RAlt"     => LiteRGSS::Keyboard::RAlt,
+  "LShift"   => Keyboard::LShift,
+  "LControl" => Keyboard::LControl,
+  "LAlt"     => Keyboard::LAlt,
+  "RShift"   => Keyboard::RShift,
+  "RControl" => Keyboard::RControl,
+  "RAlt"     => Keyboard::RAlt,
   # F keys
-  "F1"  => LiteRGSS::Keyboard::F1,
-  "F2"  => LiteRGSS::Keyboard::F2,
-  "F3"  => LiteRGSS::Keyboard::F3,
-  "F4"  => LiteRGSS::Keyboard::F4,
-  "F5"  => LiteRGSS::Keyboard::F5,
-  "F6"  => LiteRGSS::Keyboard::F6,
-  "F7"  => LiteRGSS::Keyboard::F7,
-  "F8"  => LiteRGSS::Keyboard::F8,
-  "F9"  => LiteRGSS::Keyboard::F9,
-  "F10" => LiteRGSS::Keyboard::F10,
-  "F11" => LiteRGSS::Keyboard::F11,
-  "F12" => LiteRGSS::Keyboard::F12,
-  # Numpad
-  "Numpad0"        => LiteRGSS::Keyboard::Numpad0,
-  "Numpad1"        => LiteRGSS::Keyboard::Numpad1,
-  "Numpad2"        => LiteRGSS::Keyboard::Numpad2,
-  "Numpad3"        => LiteRGSS::Keyboard::Numpad3,
-  "Numpad4"        => LiteRGSS::Keyboard::Numpad4,
-  "Numpad5"        => LiteRGSS::Keyboard::Numpad5,
-  "Numpad6"        => LiteRGSS::Keyboard::Numpad6,
-  "Numpad7"        => LiteRGSS::Keyboard::Numpad7,
-  "Numpad8"        => LiteRGSS::Keyboard::Numpad8,
-  "Numpad9"        => LiteRGSS::Keyboard::Numpad9,
-  "NumpadDecimal"  => LiteRGSS::Keyboard::NumpadDecimal,
-  "NumpadDivide"   => LiteRGSS::Keyboard::NumpadDivide,
-  "NumpadMultiply" => LiteRGSS::Keyboard::NumpadMultiply,
-  "NumpadMinus"    => LiteRGSS::Keyboard::NumpadMinus,
-  "NumpadPlus"     => LiteRGSS::Keyboard::NumpadPlus,
-  "NumpadEnter"    => LiteRGSS::Keyboard::NumpadEnter,
+  "F1"  => Keyboard::F1,  "F2"  => Keyboard::F2,  "F3"  => Keyboard::F3,
+  "F4"  => Keyboard::F4,  "F5"  => Keyboard::F5,  "F6"  => Keyboard::F6,
+  "F7"  => Keyboard::F7,  "F8"  => Keyboard::F8,  "F9"  => Keyboard::F9,
+  "F10" => Keyboard::F10, "F11" => Keyboard::F11, "F12" => Keyboard::F12,
+  # Numpad (NumpadMinus/NumpadPlus are raylib-style aliases)
+  "Numpad0"        => Keyboard::Numpad0,
+  "Numpad1"        => Keyboard::Numpad1,
+  "Numpad2"        => Keyboard::Numpad2,
+  "Numpad3"        => Keyboard::Numpad3,
+  "Numpad4"        => Keyboard::Numpad4,
+  "Numpad5"        => Keyboard::Numpad5,
+  "Numpad6"        => Keyboard::Numpad6,
+  "Numpad7"        => Keyboard::Numpad7,
+  "Numpad8"        => Keyboard::Numpad8,
+  "Numpad9"        => Keyboard::Numpad9,
+  "NumpadDecimal"  => Keyboard::NumpadDecimal,
+  "NumpadDivide"   => Keyboard::NumpadDivide,
+  "NumpadMultiply" => Keyboard::NumpadMultiply,
+  "NumpadMinus"    => Keyboard::NumpadMinus,
+  "NumpadPlus"     => Keyboard::NumpadPlus,
+  "NumpadEnter"    => Keyboard::NumpadEnter,
 }
 
 last_pos      = nil
@@ -167,7 +140,7 @@ until window.should_close?
   window.update
 
   # Log mouse position only when it changes (toggle with LOG_MOUSE_MOVE)
-  pos = LiteRGSS::Mouse.position
+  pos = Mouse.position
   if LOG_MOUSE_MOVE && pos != last_pos
     puts "Mouse moved: #{pos.inspect}"
     last_pos = pos
@@ -175,7 +148,7 @@ until window.should_close?
 
   # Detect press and release edges for each mouse button
   MOUSE_BUTTONS.each do |name, btn|
-    is_down = LiteRGSS::Mouse.press?(btn)
+    is_down = Mouse.press?(btn)
     if is_down && !mouse_pressed[name]
       puts "Mouse pressed:  #{name}"
       mouse_pressed[name] = true
@@ -186,12 +159,12 @@ until window.should_close?
   end
 
   # Log scroll wheel direction and delta
-  wheel = LiteRGSS::Mouse.wheel_move
+  wheel = Mouse.wheel_move
   puts "Wheel: #{wheel > 0 ? 'up' : 'down'} (#{wheel})" if wheel != 0
 
   # Detect press and release edges for each keyboard key
   KEYBOARD_KEYS.each do |name, key|
-    is_down = LiteRGSS::Keyboard.press?(key)
+    is_down = Keyboard.press?(key)
     if is_down && !key_pressed[name]
       puts "Key pressed:  #{name}"
       key_pressed[name] = true
