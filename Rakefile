@@ -1,7 +1,8 @@
 require 'fileutils'
 require 'rake/extensiontask'
+require 'rake/testtask'
 
-ext_name = 'LiteRGSS3'
+ext_name = 'LiteRGSS'
 litergss_root_dir = File.expand_path(File.dirname(__FILE__))
 
 spec = Gem::Specification.new do |s|
@@ -22,6 +23,11 @@ Gem::PackageTask.new(spec) do |pkg|
 end
 
 Rake::ExtensionTask.new(ext_name, spec) do |ext|
+  # Source tree is `ext/LiteRGSS3/` (kept from the v3 directory layout) but
+  # the built artifact is `LiteRGSS.so` — `ext_name` above drives both the
+  # artifact name and rake-compiler's default lookup dir, so point the dir
+  # back explicitly.
+  ext.ext_dir = 'ext/LiteRGSS3'
   # cross compilation requires a cross compile toolchain
   ext.cross_compile = true
   ext.cross_platform = ['x86-mingw32']
@@ -55,6 +61,14 @@ task :configure do |t, args|
     end
     system("rake compile -- #{extra_args}")
   }
+end
+
+# Non-interactive test suite. `test_*_live.rb` files open a real window and
+# wait for user input — excluded here so this target stays CI-runnable.
+Rake::TestTask.new(:test => :compile) do |t|
+  t.libs << 'tests'
+  t.test_files = FileList['tests/test_*.rb'].exclude(/_live\.rb$/)
+  t.verbose = true
 end
 
 desc "Build the project, in release mode"

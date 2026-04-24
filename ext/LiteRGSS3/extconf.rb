@@ -2,7 +2,7 @@
 require 'mkmf'
 require 'rbconfig'
 
-ext_name = 'LiteRGSS3'
+ext_name = 'LiteRGSS'
 
 litecgss_root_dir = File.expand_path("../../external/litecgss2", __dir__)
 is_windows = !!(RbConfig::CONFIG['host_os'] =~ /mswin|mingw/)

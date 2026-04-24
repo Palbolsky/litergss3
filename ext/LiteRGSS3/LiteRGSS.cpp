@@ -11,17 +11,16 @@ VALUE rb_eRGSSError = Qnil;
 
 extern "C"
 {
-  // Ruby entry point. Name must match the compiled shared-library name
-  // (gem_name="LiteRGSS3" → libLiteRGSS3.so → Init_LiteRGSS3). Step E of
-  // the umbrella plan renamed both; the legacy top-level `LiteRGSS`
-  // constant is kept as a Ruby-level alias for PSDK back-compat.
-  void Init_LiteRGSS3()
+  // Ruby entry point. Name must match the compiled shared-library basename
+  // (ext_name="LiteRGSS" → LiteRGSS.so → Init_LiteRGSS). The internal Ruby
+  // module is still named `LiteRGSS3` — `LiteRGSS` is aliased to it for
+  // compat with callers that use the library's short name.
+  void Init_LiteRGSS()
   {
     rb_mLiteRGSS = rb_define_module("LiteRGSS3");
 
-    // Back-compat alias — legacy scripts that reference `LiteRGSS::*` from
-    // pre-step-E naming continue to resolve. Deprecated; remove in a
-    // later major version once downstream consumers have migrated.
+    // Short-name alias — PSDK and the in-repo test suite reference
+    // `LiteRGSS::*` directly.
     rb_const_set(rb_cObject, rb_intern("LiteRGSS"), rb_mLiteRGSS);
 
     rb_mConfig = rb_define_module_under(rb_mLiteRGSS, "Config");
