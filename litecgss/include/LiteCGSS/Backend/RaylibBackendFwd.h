@@ -19,12 +19,29 @@
 #include "LiteCGSS/Events/EventPayloads.h"
 #include "LiteCGSS/Events/EventType.h"
 
+#include <optional>
+
 #include <raylib.h>
 
 namespace cgss::backend {
 
 	namespace raylib {
-		struct Window {};
+		// Raylib drives the actual window via global state (InitWindow /
+		// CloseWindow / glfw singleton). This struct carries the tiny bit of
+		// per-window state we need to patch around raylib/glfw quirks.
+		//
+		// `last_requested_position` — on X11, `glfwSetWindowPos` sends an
+		// async ConfigureRequest and `GetWindowPosition` (via
+		// XTranslateCoordinates) can report the pre-move value until the WM
+		// processes it. SFML hides this by XSync'ing after XMoveWindow; raylib
+		// doesn't. We cache the requested coords on set and return them on
+		// get so the Ops contract ("get after set returns what was set")
+		// matches SFMLBackend's observable behavior. Reset to nullopt before
+		// any move so the first read after window creation still reflects the
+		// real OS-assigned position.
+		struct Window {
+			std::optional<cgss::backend::Point2i> last_requested_position;
+		};
 		// Stateful sprite mirror of sf::Sprite. raylib's draw model is
 		// immediate-mode (DrawTexturePro takes all draw args as parameters),
 		// so there is no native "Sprite" to carry the configured state

@@ -126,7 +126,8 @@ namespace cgss::backend {
 		// context). The actual CloseWindow is registered as an atexit handler
 		// in window_create, so it runs after main() returns — by which point
 		// every automatic/static texture has already been unloaded.
-		static inline void window_close(native_window&) {
+		static inline void window_close(native_window& w) {
+			w.last_requested_position.reset();
 			raylib_detail::markWindowClosed();
 		}
 		static inline bool window_is_open(const native_window&) {
@@ -203,11 +204,19 @@ namespace cgss::backend {
 		// null window handle. Match SFML's "no-op before creation" semantics
 		// by gating on IsWindowReady() — same pattern used for window_close /
 		// window_is_open above.
-		static inline void window_set_position(native_window&, int x, int y) {
+		//
+		// Position get/set pair the cache on `native_window` (see the field
+		// doc in RaylibBackendFwd.h): on X11 `glfwSetWindowPos` is async, so
+		// a read via `XTranslateCoordinates` right after the write may still
+		// return the pre-move coords. Caching on set + preferring the cache
+		// on get matches SFMLBackend's synchronous observable behavior.
+		static inline void window_set_position(native_window& w, int x, int y) {
 			if (!IsWindowReady()) return;
+			w.last_requested_position = Point2i{ x, y };
 			SetWindowPosition(x, y);
 		}
-		static inline Point2i window_get_position(const native_window&) noexcept {
+		static inline Point2i window_get_position(const native_window& w) noexcept {
+			if (w.last_requested_position.has_value()) return *w.last_requested_position;
 			if (!IsWindowReady()) return { 0, 0 };
 			const auto p = GetWindowPosition();
 			return { static_cast<int>(p.x), static_cast<int>(p.y) };
@@ -564,7 +573,14 @@ namespace cgss::backend {
 		static inline cgss::BlendEquation draw_state_get_blend_equation(const native_render_states&, BlendEquationSlot) noexcept { return cgss::BlendEquation::Add; }
 
 		// ---- Font ops ----
+		// LoadFont / LoadFontFromMemory build a GPU atlas (LoadTextureFromImage →
+		// rlLoadTexture → glGenTextures) and segfault when called before
+		// InitWindow has set up a GL context. Match the "no-op before
+		// window_create" pattern used across this backend (window_set_position
+		// et al.) and just return false — cgss::Font stays in its unloaded
+		// state, non-GPU setters (size / color) remain usable.
 		static inline bool font_load_from_file(native_font& f, const char* filename) {
+			if (!IsWindowReady()) return false;
 			if (f.texture.id != 0) UnloadFont(f);
 			f = LoadFont(filename);
 			// raylib's LoadFont returns a default Font on failure — the
@@ -572,6 +588,7 @@ namespace cgss::backend {
 			return f.texture.id != 0;
 		}
 		static inline bool font_load_from_memory(native_font& f, const void* data, std::size_t size) {
+			if (!IsWindowReady()) return false;
 			if (f.texture.id != 0) UnloadFont(f);
 			// LoadFontFromMemory needs a file-type hint (e.g. ".ttf").
 			// We assume .ttf here — callers with other formats should
