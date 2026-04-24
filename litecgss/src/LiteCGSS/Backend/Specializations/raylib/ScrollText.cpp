@@ -28,8 +28,23 @@ namespace {
 		return static_cast<std::size_t>(p - begin);
 	}
 
+	// Raylib / stb_truetype treats the `fontSize` parameter as the
+	// ascender-to-descender span (via stbtt_ScaleForPixelHeight). SFML /
+	// FreeType treats `characterSize` as the em-size (FT_Set_Pixel_Sizes).
+	// For typical Latin TTFs em ≈ 0.78-0.82 × (ascent − descent), so a
+	// same-numeric fontSize between the two backends renders glyphs ~22%
+	// smaller on raylib. Compensate by inflating the value we hand to
+	// DrawTextPro / MeasureTextEx.
+	//
+	// Picked at 1.25 — matches DejaVu, Liberation Sans, Noto Sans, and the
+	// majority of bundled Linux system fonts within ~3%. Fonts with wider
+	// or tighter metrics (e.g. Arial is closer to 1.12, some CJK fonts go
+	// above 1.3) will still look off; a Phase-3 refinement could compute
+	// this ratio at setFont() time from a reference glyph's atlas rect.
+	constexpr float kRaylibEmCompensation = 1.25f;
+
 	float fontSizeF(unsigned int charSize) noexcept {
-		return static_cast<float>(charSize);
+		return static_cast<float>(charSize) * kRaylibEmCompensation;
 	}
 
 	// Raylib's DrawTextPro takes a per-character pixel spacing. SFML's
