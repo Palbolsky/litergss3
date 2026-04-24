@@ -4,6 +4,8 @@
 
 #include <cmath>
 
+#include "LiteCGSS/Backend/ActiveBackend.h"
+
 namespace {
 
 	// Returns the number of bytes in `utf8` that encode the first `n`
@@ -147,21 +149,21 @@ void cgss::ScrollText::draw() const {
 	const float fs      = fontSizeF(m_characterSize);
 	const float spacing = spacingFromFactor(m_letterSpacingFactor);
 
-	const bool scaled = (m_sx != 1.f) || (m_sy != 1.f);
-	if (scaled) {
-		// Wrap in an rlgl matrix so scale applies uniformly to the
-		// DrawTextPro call below (DrawTextPro takes position/origin but
-		// no scale parameter of its own).
-		::rlPushMatrix();
-		::rlTranslatef(m_x, m_y, 0.f);
-		::rlScalef(m_sx, m_sy, 1.f);
-		::DrawTextPro(*m_font, truncated.c_str(),
-		              ::Vector2{ 0.f, 0.f }, ::Vector2{ m_ox, m_oy },
-		              0.f, fs, spacing, m_fill);
-		::rlPopMatrix();
-	} else {
-		::DrawTextPro(*m_font, truncated.c_str(),
-		              ::Vector2{ m_x, m_y }, ::Vector2{ m_ox, m_oy },
-		              0.f, fs, spacing, m_fill);
-	}
+	// Compose the currently-installed raylib View with the user scale so
+	// text inside a Viewport / FramedView renders at the view-mapped screen
+	// pixels and stays inside the view's scissor region. Mirrors the
+	// derive_current_view path used by draw_sprite_impl / draw_shape —
+	// without this, DrawTextPro paints at raw screen coords and vanishes
+	// under a view-installed scissor (e.g. text inside a FramedView).
+	// DrawTextPro accepts no scale parameter, so the rlgl matrix is the
+	// cleanest common path for both non-uniform scale and view zoom.
+	const auto vd = cgss::backend::ActiveBackend::Ops::derive_current_view();
+
+	::rlPushMatrix();
+	::rlTranslatef(vd.tx + m_x * vd.zoomX, vd.ty + m_y * vd.zoomY, 0.f);
+	::rlScalef(m_sx * vd.zoomX, m_sy * vd.zoomY, 1.f);
+	::DrawTextPro(*m_font, truncated.c_str(),
+	              ::Vector2{ 0.f, 0.f }, ::Vector2{ m_ox, m_oy },
+	              vd.rotation, fs, spacing, m_fill);
+	::rlPopMatrix();
 }

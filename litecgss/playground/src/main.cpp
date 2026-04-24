@@ -1,11 +1,14 @@
+#include <cstring>
 #include <iostream>
 
 #include "LiteCGSS/Views/DisplayWindow.h"
 #include "LiteCGSS/Views/Viewport.h"
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
+#include "LiteCGSS/Graphics/Font.h"
 #include "LiteCGSS/Graphics/Shape.h"
 #include "LiteCGSS/Graphics/ShapeGeometry.h"
 #include "LiteCGSS/Graphics/Sprite.h"
+#include "LiteCGSS/Graphics/Text.h"
 #include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Graphics/Serializers/TextureSerializer.h"
 #include "LiteCGSS/Backend/ActiveBackend.h"
@@ -42,6 +45,26 @@ void MemTest() {
 	std::cout << "Before mem release" << std::endl;
 	viewport.detach();
 	std::cout << "After mem release" << std::endl;
+}
+
+// Loads a TTF from a short probe list of common system locations.
+// cgss::Font's public API only exposes filename-based load, so we pick
+// the first hit. Leaves the font unloaded if nothing matches — callers
+// must gate ScrollText wiring on isLoaded() to stay portable on hosts
+// without these paths.
+static cgss::Font loadDemoFont() {
+	auto font = cgss::Font{};
+	static constexpr const char* candidates[] = {
+		"/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+		"/usr/share/fonts/TTF/DejaVuSans.ttf",
+		"/usr/share/fonts/dejavu/DejaVuSans.ttf",
+		"/Library/Fonts/Arial.ttf",
+		"C:\\Windows\\Fonts\\arial.ttf",
+	};
+	for (const auto* path : candidates) {
+		if (font.load(path)) return font;
+	}
+	return font;
 }
 
 static bool g_disposeView = false;
@@ -199,6 +222,49 @@ static void ViewTest() {
 
 	viewport.move(50, 50);
 
+	// ScrollText smoke test — Phase 1 of the raylib ScrollText impl. On SFML
+	// these same calls exercise the vendored sf::Text clone. When no system
+	// font is found (isLoaded() == false), the whole block is skipped so
+	// the playground still runs on hosts without any of the probe-list
+	// fonts.
+	auto demoFont = loadDemoFont();
+	cgss::Text titleText;
+	cgss::Text typewriterText;
+	cgss::Text framedText;
+	static constexpr const char* kTypewriterPhrase =
+		"Hello from the playground! This line types itself.";
+
+	if (demoFont.isLoaded()) {
+		// Static label — window level, drawn over everything else.
+		titleText = cgss::Text::create(window);
+		titleText.setFont(demoFont);
+		titleText.setCharacterSize(18);
+		titleText.setFillColor(cgss::Colors::White);
+		titleText.setString("LiteCGSS ScrollText");
+		titleText.move(8, 8);
+
+		// Typewriter — window level, bottom. numCharToDraw is advanced in
+		// the loop below to show the raylib UTF-8 truncation path.
+		typewriterText = cgss::Text::create(window);
+		typewriterText.setFont(demoFont);
+		typewriterText.setCharacterSize(14);
+		typewriterText.setFillColor(cgss::Color{ 255, 240, 160, 255 });
+		typewriterText.setString(kTypewriterPhrase);
+		typewriterText.setNumCharToDraw(0);
+		typewriterText.move(8, 270);
+
+		// FramedView text — verifies text renders correctly inside a view
+		// with its own origin offset and clipped region.
+		framedText = cgss::Text::create(framedView);
+		framedText.setFont(demoFont);
+		framedText.setCharacterSize(16);
+		framedText.setFillColor(cgss::Color{ 40, 40, 80, 255 });
+		framedText.setString("Framed!");
+		framedText.move(70, 60);
+	} else {
+		std::cout << "No system font found in probe list; ScrollText demo skipped." << std::endl;
+	}
+
 	auto i = 0;
 	{
 
@@ -207,6 +273,16 @@ static void ViewTest() {
 			HandleEvents(window, settings);
 
 			sprite.setAngle(sprite.getAngle() + 1.f);
+
+			// Advance the typewriter one codepoint every ~4 frames, then
+			// pause on the full string for ~60 frames before restarting.
+			if (demoFont.isLoaded()) {
+				const auto total = static_cast<std::uint32_t>(std::strlen(kTypewriterPhrase));
+				const auto cycle = (total + 60u) * 4u;
+				const auto frame = static_cast<std::uint32_t>(i) % cycle;
+				const auto progress = frame / 4u;
+				typewriterText.setNumCharToDraw(progress > total ? total : progress);
+			}
 
 			if (g_disposeView) {
 				framedView.detach();
