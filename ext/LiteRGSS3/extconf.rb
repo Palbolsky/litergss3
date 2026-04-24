@@ -1,12 +1,11 @@
 # frozen_string_literal: true
 require 'mkmf'
+require 'rbconfig'
 
 ext_name = 'LiteRGSS3'
 
 litecgss_root_dir = File.expand_path("../../external/litecgss2", __dir__)
-raylib_dir = File.expand_path('../../vendor/raylib', __dir__)
-raylib_include = File.join(raylib_dir, 'include')
-raylib_lib = File.join(raylib_dir, 'lib')
+is_windows = !!(RbConfig::CONFIG['host_os'] =~ /mswin|mingw/)
 
 # LiteCGSS backend selection. Matches CGSS_BACKEND in the LiteCGSS2 CMake
 # build. Defaults to raylib for back-compat (the ext/graphics and ext/fonts
@@ -18,10 +17,32 @@ unless %w[sfml raylib].include?(cgss_backend)
 end
 puts "[LiteRGSS3] Building with CGSS_BACKEND=#{cgss_backend}"
 
+# raylib include/link flags: prefer pkg-config (system install — what
+# LiteCGSS2's find_package(raylib) also picks up), fall back to a vendored
+# tree at vendor/raylib/{include,lib} for CI / packaged builds.
+raylib_cflags = nil
+raylib_libs   = nil
+if cgss_backend == 'raylib'
+  if system('pkg-config --exists raylib > /dev/null 2>&1')
+    raylib_cflags = `pkg-config --cflags raylib`.chomp
+    raylib_libs   = `pkg-config --libs raylib`.chomp
+  else
+    vendored_dir = File.expand_path('../../vendor/raylib', __dir__)
+    vendored_include = File.join(vendored_dir, 'include')
+    vendored_lib     = File.join(vendored_dir, 'lib')
+    abort "raylib.h not found: pkg-config reports no raylib.pc and no vendored tree at #{vendored_include}" \
+      unless File.exist?(File.join(vendored_include, 'raylib.h'))
+    abort "libraylib not found under #{vendored_lib}" \
+      if Dir.glob(File.join(vendored_lib, 'libraylib.*')).empty?
+    raylib_cflags = "-I'#{vendored_include}'"
+    raylib_libs   = "-L'#{vendored_lib}' -lraylib"
+  end
+end
+
 # Include paths:
 #  -I<litecgss_root>/include : public cgss headers (Events/KeyCode.h, etc.)
 #  -I<litecgss_root>/src     : backend headers (Backend/ActiveBackend.h)
-#  -I<raylib_include>        : raylib.h / rlgl.h (ext/{graphics,fonts} are
+#  raylib_cflags             : raylib.h / rlgl.h (ext/{graphics,fonts} are
 #                              raylib-coupled — see the matching header
 #                              comments in those files)
 # The legacy /usr/include/LiteCGSS2/ path was retired in the phase-1
@@ -30,25 +51,22 @@ puts "[LiteRGSS3] Building with CGSS_BACKEND=#{cgss_backend}"
 $INCFLAGS << " -I'$(srcdir)/../../'"
 $INCFLAGS << " -I'" + litecgss_root_dir + "/include'"
 $INCFLAGS << " -I'" + litecgss_root_dir + "/src'"
-$INCFLAGS << " -I'#{raylib_include}'"
-$LDFLAGS << " -L'" + litecgss_root_dir + "/bin' -L'" + litecgss_root_dir + "/lib' " + "-L/usr/i686-w64-mingw32/lib/ "
-$LIBPATH << raylib_lib
+$INCFLAGS << " #{raylib_cflags}" if raylib_cflags
+$LDFLAGS  << " -L'" + litecgss_root_dir + "/bin' -L'" + litecgss_root_dir + "/lib'"
+$LDFLAGS  << " -L/usr/i686-w64-mingw32/lib/" if is_windows
 
 # Select backend at compile time — mirrors LiteCGSS2's CMake flag.
 $CXXFLAGS << " -DCGSS_BACKEND_#{cgss_backend.upcase}"
 
-abort "raylib.h not found" unless File.exist?(File.join(raylib_include, 'raylib.h'))
-abort "libraylib.a not found" unless File.exist?(File.join(raylib_lib, 'libraylib.a'))
-
-have_library('raylib')
-
 dir_config('skalog', litecgss_root_dir + '/external/skalog/src/src', litecgss_root_dir + '/lib')
 have_library('skalog') or fail "Unable to find skalog library. Build the LiteCGSS2 to build it."
 
-dir_config('LiteCGSS2_engine', litecgss_root_dir + '/src/src', litecgss_root_dir + '/lib')
-have_library('LiteCGSS2_engine') or fail "Unable to find LiteCGSS2 library. Build it inside 'external/litecgss2' first."
+dir_config('LiteCGSS_engine', litecgss_root_dir + '/src/src', litecgss_root_dir + '/lib')
+have_library('LiteCGSS_engine') or fail "Unable to find LiteCGSS2 library. Build it inside 'external/litecgss2' first."
 
-$LDFLAGS << ' -lraylib -lopengl32 -lgdi32 -lwinmm'
+$LDFLAGS  << " #{raylib_libs}" if raylib_libs
+# Windows-only system libs needed for raylib's MinGW static build.
+$LDFLAGS  << ' -lopengl32 -lgdi32 -lwinmm' if is_windows && cgss_backend == 'raylib'
 $CXXFLAGS << ' -std=c++17'
 
 src_dir = __dir__

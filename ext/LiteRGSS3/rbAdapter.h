@@ -43,7 +43,7 @@ namespace rb
 		if (CheckDisposedBool(self))
 		{
 			auto errorMessage = std::string{"Disposed "};
-			errorMessage += meta::Log<T>::classname;
+			errorMessage += cgss::meta::Log<T>::classname;
 			errorMessage += ".";
 			if constexpr (raise)
 			{
@@ -66,7 +66,9 @@ namespace rb
 	template <class T>
 	rb_data_type_t &GetDataType()
 	{
-		static rb_data_type_t type = {typeid(T).name(), {Mark<T>, Free<T>, nullptr, nullptr}, nullptr, nullptr, 0};
+		// RUBY_TYPED_FREE_IMMEDIATELY lets the GC call dfree synchronously on
+		// collection instead of deferring via finalizer.
+		static rb_data_type_t type = {typeid(T).name(), {Mark<T>, Free<T>, nullptr, nullptr}, nullptr, nullptr, RUBY_TYPED_FREE_IMMEDIATELY};
 		return type;
 	}
 
@@ -106,7 +108,7 @@ namespace rb
 		if (CheckTypeInvalidBool(self, expectedType))
 		{
 			auto errorMessage = std::string{"Expected "};
-			errorMessage += meta::Log<T>::classname;
+			errorMessage += cgss::meta::Log<T>::classname;
 			errorMessage += " got ";
 			errorMessage += RSTRING_PTR(rb_class_name(CLASS_OF(self)));
 			errorMessage += ".";

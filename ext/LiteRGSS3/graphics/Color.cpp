@@ -3,36 +3,13 @@
 // new path under LiteCGSS/ (no legacy "2" suffix).
 #include "LiteRGSS.h"
 #include "RubyValue.h"
+#include "../rbAdapter.h"
 #include <LiteCGSS/Common/NormalizeNumbers.h>
 #include "Color.h"
 
 VALUE rb_cColor = Qnil;
 
-static void color_free(void *ptr)
-{
-    delete static_cast<ColorData *>(ptr);
-}
-
-// TypedData descriptor for ColorData (replaces deprecated Data_Wrap_Struct)
-const rb_data_type_t color_type = {
-    "ColorData",
-    {nullptr, color_free, nullptr},
-    nullptr,
-    nullptr,
-    RUBY_TYPED_FREE_IMMEDIATELY};
-
-static VALUE color_alloc(VALUE klass)
-{
-    auto *color = new ColorData();
-    return TypedData_Wrap_Struct(klass, &color_type, color);
-}
-
-static ColorData *get_color(VALUE self)
-{
-    ColorData *color;
-    TypedData_Get_Struct(self, ColorData, &color_type, color);
-    return color;
-}
+static ColorData *get_color(VALUE self) { return rb::GetPtr<ColorData>(self); }
 
 VALUE rb_Color_Initialize(int argc, VALUE *argv, VALUE self)
 {
@@ -131,7 +108,7 @@ VALUE rb_Color_to_s(VALUE self)
 void Init_Color()
 {
     rb_cColor = rb_define_class_under(rb_mLiteRGSS, "Color", rb_cObject);
-    rb_define_alloc_func(rb_cColor, color_alloc);
+    rb_define_alloc_func(rb_cColor, rb::Alloc<ColorData>);
 
     rb_define_method(rb_cColor, "initialize", _rbf rb_Color_Initialize, -1);
     rb_define_method(rb_cColor, "set", _rbf rb_Color_Initialize, -1);

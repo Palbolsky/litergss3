@@ -2,11 +2,11 @@
 #define Color_H
 
 #include "RubyValue.h"
+#include "../rbAdapter.h"
 #include <LiteCGSS/Common/NormalizeNumbers.h>
 
 void Init_Color();
 extern VALUE rb_cColor;
-extern const rb_data_type_t color_type; // expose for other files
 
 struct ColorData
 {
@@ -21,12 +21,6 @@ struct ColorData
     }
 };
 
-// Helper to extract ColorData from any Ruby Color value
-inline ColorData *get_color_data(VALUE color)
-{
-    ColorData *cd;
-    TypedData_Get_Struct(color, ColorData, &color_type, cd);
-    return cd;
-}
+inline ColorData *get_color_data(VALUE color) { return rb::GetPtr<ColorData>(color); }
 
 #endif

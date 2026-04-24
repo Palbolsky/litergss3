@@ -5,6 +5,7 @@
 
 #include "LiteRGSS.h"
 #include "RubyValue.h"
+#include "../rbAdapter.h"
 #include "window/Window.h"
 #include <LiteCGSS/Backend/ActiveBackend.h>
 #include <LiteCGSS/Common/NormalizeNumbers.h>
@@ -17,45 +18,23 @@ namespace {
 	using Ops = Backend::Ops;
 }
 
+// GC roots SpriteData holds across the Ruby heap. Must be declared before
+// any instantiation of rb::GetDataType<SpriteData> so this specialization
+// lands in the generic type descriptor.
+namespace rb {
+    template <>
+    inline void Mark<SpriteData>(void *ptr)
+    {
+        auto *s = static_cast<SpriteData *>(ptr);
+        if (s == nullptr) return;
+        rb_gc_mark(s->rBitmap);
+        rb_gc_mark(s->rViewport);
+    }
+}
+
 VALUE rb_cSprite = Qnil;
 
-// --- TypedData ---
-
-static void sprite_free(void *ptr)
-{
-    // cgss::Texture owns its GPU backing via a shared_ptr with a custom
-    // deleter that calls Ops::texture_destroy on the last reference.
-    // Nothing to do here beyond `delete`.
-    delete static_cast<SpriteData *>(ptr);
-}
-
-static void sprite_mark(void *ptr)
-{
-    auto *s = static_cast<SpriteData *>(ptr);
-    if (s == nullptr) return;
-    rb_gc_mark(s->rBitmap);
-    rb_gc_mark(s->rViewport);
-}
-
-static const rb_data_type_t sprite_type = {
-    "SpriteData",
-    {sprite_mark, sprite_free, nullptr},
-    nullptr,
-    nullptr,
-    RUBY_TYPED_FREE_IMMEDIATELY};
-
-static VALUE sprite_alloc(VALUE klass)
-{
-    auto *s = new SpriteData();
-    return TypedData_Wrap_Struct(klass, &sprite_type, s);
-}
-
-static SpriteData *get_sprite(VALUE self)
-{
-    SpriteData *s;
-    TypedData_Get_Struct(self, SpriteData, &sprite_type, s);
-    return s;
-}
+static SpriteData *get_sprite(VALUE self) { return rb::GetPtr<SpriteData>(self); }
 
 static void check_disposed(SpriteData *s)
 {
@@ -271,7 +250,7 @@ VALUE rb_Sprite_draw(VALUE self)
 void Init_Sprite()
 {
     rb_cSprite = rb_define_class_under(rb_mLiteRGSS, "Sprite", rb_cObject);
-    rb_define_alloc_func(rb_cSprite, sprite_alloc);
+    rb_define_alloc_func(rb_cSprite, rb::Alloc<SpriteData>);
 
     rb_define_method(rb_cSprite, "initialize", _rbf rb_Sprite_Initialize, -1);
     rb_define_method(rb_cSprite, "dispose", _rbf rb_Sprite_Dispose, 0);

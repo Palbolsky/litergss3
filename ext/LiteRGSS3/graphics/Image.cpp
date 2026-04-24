@@ -5,6 +5,7 @@
 
 #include "LiteRGSS.h"
 #include "RubyValue.h"
+#include "../rbAdapter.h"
 #include <LiteCGSS/Common/NormalizeNumbers.h>
 #include <LiteCGSS/Image/Serializers/ImageSerializer.h>
 #include "Color.h"
@@ -12,36 +13,7 @@
 
 VALUE rb_cImage = Qnil;
 
-// --- TypedData ---
-
-static void image_free(void *ptr)
-{
-    // cgss::Image's destructor releases the native backing via
-    // Ops::image_destroy. Nothing to do here beyond `delete`.
-    delete static_cast<ImageData *>(ptr);
-}
-
-static void image_mark(void *ptr) { (void)ptr; }
-
-static const rb_data_type_t image_type = {
-    "ImageData",
-    {image_mark, image_free, nullptr},
-    nullptr,
-    nullptr,
-    RUBY_TYPED_FREE_IMMEDIATELY};
-
-static VALUE image_alloc(VALUE klass)
-{
-    auto *img = new ImageData();
-    return TypedData_Wrap_Struct(klass, &image_type, img);
-}
-
-ImageData *get_image(VALUE self)
-{
-    ImageData *img;
-    TypedData_Get_Struct(self, ImageData, &image_type, img);
-    return img;
-}
+ImageData *get_image(VALUE self) { return rb::GetPtr<ImageData>(self); }
 
 static void check_disposed(ImageData *img)
 {
@@ -283,7 +255,7 @@ VALUE rb_Image_toPNGFile(VALUE self, VALUE filename)
 void Init_Image()
 {
     rb_cImage = rb_define_class_under(rb_mLiteRGSS, "Image", rb_cObject);
-    rb_define_alloc_func(rb_cImage, image_alloc);
+    rb_define_alloc_func(rb_cImage, rb::Alloc<ImageData>);
 
     rb_define_method(rb_cImage, "initialize", _rbf rb_Image_Initialize, -1);
     rb_define_method(rb_cImage, "initialize_copy", _rbf rb_Image_InitializeCopy, 1);

@@ -33,15 +33,23 @@ desc "Configure the project by checking / setting up a working environment"
 task :configure do |t, args|
   require_relative 'external/litecgss2/build/system_env'
   require_relative 'external/litecgss2/build/ruby_installer'
+  require_relative 'external/litecgss2/build/raylib_installer'
+
+  # Backend selection: --enable-sfml wins, otherwise default to raylib.
+  backend =
+    if enable_config('sfml')
+      'sfml'
+    else
+      'raylib'
+    end
+  Cgss::RaylibInstaller.check! if backend == 'raylib'
 
   litecgss_root_dir = File.expand_path(File.dirname(__FILE__)) + "/external/litecgss2"
-  Dir.chdir(litecgss_root_dir) {
-    system("rake configure")
-  }
 
   Dir.chdir(litecgss_root_dir) {
     system("rake clean")
     extra_args = '--enable-debug '
+    extra_args += "--enable-#{backend} "
     if enable_config('physfs')
       extra_args += '--enable-physfs '
     end

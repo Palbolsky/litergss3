@@ -5,6 +5,7 @@
 
 #include "LiteRGSS.h"
 #include "RubyValue.h"
+#include "../rbAdapter.h"
 #include "Viewport.h"
 #include "window/Window.h"
 
@@ -17,32 +18,7 @@ namespace {
 
 VALUE rb_cViewport = Qnil;
 
-// --- TypedData ---
-
-static void viewport_free(void *ptr)
-{
-    delete static_cast<ViewportData *>(ptr);
-}
-
-static const rb_data_type_t viewport_type = {
-    "ViewportData",
-    {nullptr, viewport_free, nullptr},
-    nullptr,
-    nullptr,
-    RUBY_TYPED_FREE_IMMEDIATELY};
-
-ViewportData *get_viewport(VALUE self)
-{
-    ViewportData *vp;
-    TypedData_Get_Struct(self, ViewportData, &viewport_type, vp);
-    return vp;
-}
-
-static VALUE viewport_alloc(VALUE klass)
-{
-    auto *vp = new ViewportData();
-    return TypedData_Wrap_Struct(klass, &viewport_type, vp);
-}
+ViewportData *get_viewport(VALUE self) { return rb::GetPtr<ViewportData>(self); }
 
 static void check_disposed(ViewportData *vp)
 {
@@ -154,7 +130,7 @@ VALUE rb_Viewport_endDraw(VALUE self)
 void Init_Viewport()
 {
     rb_cViewport = rb_define_class_under(rb_mLiteRGSS, "Viewport", rb_cObject);
-    rb_define_alloc_func(rb_cViewport, viewport_alloc);
+    rb_define_alloc_func(rb_cViewport, rb::Alloc<ViewportData>);
 
     rb_define_method(rb_cViewport, "initialize", _rbf rb_Viewport_Initialize, -1);
     rb_define_method(rb_cViewport, "dispose", _rbf rb_Viewport_Dispose, 0);
