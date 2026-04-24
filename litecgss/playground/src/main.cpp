@@ -231,6 +231,15 @@ static void ViewTest() {
 	cgss::Text titleText;
 	cgss::Text typewriterText;
 	cgss::Text framedText;
+	cgss::Text outlineText;
+	cgss::Text shadowText;
+	cgss::Text boldUnderlinedText;
+	cgss::Text strikeText;
+	// ScrollText style bits match the private SFML ScrollText enum; the
+	// raylib impl keeps the same values so the uint32 mask is portable.
+	static constexpr std::uint32_t kStyleBold          = 1u << 0;
+	static constexpr std::uint32_t kStyleUnderlined    = 1u << 2;
+	static constexpr std::uint32_t kStyleStrikeThrough = 1u << 3;
 	static constexpr const char* kTypewriterPhrase =
 		"Hello from the playground! This line types itself.";
 
@@ -261,6 +270,48 @@ static void ViewTest() {
 		framedText.setFillColor(cgss::Color{ 40, 40, 80, 255 });
 		framedText.setString("Framed!");
 		framedText.move(70, 60);
+
+		// Phase 2 showcase — each of these exercises a distinct style path:
+		//   outline      → 8-tap stamp in outline color
+		//   shadow       → 3-stamp bottom-right, mirrors SFML's addGlyphQuad
+		//   bold+under   → synthetic bold re-stamp + underline rect
+		//   strike       → strikethrough rect mid-glyph
+		outlineText = cgss::Text::create(window);
+		outlineText.setFont(demoFont);
+		outlineText.setCharacterSize(18);
+		outlineText.setFillColor(cgss::Color{ 255,  80,  80, 255 });
+		outlineText.setOutlineColor(cgss::Color{  20,  20,  20, 255 });
+		outlineText.setOutlineThickness(1.5f);
+		outlineText.setDrawShadow(false);
+		outlineText.setString("outline");
+		outlineText.move(8, 30);
+
+		shadowText = cgss::Text::create(window);
+		shadowText.setFont(demoFont);
+		shadowText.setCharacterSize(18);
+		shadowText.setFillColor(cgss::Color{ 220, 240, 255, 255 });
+		shadowText.setOutlineColor(cgss::Color{  0,   0,   0,  220 });
+		shadowText.setDrawShadow(true);
+		shadowText.setString("shadow");
+		shadowText.move(120, 30);
+
+		boldUnderlinedText = cgss::Text::create(window);
+		boldUnderlinedText.setFont(demoFont);
+		boldUnderlinedText.setCharacterSize(16);
+		boldUnderlinedText.setFillColor(cgss::Color{ 180, 255, 180, 255 });
+		boldUnderlinedText.setStyle(kStyleBold | kStyleUnderlined);
+		boldUnderlinedText.setDrawShadow(false);
+		boldUnderlinedText.setString("bold + underlined");
+		boldUnderlinedText.move(8, 55);
+
+		strikeText = cgss::Text::create(window);
+		strikeText.setFont(demoFont);
+		strikeText.setCharacterSize(16);
+		strikeText.setFillColor(cgss::Color{ 255, 180, 180, 255 });
+		strikeText.setStyle(kStyleStrikeThrough);
+		strikeText.setDrawShadow(false);
+		strikeText.setString("struck-through");
+		strikeText.move(190, 55);
 	} else {
 		std::cout << "No system font found in probe list; ScrollText demo skipped." << std::endl;
 	}

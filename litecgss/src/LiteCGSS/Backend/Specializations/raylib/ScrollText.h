@@ -15,10 +15,18 @@
 //
 // Phase 1 scope: DrawTextPro-based rendering. Supports string, font,
 // character size, fill color, position/origin/scale, numCharsToDraw
-// (typewriter), and smoothing. Outline, drop shadow, style flags
-// (Bold/Italic/Underline/StrikeThrough), custom line/letter spacing and
-// per-glyph bounds are accepted as setters but not yet rendered — their
-// impls are tracked for Phase 2.
+// (typewriter), and smoothing.
+//
+// Phase 2 adds: outline (8-tap stamp — raylib has no SFML-style per-glyph
+// outline render), drop shadow (3-stamp bottom-right, matches the SFML
+// vendored impl), Underlined and StrikeThrough style flags (filled rects
+// using heuristic line metrics — raylib exposes no underlinePosition /
+// underlineThickness), and synthetic Bold (1-offset stamp).
+//
+// Still deferred: Italic (would need a custom rlMultMatrixf shear matrix
+// post-view — see the SFML italicShear constant of 0.209f for reference);
+// kerning (raylib has no GetKerning equivalent); true per-glyph bounds
+// via GetGlyphInfo / GetGlyphAtlasRec (Phase 3).
 
 #include <raylib.h>
 
@@ -30,6 +38,17 @@ namespace cgss {
 
 	class ScrollText {
 	public:
+		// Style bit values — kept in lockstep with the SFML ScrollText
+		// enum (src/LiteCGSS/Graphics/ScrollText.h) so consumers can pass
+		// the same uint32 mask regardless of backend.
+		enum Style : std::uint32_t {
+			Regular       = 0,
+			Bold          = 1u << 0,
+			Italic        = 1u << 1,
+			Underlined    = 1u << 2,
+			StrikeThrough = 1u << 3,
+		};
+
 		ScrollText() = default;
 
 		void setString(const std::string& utf8);
@@ -83,7 +102,14 @@ namespace cgss {
 		::Color m_outline { 0, 0, 0, 255 };
 		float m_outlineThickness = 0.f;
 		bool m_drawShadow = true;
-		bool m_smooth = false;
+		// Default smooth=true matches sf::Font's own default (SFML text comes
+		// out bilinear-filtered unless a consumer opts out). Raylib bakes its
+		// atlas at a fixed base size (32 px by default in font_load_from_file)
+		// and DrawTextPro rescales via texture sampling — POINT filtering on
+		// the common downscale path (e.g. 32-atlas → 18 render) aliases glyph
+		// edges and reads as slightly thinner / smaller to the eye. BILINEAR
+		// is the closer match to sf::Text's native-rasterized look.
+		bool m_smooth = true;
 		std::uint32_t m_numCharsToDraw = (std::numeric_limits<std::uint32_t>::max)();
 		float m_x = 0.f, m_y = 0.f;
 		float m_ox = 0.f, m_oy = 0.f;

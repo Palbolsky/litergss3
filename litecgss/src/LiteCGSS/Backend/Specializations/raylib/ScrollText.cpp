@@ -122,6 +122,13 @@ void cgss::ScrollText::setScale(float sx, float sy) {
 	const ::Vector2 size = ::MeasureTextEx(*m_font, m_utf8.c_str(),
 	                                       fontSizeF(m_characterSize),
 	                                       spacingFromFactor(m_letterSpacingFactor));
+	// Matches SFML ScrollText: outline expands the bounding box by ceil(thickness)
+	// in every direction so layout code (centering, clipping) accounts for the
+	// stamped pixels around the glyph fill.
+	if (m_outlineThickness != 0.f && !m_drawShadow) {
+		const float outline = std::fabs(std::ceil(m_outlineThickness));
+		return ::Rectangle{ -outline, -outline, size.x + 2.f * outline, size.y + 2.f * outline };
+	}
 	return ::Rectangle{ 0.f, 0.f, size.x, size.y };
 }
 
@@ -145,9 +152,13 @@ void cgss::ScrollText::draw() const {
 	// for UI text sizes (< a few hundred chars). Phase 2 can amortize by
 	// caching the truncated buffer when m_utf8 / m_numCharsToDraw change.
 	const std::string truncated = m_utf8.substr(0, bytes);
-
+	const char* text    = truncated.c_str();
 	const float fs      = fontSizeF(m_characterSize);
 	const float spacing = spacingFromFactor(m_letterSpacingFactor);
+
+	const bool drawBold       = (m_style & ScrollText::Bold) != 0;
+	const bool drawUnderlined = (m_style & ScrollText::Underlined) != 0;
+	const bool drawStrike     = (m_style & ScrollText::StrikeThrough) != 0;
 
 	// Compose the currently-installed raylib View with the user scale so
 	// text inside a Viewport / FramedView renders at the view-mapped screen
@@ -162,8 +173,63 @@ void cgss::ScrollText::draw() const {
 	::rlPushMatrix();
 	::rlTranslatef(vd.tx + m_x * vd.zoomX, vd.ty + m_y * vd.zoomY, 0.f);
 	::rlScalef(m_sx * vd.zoomX, m_sy * vd.zoomY, 1.f);
-	::DrawTextPro(*m_font, truncated.c_str(),
-	              ::Vector2{ 0.f, 0.f }, ::Vector2{ m_ox, m_oy },
-	              vd.rotation, fs, spacing, m_fill);
+
+	const ::Vector2 origin = { m_ox, m_oy };
+	const float rot        = vd.rotation;
+
+	// Shadow vs outline — matches SFML ScrollText's exclusivity: shadow
+	// short-circuits the outline pass. Shadow renders as 3 stamps in the
+	// bottom-right direction (mirroring addGlyphQuad's +1/+1/+1,+1/0,+1
+	// triplet in the SFML vendored impl). Outline stamps 8 directions at
+	// m_outlineThickness; raylib has no per-glyph outline equivalent, so
+	// this approximates via repeated DrawTextPro calls in outline color.
+	if (m_drawShadow) {
+		::DrawTextPro(*m_font, text, ::Vector2{ 1.f, 0.f }, origin, rot, fs, spacing, m_outline);
+		::DrawTextPro(*m_font, text, ::Vector2{ 1.f, 1.f }, origin, rot, fs, spacing, m_outline);
+		::DrawTextPro(*m_font, text, ::Vector2{ 0.f, 1.f }, origin, rot, fs, spacing, m_outline);
+	} else if (m_outlineThickness > 0.f) {
+		const float t = m_outlineThickness;
+		const ::Vector2 offsets[8] = {
+			{  t,  0.f }, { -t,  0.f },
+			{ 0.f,  t  }, { 0.f, -t  },
+			{  t,   t  }, { -t,  -t  },
+			{  t,  -t  }, { -t,   t  },
+		};
+		for (const auto& off : offsets) {
+			::DrawTextPro(*m_font, text, off, origin, rot, fs, spacing, m_outline);
+		}
+	}
+
+	// Fill pass. Synthetic bold re-stamps at +1px — raylib has no synthetic
+	// bold, and proper bold requires a separately-loaded font variant; this
+	// thickens the stroke as a best-effort fallback.
+	::DrawTextPro(*m_font, text, ::Vector2{ 0.f, 0.f }, origin, rot, fs, spacing, m_fill);
+	if (drawBold) {
+		::DrawTextPro(*m_font, text, ::Vector2{ 1.f, 0.f }, origin, rot, fs, spacing, m_fill);
+	}
+
+	// Underline / StrikeThrough — raylib has no underline metrics API; pick
+	// heuristic offsets that match typical typographic positions:
+	//   underline baseline ~ 95% of character height,
+	//   strikethrough      ~ 55% (mid-height).
+	// Thickness = max(1, fs/16). Single-line extent only: MeasureTextEx on a
+	// multi-line string returns the widest line, so strike/underline will
+	// over-extend on multi-line text — tracked as a multi-line layout TODO.
+	if (drawUnderlined || drawStrike) {
+		const ::Vector2 extent = ::MeasureTextEx(*m_font, text, fs, spacing);
+		const float thickness  = std::max(1.f, fs / 16.f);
+		// Glyph top-left in matrix-local coords is (-ox, -oy); rectangles
+		// line up with the text by offsetting likewise.
+		const float left = -m_ox;
+		if (drawUnderlined) {
+			const float yTop = fs * 0.95f - m_oy - thickness * 0.5f;
+			::DrawRectangleRec(::Rectangle{ left, yTop, extent.x, thickness }, m_fill);
+		}
+		if (drawStrike) {
+			const float yTop = fs * 0.55f - m_oy - thickness * 0.5f;
+			::DrawRectangleRec(::Rectangle{ left, yTop, extent.x, thickness }, m_fill);
+		}
+	}
+
 	::rlPopMatrix();
 }
