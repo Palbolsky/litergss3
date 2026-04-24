@@ -95,8 +95,12 @@ namespace cgss::backend {
 		// take position/rotation/scale as separate args). The native_transform
 		// POD (`raylib::Transform` in the fwd header) is populated here so the
 		// Sprite/Shape item cache path compiles uniformly across backends.
+		//
+		// Angle sign is flipped here to match screen-space Y-down convention,
+		// mirroring SFMLBackend::build_transform — see Transformable.h for the
+		// cgss-wide convention.
 		static inline native_transform build_transform(const cgss::Transformable& xf) noexcept {
-			return native_transform{ xf.getX(), xf.getY(), xf.getOx(), xf.getOy(), xf.getAngle(), xf.getScaleX(), xf.getScaleY() };
+			return native_transform{ xf.getX(), xf.getY(), xf.getOx(), xf.getOy(), -xf.getAngle(), xf.getScaleX(), xf.getScaleY() };
 		}
 
 		// ---- Window ops — raylib uses GLOBAL window state ----
@@ -730,8 +734,8 @@ namespace cgss::backend {
 		                                              const native_sprite& s,
 		                                              const native_transform& xform,
 		                                              const native_render_states* /*base_states*/) {
-			// cgss::Transformable angle is CW-positive (matches raylib's
-			// DrawTexturePro rotation convention), so pass angle as-is.
+			// `xform.angle` is already in screen-space (CW-positive) — see
+			// build_transform above, which flips the cgss angle sign.
 			draw_sprite_impl(s, xform.x, xform.y, xform.ox, xform.oy, xform.scaleX, xform.scaleY, xform.angle);
 		}
 		static inline void draw_shape_with_transform(native_render_target&,

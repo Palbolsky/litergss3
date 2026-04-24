@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cstring>
 #include <iostream>
 
@@ -318,10 +319,34 @@ static void ViewTest() {
 
 	auto i = 0;
 	{
+		// Backend-agnostic FPS counter + cumulative iteration count. FPS shows
+		// instantaneous pacing; (totalIters / totalSeconds) shows long-term
+		// average rate — if the loop is truly pegged at 60 Hz, the two must
+		// agree and stay stable across SFML and raylib.
+		using clock = std::chrono::steady_clock;
+		const auto loopStart = clock::now();
+		auto fpsWindowStart  = loopStart;
+		auto fpsFrames       = 0u;
 
 		while (window.isOpen()) {
 			window.draw();
 			HandleEvents(window, settings);
+
+			++fpsFrames;
+			const auto now = clock::now();
+			const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - fpsWindowStart);
+			if (elapsed.count() >= 1000) {
+				const double fps = fpsFrames * 1000.0 / static_cast<double>(elapsed.count());
+				const auto totalMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - loopStart).count();
+				const double avgRate = (i + 1) * 1000.0 / static_cast<double>(totalMs);
+				std::cout << "FPS: " << fps
+				          << "  i=" << (i + 1)
+				          << "  t=" << (totalMs / 1000.0) << "s"
+				          << "  avg=" << avgRate << " it/s"
+				          << std::endl;
+				fpsWindowStart = now;
+				fpsFrames      = 0;
+			}
 
 			sprite.setAngle(sprite.getAngle() + 1.f);
 
