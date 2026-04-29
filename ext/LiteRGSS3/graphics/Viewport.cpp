@@ -7,7 +7,8 @@
 #include "RubyValue.h"
 #include "../rbAdapter.h"
 #include "Viewport.h"
-#include "window/Window.h"
+#include "window/DisplayWindow.h"
+#include "DrawableDisposable.h"
 
 #include <LiteCGSS/Backend/ActiveBackend.h>
 
@@ -129,7 +130,7 @@ VALUE rb_Viewport_endDraw(VALUE self)
 
 void Init_Viewport()
 {
-    rb_cViewport = rb_define_class_under(rb_mLiteRGSS, "Viewport", rb_cObject);
+    rb_cViewport = rb_define_class_under(rb_mLiteRGSS, "Viewport", rb_cDrawable);
     rb_define_alloc_func(rb_cViewport, rb::Alloc<ViewportData>);
 
     rb_define_method(rb_cViewport, "initialize", _rbf rb_Viewport_Initialize, -1);

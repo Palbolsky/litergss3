@@ -9,7 +9,7 @@ puts "=== Test Gamepad Live ==="
 DEAD_ZONE = 0.1
 GAMEPAD_ID = 0
 
-window = LiteRGSS::Window.new
+window = LiteRGSS::DisplayWindow.new
 window.open_window
 puts "Window opened"
 

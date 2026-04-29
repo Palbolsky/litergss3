@@ -10,6 +10,7 @@
 #include <LiteCGSS/Image/Serializers/ImageSerializer.h>
 #include "Color.h"
 #include "Image.h"
+#include "DrawableDisposable.h"
 
 VALUE rb_cImage = Qnil;
 
@@ -243,6 +244,11 @@ VALUE rb_Image_toPNG(VALUE self)
     return result;
 }
 
+// litergss2's Bitmap exposed `update` as a no-op refresh. In litergss3 the
+// GPU texture is rebuilt inside Sprite#bitmap=, so this stays a no-op for
+// compat.
+VALUE rb_Image_update(VALUE self) { return self; }
+
 VALUE rb_Image_toPNGFile(VALUE self, VALUE filename)
 {
     check_disposed(get_image(self));
@@ -254,13 +260,14 @@ VALUE rb_Image_toPNGFile(VALUE self, VALUE filename)
 
 void Init_Image()
 {
-    rb_cImage = rb_define_class_under(rb_mLiteRGSS, "Image", rb_cObject);
+    rb_cImage = rb_define_class_under(rb_mLiteRGSS, "Image", rb_cDisposable);
     rb_define_alloc_func(rb_cImage, rb::Alloc<ImageData>);
 
     rb_define_method(rb_cImage, "initialize", _rbf rb_Image_Initialize, -1);
     rb_define_method(rb_cImage, "initialize_copy", _rbf rb_Image_InitializeCopy, 1);
     rb_define_method(rb_cImage, "dispose", _rbf rb_Image_Dispose, 0);
     rb_define_method(rb_cImage, "disposed?", _rbf rb_Image_Disposed, 0);
+    rb_define_method(rb_cImage, "update", _rbf rb_Image_update, 0);
     rb_define_method(rb_cImage, "width", _rbf rb_Image_Width, 0);
     rb_define_method(rb_cImage, "height", _rbf rb_Image_Height, 0);
     rb_define_method(rb_cImage, "rect", _rbf rb_Image_Rect, 0);

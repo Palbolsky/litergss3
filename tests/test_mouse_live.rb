@@ -8,7 +8,7 @@ puts "=== Test Mouse Live ==="
 
 LOG_MOUSE_MOVE = true
 
-window = LiteRGSS::Window.new
+window = LiteRGSS::DisplayWindow.new
 window.open_window
 puts "Window opened"
 

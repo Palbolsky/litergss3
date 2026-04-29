@@ -43,7 +43,7 @@ puts "LControl = #{Keyboard::LControl}"
 
 # Open the window before any input polling
 puts "\n[Window]"
-window = LiteRGSS::Window.new
+window = LiteRGSS::DisplayWindow.new
 window.open_window
 puts "Window opened"
 

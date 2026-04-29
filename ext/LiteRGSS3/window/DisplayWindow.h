@@ -1,12 +1,12 @@
-#ifndef Window_H
-#define Window_H
+#ifndef DisplayWindow_H
+#define DisplayWindow_H
 
 #include "RubyValue.h"
 
 #include "LiteCGSS/Backend/ActiveBackendFwd.h"
 
-extern VALUE rb_cWindow;
-void Init_Window();
+extern VALUE rb_cDisplayWindow;
+void Init_DisplayWindow();
 
 extern int base_width;
 extern int base_height;

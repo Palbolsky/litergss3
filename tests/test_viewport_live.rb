@@ -4,7 +4,7 @@ require_relative '../build/lib/LiteRGSS'
 
 puts "=== Test Viewport Live ==="
 
-window = LiteRGSS::Window.new
+window = LiteRGSS::DisplayWindow.new
 window.open_window(640, 480, "Test Viewport - Close me to exit")
 puts "Window opened"
 

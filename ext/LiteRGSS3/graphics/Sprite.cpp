@@ -6,12 +6,13 @@
 #include "LiteRGSS.h"
 #include "RubyValue.h"
 #include "../rbAdapter.h"
-#include "window/Window.h"
+#include "window/DisplayWindow.h"
 #include <LiteCGSS/Backend/ActiveBackend.h>
 #include <LiteCGSS/Common/NormalizeNumbers.h>
 #include "Sprite.h"
 #include "Image.h"
 #include "Viewport.h"
+#include "DrawableDisposable.h"
 
 namespace {
 	using Backend = cgss::backend::ActiveBackend;
@@ -249,7 +250,7 @@ VALUE rb_Sprite_draw(VALUE self)
 
 void Init_Sprite()
 {
-    rb_cSprite = rb_define_class_under(rb_mLiteRGSS, "Sprite", rb_cObject);
+    rb_cSprite = rb_define_class_under(rb_mLiteRGSS, "Sprite", rb_cDrawable);
     rb_define_alloc_func(rb_cSprite, rb::Alloc<SpriteData>);
 
     rb_define_method(rb_cSprite, "initialize", _rbf rb_Sprite_Initialize, -1);

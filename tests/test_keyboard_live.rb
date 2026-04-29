@@ -6,7 +6,7 @@ Keyboard = LiteRGSS::Inputs::Keyboard
 
 puts "=== Test Keyboard Live ==="
 
-window = LiteRGSS::Window.new
+window = LiteRGSS::DisplayWindow.new
 window.open_window
 puts "Window opened"
 

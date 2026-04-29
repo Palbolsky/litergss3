@@ -5,7 +5,7 @@ require_relative '../build/lib/LiteRGSS'
 class TestWindow < Minitest::Test
   
   def setup
-    @window = LiteRGSS::Window.new
+    @window = LiteRGSS::DisplayWindow.new
   end
   
   def teardown

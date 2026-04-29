@@ -1,4 +1,4 @@
-#include "Window.h"
+#include "DisplayWindow.h"
 #include "LiteRGSS.h"
 #include "../events/Events.h"
 
@@ -20,7 +20,7 @@ namespace {
 	std::unique_ptr<Backend::native_window> g_window;
 }
 
-VALUE rb_cWindow = Qnil;
+VALUE rb_cDisplayWindow = Qnil;
 
 int base_width  = 640;
 int base_height = 480;
@@ -42,7 +42,7 @@ static void ensureWindow()
 	}
 }
 
-VALUE rb_Window_open(int argc, VALUE* argv, VALUE self)
+VALUE rb_DisplayWindow_open(int argc, VALUE* argv, VALUE self)
 {
 	VALUE width, height, title, scale;
 	rb_scan_args(argc, argv, "04", &width, &height, &title, &scale);
@@ -64,7 +64,7 @@ VALUE rb_Window_open(int argc, VALUE* argv, VALUE self)
 	return self;
 }
 
-VALUE rb_Window_scale(VALUE self, VALUE scale)
+VALUE rb_DisplayWindow_scale(VALUE self, VALUE scale)
 {
 	ensureWindow();
 	window_scale = NUM2DBL(scale);
@@ -74,7 +74,7 @@ VALUE rb_Window_scale(VALUE self, VALUE scale)
 	return self;
 }
 
-VALUE rb_Window_resizeScreen(VALUE self, VALUE width, VALUE height)
+VALUE rb_DisplayWindow_resizeScreen(VALUE self, VALUE width, VALUE height)
 {
 	ensureWindow();
 	base_width  = NUM2INT(width);
@@ -85,14 +85,14 @@ VALUE rb_Window_resizeScreen(VALUE self, VALUE width, VALUE height)
 	return self;
 }
 
-VALUE rb_Window_setTitle(VALUE self, VALUE title)
+VALUE rb_DisplayWindow_setTitle(VALUE self, VALUE title)
 {
 	ensureWindow();
 	Ops::window_set_title(*g_window, StringValueCStr(title));
 	return self;
 }
 
-VALUE rb_Window_setIcon(VALUE self, VALUE path)
+VALUE rb_DisplayWindow_setIcon(VALUE self, VALUE path)
 {
 	ensureWindow();
 	const char* p = StringValueCStr(path);
@@ -106,54 +106,54 @@ VALUE rb_Window_setIcon(VALUE self, VALUE path)
 	return self;
 }
 
-VALUE rb_Window_setVsync(VALUE self, VALUE enabled)
+VALUE rb_DisplayWindow_setVsync(VALUE self, VALUE enabled)
 {
 	ensureWindow();
 	Ops::window_set_vsync(*g_window, RTEST(enabled));
 	return self;
 }
 
-VALUE rb_Window_setFps(VALUE self, VALUE fps)
+VALUE rb_DisplayWindow_setFps(VALUE self, VALUE fps)
 {
 	ensureWindow();
 	Ops::window_set_framerate_limit(*g_window, NUM2UINT(fps));
 	return self;
 }
 
-VALUE rb_Window_getX(VALUE self)
+VALUE rb_DisplayWindow_getX(VALUE self)
 {
 	(void)self;
 	ensureWindow();
 	return INT2NUM(Ops::window_get_position(*g_window).x);
 }
 
-VALUE rb_Window_getY(VALUE self)
+VALUE rb_DisplayWindow_getY(VALUE self)
 {
 	(void)self;
 	ensureWindow();
 	return INT2NUM(Ops::window_get_position(*g_window).y);
 }
 
-VALUE rb_Window_move(VALUE self, VALUE x, VALUE y)
+VALUE rb_DisplayWindow_move(VALUE self, VALUE x, VALUE y)
 {
 	ensureWindow();
 	Ops::window_set_position(*g_window, NUM2INT(x), NUM2INT(y));
 	return self;
 }
 
-VALUE rb_Window_desktopWidth(VALUE self)
+VALUE rb_DisplayWindow_desktopWidth(VALUE self)
 {
 	(void)self;
 	return UINT2NUM(Ops::desktop_size().x);
 }
 
-VALUE rb_Window_desktopHeight(VALUE self)
+VALUE rb_DisplayWindow_desktopHeight(VALUE self)
 {
 	(void)self;
 	return UINT2NUM(Ops::desktop_size().y);
 }
 
-VALUE rb_Window_update(VALUE self)
+VALUE rb_DisplayWindow_update(VALUE self)
 {
 	(void)self;
 	ensureWindow();
@@ -161,14 +161,14 @@ VALUE rb_Window_update(VALUE self)
 	return Ops::window_is_open(*g_window) ? Qtrue : Qfalse;
 }
 
-VALUE rb_Window_present(VALUE self)
+VALUE rb_DisplayWindow_present(VALUE self)
 {
 	ensureWindow();
 	Ops::window_display(*g_window);
 	return self;
 }
 
-VALUE rb_Window_close(VALUE self)
+VALUE rb_DisplayWindow_close(VALUE self)
 {
 	if (g_window != nullptr) {
 		Ops::window_close(*g_window);
@@ -177,7 +177,7 @@ VALUE rb_Window_close(VALUE self)
 	return self;
 }
 
-VALUE rb_Window_should_close(VALUE self)
+VALUE rb_DisplayWindow_should_close(VALUE self)
 {
 	(void)self;
 	if (g_window == nullptr) return Qtrue;
@@ -197,7 +197,7 @@ VALUE rb_Window_should_close(VALUE self)
 // Special-case: on Closed, close the window ourselves (SFML needs the
 // explicit w.close() to flip isOpen; raylib's close latch is already set
 // by the event synthesizer) so should_close? reflects it next frame.
-VALUE rb_Window_poll_event(VALUE self)
+VALUE rb_DisplayWindow_poll_event(VALUE self)
 {
 	ensureWindow();
 	const bool has_block = rb_block_given_p();
@@ -222,25 +222,25 @@ VALUE rb_Window_poll_event(VALUE self)
 	return has_block ? self : LONG2NUM(count);
 }
 
-void Init_Window()
+void Init_DisplayWindow()
 {
-	rb_cWindow = rb_define_class_under(rb_mLiteRGSS, "Window", rb_cObject);
+	rb_cDisplayWindow = rb_define_class_under(rb_mLiteRGSS, "DisplayWindow", rb_cObject);
 
-	rb_define_method(rb_cWindow, "open_window",    _rbf rb_Window_open,          -1);
-	rb_define_method(rb_cWindow, "scale_window",   _rbf rb_Window_scale,          1);
-	rb_define_method(rb_cWindow, "resize_screen",  _rbf rb_Window_resizeScreen,   2);
-	rb_define_method(rb_cWindow, "set_title",      _rbf rb_Window_setTitle,       1);
-	rb_define_method(rb_cWindow, "set_icon",       _rbf rb_Window_setIcon,        1);
-	rb_define_method(rb_cWindow, "set_vsync",      _rbf rb_Window_setVsync,       1);
-	rb_define_method(rb_cWindow, "set_fps",        _rbf rb_Window_setFps,         1);
-	rb_define_method(rb_cWindow, "x",              _rbf rb_Window_getX,           0);
-	rb_define_method(rb_cWindow, "y",              _rbf rb_Window_getY,           0);
-	rb_define_method(rb_cWindow, "move",           _rbf rb_Window_move,           2);
-	rb_define_method(rb_cWindow, "desktop_width",  _rbf rb_Window_desktopWidth,   0);
-	rb_define_method(rb_cWindow, "desktop_height", _rbf rb_Window_desktopHeight,  0);
-	rb_define_method(rb_cWindow, "update",         _rbf rb_Window_update,         0);
-	rb_define_method(rb_cWindow, "present",        _rbf rb_Window_present,        0);
-	rb_define_method(rb_cWindow, "close_window",   _rbf rb_Window_close,          0);
-	rb_define_method(rb_cWindow, "should_close?",  _rbf rb_Window_should_close,   0);
-	rb_define_method(rb_cWindow, "poll_event",     _rbf rb_Window_poll_event,     0);
+	rb_define_method(rb_cDisplayWindow, "open_window",    _rbf rb_DisplayWindow_open,          -1);
+	rb_define_method(rb_cDisplayWindow, "scale_window",   _rbf rb_DisplayWindow_scale,          1);
+	rb_define_method(rb_cDisplayWindow, "resize_screen",  _rbf rb_DisplayWindow_resizeScreen,   2);
+	rb_define_method(rb_cDisplayWindow, "set_title",      _rbf rb_DisplayWindow_setTitle,       1);
+	rb_define_method(rb_cDisplayWindow, "set_icon",       _rbf rb_DisplayWindow_setIcon,        1);
+	rb_define_method(rb_cDisplayWindow, "set_vsync",      _rbf rb_DisplayWindow_setVsync,       1);
+	rb_define_method(rb_cDisplayWindow, "set_fps",        _rbf rb_DisplayWindow_setFps,         1);
+	rb_define_method(rb_cDisplayWindow, "x",              _rbf rb_DisplayWindow_getX,           0);
+	rb_define_method(rb_cDisplayWindow, "y",              _rbf rb_DisplayWindow_getY,           0);
+	rb_define_method(rb_cDisplayWindow, "move",           _rbf rb_DisplayWindow_move,           2);
+	rb_define_method(rb_cDisplayWindow, "desktop_width",  _rbf rb_DisplayWindow_desktopWidth,   0);
+	rb_define_method(rb_cDisplayWindow, "desktop_height", _rbf rb_DisplayWindow_desktopHeight,  0);
+	rb_define_method(rb_cDisplayWindow, "update",         _rbf rb_DisplayWindow_update,         0);
+	rb_define_method(rb_cDisplayWindow, "present",        _rbf rb_DisplayWindow_present,        0);
+	rb_define_method(rb_cDisplayWindow, "close_window",   _rbf rb_DisplayWindow_close,          0);
+	rb_define_method(rb_cDisplayWindow, "should_close?",  _rbf rb_DisplayWindow_should_close,   0);
+	rb_define_method(rb_cDisplayWindow, "poll_event",     _rbf rb_DisplayWindow_poll_event,     0);
 }

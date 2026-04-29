@@ -10,7 +10,7 @@ puts "=== Test Touch Live ==="
 puts "Desktop: click/move mouse to simulate touch point 0"
 puts "Android: use multiple fingers to see multiple touch points"
 
-window = LiteRGSS::Window.new
+window = LiteRGSS::DisplayWindow.new
 window.open_window
 puts "Window opened"
 

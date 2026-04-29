@@ -4,7 +4,7 @@ require_relative '../build/lib/LiteRGSS'
 
 puts "=== Test Sprite Live (no viewport) ==="
 
-window = LiteRGSS::Window.new
+window = LiteRGSS::DisplayWindow.new
 window.open_window(640, 480, "Sprite Live - Close me to exit")
 puts "Window opened"
 

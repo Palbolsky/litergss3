@@ -31,4 +31,6 @@ void Init_SfCompatAlias()
 		rb_const_set(rb_mSf, rb_intern("Touch"),
 		             rb_const_get(rb_mInputs, rb_intern("Touch")));
 	}
+	rb_const_set(rb_mSf, rb_intern("Sensor"),
+	             rb_const_get(rb_mInputs, rb_intern("Sensor")));
 }
