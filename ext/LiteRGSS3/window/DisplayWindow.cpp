@@ -1,7 +1,9 @@
 #include "DisplayWindow.h"
 #include "LiteRGSS.h"
 #include "../events/Events.h"
+#include "../graphics/BlendMode.h"
 #include "../graphics/Image.h"
+#include "../rbAdapter.h"
 
 #include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
@@ -425,7 +427,21 @@ VALUE rb_DisplayWindow_setBrightness(VALUE self, VALUE val)
 }
 
 VALUE rb_DisplayWindow_getShader(VALUE self) { return rb_ivar_get(self, iv_shader); }
-VALUE rb_DisplayWindow_setShader(VALUE self, VALUE val) { rb_ivar_set(self, iv_shader, val); return val; }
+VALUE rb_DisplayWindow_setShader(VALUE self, VALUE val)
+{
+	if (!NIL_P(val) && rb_obj_is_kind_of(val, rb_cBlendMode) != Qtrue) {
+		rb_raise(rb_eRGSSError, "DisplayWindow shader must be a BlendMode (or subclass).");
+	}
+	rb_ivar_set(self, iv_shader, val);
+	if (g_window != nullptr) {
+		if (NIL_P(val)) {
+			g_window->bindRenderStates(nullptr);
+		} else {
+			g_window->bindRenderStates(rb::GetPtr<RenderStatesElement>(val));
+		}
+	}
+	return val;
+}
 
 VALUE rb_DisplayWindow_setPolling(VALUE self, VALUE val)
 {

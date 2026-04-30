@@ -10,6 +10,7 @@
 #include "Viewport.h"
 #include "Rect.h"
 #include "Image.h"
+#include "BlendMode.h"
 #include "window/DisplayWindow.h"
 #include "DrawableDisposable.h"
 
@@ -216,12 +217,30 @@ VALUE rb_Viewport_snapToBitmap(VALUE self)
 VALUE rb_Viewport_beginDraw(VALUE self) { return self; }
 VALUE rb_Viewport_endDraw(VALUE self)   { return self; }
 
-// shader / blendmode — Ruby-level instance variable storage. Match the
-// litergss2 surface (PSDK Graphics.rb#snap_to_bitmap reads viewport.shader
-// to detect when transition effects are active). Wiring through cgss
-// RenderStates lands in Phase 5.
+// shader / blendmode — Ruby BlendMode (or Shader subclass) wraps a
+// cgss::RenderStates. Setting one binds it on the underlying cgss::Viewport
+// via bindRenderStates(); the @shader ivar pins the Ruby wrapper so its
+// cgss::RenderStates outlives the binding. Both `viewport.shader=` and
+// `viewport.blendmode=` route here — they share storage because cgss
+// represents blend factors and shader code in the same RenderStates object.
 VALUE rb_Viewport_getShader(VALUE self) { return rb_iv_get(self, "@shader"); }
-VALUE rb_Viewport_setShader(VALUE self, VALUE val) { rb_iv_set(self, "@shader", val); return val; }
+VALUE rb_Viewport_setShader(VALUE self, VALUE val)
+{
+    auto *vp = get_viewport(self);
+    check_disposed(vp);
+    if (!NIL_P(val) && rb_obj_is_kind_of(val, rb_cBlendMode) != Qtrue) {
+        rb_raise(rb_eRGSSError, "Viewport shader must be a BlendMode (or subclass).");
+    }
+    rb_iv_set(self, "@shader", val);
+    if (vp->viewport) {
+        if (NIL_P(val)) {
+            vp->viewport->bindRenderStates(nullptr);
+        } else {
+            vp->viewport->bindRenderStates(rb::GetPtr<RenderStatesElement>(val));
+        }
+    }
+    return val;
+}
 
 // --- Init ---
 

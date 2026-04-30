@@ -4,6 +4,7 @@
 // the last-held instance).
 
 #include <iostream>
+#include <string>
 #include <vector>
 
 #include <LiteCGSS/Common/NormalizeNumbers.h>
@@ -26,6 +27,11 @@ std::vector<unsigned int> rb_Fonts_Size_Tbl;
 // data and non-trivial for raylib's GPU atlas). Store as unique_ptr so
 // vector re-sizing moves pointers rather than copying Fonts.
 static std::vector<std::unique_ptr<cgss::Font>> g_fontTable;
+// Original .ttf path per font_id. Retained so set_default_size can rebuild
+// the raylib GPU atlas at the exact requested pixel size — pixel fonts
+// (PSDK's PowerGreenSmall etc.) need this to render 1:1 instead of being
+// downscaled from raylib's default LoadFont base size of 32.
+static std::vector<std::string> g_fontPaths;
 
 VALUE rb_Fonts_clear_all(VALUE self)
 {
@@ -36,7 +42,25 @@ VALUE rb_Fonts_clear_all(VALUE self)
     // font-face backing.
     g_fontTable.clear();
     g_fontTable.shrink_to_fit();
+    g_fontPaths.clear();
+    g_fontPaths.shrink_to_fit();
     return self;
+}
+
+// Internal helper: (re)build the GPU atlas for a font slot. If a default
+// size is registered for the slot, build at that pixel size — otherwise
+// fall back to the backend default (raylib LoadFont @ 32, SFML on-demand).
+static void rb_Fonts_rebuild_atlas(unsigned long position)
+{
+    if (position >= g_fontTable.size() || !g_fontTable[position]) return;
+    if (position >= g_fontPaths.size() || g_fontPaths[position].empty()) return;
+    const auto& path = g_fontPaths[position];
+    const bool has_size = position < rb_Fonts_Size_Tbl.size() && rb_Fonts_Size_Tbl[position] > 0;
+    if (has_size) {
+        g_fontTable[position]->load(path, rb_Fonts_Size_Tbl[position]);
+    } else {
+        g_fontTable[position]->load(path);
+    }
 }
 
 VALUE rb_Fonts_load_font(VALUE self, VALUE id, VALUE str)
@@ -46,8 +70,14 @@ VALUE rb_Fonts_load_font(VALUE self, VALUE id, VALUE str)
     while (g_fontTable.size() <= position) {
         g_fontTable.push_back(std::make_unique<cgss::Font>());
     }
-    // load() replaces any prior content (destroying the old atlas first).
-    g_fontTable[position]->load(std::string{RSTRING_PTR(str)});
+    while (g_fontPaths.size() <= position) {
+        g_fontPaths.emplace_back();
+    }
+    g_fontPaths[position] = std::string{RSTRING_PTR(str)};
+    // Rebuild (uses set_default_size's value when set_default_size was
+    // already called for this slot — PSDK calls them back-to-back per
+    // font, in either order).
+    rb_Fonts_rebuild_atlas(position);
     return self;
 }
 
@@ -66,6 +96,10 @@ VALUE rb_Fonts_set_default_size(VALUE self, VALUE id, VALUE size)
         rb_Fonts_Size_Tbl.push_back(16);
     }
     rb_Fonts_Size_Tbl[position] = static_cast<unsigned int>(rb_num2long(size));
+    // Rebuild the atlas at the new size — without this, raylib's atlas
+    // stays at LoadFont's default base size and tiny PSDK fonts (size ~11)
+    // come out as a downscaled mess.
+    rb_Fonts_rebuild_atlas(position);
     return self;
 }
 

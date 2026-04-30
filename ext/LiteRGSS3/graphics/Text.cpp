@@ -89,6 +89,34 @@ VALUE rb_Text_Initialize(int argc, VALUE *argv, VALUE self)
     long font_id = NUM2LONG(fontid);
     t->text.setFont(rb_Fonts_get_font(static_cast<unsigned long>(font_id)));
 
+    // Mirror legacy LiteRGSS2's `rb_Text_Load_Font`: the Text constructor is
+    // expected to seed fill / outline / shadow colors and the character size
+    // from the Fonts module — PSDK creates Text via `add_text(...)` and never
+    // calls `text.load_color` afterwards, so without this the text uses the
+    // ScrollText default character size (30 px) and stark fallback colors,
+    // producing the oversized white blocks seen in the title menu.
+    VALUE color_lookup_id = NIL_P(colorid) ? fontid : colorid;
+    VALUE size_lookup_id  = NIL_P(sizeid)  ? fontid : sizeid;
+
+    VALUE fcol = rb_Fonts_get_fill_color(rb_mFonts, color_lookup_id);
+    if (rb_obj_is_kind_of(fcol, rb_cColor) == Qtrue) {
+        auto *cd = get_color_data(fcol);
+        t->text.setFillColor(cgss::Color{cd->r, cd->g, cd->b, cd->a});
+    }
+    // Outline color when an outline thickness is set; otherwise the shadow
+    // color is what backs the drop-shadow stamp (m_outline doubles for both).
+    VALUE ocol = (t->text.getOutlineThickness() < 1.0f)
+        ? rb_Fonts_get_shadow_color(rb_mFonts, color_lookup_id)
+        : rb_Fonts_get_outline_color(rb_mFonts, color_lookup_id);
+    if (rb_obj_is_kind_of(ocol, rb_cColor) == Qtrue) {
+        auto *cd = get_color_data(ocol);
+        t->text.setOutlineColor(cgss::Color{cd->r, cd->g, cd->b, cd->a});
+    }
+    VALUE size_value = rb_Fonts_get_default_size(rb_mFonts, size_lookup_id);
+    if (!NIL_P(size_value)) {
+        t->text.setCharacterSize(cgss::normalize_long(NUM2LONG(size_value), 1, 0xFFFF));
+    }
+
     if (!NIL_P(str)) {
         rb_check_type(str, T_STRING);
         t->rText = str;
