@@ -11,6 +11,7 @@
 #include <LiteCGSS/Common/NormalizeNumbers.h>
 #include "Sprite.h"
 #include "Image.h"
+#include "Rect.h"
 #include "Viewport.h"
 #include "DrawableDisposable.h"
 
@@ -161,28 +162,53 @@ VALUE rb_Sprite_setOpacity(VALUE self, VALUE v)
 VALUE rb_Sprite_getMirror(VALUE self) { check_disposed(get_sprite(self)); return get_sprite(self)->mirror ? Qtrue : Qfalse; }
 VALUE rb_Sprite_setMirror(VALUE self, VALUE v) { check_disposed(get_sprite(self)); get_sprite(self)->mirror = RTEST(v); return v; }
 
+// LiteRGSS2 returned a Rect instance for src_rect, not an Array. Match
+// that — PSDK reads `sprite.src_rect.set(x, y, w, h)` and `.width`.
 VALUE rb_Sprite_getRect(VALUE self)
 {
     check_disposed(get_sprite(self));
     auto *s = get_sprite(self);
-    VALUE ary = rb_ary_new_capa(4);
-    rb_ary_push(ary, INT2NUM(s->src_x));
-    rb_ary_push(ary, INT2NUM(s->src_y));
-    rb_ary_push(ary, INT2NUM(s->src_width));
-    rb_ary_push(ary, INT2NUM(s->src_height));
-    return ary;
+    VALUE args[4] = { INT2NUM(s->src_x), INT2NUM(s->src_y),
+                      INT2NUM(s->src_width), INT2NUM(s->src_height) };
+    return rb_class_new_instance(4, args, rb_cRect);
 }
 
 VALUE rb_Sprite_setRect(VALUE self, VALUE val)
 {
     check_disposed(get_sprite(self));
-    Check_Type(val, T_ARRAY);
     auto *s = get_sprite(self);
+    if (rb_obj_is_kind_of(val, rb_cRect) == Qtrue) {
+        const auto *r = get_rect_data(val);
+        s->src_x = r->x;
+        s->src_y = r->y;
+        s->src_width  = r->width;
+        s->src_height = r->height;
+        return val;
+    }
+    Check_Type(val, T_ARRAY);
     s->src_x = NUM2INT(rb_ary_entry(val, 0));
     s->src_y = NUM2INT(rb_ary_entry(val, 1));
     s->src_width = NUM2INT(rb_ary_entry(val, 2));
     s->src_height = NUM2INT(rb_ary_entry(val, 3));
     return val;
+}
+
+// LiteRGSS2 sprites had width/height that proxied to the bound bitmap.
+// PSDK's Plane class and a few mouse-hover helpers rely on this.
+VALUE rb_Sprite_getWidth(VALUE self)
+{
+    auto *s = get_sprite(self);
+    if (s->disposed) return INT2NUM(0);
+    if (NIL_P(s->rBitmap)) return INT2NUM(0);
+    return rb_funcall(s->rBitmap, rb_intern("width"), 0);
+}
+
+VALUE rb_Sprite_getHeight(VALUE self)
+{
+    auto *s = get_sprite(self);
+    if (s->disposed) return INT2NUM(0);
+    if (NIL_P(s->rBitmap)) return INT2NUM(0);
+    return rb_funcall(s->rBitmap, rb_intern("height"), 0);
 }
 
 VALUE rb_Sprite_setPosition(VALUE self, VALUE x, VALUE y)
@@ -283,6 +309,8 @@ void Init_Sprite()
     rb_define_method(rb_cSprite, "opacity=", _rbf rb_Sprite_setOpacity, 1);
     rb_define_method(rb_cSprite, "src_rect", _rbf rb_Sprite_getRect, 0);
     rb_define_method(rb_cSprite, "src_rect=", _rbf rb_Sprite_setRect, 1);
+    rb_define_method(rb_cSprite, "width", _rbf rb_Sprite_getWidth, 0);
+    rb_define_method(rb_cSprite, "height", _rbf rb_Sprite_getHeight, 0);
     rb_define_method(rb_cSprite, "mirror", _rbf rb_Sprite_getMirror, 0);
     rb_define_method(rb_cSprite, "mirror=", _rbf rb_Sprite_setMirror, 1);
     rb_define_method(rb_cSprite, "set_position", _rbf rb_Sprite_setPosition, 2);

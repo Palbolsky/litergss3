@@ -6,6 +6,8 @@
 #include "LiteCGSS/Backend/ActiveBackendFwd.h"
 
 extern VALUE rb_cDisplayWindow;
+extern VALUE rb_eClosedWindowError;
+
 void Init_DisplayWindow();
 
 extern int base_width;

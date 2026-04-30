@@ -15,6 +15,9 @@ struct ViewportData
     int ox     = 0;
     int oy     = 0;
     int z      = 0;
+    // Monotonic creation index. PSDK's Graphics module uses this to order
+    // viewports that share the same z (LiteRGSS2: __index__).
+    unsigned long index = 0;
     float zoom  = 1.0f;
     float angle = 0.0f;
     bool visible = true;

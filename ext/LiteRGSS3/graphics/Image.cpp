@@ -10,6 +10,7 @@
 #include <LiteCGSS/Image/Serializers/ImageSerializer.h>
 #include "Color.h"
 #include "Image.h"
+#include "Rect.h"
 #include "DrawableDisposable.h"
 
 VALUE rb_cImage = Qnil;
@@ -168,6 +169,23 @@ VALUE rb_Image_clearRect(VALUE self, VALUE x, VALUE y, VALUE w, VALUE h)
     return self;
 }
 
+// Helper: extract (x, y, w, h) from either an Array or a LiteRGSS::Rect.
+// PSDK code passes both forms (LiteRGSS2's `Rect.new(...)` produced a Rect
+// object, but several call sites pass `[x, y, w, h]` directly).
+static cgss::IntRect rect_arg_to_intrect(VALUE val)
+{
+    if (rb_obj_is_kind_of(val, rb_cRect) == Qtrue) {
+        const auto *r = get_rect_data(val);
+        return cgss::IntRect{ r->x, r->y, r->width, r->height };
+    }
+    Check_Type(val, T_ARRAY);
+    return cgss::IntRect{
+        NUM2INT(rb_ary_entry(val, 0)),
+        NUM2INT(rb_ary_entry(val, 1)),
+        NUM2INT(rb_ary_entry(val, 2)),
+        NUM2INT(rb_ary_entry(val, 3))};
+}
+
 VALUE rb_Image_blt(VALUE self, VALUE x, VALUE y, VALUE src_image, VALUE rect)
 {
     check_disposed(get_image(self));
@@ -175,12 +193,7 @@ VALUE rb_Image_blt(VALUE self, VALUE x, VALUE y, VALUE src_image, VALUE rect)
     auto *src = get_image(src_image);
     if (!src->valid()) return self;
 
-    Check_Type(rect, T_ARRAY);
-    cgss::IntRect src_rect{
-        NUM2INT(rb_ary_entry(rect, 0)),
-        NUM2INT(rb_ary_entry(rect, 1)),
-        NUM2INT(rb_ary_entry(rect, 2)),
-        NUM2INT(rb_ary_entry(rect, 3))};
+    cgss::IntRect src_rect = rect_arg_to_intrect(rect);
     dst->image.blit(src->image,
                     static_cast<unsigned int>(NUM2INT(x)),
                     static_cast<unsigned int>(NUM2INT(y)),
@@ -195,19 +208,24 @@ VALUE rb_Image_stretchBlt(VALUE self, VALUE dst_rect, VALUE src_image, VALUE src
     auto *src = get_image(src_image);
     if (!src->valid()) return self;
 
-    Check_Type(dst_rect, T_ARRAY);
-    Check_Type(src_rect, T_ARRAY);
-    cgss::IntRect srect{
-        NUM2INT(rb_ary_entry(src_rect, 0)),
-        NUM2INT(rb_ary_entry(src_rect, 1)),
-        NUM2INT(rb_ary_entry(src_rect, 2)),
-        NUM2INT(rb_ary_entry(src_rect, 3))};
-    cgss::IntRect drect{
-        NUM2INT(rb_ary_entry(dst_rect, 0)),
-        NUM2INT(rb_ary_entry(dst_rect, 1)),
-        NUM2INT(rb_ary_entry(dst_rect, 2)),
-        NUM2INT(rb_ary_entry(dst_rect, 3))};
+    cgss::IntRect drect = rect_arg_to_intrect(dst_rect);
+    cgss::IntRect srect = rect_arg_to_intrect(src_rect);
     dst->image.stretchBlit(src->image, drect, srect);
+    return self;
+}
+
+// LiteRGSS2's `image.copy_to_bitmap(dst)` blitted the whole image into
+// `dst` at (0, 0). PSDK uses this to materialise an Image into a Bitmap
+// (the GPU-resident texture) — since LiteRGSS3 unifies Bitmap with Image,
+// it's just `dst.blt!(0, 0, self, self.rect)`.
+VALUE rb_Image_copyToBitmap(VALUE self, VALUE dst)
+{
+    check_disposed(get_image(self));
+    auto *src = get_image(self);
+    if (!src->valid()) return self;
+    auto *d = get_image(dst);
+    cgss::IntRect r{ 0, 0, static_cast<int>(src->width()), static_cast<int>(src->height()) };
+    d->image.blit(src->image, 0u, 0u, r);
     return self;
 }
 
@@ -280,6 +298,7 @@ void Init_Image()
     rb_define_method(rb_cImage, "blt!", _rbf rb_Image_blt, 4);
     rb_define_method(rb_cImage, "stretch_blt", _rbf rb_Image_stretchBlt, 3);
     rb_define_method(rb_cImage, "stretch_blt!", _rbf rb_Image_stretchBlt, 3);
+    rb_define_method(rb_cImage, "copy_to_bitmap", _rbf rb_Image_copyToBitmap, 1);
     rb_define_method(rb_cImage, "create_mask", _rbf rb_Image_createMask, 2);
     rb_define_method(rb_cImage, "to_png", _rbf rb_Image_toPNG, 0);
     rb_define_method(rb_cImage, "to_png_file", _rbf rb_Image_toPNGFile, 1);

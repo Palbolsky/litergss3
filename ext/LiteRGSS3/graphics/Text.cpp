@@ -232,6 +232,22 @@ VALUE rb_Text_getTextWidth(VALUE self, VALUE val)
     return UINT2NUM(get_text(self)->text.getTextWidth(std::string{StringValueCStr(val)}));
 }
 
+// LiteRGSS2 provided `text.load_color(font_id)` which copied the
+// per-font fill / outline / shadow colors out of LiteRGSS::Fonts onto the
+// Text. Re-implement that helper in C so PSDK's Sprite_Timer and friends
+// don't have to reach for a Ruby-side shim.
+VALUE rb_Text_load_color(VALUE self, VALUE id)
+{
+    check_disposed(get_text(self));
+    rb_Text_setFillColor(self, rb_Fonts_get_fill_color(rb_mFonts, id));
+    if (RTEST(rb_Text_getDrawShadow(self))) {
+        rb_Text_setOutlineColor(self, rb_Fonts_get_shadow_color(rb_mFonts, id));
+    } else {
+        rb_Text_setOutlineColor(self, rb_Fonts_get_outline_color(rb_mFonts, id));
+    }
+    return self;
+}
+
 VALUE rb_Text_draw(VALUE self)
 {
     auto *t = get_text(self);
@@ -285,6 +301,7 @@ void Init_Text()
     rb_define_method(rb_cText, "opacity", _rbf rb_Text_getOpacity, 0);
     rb_define_method(rb_cText, "opacity=", _rbf rb_Text_setOpacity, 1);
     rb_define_method(rb_cText, "text_width", _rbf rb_Text_getTextWidth, 1);
+    rb_define_method(rb_cText, "load_color", _rbf rb_Text_load_color, 1);
     rb_define_method(rb_cText, "z", _rbf rb_Text_getZ, 0);
     rb_define_method(rb_cText, "z=", _rbf rb_Text_setZ, 1);
     rb_define_method(rb_cText, "__index__", _rbf rb_Text_Index, 0);
