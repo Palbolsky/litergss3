@@ -48,11 +48,30 @@ namespace cgss {
 		public Transformable {
 	public:
 		basic_Shape() = default;
-		basic_Shape(basic_Shape&&) = default;
 		basic_Shape(const basic_Shape&) = delete;
 		basic_Shape& operator=(const basic_Shape&) = delete;
-		basic_Shape& operator=(basic_Shape&&) = default;
 		virtual ~basic_Shape() = default;
+
+		// `basic_ShapeItem::m_transformable` is a raw back-pointer to the
+		// owning wrapper. Mirroring basic_Sprite's move ops: re-point the
+		// StackItem at the new owner so move-construction into a heap slot
+		// (e.g. `std::make_unique<cgss::Shape>(cgss::Shape::create(view, g))`)
+		// doesn't leave the ShapeItem reading a destroyed stack temporary.
+		basic_Shape(basic_Shape&& other) noexcept
+			: Drawable<basic_Shape<B>, basic_ShapeItem<B>>(std::move(other)),
+			  Transformable(other) {
+			if (this->m_proxy != nullptr) {
+				this->m_proxy->m_transformable = static_cast<Transformable*>(this);
+			}
+		}
+		basic_Shape& operator=(basic_Shape&& other) noexcept {
+			Drawable<basic_Shape<B>, basic_ShapeItem<B>>::operator=(std::move(other));
+			Transformable::operator=(other);
+			if (this->m_proxy != nullptr) {
+				this->m_proxy->m_transformable = static_cast<Transformable*>(this);
+			}
+			return *this;
+		}
 
 		void setRenderState(cgss::DrawState states);
 		void setTexture(basic_Texture<B>* texture, bool resetRect = false);

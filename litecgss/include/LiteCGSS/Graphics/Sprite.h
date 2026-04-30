@@ -53,11 +53,33 @@ namespace cgss {
 
 	public:
 		basic_Sprite() = default;
-		basic_Sprite(basic_Sprite&&) = default;
 		basic_Sprite(const basic_Sprite&) = delete;
 		basic_Sprite& operator=(const basic_Sprite&) = delete;
-		basic_Sprite& operator=(basic_Sprite&&) = default;
 		virtual ~basic_Sprite() = default;
+
+		// `basic_SpriteItem::m_transformable` is a raw back-pointer to the
+		// owning wrapper. Moving the wrapper changes its address, so the
+		// move ctor/assign re-point the StackItem at the new owner. Without
+		// this, host code that move-constructs the wrapper into a heap slot
+		// (e.g. `std::make_unique<cgss::Sprite>(cgss::Sprite::create(view))`
+		// in litergss3) leaves the SpriteItem pointing at a dead stack
+		// frame — sprites flash for one frame before subsequent draws read
+		// garbage transforms.
+		basic_Sprite(basic_Sprite&& other) noexcept
+			: Drawable<basic_Sprite<B>, basic_SpriteItem<B>>(std::move(other)),
+			  Transformable(other) {
+			if (this->m_proxy != nullptr) {
+				this->m_proxy->m_transformable = static_cast<Transformable*>(this);
+			}
+		}
+		basic_Sprite& operator=(basic_Sprite&& other) noexcept {
+			Drawable<basic_Sprite<B>, basic_SpriteItem<B>>::operator=(std::move(other));
+			Transformable::operator=(other);
+			if (this->m_proxy != nullptr) {
+				this->m_proxy->m_transformable = static_cast<Transformable*>(this);
+			}
+			return *this;
+		}
 
 		float getX() const;
 		float getY() const;
