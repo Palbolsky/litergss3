@@ -36,6 +36,12 @@ struct ViewportData
     // and needs deferred construction.
     std::unique_ptr<cgss::Viewport> viewport;
     bool has_viewport = false;
+
+    // Detach from the parent stack when Ruby GC reclaims this — prevents
+    // dangling references from any cgss callbacks bound to the wrapper.
+    ~ViewportData() {
+        if (viewport && !disposed) viewport->detach();
+    }
 };
 
 ViewportData* get_viewport(VALUE self);

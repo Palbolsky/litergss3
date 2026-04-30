@@ -22,6 +22,11 @@ struct TextData
     VALUE rX = LONG2FIX(0);
     VALUE rY = LONG2FIX(0);
     bool disposed = false;
+
+    // cgss::TextItem holds a raw owner pointer; detach when Ruby GC's this.
+    ~TextData() {
+        if (!disposed) text.detach();
+    }
 };
 
 #endif

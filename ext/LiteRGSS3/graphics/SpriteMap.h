@@ -25,6 +25,10 @@ struct SpriteMapData
     VALUE rScale = LONG2FIX(1);
     bool has_texture = false;
     bool disposed = false;
+
+    ~SpriteMapData() {
+        if (!disposed) spriteMap.detach();
+    }
 };
 
 #endif

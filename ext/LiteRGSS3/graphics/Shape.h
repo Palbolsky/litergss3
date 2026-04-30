@@ -25,6 +25,10 @@ struct ShapeData
     VALUE rShapeType = Qnil;
     VALUE rBlendMode = Qnil;
     bool disposed = false;
+
+    ~ShapeData() {
+        if (!disposed) shape.detach();
+    }
 };
 
 #endif

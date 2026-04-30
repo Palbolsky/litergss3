@@ -53,6 +53,14 @@ struct SpriteData
 
     VALUE rBitmap = Qnil;
     VALUE rViewport = Qnil;
+
+    // cgss::basic_SpriteItem holds a raw `m_transformable` pointer to the
+    // owning cgss::Sprite. The wrapper MUST outlive its registration in the
+    // parent View's DrawableStack — when Ruby GC reclaims this struct, we
+    // first detach the StackItem so cgss stops dereferencing the wrapper.
+    ~SpriteData() {
+        if (sprite && !disposed) sprite->detach();
+    }
 };
 
 #endif
