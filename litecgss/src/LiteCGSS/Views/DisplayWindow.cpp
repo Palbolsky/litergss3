@@ -389,11 +389,12 @@ void cgss::basic_DisplayWindow<B>::bindRenderStates(RenderStates* renderStates) 
 		renderStates->data().setShaderUniform("texture", cgss::CurrentTexture);
 		ShaderRenderable::bindValue(&renderStates->data());
 		setShader(&renderStates->data().getRenderStates());
+		LOG_INFO << "Binding render states " << &renderStates->data();
 	} else {
 		ShaderRenderable::bindValue(nullptr);
 		setShader(nullptr);
+		LOG_INFO << "Unbinding render states";
 	}
-	LOG_INFO << "Binding render states " << &renderStates->data();
 }
 
 template <class B>

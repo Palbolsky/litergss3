@@ -18,6 +18,7 @@
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Events/EventPayloads.h"
 #include "LiteCGSS/Events/EventType.h"
+#include "LiteCGSS/Graphics/BlendMode.h"
 
 #include <optional>
 
@@ -63,7 +64,25 @@ namespace cgss::backend {
 			float            originX = 0.f, originY = 0.f;
 			float            scaleX = 1.f, scaleY = 1.f;
 		};
-		struct RenderStates {};
+		// Mirrors sf::RenderStates' shader+blend bundle. raylib has no native
+		// "render states" object — we carry the bound shader + blend factors
+		// here, then the draw_* Ops translate them into raylib's stateful
+		// BeginShaderMode/BeginBlendMode pair at draw time.
+		//
+		// `shader` is non-owning — basic_RenderStatesData<B> holds the
+		// unique_ptr<Shader> and writes a raw pointer here via
+		// draw_state_set_shader. Blend factors track sf::BlendMode's 6-field
+		// shape; the raylib draw thunks coalesce them into raylib's BlendMode
+		// enum (Alpha / Additive / Multiplied / etc.) via a best-fit map.
+		struct RenderStates {
+			::Shader* shader = nullptr;
+			cgss::BlendFactor   colorSrc  = cgss::BlendFactor::SrcAlpha;
+			cgss::BlendFactor   colorDst  = cgss::BlendFactor::OneMinusSrcAlpha;
+			cgss::BlendFactor   alphaSrc  = cgss::BlendFactor::One;
+			cgss::BlendFactor   alphaDst  = cgss::BlendFactor::OneMinusSrcAlpha;
+			cgss::BlendEquation colorEq   = cgss::BlendEquation::Add;
+			cgss::BlendEquation alphaEq   = cgss::BlendEquation::Add;
+		};
 
 		// sf::View-compatible view descriptor. raylib has Camera2D (offset /
 		// target / zoom / rotation) but no built-in concept of a normalized

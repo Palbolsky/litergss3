@@ -6,8 +6,10 @@
 #include "LiteCGSS/Views/Viewport.h"
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
 #include "LiteCGSS/Graphics/Font.h"
+#include "LiteCGSS/Graphics/RenderStates.h"
 #include "LiteCGSS/Graphics/Shape.h"
 #include "LiteCGSS/Graphics/ShapeGeometry.h"
+#include "LiteCGSS/Graphics/ShaderType.h"
 #include "LiteCGSS/Graphics/Sprite.h"
 #include "LiteCGSS/Graphics/Text.h"
 #include "LiteCGSS/Graphics/Texture.h"
@@ -319,6 +321,35 @@ static void ViewTest() {
 		std::cout << "No system font found in probe list; ScrollText demo skipped." << std::endl;
 	}
 
+	// Shader demo — bind a fragment shader to the viewport's RenderStates so
+	// every drawable rendered through the viewport (framedView + sprite3 +
+	// rectShape + framedText) goes through the post-process. Window-level
+	// drawables (sprite2, circleShape, ScrollTexts) bypass it. Uses SFML's
+	// legacy GLSL 110 entry shape (gl_TexCoord/gl_FragColor) so the same
+	// source compiles unchanged via cgss::ShaderType::Fragment. The u_time
+	// uniform is updated every frame inside the loop — wave + grayscale pulse.
+	static constexpr const char* kViewportFragmentShader =
+		"uniform sampler2D texture;"
+		"uniform float u_time;"
+		"void main() {"
+		"  vec2 uv = gl_TexCoord[0].xy;"
+		"  uv.x += 0.01 * sin(u_time * 2.0 + uv.y * 12.0);"
+		"  vec4 c = texture2D(texture, uv);"
+		"  float gray = dot(c.rgb, vec3(0.299, 0.587, 0.114));"
+		"  float k = 0.5 + 0.5 * sin(u_time);"
+		"  vec3 col = mix(c.rgb, vec3(gray), k);"
+		"  gl_FragColor = vec4(col, c.a) * gl_Color;"
+		"}";
+
+	cgss::RenderStates viewportShader;
+	const bool shaderLoaded = viewportShader.data().loadShaderFromMemory(
+		kViewportFragmentShader, cgss::ShaderType::Fragment);
+	if (shaderLoaded) {
+		viewport.bindRenderStates(&viewportShader);
+	} else {
+		std::cout << "Viewport shader failed to compile; demo continues unshaded." << std::endl;
+	}
+
 	auto i = 0;
 	{
 		// Backend-agnostic FPS counter + cumulative iteration count. FPS shows
@@ -351,6 +382,11 @@ static void ViewTest() {
 			}
 
 			sprite.setAngle(sprite.getAngle() + 1.f);
+
+			if (shaderLoaded) {
+				const float t = std::chrono::duration<float>(now - loopStart).count();
+				viewportShader.data().setShaderUniform("u_time", t);
+			}
 
 			// Advance the typewriter one codepoint every ~4 frames, then
 			// pause on the full string for ~60 frames before restarting.

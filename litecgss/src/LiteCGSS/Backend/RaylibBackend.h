@@ -44,6 +44,7 @@ extern "C" {
 }
 #endif
 
+#include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <cstddef>
@@ -519,23 +520,51 @@ namespace cgss::backend {
 			              ::Color{ c.r, c.g, c.b, c.a });
 		}
 
-		// ---- Render texture ops (stubs) ----
-		static inline bool render_texture_create(native_render_texture&, unsigned int, unsigned int) { return false; }
-		// Depth-aware creation stub. Real raylib bodies would use
-		// `LoadRenderTexture(w, h)` vs `LoadRenderTextureDepthTex(w, h)`
-		// (raylib has both; the Depth variant attaches a depth texture
-		// instead of a depth renderbuffer so the depth is sampleable for
-		// post-processing). Stays a stub for now — raylib's RenderTexture
-		// Ops are not yet implemented beyond this signature for parity.
-		static inline bool render_texture_create_with_depth(native_render_texture&, unsigned int, unsigned int, bool) { return false; }
-		static inline void render_texture_set_smooth(native_render_texture&, bool) {}
+		// ---- Render texture ops ----
+		// Pair semantics matches the SFML RenderTexture lifecycle the cgss
+		// Viewport draw flow assumes: clear_color BEGINS texture mode and
+		// leaves it active for the subsequent drawables; render_texture_display
+		// ENDS it. Callers (cgss::ViewportItem::draw) bracket their draws
+		// between these two and must not nest them.
+		static inline bool render_texture_create(native_render_texture& rt, unsigned int width, unsigned int height) {
+			if (!IsWindowReady() || width == 0 || height == 0) return false;
+			if (rt.id != 0) UnloadRenderTexture(rt);
+			rt = LoadRenderTexture(static_cast<int>(width), static_cast<int>(height));
+			return rt.id != 0;
+		}
+		// Depth-aware creation. raylib's stock LoadRenderTexture already
+		// allocates a depth renderbuffer; the `withDepth=false` path is
+		// approximated by calling the standard loader (raylib has no built-in
+		// "no-depth" RT and the depth attachment is harmless when unused).
+		static inline bool render_texture_create_with_depth(native_render_texture& rt, unsigned int width, unsigned int height, bool /*withDepth*/) {
+			return render_texture_create(rt, width, height);
+		}
+		static inline void render_texture_set_smooth(native_render_texture& rt, bool smooth) {
+			if (rt.texture.id == 0) return;
+			SetTextureFilter(rt.texture, smooth ? TEXTURE_FILTER_BILINEAR : TEXTURE_FILTER_POINT);
+		}
 		static inline const native_texture& render_texture_get_texture(const native_render_texture& rt) { return rt.texture; }
 		static inline void render_texture_set_view(native_render_texture&, const native_view& v) {
 			raylib_detail::setCurrentView(v);
 		}
-		static inline void render_texture_display(native_render_texture&) {}
-		static inline void render_texture_clear(native_render_texture&) {}
-		static inline void render_texture_clear_color(native_render_texture&, cgss::Color) {}
+		// Closes the current BeginTextureMode block opened by
+		// render_texture_clear_color. raylib has no separate "display" step
+		// (no double-buffer flip on FBOs), so this is just the EndTextureMode
+		// pair-closer.
+		static inline void render_texture_display(native_render_texture&) {
+			if (!IsWindowReady()) return;
+			EndTextureMode();
+		}
+		static inline void render_texture_clear(native_render_texture& rt) {
+			if (!IsWindowReady() || rt.id == 0) return;
+			BeginTextureMode(rt);
+			ClearBackground(::Color{ 0, 0, 0, 0 });
+		}
+		static inline void render_texture_clear_color(native_render_texture& rt, cgss::Color c) {
+			if (!IsWindowReady() || rt.id == 0) return;
+			BeginTextureMode(rt);
+			ClearBackground(::Color{ c.r, c.g, c.b, c.a });
+		}
 
 		// ---- View ops ----
 		// raylib::View stores sf::View-compatible state (center / size /
@@ -565,12 +594,44 @@ namespace cgss::backend {
 		}
 		static inline void view_set_rotation(native_view& v, float angle) noexcept { v.rotation = angle; }
 
-		// ---- Draw-state ops (stubs) ----
-		static inline void draw_state_set_shader(native_render_states&, native_shader*) noexcept {}
-		static inline void draw_state_set_blend_factor(native_render_states&, BlendFactorSlot, cgss::BlendFactor) noexcept {}
-		static inline cgss::BlendFactor draw_state_get_blend_factor(const native_render_states&, BlendFactorSlot) noexcept { return cgss::BlendFactor::Zero; }
-		static inline void draw_state_set_blend_equation(native_render_states&, BlendEquationSlot, cgss::BlendEquation) noexcept {}
-		static inline cgss::BlendEquation draw_state_get_blend_equation(const native_render_states&, BlendEquationSlot) noexcept { return cgss::BlendEquation::Add; }
+		// ---- Draw-state ops ----
+		// Native shader pointer is owned by basic_RenderStatesData<B>; this
+		// op just stores the raw pointer into the native render states. The
+		// draw_sprite_with_render_states overload below picks it up at draw
+		// time and wraps the call in BeginShaderMode/EndShaderMode.
+		static inline void draw_state_set_shader(native_render_states& s, native_shader* shader) noexcept {
+			s.shader = shader;
+		}
+		static inline void draw_state_set_blend_factor(native_render_states& s, BlendFactorSlot slot, cgss::BlendFactor f) noexcept {
+			switch (slot) {
+				case BlendFactorSlot::ColorSrc: s.colorSrc = f; break;
+				case BlendFactorSlot::ColorDst: s.colorDst = f; break;
+				case BlendFactorSlot::AlphaSrc: s.alphaSrc = f; break;
+				case BlendFactorSlot::AlphaDst: s.alphaDst = f; break;
+			}
+		}
+		static inline cgss::BlendFactor draw_state_get_blend_factor(const native_render_states& s, BlendFactorSlot slot) noexcept {
+			switch (slot) {
+				case BlendFactorSlot::ColorSrc: return s.colorSrc;
+				case BlendFactorSlot::ColorDst: return s.colorDst;
+				case BlendFactorSlot::AlphaSrc: return s.alphaSrc;
+				case BlendFactorSlot::AlphaDst: return s.alphaDst;
+			}
+			return cgss::BlendFactor::Zero;
+		}
+		static inline void draw_state_set_blend_equation(native_render_states& s, BlendEquationSlot slot, cgss::BlendEquation e) noexcept {
+			switch (slot) {
+				case BlendEquationSlot::Color: s.colorEq = e; break;
+				case BlendEquationSlot::Alpha: s.alphaEq = e; break;
+			}
+		}
+		static inline cgss::BlendEquation draw_state_get_blend_equation(const native_render_states& s, BlendEquationSlot slot) noexcept {
+			switch (slot) {
+				case BlendEquationSlot::Color: return s.colorEq;
+				case BlendEquationSlot::Alpha: return s.alphaEq;
+			}
+			return cgss::BlendEquation::Add;
+		}
 
 		// ---- Font ops ----
 		// LoadFont / LoadFontFromMemory build a GPU atlas (LoadTextureFromImage →
@@ -652,42 +713,234 @@ namespace cgss::backend {
 			}
 		}
 
-		// ---- Shader ops (stubs) ----
-		// Real raylib equivalents would call LoadShaderFromMemory /
-		// SetShaderValue / GetShaderLocation; geometry shaders are not
-		// supported on raylib's GLES2 default — `shader_is_geometry_available`
-		// would return false in a real impl too.
-		static inline bool shader_is_available()          { return false; }
+		// ---- Shader ops ----
+		// Raylib's modern GL3.3 core profile rejects the GLSL-110 entry shape
+		// SFML accepts (gl_TexCoord / gl_FragColor / texture2D / `texture` as
+		// a sampler name). To let the same fragment-shader source work
+		// unchanged on both backends, we translate legacy sources on the fly:
+		// a source that lacks a `#version` directive is rewritten to GLSL-330
+		// with raylib's standard fragTexCoord / fragColor varyings and the
+		// auto-bound `texture0` sampler. Sources that DO start with
+		// `#version` pass through verbatim — those are assumed to already be
+		// raylib-compatible.
+		//
+		// Vertex shaders are not auto-translated (gl_Position / gl_Vertex
+		// rewrites are non-trivial); pass `#version 330` GLSL with raylib's
+		// `vertexPosition` / `vertexTexCoord` / `vertexColor` attributes.
+		//
+		// Geometry shaders aren't supported on raylib's default GL profile —
+		// shader_is_geometry_available() returns false and the 3-arg load
+		// rejects accordingly.
+		static inline bool shader_is_available()          { return IsWindowReady(); }
 		static inline bool shader_is_geometry_available() { return false; }
 
-		static inline bool shader_load_from_memory(native_shader&, const std::string&, cgss::ShaderType) { return false; }
-		static inline bool shader_load_from_memory(native_shader&, const std::string&, const std::string&) { return false; }
-		static inline bool shader_load_from_memory(native_shader&, const std::string&, const std::string&, const std::string&) { return false; }
+		// Internal: word-aware token replace used by the legacy GLSL shim.
+		// Avoids touching `texture2D` when substituting `texture` because
+		// `\b` matching requires an alphanumeric boundary on both sides.
+		static inline std::string shader_replace_token(std::string s, const std::string& tok, const std::string& with) {
+			std::string out;
+			out.reserve(s.size());
+			std::size_t i = 0;
+			while (i < s.size()) {
+				if (s.compare(i, tok.size(), tok) == 0) {
+					const bool prevOk = (i == 0) || (!std::isalnum(static_cast<unsigned char>(s[i-1])) && s[i-1] != '_');
+					const std::size_t next = i + tok.size();
+					const bool nextOk = (next >= s.size()) || (!std::isalnum(static_cast<unsigned char>(s[next])) && s[next] != '_');
+					if (prevOk && nextOk) {
+						out.append(with);
+						i += tok.size();
+						continue;
+					}
+				}
+				out.push_back(s[i++]);
+			}
+			return out;
+		}
 
-		static inline void shader_set_uniform(native_shader&, const std::string&, float) {}
-		static inline void shader_set_uniform(native_shader&, const std::string&, int)   {}
-		static inline void shader_set_uniform(native_shader&, const std::string&, bool)  {}
+		// Translate SFML-style legacy GLSL fragment source to raylib-compatible
+		// GLSL-330. Pass-through for anything that already declares a #version.
+		static inline std::string shader_translate_fragment(const std::string& src) {
+			// Skip leading whitespace / line-leading comments to find a
+			// `#version`. Cheap heuristic — a stray `#version` deep in a
+			// multi-line comment would short-circuit translation, but that's
+			// not idiomatic shader source.
+			std::size_t i = 0;
+			while (i < src.size() && std::isspace(static_cast<unsigned char>(src[i]))) ++i;
+			if (i + 8 <= src.size() && src.compare(i, 8, "#version") == 0) {
+				return src;
+			}
+			std::string body = src;
+			// Order matters: rename the user's `texture` sampler to `texture0`
+			// FIRST so subsequent `texture2D(` → `texture(` rewrites don't
+			// collide with the user's identifier.
+			body = shader_replace_token(std::move(body), "texture",        "texture0");
+			body = shader_replace_token(std::move(body), "texture2D",      "texture");
+			body = shader_replace_token(std::move(body), "gl_FragColor",   "finalColor");
+			body = shader_replace_token(std::move(body), "gl_Color",       "fragColor");
+			// gl_TexCoord[0].xy is the common SFML idiom; the longer form
+			// hits first so `gl_TexCoord[0]` (without .xy) still works.
+			const std::string longTC  = "gl_TexCoord[0].xy";
+			const std::string shortTC = "gl_TexCoord[0]";
+			std::string tmp;
+			tmp.reserve(body.size());
+			std::size_t j = 0;
+			while (j < body.size()) {
+				if (body.compare(j, longTC.size(), longTC) == 0) {
+					tmp.append("fragTexCoord");
+					j += longTC.size();
+				} else if (body.compare(j, shortTC.size(), shortTC) == 0) {
+					tmp.append("vec4(fragTexCoord, 0.0, 0.0)");
+					j += shortTC.size();
+				} else {
+					tmp.push_back(body[j++]);
+				}
+			}
+			body = std::move(tmp);
 
-		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Vec2&) {}
-		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Vec3&) {}
-		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Vec4&) {}
+			// Note: `uniform sampler2D texture0;` may now appear in the user's
+			// translated source. We do NOT add it ourselves to avoid double-
+			// declaration when the user's shader sampled the texture.
+			std::string header =
+				"#version 330\n"
+				"in vec2 fragTexCoord;\n"
+				"in vec4 fragColor;\n"
+				"out vec4 finalColor;\n";
+			return header + body;
+		}
 
-		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Ivec2&) {}
-		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Ivec3&) {}
-		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Ivec4&) {}
+		static inline bool shader_load_from_memory(native_shader& sh, const std::string& src, cgss::ShaderType type) {
+			if (!IsWindowReady()) return false;
+			if (sh.id != 0) UnloadShader(sh);
+			if (type == cgss::ShaderType::Fragment) {
+				const auto translated = shader_translate_fragment(src);
+				sh = LoadShaderFromMemory(nullptr, translated.c_str());
+			} else if (type == cgss::ShaderType::Vertex) {
+				sh = LoadShaderFromMemory(src.c_str(), nullptr);
+			} else {
+				return false;
+			}
+			return sh.id != 0;
+		}
+		static inline bool shader_load_from_memory(native_shader& sh, const std::string& vsrc, const std::string& fsrc) {
+			if (!IsWindowReady()) return false;
+			if (sh.id != 0) UnloadShader(sh);
+			const auto translated = shader_translate_fragment(fsrc);
+			sh = LoadShaderFromMemory(vsrc.c_str(), translated.c_str());
+			return sh.id != 0;
+		}
+		// 3-arg form takes a geometry shader, which raylib's default GL
+		// profile doesn't support — refused outright.
+		static inline bool shader_load_from_memory(native_shader&, const std::string&, const std::string&, const std::string&) {
+			return false;
+		}
 
-		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Bvec2&) {}
-		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Bvec3&) {}
-		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Bvec4&) {}
+		// Internal helper: resolves a uniform location once per call.
+		// raylib's GetShaderLocation does a glGetUniformLocation under the
+		// hood — cheap enough for per-frame uniform writes; cgss callers don't
+		// expect us to cache.
+		static inline int shader_loc(const native_shader& sh, const std::string& name) {
+			return (sh.id == 0) ? -1 : GetShaderLocation(sh, name.c_str());
+		}
 
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, float v) {
+			const int loc = shader_loc(sh, name); if (loc < 0) return;
+			SetShaderValue(sh, loc, &v, SHADER_UNIFORM_FLOAT);
+		}
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, int v)   {
+			const int loc = shader_loc(sh, name); if (loc < 0) return;
+			SetShaderValue(sh, loc, &v, SHADER_UNIFORM_INT);
+		}
+		// raylib has no SHADER_UNIFORM_BOOL — promote to int (0/1).
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, bool v)  {
+			const int iv = v ? 1 : 0;
+			const int loc = shader_loc(sh, name); if (loc < 0) return;
+			SetShaderValue(sh, loc, &iv, SHADER_UNIFORM_INT);
+		}
+
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const cgss::Glsl::Vec2& v) {
+			const float a[2] = { v.x, v.y };
+			const int loc = shader_loc(sh, name); if (loc < 0) return;
+			SetShaderValue(sh, loc, a, SHADER_UNIFORM_VEC2);
+		}
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const cgss::Glsl::Vec3& v) {
+			const float a[3] = { v.x, v.y, v.z };
+			const int loc = shader_loc(sh, name); if (loc < 0) return;
+			SetShaderValue(sh, loc, a, SHADER_UNIFORM_VEC3);
+		}
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const cgss::Glsl::Vec4& v) {
+			const float a[4] = { v.x, v.y, v.z, v.w };
+			const int loc = shader_loc(sh, name); if (loc < 0) return;
+			SetShaderValue(sh, loc, a, SHADER_UNIFORM_VEC4);
+		}
+
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const cgss::Glsl::Ivec2& v) {
+			const int a[2] = { v.x, v.y };
+			const int loc = shader_loc(sh, name); if (loc < 0) return;
+			SetShaderValue(sh, loc, a, SHADER_UNIFORM_IVEC2);
+		}
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const cgss::Glsl::Ivec3& v) {
+			const int a[3] = { v.x, v.y, v.z };
+			const int loc = shader_loc(sh, name); if (loc < 0) return;
+			SetShaderValue(sh, loc, a, SHADER_UNIFORM_IVEC3);
+		}
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const cgss::Glsl::Ivec4& v) {
+			const int a[4] = { v.x, v.y, v.z, v.w };
+			const int loc = shader_loc(sh, name); if (loc < 0) return;
+			SetShaderValue(sh, loc, a, SHADER_UNIFORM_IVEC4);
+		}
+
+		// bvec*: GL has no boolean-vector uniform setter, the spec promotes
+		// them to ints. Same path as ivec*.
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const cgss::Glsl::Bvec2& v) {
+			const int a[2] = { v.x ? 1 : 0, v.y ? 1 : 0 };
+			const int loc = shader_loc(sh, name); if (loc < 0) return;
+			SetShaderValue(sh, loc, a, SHADER_UNIFORM_IVEC2);
+		}
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const cgss::Glsl::Bvec3& v) {
+			const int a[3] = { v.x ? 1 : 0, v.y ? 1 : 0, v.z ? 1 : 0 };
+			const int loc = shader_loc(sh, name); if (loc < 0) return;
+			SetShaderValue(sh, loc, a, SHADER_UNIFORM_IVEC3);
+		}
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const cgss::Glsl::Bvec4& v) {
+			const int a[4] = { v.x ? 1 : 0, v.y ? 1 : 0, v.z ? 1 : 0, v.w ? 1 : 0 };
+			const int loc = shader_loc(sh, name); if (loc < 0) return;
+			SetShaderValue(sh, loc, a, SHADER_UNIFORM_IVEC4);
+		}
+
+		// Mat3: raylib's public API has no 3x3 setter (Matrix is 4x4-only).
+		// Emit nothing for now — Mat3 uniforms are rare in fullscreen post-FX
+		// shaders, the typical raylib use case here.
 		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Mat3&) {}
-		static inline void shader_set_uniform(native_shader&, const std::string&, const cgss::Glsl::Mat4&) {}
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const cgss::Glsl::Mat4& m) {
+			if (sh.id == 0) return;
+			::Matrix M;
+			// cgss Glsl::Mat4 stores row-major (m[row][col] ↔ array[row*4+col]).
+			// raylib's Matrix is column-major (m0..m15 across rows of the column).
+			// Transpose on load.
+			M.m0  = m.array[0];  M.m4  = m.array[1];  M.m8  = m.array[2];  M.m12 = m.array[3];
+			M.m1  = m.array[4];  M.m5  = m.array[5];  M.m9  = m.array[6];  M.m13 = m.array[7];
+			M.m2  = m.array[8];  M.m6  = m.array[9];  M.m10 = m.array[10]; M.m14 = m.array[11];
+			M.m3  = m.array[12]; M.m7  = m.array[13]; M.m11 = m.array[14]; M.m15 = m.array[15];
+			const int loc = shader_loc(sh, name); if (loc < 0) return;
+			SetShaderValueMatrix(sh, loc, M);
+		}
 
-		static inline void shader_set_uniform(native_shader&, const std::string&, const native_texture&) {}
+		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const native_texture& t) {
+			const int loc = shader_loc(sh, name); if (loc < 0) return;
+			SetShaderValueTexture(sh, loc, t);
+		}
 
+		// CurrentTexture sentinel — the shim renames the user's `texture`
+		// sampler to `texture0`, which raylib auto-binds to the active
+		// drawing texture during DrawTexturePro. So this needs no work on
+		// the raylib side.
 		static inline void shader_set_uniform_current_texture(native_shader&, const std::string&) {}
 
-		static inline void shader_set_uniform_array(native_shader&, const std::string&, const float*, std::size_t) {}
+		static inline void shader_set_uniform_array(native_shader& sh, const std::string& name, const float* arr, std::size_t n) {
+			if (n == 0) return;
+			const int loc = shader_loc(sh, name); if (loc < 0) return;
+			SetShaderValueV(sh, loc, arr, SHADER_UNIFORM_FLOAT, static_cast<int>(n));
+		}
 
 		// ---- Render-target view ops ----
 		// target_set_view is the cross-cutting op the draw pipeline uses to
@@ -792,29 +1045,66 @@ namespace cgss::backend {
 		}
 
 		// ---- Draw thunks ----
-		// Render-states arg is accepted for Ops-symmetry; raylib has no
-		// sf::RenderStates analogue (shader / blend-mode / transform
-		// composition is handled via BeginShaderMode + blend-mode calls),
-		// so states are ignored here. Shader support in the sprite path is
-		// tracked separately.
-		static inline void draw_sprite(native_render_target&, const native_sprite& s, const native_render_states&) {
-			draw_sprite_impl(s, s.x, s.y, s.originX, s.originY, s.scaleX, s.scaleY, 0.f);
+		// Internal: BeginShaderMode-bracket a single draw call when the
+		// supplied render_states carries a compiled shader. Raylib's shader
+		// mode is global state, so we open and close it locally to avoid
+		// leaking onto subsequent draws (matching SFML's per-draw render
+		// state semantics).
+		template <class DrawFn>
+		static inline void draw_with_render_states(const native_render_states* rs, DrawFn&& fn) {
+			const bool useShader = rs != nullptr && rs->shader != nullptr && rs->shader->id != 0;
+			if (useShader) BeginShaderMode(*rs->shader);
+			fn();
+			if (useShader) EndShaderMode();
+		}
+
+		// Used by cgss::ViewportItem::draw to composite the off-screen
+		// user-render-texture back onto the window with the bound shader
+		// applied. Drives the entire viewport-level shader path.
+		//
+		// The sprite passed here is always the per-window userRenderSprite
+		// whose backing texture is an FBO color attachment. OpenGL stores
+		// FBO contents bottom-up (origin at lower-left) while raylib's
+		// BeginTextureMode flips the projection so logical (0, 0) renders
+		// to the top-left — net effect: the LOGICAL top row of content
+		// ends up in texel row `texH - 1` of the underlying texture. To
+		// sample the box back in its natural top-down orientation we both
+		// invert the V direction (negative source height) AND shift
+		// source.y up to `texH - boxTop` so the destination top-row reads
+		// from the GL row holding the box's LOGICAL top. The simpler "just
+		// negate height" idiom only works when the box covers the full FBO
+		// (boxTop == 0).
+		static inline void draw_sprite(native_render_target&, const native_sprite& s, const native_render_states& rs) {
+			if (s.texture == nullptr) return;
+			const int texH = static_cast<int>(s.texture->height);
+			native_sprite flipped = s;
+			flipped.textureRect.top    = texH - s.textureRect.top;
+			flipped.textureRect.height = -s.textureRect.height;
+			draw_with_render_states(&rs, [&]() {
+				draw_sprite_impl(flipped, flipped.x, flipped.y,
+				                 flipped.originX, flipped.originY,
+				                 flipped.scaleX, flipped.scaleY, 0.f);
+			});
 		}
 		static inline void draw_sprite_with_transform(native_render_target&,
 		                                              const native_sprite& s,
 		                                              const native_transform& xform,
-		                                              const native_render_states* /*base_states*/) {
+		                                              const native_render_states* base_states) {
 			// `xform.angle` is already in screen-space (CW-positive) — see
 			// build_transform above, which flips the cgss angle sign.
-			draw_sprite_impl(s, xform.x, xform.y, xform.ox, xform.oy, xform.scaleX, xform.scaleY, xform.angle);
+			draw_with_render_states(base_states, [&]() {
+				draw_sprite_impl(s, xform.x, xform.y, xform.ox, xform.oy, xform.scaleX, xform.scaleY, xform.angle);
+			});
 		}
 		static inline void draw_shape_with_transform(native_render_target&,
 		                                             const cgss::ShapeGeometry& g,
 		                                             const native_texture* tex,
 		                                             const native_transform& xform,
-		                                             const native_render_states* /*base_states*/) {
-			draw_shape_untransformed(g, tex, xform.x, xform.y, xform.ox, xform.oy,
-			                          xform.scaleX, xform.scaleY, xform.angle);
+		                                             const native_render_states* base_states) {
+			draw_with_render_states(base_states, [&]() {
+				draw_shape_untransformed(g, tex, xform.x, xform.y, xform.ox, xform.oy,
+				                          xform.scaleX, xform.scaleY, xform.angle);
+			});
 		}
 
 		// ---- Sprite ops ----
