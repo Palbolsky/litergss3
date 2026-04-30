@@ -4,24 +4,25 @@
 #include "../graphics/Image.h"
 
 #include "LiteCGSS/Backend/ActiveBackend.h"
+#include "LiteCGSS/Configuration/DisplayWindowSettings.h"
 #include "LiteCGSS/Events/Event.h"
-#define CGSS_ENABLE_EXTENSION_SPI
-#include "LiteCGSS/Extension/NativeAccess.h"
+#include "LiteCGSS/Image/Image.h"
+#include "LiteCGSS/Views/DisplayWindow.h"
 
 #include <filesystem>
 #include <memory>
+#include <string>
 #include <unordered_map>
 
 namespace {
 	using Backend = cgss::backend::ActiveBackend;
 	using Ops     = Backend::Ops;
 
-	// File-static window handle. Matches the singleton shape of the
-	// previous raylib-direct implementation: LiteRGSS::DisplayWindow is
-	// effectively a static class (module-function style methods) and the
-	// underlying native_window lives process-global. open_window allocates;
-	// close_window resets.
-	std::unique_ptr<Backend::native_window> g_window;
+	// File-static cgss::DisplayWindow. Owns the native window plus the
+	// View-side DrawableStack that Sprite/Viewport/Text/Shape/SpriteMap
+	// register into (via cgss::*::create). cgss::DisplayWindow::draw() runs
+	// the atomic clear → drawables → postProcessing → display sequence.
+	std::unique_ptr<cgss::DisplayWindow> g_window;
 
 	// Per-button last-pressed state used to derive press/release edges from
 	// LiteRGSS3's typed events (KeyEvent and MouseButtonEvent share one
@@ -43,7 +44,7 @@ int base_width  = 640;
 int base_height = 480;
 double window_scale = 1.0;
 
-cgss::backend::ActiveBackend::native_window* get_active_native_window()
+cgss::DisplayWindow* get_active_display_window()
 {
 	return g_window.get();
 }
@@ -77,6 +78,48 @@ static ID iv_event_callbacks;
 // Forward declarations
 static void apply_settings_array(VALUE self, VALUE arr);
 static VALUE drain_events_internal(VALUE self);
+
+// Build a DisplayWindowSettings from the current 9-tuple ivar.
+static cgss::DisplayWindowSettings build_settings_from_array(VALUE arr)
+{
+	cgss::DisplayWindowSettings settings{};
+	VALUE title         = rb_ary_entry(arr, SI_TITLE);
+	VALUE width         = rb_ary_entry(arr, SI_WIDTH);
+	VALUE height        = rb_ary_entry(arr, SI_HEIGHT);
+	VALUE scale         = rb_ary_entry(arr, SI_SCALE);
+	VALUE bpp           = rb_ary_entry(arr, SI_BPP);
+	VALUE framerate     = rb_ary_entry(arr, SI_FRAMERATE);
+	VALUE vsync         = rb_ary_entry(arr, SI_VSYNC);
+	VALUE fullscreen    = rb_ary_entry(arr, SI_FULLSCREEN);
+	VALUE visible_mouse = rb_ary_entry(arr, SI_VISIBLE_MOUSE);
+
+	settings.title        = NIL_P(title) ? std::string{"LiteRGSS"} : std::string{StringValueCStr(title)};
+	settings.video.width  = NUM2UINT(width);
+	settings.video.height = NUM2UINT(height);
+	settings.video.scale  = NUM2DBL(scale);
+	settings.video.bitsPerPixel = NUM2UINT(bpp);
+	settings.frameRate    = NUM2UINT(framerate);
+	settings.vSync        = RTEST(vsync);
+	settings.fullscreen   = RTEST(fullscreen);
+	settings.visibleMouse = RTEST(visible_mouse);
+	return settings;
+}
+
+static void open_window_with_settings(VALUE arr)
+{
+	auto settings = build_settings_from_array(arr);
+	base_width  = static_cast<int>(settings.video.width);
+	base_height = static_cast<int>(settings.video.height);
+	window_scale = settings.video.scale;
+
+	if (g_window == nullptr) {
+		g_window = std::make_unique<cgss::DisplayWindow>(settings);
+	} else {
+		g_window->reload(std::move(settings), true);
+	}
+	g_last_keys.clear();
+	g_last_mouse.clear();
+}
 
 // --- Construction ----------------------------------------------------------
 
@@ -120,27 +163,34 @@ VALUE rb_DisplayWindow_initialize(int argc, VALUE* argv, VALUE self)
 	rb_ivar_set(self, iv_focus, Qtrue);
 	rb_ivar_set(self, iv_event_callbacks, rb_hash_new());
 
-	// Open the native window.
-	base_width   = NUM2INT(width);
-	base_height  = NUM2INT(height);
-	window_scale = NUM2DBL(scale);
-	const int w = static_cast<int>(base_width  * window_scale);
-	const int h = static_cast<int>(base_height * window_scale);
-
-	g_window = std::make_unique<Backend::native_window>();
-	cgss::backend::WindowCreateOptions opts{};
-	opts.width      = static_cast<unsigned int>(w);
-	opts.height     = static_cast<unsigned int>(h);
-	opts.fullscreen = RTEST(fullscreen);
-	Ops::window_create(*g_window, opts, StringValueCStr(title));
-
-	Ops::window_set_vsync(*g_window, RTEST(vsync));
-	const unsigned int fps = NUM2UINT(framerate);
-	if (fps > 0) Ops::window_set_framerate_limit(*g_window, fps);
-
+	open_window_with_settings(arr);
 	g_display_window_instance = self;
-	g_last_keys.clear();
-	g_last_mouse.clear();
+	return self;
+}
+
+// LiteRGSS2 alias: `DisplayWindow#open_window(width, height, title, scale)`.
+// Multiple PSDK / test paths call this after `.new` to (re)configure the
+// window. Accepts any prefix of the args; missing fields fall through to the
+// values stashed during initialize.
+static VALUE rb_DisplayWindow_open_window(int argc, VALUE* argv, VALUE self)
+{
+	VALUE width, height, title, scale;
+	rb_scan_args(argc, argv, "04", &width, &height, &title, &scale);
+
+	VALUE arr = rb_ivar_get(self, iv_settings);
+	if (NIL_P(arr)) {
+		arr = rb_ary_new_capa(SI_COUNT);
+		for (int i = 0; i < SI_COUNT; ++i) rb_ary_push(arr, Qnil);
+		rb_ivar_set(self, iv_settings, arr);
+	}
+	if (!NIL_P(width))  rb_ary_store(arr, SI_WIDTH,  width);
+	if (!NIL_P(height)) rb_ary_store(arr, SI_HEIGHT, height);
+	if (!NIL_P(title))  rb_ary_store(arr, SI_TITLE,  title);
+	if (!NIL_P(scale))  rb_ary_store(arr, SI_SCALE,  scale);
+
+	open_window_with_settings(arr);
+	rb_ivar_set(self, iv_disposed, Qfalse);
+	g_display_window_instance = self;
 	return self;
 }
 
@@ -161,23 +211,13 @@ static void apply_settings_array(VALUE self, VALUE arr)
 	}
 	rb_ivar_set(self, iv_settings, rb_ary_dup(arr));
 	if (g_window == nullptr) return;
-	VALUE width      = rb_ary_entry(arr, SI_WIDTH);
-	VALUE height     = rb_ary_entry(arr, SI_HEIGHT);
-	VALUE title      = rb_ary_entry(arr, SI_TITLE);
-	VALUE vsync      = rb_ary_entry(arr, SI_VSYNC);
-	VALUE framerate  = rb_ary_entry(arr, SI_FRAMERATE);
-	base_width  = NUM2INT(width);
-	base_height = NUM2INT(height);
-	Ops::window_set_size(*g_window,
-	                     static_cast<unsigned int>(base_width * window_scale),
-	                     static_cast<unsigned int>(base_height * window_scale));
-	Ops::window_set_vsync(*g_window, RTEST(vsync));
-	if (NUM2UINT(framerate) > 0) {
-		Ops::window_set_framerate_limit(*g_window, NUM2UINT(framerate));
-	}
-	if (!NIL_P(title)) {
-		Ops::window_set_title(*g_window, StringValueCStr(title));
-	}
+	auto settings = build_settings_from_array(arr);
+	base_width   = static_cast<int>(settings.video.width);
+	base_height  = static_cast<int>(settings.video.height);
+	window_scale = settings.video.scale;
+	// reload(..., false) defers the reload to the next draw() — exactly the
+	// behaviour we want when settings change mid-loop.
+	g_window->reload(std::move(settings), false);
 }
 
 VALUE rb_DisplayWindow_setSettings(VALUE self, VALUE arr)
@@ -200,12 +240,9 @@ VALUE rb_DisplayWindow_getHeight(VALUE self)
 
 VALUE rb_DisplayWindow_scale(VALUE self, VALUE scale)
 {
-	(void)self;
 	ensureWindow();
 	window_scale = NUM2DBL(scale);
-	const int w = static_cast<int>(base_width  * window_scale);
-	const int h = static_cast<int>(base_height * window_scale);
-	Ops::window_set_size(*g_window, static_cast<unsigned int>(w), static_cast<unsigned int>(h));
+	g_window->setScale(window_scale);
 	VALUE arr = rb_ivar_get(self, iv_settings);
 	if (!NIL_P(arr)) rb_ary_store(arr, SI_SCALE, scale);
 	return self;
@@ -216,9 +253,8 @@ VALUE rb_DisplayWindow_resizeScreen(VALUE self, VALUE width, VALUE height)
 	ensureWindow();
 	base_width  = NUM2INT(width);
 	base_height = NUM2INT(height);
-	Ops::window_set_size(*g_window,
-	                     static_cast<unsigned int>(base_width  * window_scale),
-	                     static_cast<unsigned int>(base_height * window_scale));
+	g_window->resizeScreen(static_cast<unsigned int>(base_width),
+	                       static_cast<unsigned int>(base_height));
 	VALUE arr = rb_ivar_get(self, iv_settings);
 	if (!NIL_P(arr)) {
 		rb_ary_store(arr, SI_WIDTH, width);
@@ -230,7 +266,7 @@ VALUE rb_DisplayWindow_resizeScreen(VALUE self, VALUE width, VALUE height)
 VALUE rb_DisplayWindow_setTitle(VALUE self, VALUE title)
 {
 	ensureWindow();
-	Ops::window_set_title(*g_window, StringValueCStr(title));
+	g_window->setTitle(StringValueCStr(title));
 	VALUE arr = rb_ivar_get(self, iv_settings);
 	if (!NIL_P(arr)) rb_ary_store(arr, SI_TITLE, title);
 	return self;
@@ -246,24 +282,23 @@ VALUE rb_DisplayWindow_setIcon(VALUE self, VALUE arg)
 	if (rb_obj_is_kind_of(arg, rb_cImage) == Qtrue) {
 		auto *img = get_image(arg);
 		if (!img->valid()) return self;
-		const auto& native = cgss::extension::native(img->image);
-		Ops::window_set_icon(*g_window,
-		                     img->width(), img->height(),
-		                     Ops::get_image_pixels_ptr(native));
+		g_window->setIcon(img->image);
 		return self;
 	}
 	rb_check_type(arg, T_STRING);
 	const char* p = StringValueCStr(arg);
 	// LiteRGSS2 was silent on missing files — match that.
 	if (!std::filesystem::exists(p)) return self;
-	Ops::window_set_icon_from_file(*g_window, p);
+	auto img = cgss::Image::create(p);
+	if (img.width() == 0 || img.height() == 0) return self;
+	g_window->setIcon(img);
 	return self;
 }
 
 VALUE rb_DisplayWindow_setVsync(VALUE self, VALUE enabled)
 {
 	ensureWindow();
-	Ops::window_set_vsync(*g_window, RTEST(enabled));
+	g_window->setVsync(RTEST(enabled));
 	VALUE arr = rb_ivar_get(self, iv_settings);
 	if (!NIL_P(arr)) rb_ary_store(arr, SI_VSYNC, RTEST(enabled) ? Qtrue : Qfalse);
 	return self;
@@ -272,7 +307,7 @@ VALUE rb_DisplayWindow_setVsync(VALUE self, VALUE enabled)
 VALUE rb_DisplayWindow_setFps(VALUE self, VALUE fps)
 {
 	ensureWindow();
-	Ops::window_set_framerate_limit(*g_window, NUM2UINT(fps));
+	g_window->setFrameRate(NUM2UINT(fps));
 	VALUE arr = rb_ivar_get(self, iv_settings);
 	if (!NIL_P(arr)) rb_ary_store(arr, SI_FRAMERATE, fps);
 	return self;
@@ -282,21 +317,21 @@ VALUE rb_DisplayWindow_getX(VALUE self)
 {
 	(void)self;
 	ensureWindow();
-	return INT2NUM(Ops::window_get_position(*g_window).x);
+	return INT2NUM(g_window->getX());
 }
 
 VALUE rb_DisplayWindow_getY(VALUE self)
 {
 	(void)self;
 	ensureWindow();
-	return INT2NUM(Ops::window_get_position(*g_window).y);
+	return INT2NUM(g_window->getY());
 }
 
 VALUE rb_DisplayWindow_move(VALUE self, VALUE x, VALUE y)
 {
 	(void)self;
 	ensureWindow();
-	Ops::window_set_position(*g_window, NUM2INT(x), NUM2INT(y));
+	g_window->move(NUM2INT(x), NUM2INT(y));
 	return self;
 }
 
@@ -306,25 +341,25 @@ VALUE rb_DisplayWindow_move(VALUE self, VALUE x, VALUE y)
 VALUE rb_DisplayWindow_desktopWidth(VALUE self)
 {
 	(void)self;
-	return UINT2NUM(Ops::desktop_size().x);
+	return UINT2NUM(cgss::DisplayWindow::DesktopWidth());
 }
 
 VALUE rb_DisplayWindow_desktopHeight(VALUE self)
 {
 	(void)self;
-	return UINT2NUM(Ops::desktop_size().y);
+	return UINT2NUM(cgss::DisplayWindow::DesktopHeight());
 }
 
-// `update` clears the framebuffer, drains pending events into PSDK
-// callbacks, then presents. Matches LiteRGSS2's update semantics where a
-// single `Graphics.update` advances both render and input.
+// `update` runs the atomic clear → drawables → postProcessing → display
+// pipeline via cgss::DisplayWindow::draw(), then drains pending events into
+// the registered on_* callbacks. Matches LiteRGSS2's update semantics where
+// a single call advances both render and input.
 VALUE rb_DisplayWindow_update(VALUE self)
 {
 	ensureWindow();
-	Ops::window_clear(*g_window);
+	g_window->draw();
 	if (RTEST(rb_ivar_get(self, iv_polling))) drain_events_internal(self);
-	Ops::window_display(*g_window);
-	return Ops::window_is_open(*g_window) ? Qtrue : Qfalse;
+	return g_window->isOpen() ? Qtrue : Qfalse;
 }
 
 // LiteRGSS2: update with no input pump. Used during transitions where
@@ -333,8 +368,7 @@ VALUE rb_DisplayWindow_updateNoInput(VALUE self)
 {
 	(void)self;
 	ensureWindow();
-	Ops::window_clear(*g_window);
-	Ops::window_display(*g_window);
+	g_window->draw();
 	return self;
 }
 
@@ -346,18 +380,18 @@ VALUE rb_DisplayWindow_updateOnlyInput(VALUE self)
 	return self;
 }
 
+// Backwards compat: the pre-Phase-1 lifecycle had a separate `present` call.
+// cgss::DisplayWindow::draw() now handles clear+display atomically, so this
+// is a no-op kept bound for callers that still issue it.
 VALUE rb_DisplayWindow_present(VALUE self)
 {
-	(void)self;
-	ensureWindow();
-	Ops::window_display(*g_window);
 	return self;
 }
 
 VALUE rb_DisplayWindow_close(VALUE self)
 {
 	if (g_window != nullptr) {
-		Ops::window_close(*g_window);
+		g_window->stop();
 		g_window.reset();
 	}
 	rb_ivar_set(self, iv_disposed, Qtrue);
@@ -374,10 +408,10 @@ VALUE rb_DisplayWindow_should_close(VALUE self)
 {
 	(void)self;
 	if (g_window == nullptr) return Qtrue;
-	return Ops::window_is_open(*g_window) ? Qfalse : Qtrue;
+	return g_window->isOpen() ? Qfalse : Qtrue;
 }
 
-// --- LiteRGSS2 state knobs (mostly Ruby-level state today) -----------------
+// --- LiteRGSS2 state knobs -------------------------------------------------
 
 VALUE rb_DisplayWindow_getBrightness(VALUE self) { return rb_ivar_get(self, iv_brightness); }
 VALUE rb_DisplayWindow_setBrightness(VALUE self, VALUE val)
@@ -386,6 +420,7 @@ VALUE rb_DisplayWindow_setBrightness(VALUE self, VALUE val)
 	if (b < 0)   b = 0;
 	if (b > 255) b = 255;
 	rb_ivar_set(self, iv_brightness, INT2NUM(static_cast<int>(b)));
+	if (g_window != nullptr) g_window->setBrightness(static_cast<unsigned char>(b));
 	return val;
 }
 
@@ -398,20 +433,31 @@ VALUE rb_DisplayWindow_setPolling(VALUE self, VALUE val)
 	return val;
 }
 
-// LiteRGSS2 sorted the internal child-draw list here. LiteRGSS3 does
-// per-frame draw via explicit Sprite#draw calls — no list to sort. Keep
-// the API as a no-op so PSDK's `Graphics.window.sort_z` keeps working.
-VALUE rb_DisplayWindow_sortZ(VALUE self) { return self; }
+// `sort_z` forwards to the cgss::DisplayWindow's View::sortZ — actually
+// reorders the DrawableStack now that drawables register through Phases 2-4.
+VALUE rb_DisplayWindow_sortZ(VALUE self)
+{
+	if (g_window != nullptr) g_window->sortZ();
+	return self;
+}
 
-// LiteRGSS2's snap_to_bitmap returned a window-sized GPU texture. Until
-// the framebuffer-readback path lands, hand back an empty Image of the
-// right dimensions so PSDK's screenshot/transition code doesn't crash.
 VALUE rb_DisplayWindow_snapToBitmap(VALUE self)
 {
-	VALUE arr = rb_ivar_get(self, iv_settings);
-	const long w = NUM2LONG(rb_ary_entry(arr, SI_WIDTH));
-	const long h = NUM2LONG(rb_ary_entry(arr, SI_HEIGHT));
-	VALUE args[2] = { LONG2NUM(w > 0 ? w : 1), LONG2NUM(h > 0 ? h : 1) };
+	(void)self;
+	if (g_window == nullptr) {
+		VALUE args[2] = { INT2NUM(1), INT2NUM(1) };
+		return rb_class_new_instance(2, args, rb_cImage);
+	}
+	auto snapshot = g_window->takeSnapshot();
+	if (!snapshot) {
+		VALUE arr = rb_ivar_get(self, iv_settings);
+		const long w = NUM2LONG(rb_ary_entry(arr, SI_WIDTH));
+		const long h = NUM2LONG(rb_ary_entry(arr, SI_HEIGHT));
+		VALUE args[2] = { LONG2NUM(w > 0 ? w : 1), LONG2NUM(h > 0 ? h : 1) };
+		return rb_class_new_instance(2, args, rb_cImage);
+	}
+	const auto sz = snapshot->getSize();
+	VALUE args[2] = { UINT2NUM(sz.x), UINT2NUM(sz.y) };
 	return rb_class_new_instance(2, args, rb_cImage);
 }
 
@@ -465,14 +511,13 @@ static VALUE drain_events_internal(VALUE self)
 {
 	VALUE cb_hash = rb_ivar_get(self, iv_event_callbacks);
 	cgss::Event ev;
-	while (g_window != nullptr &&
-	       Ops::window_poll_event(*g_window, cgss::backend::native_of(ev)))
+	while (g_window != nullptr && g_window->popEvent(ev))
 	{
 		using ET = cgss::EventType;
 		switch (ev.type())
 		{
 			case ET::Closed: {
-				Ops::window_close(*g_window);
+				g_window->stop();
 				rb_ivar_set(self, iv_disposed, Qtrue);
 				invoke_cb(cb_hash, "on_closed", 0, nullptr);
 				break;
@@ -664,11 +709,10 @@ VALUE rb_DisplayWindow_poll_event(VALUE self)
 	const bool has_block = rb_block_given_p();
 	long count = 0;
 	cgss::Event ev;
-	while (g_window != nullptr &&
-	       Ops::window_poll_event(*g_window, cgss::backend::native_of(ev)))
+	while (g_window != nullptr && g_window->popEvent(ev))
 	{
 		++count;
-		if (ev.type() == cgss::EventType::Closed) Ops::window_close(*g_window);
+		if (ev.type() == cgss::EventType::Closed) g_window->stop();
 		if (has_block) {
 			VALUE rb_ev = build_ruby_event(ev);
 			if (rb_ev != Qnil) rb_yield(rb_ev);
@@ -682,13 +726,13 @@ VALUE rb_DisplayWindow_poll_event(VALUE self)
 static VALUE rb_DisplayWindow_class_desktopWidth(VALUE self)
 {
 	(void)self;
-	return UINT2NUM(Ops::desktop_size().x);
+	return UINT2NUM(cgss::DisplayWindow::DesktopWidth());
 }
 
 static VALUE rb_DisplayWindow_class_desktopHeight(VALUE self)
 {
 	(void)self;
-	return UINT2NUM(Ops::desktop_size().y);
+	return UINT2NUM(cgss::DisplayWindow::DesktopHeight());
 }
 
 // --- Init ------------------------------------------------------------------
@@ -712,6 +756,7 @@ void Init_DisplayWindow()
 	iv_event_callbacks = rb_intern("@event_callbacks");
 
 	rb_define_method(rb_cDisplayWindow, "initialize",       _rbf rb_DisplayWindow_initialize,        -1);
+	rb_define_method(rb_cDisplayWindow, "open_window",      _rbf rb_DisplayWindow_open_window,       -1);
 	rb_define_method(rb_cDisplayWindow, "settings",         _rbf rb_DisplayWindow_getSettings,        0);
 	rb_define_method(rb_cDisplayWindow, "settings=",        _rbf rb_DisplayWindow_setSettings,        1);
 	rb_define_method(rb_cDisplayWindow, "width",            _rbf rb_DisplayWindow_getWidth,           0);

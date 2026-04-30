@@ -1,8 +1,19 @@
 require 'minitest/autorun'
 require_relative '../build/lib/LiteRGSS'
 
+# A live DisplayWindow is required for Sprite.new — sprites register into
+# its DrawableStack at construction time. setup/teardown opens a fresh
+# window per test to keep them independent.
 class TestSprite < Minitest::Test
-  
+
+  def setup
+    @window = LiteRGSS::DisplayWindow.new
+  end
+
+  def teardown
+    @window.close_window
+  end
+
   # --- initialize ---
   
   def test_initialize_no_viewport

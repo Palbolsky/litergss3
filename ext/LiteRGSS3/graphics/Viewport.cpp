@@ -1,7 +1,8 @@
-// Backend-agnostic Ruby Viewport binding. begin_draw / end_draw route
-// through Ops::viewport_begin / viewport_end — raylib: BeginScissorMode +
-// rlPushMatrix+translate+scale; SFML: sf::View with viewport+size+center
-// emulation (see SFMLBackend.h).
+// Ruby Viewport binding wrapping cgss::Viewport. The native Viewport is a
+// child View of cgss::DisplayWindow — it owns its own DrawableStack and is
+// drawn (with scissor + transform) by cgss::DisplayWindow::draw(). Drawables
+// created with this viewport (Sprite/Text/Shape/SpriteMap) register on the
+// child stack, not the window's.
 
 #include "LiteRGSS.h"
 #include "RubyValue.h"
@@ -12,12 +13,8 @@
 #include "window/DisplayWindow.h"
 #include "DrawableDisposable.h"
 
-#include <LiteCGSS/Backend/ActiveBackend.h>
-
-namespace {
-	using Backend = cgss::backend::ActiveBackend;
-	using Ops = Backend::Ops;
-}
+#include <LiteCGSS/Common/IntRect.h>
+#include <LiteCGSS/Views/DisplayWindow.h>
 
 VALUE rb_cViewport = Qnil;
 
@@ -34,13 +31,8 @@ static void check_disposed(ViewportData *vp)
         rb_raise(rb_eRuntimeError, "Viewport is disposed");
 }
 
-static float get_window_scale()
-{
-    return (float)window_scale;
-}
-
 // Helper: pull (x, y, width, height) out of either an Array or a
-// LiteRGSS::Rect. Used by `rect=` and the multi-arg forms below.
+// LiteRGSS::Rect.
 static void rect_arg_to_xywh(VALUE val, int& x, int& y, int& w, int& h)
 {
     if (rb_obj_is_kind_of(val, rb_cRect) == Qtrue) {
@@ -62,8 +54,7 @@ static void rect_arg_to_xywh(VALUE val, int& x, int& y, int& w, int& h)
 
 // LiteRGSS2 viewport ctor was `Viewport.new(window, x, y, w, h)`. PSDK
 // still passes the leading `window` arg; LiteRGSS3 ignores it (the
-// process-global window is used by begin_draw). Accept any combination so
-// both calling conventions work.
+// process-global window is used). Accept any combination.
 VALUE rb_Viewport_Initialize(int argc, VALUE *argv, VALUE self)
 {
     VALUE a, b, c, d, e;
@@ -71,46 +62,100 @@ VALUE rb_Viewport_Initialize(int argc, VALUE *argv, VALUE self)
     auto *vp = get_viewport(self);
     vp->index = ++g_viewport_counter;
 
-    // 5-arg form: LiteRGSS2 `(window, x, y, w, h)` — drop `window`.
     if (!NIL_P(e)) {
         vp->x = NUM2INT(b);
         vp->y = NUM2INT(c);
         vp->width = NUM2INT(d);
         vp->height = NUM2INT(e);
-        return self;
-    }
-    // 4-arg form: native `(x, y, w, h)`.
-    if (!NIL_P(d)) {
+    } else if (!NIL_P(d)) {
         vp->x = NUM2INT(a);
         vp->y = NUM2INT(b);
         vp->width = NUM2INT(c);
         vp->height = NUM2INT(d);
-        return self;
+    } else {
+        vp->x = RTEST(a) ? NUM2INT(a) : 0;
+        vp->y = RTEST(b) ? NUM2INT(b) : 0;
+        vp->width = RTEST(c) ? NUM2INT(c) : 640;
+        vp->height = RTEST(d) ? NUM2INT(d) : 480;
     }
-    // No-arg / partial — defaults from the legacy LiteRGSS3 behaviour.
-    vp->x = RTEST(a) ? NUM2INT(a) : 0;
-    vp->y = RTEST(b) ? NUM2INT(b) : 0;
-    vp->width = RTEST(c) ? NUM2INT(c) : 640;
-    vp->height = RTEST(d) ? NUM2INT(d) : 480;
+
+    auto* window = get_active_display_window();
+    if (window == nullptr) {
+        rb_raise(rb_eRGSSError, "Viewport.new requires an open DisplayWindow");
+    }
+    vp->viewport = std::make_unique<cgss::Viewport>(window->addView<cgss::Viewport>());
+    vp->has_viewport = true;
+    vp->viewport->move(static_cast<float>(vp->x), static_cast<float>(vp->y));
+    vp->viewport->resize(vp->width, vp->height);
     return self;
 }
 
-VALUE rb_Viewport_Dispose(VALUE self) { get_viewport(self)->disposed = true; return self; }
+VALUE rb_Viewport_Dispose(VALUE self)
+{
+    auto* vp = get_viewport(self);
+    if (!vp->disposed && vp->viewport) {
+        vp->viewport->detach();
+        vp->disposed = true;
+    }
+    return self;
+}
 VALUE rb_Viewport_Disposed(VALUE self) { return get_viewport(self)->disposed ? Qtrue : Qfalse; }
 VALUE rb_Viewport_Copy(VALUE self) { (void)self; rb_raise(rb_eRuntimeError, "Viewports cannot be cloned or duplicated."); return self; }
 
 VALUE rb_Viewport_getOX(VALUE self) { check_disposed(get_viewport(self)); return INT2NUM(get_viewport(self)->ox); }
-VALUE rb_Viewport_setOX(VALUE self, VALUE val) { check_disposed(get_viewport(self)); get_viewport(self)->ox = NUM2INT(val); return val; }
+VALUE rb_Viewport_setOX(VALUE self, VALUE val)
+{
+    check_disposed(get_viewport(self));
+    auto *vp = get_viewport(self);
+    vp->ox = NUM2INT(val);
+    if (vp->viewport) vp->viewport->moveOrigin(vp->ox, vp->oy);
+    return val;
+}
 VALUE rb_Viewport_getOY(VALUE self) { check_disposed(get_viewport(self)); return INT2NUM(get_viewport(self)->oy); }
-VALUE rb_Viewport_setOY(VALUE self, VALUE val) { check_disposed(get_viewport(self)); get_viewport(self)->oy = NUM2INT(val); return val; }
+VALUE rb_Viewport_setOY(VALUE self, VALUE val)
+{
+    check_disposed(get_viewport(self));
+    auto *vp = get_viewport(self);
+    vp->oy = NUM2INT(val);
+    if (vp->viewport) vp->viewport->moveOrigin(vp->ox, vp->oy);
+    return val;
+}
 VALUE rb_Viewport_getVisible(VALUE self) { check_disposed(get_viewport(self)); return get_viewport(self)->visible ? Qtrue : Qfalse; }
-VALUE rb_Viewport_setVisible(VALUE self, VALUE val) { check_disposed(get_viewport(self)); get_viewport(self)->visible = RTEST(val); return val; }
+VALUE rb_Viewport_setVisible(VALUE self, VALUE val)
+{
+    check_disposed(get_viewport(self));
+    auto *vp = get_viewport(self);
+    vp->visible = RTEST(val);
+    if (vp->viewport) vp->viewport->setVisible(vp->visible);
+    return val;
+}
 VALUE rb_Viewport_getZ(VALUE self) { check_disposed(get_viewport(self)); return INT2NUM(get_viewport(self)->z); }
-VALUE rb_Viewport_setZ(VALUE self, VALUE val) { check_disposed(get_viewport(self)); get_viewport(self)->z = NUM2INT(val); return val; }
+VALUE rb_Viewport_setZ(VALUE self, VALUE val)
+{
+    check_disposed(get_viewport(self));
+    auto *vp = get_viewport(self);
+    vp->z = NUM2INT(val);
+    if (vp->viewport) vp->viewport->setZ(vp->z);
+    return val;
+}
 VALUE rb_Viewport_getZoom(VALUE self) { check_disposed(get_viewport(self)); return DBL2NUM(get_viewport(self)->zoom); }
-VALUE rb_Viewport_setZoom(VALUE self, VALUE val) { check_disposed(get_viewport(self)); get_viewport(self)->zoom = (float)NUM2DBL(val); return val; }
+VALUE rb_Viewport_setZoom(VALUE self, VALUE val)
+{
+    check_disposed(get_viewport(self));
+    auto *vp = get_viewport(self);
+    vp->zoom = (float)NUM2DBL(val);
+    if (vp->viewport) vp->viewport->setZoom(vp->zoom);
+    return val;
+}
 VALUE rb_Viewport_getAngle(VALUE self) { check_disposed(get_viewport(self)); return DBL2NUM(get_viewport(self)->angle); }
-VALUE rb_Viewport_setAngle(VALUE self, VALUE val) { check_disposed(get_viewport(self)); get_viewport(self)->angle = (float)(NUM2INT(val) % 360); return val; }
+VALUE rb_Viewport_setAngle(VALUE self, VALUE val)
+{
+    check_disposed(get_viewport(self));
+    auto *vp = get_viewport(self);
+    vp->angle = (float)(NUM2INT(val) % 360);
+    if (vp->viewport) vp->viewport->setAngle(vp->angle);
+    return val;
+}
 
 // LiteRGSS2 returned a Rect instance, not an Array. Match that.
 VALUE rb_Viewport_getRect(VALUE self)
@@ -126,6 +171,9 @@ VALUE rb_Viewport_setRect(VALUE self, VALUE val)
     check_disposed(get_viewport(self));
     auto *vp = get_viewport(self);
     rect_arg_to_xywh(val, vp->x, vp->y, vp->width, vp->height);
+    if (vp->viewport) {
+        vp->viewport->setRectangle(cgss::IntRect{ vp->x, vp->y, vp->width, vp->height });
+    }
     return val;
 }
 
@@ -134,67 +182,44 @@ VALUE rb_Viewport_index(VALUE self)
     return ULONG2NUM(get_viewport(self)->index);
 }
 
-// LiteRGSS2 sorted the internal child-draw list here. LiteRGSS3 has no
-// such list — drawing is explicit per-frame. Keep the method as a no-op
-// so PSDK's `viewport.sort_z` calls don't blow up.
-VALUE rb_Viewport_sortZ(VALUE self) { return self; }
+// `sort_z` forwards to cgss::Viewport::sortZ — actually reorders the View's
+// DrawableStack now that drawables register through Phases 2-4.
+VALUE rb_Viewport_sortZ(VALUE self)
+{
+    auto *vp = get_viewport(self);
+    if (vp->viewport) vp->viewport->sortZ();
+    return self;
+}
 
-// LiteRGSS2 returned a GPU texture snapshot of the viewport. Until that
-// path is plumbed in LiteRGSS3, hand back an empty Image of the right
-// dimensions — PSDK's screenshot/transition paths just need something to
-// dispose later.
 VALUE rb_Viewport_snapToBitmap(VALUE self)
 {
     auto *vp = get_viewport(self);
+    if (vp->viewport) {
+        auto snapshot = vp->viewport->takeSnapshot();
+        if (snapshot) {
+            const auto sz = snapshot->getSize();
+            VALUE args[2] = { UINT2NUM(sz.x), UINT2NUM(sz.y) };
+            return rb_class_new_instance(2, args, rb_cImage);
+        }
+    }
     const long w = vp->width  > 0 ? vp->width  : 1;
     const long h = vp->height > 0 ? vp->height : 1;
     VALUE args[2] = { LONG2NUM(w), LONG2NUM(h) };
     return rb_class_new_instance(2, args, rb_cImage);
 }
 
-VALUE rb_Viewport_beginDraw(VALUE self)
-{
-    auto *vp = get_viewport(self);
-    if (vp->disposed || !vp->visible) return self;
-
-    auto* window = get_active_native_window();
-    if (window == nullptr) return self;
-    auto& target = Ops::target_from_window(*window);
-
-    const float scale = get_window_scale();
-
-    const int scaled_x = (int)(vp->x * scale);
-    const int scaled_y = (int)(vp->y * scale);
-    const int scaled_width  = (int)(vp->width  * scale);
-    const int scaled_height = (int)(vp->height * scale);
-
-    Ops::viewport_begin(target,
-                        scaled_x, scaled_y, scaled_width, scaled_height,
-                        -vp->ox * scale, -vp->oy * scale,
-                        scale * vp->zoom, scale * vp->zoom);
-
-    // Debug/background fill preserved from the legacy raylib-direct impl.
-    // Sprites drawn later overlay on top.
-    Ops::draw_filled_rect(target,
-                          scaled_x, scaled_y, scaled_width, scaled_height,
-                          cgss::Colors::White);
-
-    return self;
-}
-
-VALUE rb_Viewport_endDraw(VALUE self)
-{
-    auto* window = get_active_native_window();
-    if (window == nullptr) return self;
-    auto& target = Ops::target_from_window(*window);
-    Ops::viewport_end(target);
-    return self;
-}
+// Backwards-compat: pre-Phase-3 the Ruby render loop did
+//   vp.begin_draw; sprite.draw; vp.end_draw
+// to install scissor + transform manually. cgss::Viewport handles all of
+// that during cgss::DisplayWindow::draw(); these are kept as no-ops so
+// existing PSDK / test code doesn't NoMethodError.
+VALUE rb_Viewport_beginDraw(VALUE self) { return self; }
+VALUE rb_Viewport_endDraw(VALUE self)   { return self; }
 
 // shader / blendmode — Ruby-level instance variable storage. Match the
 // litergss2 surface (PSDK Graphics.rb#snap_to_bitmap reads viewport.shader
-// to detect when transition effects are active). Actual binding to the
-// render pipeline lands once Viewport hosts a cgss DrawableStack.
+// to detect when transition effects are active). Wiring through cgss
+// RenderStates lands in Phase 5.
 VALUE rb_Viewport_getShader(VALUE self) { return rb_iv_get(self, "@shader"); }
 VALUE rb_Viewport_setShader(VALUE self, VALUE val) { rb_iv_set(self, "@shader", val); return val; }
 

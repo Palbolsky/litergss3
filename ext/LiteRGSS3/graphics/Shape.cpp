@@ -1,22 +1,18 @@
-// Ruby Shape binding. Wraps cgss::Shape via per-Shape private DrawableStack.
-// Same per-drawable-stack model as Text.cpp — see Text.h header comment for
-// the rationale + the viewport-transform limitation noted there.
+// Ruby Shape binding. The cgss::Shape registers into the parent View's
+// DrawableStack at Shape.new time; cgss::DisplayWindow::draw() iterates and
+// renders it. Setters forward to the cgss::Shape proxy.
 
 #include "LiteRGSS.h"
 #include "RubyValue.h"
 #include "../rbAdapter.h"
-#include <LiteCGSS/Backend/ActiveBackend.h>
-#include <LiteCGSS/Graphics/RenderTarget.h>
+#include <LiteCGSS/Views/DisplayWindow.h>
+#include <LiteCGSS/Views/Viewport.h>
 #include <cmath>
 #include "Shape.h"
 #include "Color.h"
 #include "DrawableDisposable.h"
 #include "DisplayWindow.h"
-
-namespace {
-    using Backend = cgss::backend::ActiveBackend;
-    using Ops = Backend::Ops;
-}
+#include "Viewport.h"
 
 VALUE rb_cShape = Qnil;
 static ID rb_iShapeCircle = 0;
@@ -84,7 +80,22 @@ VALUE rb_Shape_Initialize(int argc, VALUE *argv, VALUE self)
         s->rShapeType = ID2SYM(rb_iShapeRectangle);
     }
 
-    s->shape = cgss::Shape::create(s->stack, std::move(geometry));
+    auto* window = get_active_display_window();
+    if (window == nullptr) {
+        rb_raise(rb_eRGSSError, "Shape.new requires an open DisplayWindow");
+    }
+    // LiteRGSS2 accepted either a Viewport or the DisplayWindow as parent.
+    const bool is_viewport = RTEST(viewport) && rb_obj_is_kind_of(viewport, rb_cViewport) == Qtrue;
+    if (is_viewport) {
+        auto *vp = get_viewport(viewport);
+        if (vp == nullptr || !vp->viewport) {
+            rb_raise(rb_eRGSSError, "Shape.new viewport is not initialized");
+        }
+        s->shape = cgss::Shape::create(*vp->viewport, std::move(geometry));
+    } else {
+        s->shape = cgss::Shape::create(*window, std::move(geometry));
+    }
+    if (!is_viewport) s->rViewport = Qnil;
     return self;
 }
 
@@ -261,15 +272,12 @@ VALUE rb_Shape_setBlendMode(VALUE self, VALUE val)
     return val;
 }
 
+// Backwards-compat: pre-Phase-4 the Ruby render loop drew Shape via
+// explicit per-frame `shape.draw` calls. cgss::DisplayWindow::draw() now
+// iterates the parent View's DrawableStack and renders the Shape
+// automatically — kept as a no-op for callers that still issue it.
 VALUE rb_Shape_draw(VALUE self)
 {
-    auto *s = get_shape(self);
-    if (s->disposed || !s->shape.isVisible()) return self;
-    auto *window = get_active_native_window();
-    if (window == nullptr) return self;
-    auto &target = Ops::target_from_window(*window);
-    cgss::RenderTarget rt{target};
-    s->stack.drawFast(rt);
     return self;
 }
 

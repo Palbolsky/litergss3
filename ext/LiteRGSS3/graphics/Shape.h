@@ -4,14 +4,14 @@
 #include "RubyValue.h"
 #include <LiteCGSS/Graphics/Shape.h>
 #include <LiteCGSS/Graphics/ShapeGeometry.h>
-#include <LiteCGSS/Views/Stack/DrawableStack.h>
 
 extern VALUE rb_cShape;
 void Init_Shape();
 
+// Shape registers into the parent View's DrawableStack at Shape.new time —
+// see TextData for the same model.
 struct ShapeData
 {
-    cgss::DrawableStack stack;
     cgss::Shape shape;
     VALUE rViewport = Qnil;
     VALUE rBitmap = Qnil;

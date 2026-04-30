@@ -1,25 +1,20 @@
-// Ruby SpriteMap binding. Wraps cgss::SpriteMap via per-SpriteMap private
-// DrawableStack — same model as Text/Shape (see Text.h for rationale).
-//
-// Note on `set(index, bitmap, rect)`: cgss::SpriteMap::setTile takes a
-// cgss::Texture&. Litergss3's Image class wraps cgss::Image (CPU pixels);
-// to wire bitmap setting we'd need to construct/cache a cgss::Texture from
-// the Image. That bridge is deferred — left as a stub that records the
-// VALUE for GC tracking. The SpriteMap renders empty until then.
+// Ruby SpriteMap binding. The cgss::SpriteMap registers into the parent
+// View's DrawableStack at SpriteMap.new time; cgss::DisplayWindow::draw()
+// renders it automatically. `set(index, bitmap, rect)` builds (and caches)
+// a cgss::Texture from the Image and calls cgss::SpriteMap::setTile.
 
 #include "LiteRGSS.h"
 #include "RubyValue.h"
 #include "../rbAdapter.h"
-#include <LiteCGSS/Backend/ActiveBackend.h>
-#include <LiteCGSS/Graphics/RenderTarget.h>
+#include <LiteCGSS/Common/IntRect.h>
+#include <LiteCGSS/Views/DisplayWindow.h>
+#include <LiteCGSS/Views/Viewport.h>
 #include "SpriteMap.h"
+#include "Image.h"
+#include "Rect.h"
 #include "DrawableDisposable.h"
 #include "DisplayWindow.h"
-
-namespace {
-    using Backend = cgss::backend::ActiveBackend;
-    using Ops = Backend::Ops;
-}
+#include "Viewport.h"
 
 VALUE rb_cSpriteMap = Qnil;
 
@@ -30,6 +25,7 @@ namespace rb {
         auto *s = static_cast<SpriteMapData *>(ptr);
         if (s == nullptr) return;
         rb_gc_mark(s->rViewport);
+        rb_gc_mark(s->rBitmap);
         rb_gc_mark(s->rX);
         rb_gc_mark(s->rY);
         rb_gc_mark(s->rOX);
@@ -46,7 +42,21 @@ VALUE rb_SpriteMap_Initialize(int argc, VALUE *argv, VALUE self)
     rb_scan_args(argc, argv, "30", &viewport, &tile_width, &tile_count);
     auto *s = get_smap(self);
     s->rViewport = viewport;
-    s->spriteMap = cgss::SpriteMap::create(s->stack);
+
+    if (get_active_display_window() == nullptr) {
+        rb_raise(rb_eRGSSError, "SpriteMap.new requires an open DisplayWindow");
+    }
+    // cgss authorizations only allow SpriteMap on a Viewport — DisplayWindow
+    // refuses it (see ViewAuthorizations specializations).
+    const bool is_viewport = RTEST(viewport) && rb_obj_is_kind_of(viewport, rb_cViewport) == Qtrue;
+    if (!is_viewport) {
+        rb_raise(rb_eRGSSError, "SpriteMap.new requires a Viewport as parent");
+    }
+    auto *vp = get_viewport(viewport);
+    if (vp == nullptr || !vp->viewport) {
+        rb_raise(rb_eRGSSError, "SpriteMap.new viewport is not initialized");
+    }
+    s->spriteMap = cgss::SpriteMap::create(*vp->viewport);
     s->spriteMap.defineMap(NUM2ULONG(tile_width), NUM2ULONG(tile_count));
     return self;
 }
@@ -110,18 +120,61 @@ VALUE rb_SpriteMap_setOrigin(VALUE self, VALUE x, VALUE y)
 
 VALUE rb_SpriteMap_Reset(VALUE self) { get_smap(self)->spriteMap.reset(); return self; }
 
+// Helper: resolve an (x, y, w, h) tuple from either a LiteRGSS::Rect or a
+// 4-element Array.
+static cgss::IntRect rect_from_rb(VALUE val)
+{
+    if (rb_obj_is_kind_of(val, rb_cRect) == Qtrue) {
+        const auto *r = get_rect_data(val);
+        return cgss::IntRect{ r->x, r->y, r->width, r->height };
+    }
+    Check_Type(val, T_ARRAY);
+    if (RARRAY_LEN(val) < 4) {
+        rb_raise(rb_eArgError, "Rect array must have 4 elements");
+    }
+    return cgss::IntRect{
+        NUM2INT(rb_ary_entry(val, 0)),
+        NUM2INT(rb_ary_entry(val, 1)),
+        NUM2INT(rb_ary_entry(val, 2)),
+        NUM2INT(rb_ary_entry(val, 3)),
+    };
+}
+
+// `set(index, bitmap, rect)` — uploads the Image to a GPU texture (cached
+// per-bitmap-VALUE) and registers the tile at `index` cropped to `rect`.
 VALUE rb_SpriteMap_Set(int argc, VALUE *argv, VALUE self)
 {
-    // Texture binding deferred — see header note. Stub records args but
-    // does not register tiles with cgss::SpriteMap (which would require a
-    // cgss::Texture built from the Image's pixel data).
-    (void)argc; (void)argv; (void)self;
+    VALUE rIndex, rBitmap, rRect;
+    rb_scan_args(argc, argv, "30", &rIndex, &rBitmap, &rRect);
+    auto *s = get_smap(self);
+    if (s->disposed) return self;
+
+    if (NIL_P(rBitmap)) return self;
+    ImageData *img = get_image(rBitmap);
+    if (img == nullptr || !img->valid()) return self;
+
+    // Re-upload the texture only when the bound bitmap VALUE changes.
+    // PSDK's typical usage binds one tilemap per SpriteMap and calls set()
+    // many times — caching avoids re-uploading the same pixels every call.
+    if (s->rBitmap != rBitmap || !s->has_texture) {
+        s->texture = cgss::Texture::create(img->image);
+        s->has_texture = true;
+        s->rBitmap = rBitmap;
+    }
+    const auto rect = rect_from_rb(rRect);
+    s->spriteMap.setTile(NUM2ULONG(rIndex), rect, s->texture);
     return self;
 }
 
+// `set_rect(index, rect)` — repositions an already-set tile's source rect
+// without changing the bound texture.
 VALUE rb_SpriteMap_SetRect(int argc, VALUE *argv, VALUE self)
 {
-    (void)argc; (void)argv; (void)self;
+    VALUE rIndex, rRect;
+    rb_scan_args(argc, argv, "20", &rIndex, &rRect);
+    auto *s = get_smap(self);
+    if (s->disposed) return self;
+    s->spriteMap.setTileRect(NUM2ULONG(rIndex), rect_from_rb(rRect));
     return self;
 }
 
@@ -132,15 +185,11 @@ VALUE rb_SpriteMap_setTileScale(VALUE self, VALUE val)
     get_smap(self)->rScale = val; return val;
 }
 
+// Backwards-compat: cgss::DisplayWindow::draw() now iterates the parent
+// View's DrawableStack and renders the SpriteMap automatically — kept as a
+// no-op for callers that still issue per-frame `sprite_map.draw`.
 VALUE rb_SpriteMap_draw(VALUE self)
 {
-    auto *s = get_smap(self);
-    if (s->disposed) return self;
-    auto *window = get_active_native_window();
-    if (window == nullptr) return self;
-    auto &target = Ops::target_from_window(*window);
-    cgss::RenderTarget rt{target};
-    s->stack.drawFast(rt);
     return self;
 }
 

@@ -2,8 +2,19 @@
 require 'minitest/autorun'
 require_relative '../build/lib/LiteRGSS'
 
+# A live DisplayWindow is required for Viewport.new — viewports register as
+# child Views of the active window. setup/teardown opens a fresh window per
+# test to keep them independent.
 class TestViewport < Minitest::Test
-  
+
+  def setup
+    @window = LiteRGSS::DisplayWindow.new
+  end
+
+  def teardown
+    @window.close_window
+  end
+
   # --- initialize ---
   
   def test_default_initialize

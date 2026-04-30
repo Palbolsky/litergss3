@@ -1,24 +1,22 @@
-// Backend-agnostic Ruby Sprite binding. Texture storage uses cgss::Texture;
-// immediate-mode drawing routes through Ops::draw_texture_pro on the
-// active window's render target (raylib: current BeginDrawing context;
-// SFML: sf::RenderWindow / sf::RenderTexture).
+// Backend-agnostic Ruby Sprite binding. The cgss::Sprite is registered into
+// the parent View's DrawableStack at Ruby Sprite.new time; draws happen
+// automatically inside cgss::DisplayWindow::draw(). All setters forward to
+// the cgss::Sprite proxy.
 
 #include "LiteRGSS.h"
 #include "RubyValue.h"
 #include "../rbAdapter.h"
 #include "window/DisplayWindow.h"
-#include <LiteCGSS/Backend/ActiveBackend.h>
-#include <LiteCGSS/Common/NormalizeNumbers.h>
 #include "Sprite.h"
 #include "Image.h"
 #include "Rect.h"
 #include "Viewport.h"
 #include "DrawableDisposable.h"
 
-namespace {
-	using Backend = cgss::backend::ActiveBackend;
-	using Ops = Backend::Ops;
-}
+#include <LiteCGSS/Common/Color.h>
+#include <LiteCGSS/Common/IntRect.h>
+#include <LiteCGSS/Views/DisplayWindow.h>
+#include <LiteCGSS/Views/Viewport.h>
 
 // GC roots SpriteData holds across the Ruby heap. Must be declared before
 // any instantiation of rb::GetDataType<SpriteData> so this specialization
@@ -44,14 +42,52 @@ static void check_disposed(SpriteData *s)
         rb_raise(rb_eRuntimeError, "Sprite is disposed");
 }
 
+// Apply current opacity via setColor (cgss::Sprite has no direct opacity
+// setter on the Drawable; the SpriteItem one isn't reachable without a
+// weak_ptr lock — color carries the alpha channel for our usage).
+static void apply_opacity(SpriteData *s)
+{
+    if (!s->has_sprite) return;
+    s->sprite->setColor(cgss::Color{ 255, 255, 255, s->opacity });
+}
+
+static void apply_src_rect(SpriteData *s)
+{
+    if (!s->has_sprite || !s->has_texture) return;
+    s->sprite->setTextureRect(cgss::IntRect{
+        s->src_x, s->src_y, s->src_width, s->src_height });
+}
+
 // --- initialize(viewport=nil) ---
 
 VALUE rb_Sprite_Initialize(int argc, VALUE *argv, VALUE self)
 {
-    VALUE viewport;
-    rb_scan_args(argc, argv, "01", &viewport);
+    VALUE parent;
+    rb_scan_args(argc, argv, "01", &parent);
     auto *s = get_sprite(self);
-    s->rViewport = RTEST(viewport) ? viewport : Qnil;
+
+    // Register into the parent View. LiteRGSS2 accepted either a Viewport
+    // (register in viewport's child stack) or the DisplayWindow itself
+    // (register at window level). PSDK uses the latter for ShaderedSprite —
+    // see Graphics.rb#freeze.
+    auto* window = get_active_display_window();
+    if (window == nullptr) {
+        rb_raise(rb_eRGSSError, "Sprite.new requires an open DisplayWindow");
+    }
+    const bool is_viewport = RTEST(parent) && rb_obj_is_kind_of(parent, rb_cViewport) == Qtrue;
+    s->rViewport = is_viewport ? parent : Qnil;
+
+    if (is_viewport) {
+        auto *vp = get_viewport(parent);
+        if (vp == nullptr || !vp->viewport) {
+            rb_raise(rb_eRGSSError, "Sprite.new viewport is not initialized");
+        }
+        s->sprite = std::make_unique<cgss::Sprite>(cgss::Sprite::create(*vp->viewport));
+    } else {
+        s->sprite = std::make_unique<cgss::Sprite>(cgss::Sprite::create(*window));
+    }
+    s->has_sprite = true;
+    s->sprite->setVisible(s->visible);
     return self;
 }
 
@@ -59,7 +95,11 @@ VALUE rb_Sprite_Initialize(int argc, VALUE *argv, VALUE self)
 
 VALUE rb_Sprite_Dispose(VALUE self)
 {
-    get_sprite(self)->disposed = true;
+    auto *s = get_sprite(self);
+    if (!s->disposed && s->has_sprite) {
+        s->sprite->detach();
+    }
+    s->disposed = true;
     return self;
 }
 
@@ -104,42 +144,114 @@ VALUE rb_Sprite_setBitmap(VALUE self, VALUE val)
     }
 
     // Allocate a fresh GPU texture sized to the image + upload its pixels.
-    // Replacing s->texture drops the old shared_ptr; its custom deleter
-    // invokes Ops::texture_destroy to release the prior GPU backing.
     s->texture = cgss::Texture::create(img->image);
     s->has_texture = true;
 
-    s->src_x = 0;
-    s->src_y = 0;
-    s->src_width = static_cast<int>(img->width());
-    s->src_height = static_cast<int>(img->height());
+    if (!s->src_rect_user_set) {
+        s->src_x = 0;
+        s->src_y = 0;
+        s->src_width  = static_cast<int>(img->width());
+        s->src_height = static_cast<int>(img->height());
+    }
 
+    if (s->has_sprite) {
+        // resetRect=true seeds the native sprite's rect from the texture
+        // size. We then re-apply the user's src_rect (Ruby-cached) and any
+        // pending mirror flag — both require the texture to be bound first.
+        s->sprite->setTexture(s->texture, true);
+        apply_src_rect(s);
+        if (s->mirror) s->sprite->setMirror(true);
+        apply_opacity(s);
+    }
     return val;
 }
 
 VALUE rb_Sprite_getX(VALUE self) { check_disposed(get_sprite(self)); return DBL2NUM(get_sprite(self)->x); }
 VALUE rb_Sprite_getY(VALUE self) { check_disposed(get_sprite(self)); return DBL2NUM(get_sprite(self)->y); }
-VALUE rb_Sprite_setX(VALUE self, VALUE v) { check_disposed(get_sprite(self)); get_sprite(self)->x = (float)NUM2DBL(v); return v; }
-VALUE rb_Sprite_setY(VALUE self, VALUE v) { check_disposed(get_sprite(self)); get_sprite(self)->y = (float)NUM2DBL(v); return v; }
+VALUE rb_Sprite_setX(VALUE self, VALUE v)
+{
+    check_disposed(get_sprite(self));
+    auto *s = get_sprite(self);
+    s->x = (float)NUM2DBL(v);
+    if (s->has_sprite) s->sprite->move(s->x, s->y);
+    return v;
+}
+VALUE rb_Sprite_setY(VALUE self, VALUE v)
+{
+    check_disposed(get_sprite(self));
+    auto *s = get_sprite(self);
+    s->y = (float)NUM2DBL(v);
+    if (s->has_sprite) s->sprite->move(s->x, s->y);
+    return v;
+}
 
 VALUE rb_Sprite_getZ(VALUE self) { check_disposed(get_sprite(self)); return INT2NUM(get_sprite(self)->z); }
-VALUE rb_Sprite_setZ(VALUE self, VALUE v) { check_disposed(get_sprite(self)); get_sprite(self)->z = NUM2INT(v); return v; }
+VALUE rb_Sprite_setZ(VALUE self, VALUE v)
+{
+    check_disposed(get_sprite(self));
+    auto *s = get_sprite(self);
+    s->z = NUM2INT(v);
+    if (s->has_sprite) s->sprite->setZ(s->z);
+    return v;
+}
 
 VALUE rb_Sprite_getOX(VALUE self) { check_disposed(get_sprite(self)); return DBL2NUM(get_sprite(self)->ox); }
 VALUE rb_Sprite_getOY(VALUE self) { check_disposed(get_sprite(self)); return DBL2NUM(get_sprite(self)->oy); }
-VALUE rb_Sprite_setOX(VALUE self, VALUE v) { check_disposed(get_sprite(self)); get_sprite(self)->ox = (float)NUM2DBL(v); return v; }
-VALUE rb_Sprite_setOY(VALUE self, VALUE v) { check_disposed(get_sprite(self)); get_sprite(self)->oy = (float)NUM2DBL(v); return v; }
+VALUE rb_Sprite_setOX(VALUE self, VALUE v)
+{
+    check_disposed(get_sprite(self));
+    auto *s = get_sprite(self);
+    s->ox = (float)NUM2DBL(v);
+    if (s->has_sprite) s->sprite->moveOrigin(s->ox, s->oy);
+    return v;
+}
+VALUE rb_Sprite_setOY(VALUE self, VALUE v)
+{
+    check_disposed(get_sprite(self));
+    auto *s = get_sprite(self);
+    s->oy = (float)NUM2DBL(v);
+    if (s->has_sprite) s->sprite->moveOrigin(s->ox, s->oy);
+    return v;
+}
 
 VALUE rb_Sprite_getVisible(VALUE self) { check_disposed(get_sprite(self)); return get_sprite(self)->visible ? Qtrue : Qfalse; }
-VALUE rb_Sprite_setVisible(VALUE self, VALUE v) { check_disposed(get_sprite(self)); get_sprite(self)->visible = RTEST(v); return v; }
+VALUE rb_Sprite_setVisible(VALUE self, VALUE v)
+{
+    check_disposed(get_sprite(self));
+    auto *s = get_sprite(self);
+    s->visible = RTEST(v);
+    if (s->has_sprite) s->sprite->setVisible(s->visible);
+    return v;
+}
 
 VALUE rb_Sprite_getAngle(VALUE self) { check_disposed(get_sprite(self)); return DBL2NUM(get_sprite(self)->angle); }
-VALUE rb_Sprite_setAngle(VALUE self, VALUE v) { check_disposed(get_sprite(self)); get_sprite(self)->angle = (float)NUM2DBL(v); return v; }
+VALUE rb_Sprite_setAngle(VALUE self, VALUE v)
+{
+    check_disposed(get_sprite(self));
+    auto *s = get_sprite(self);
+    s->angle = (float)NUM2DBL(v);
+    if (s->has_sprite) s->sprite->setAngle(s->angle);
+    return v;
+}
 
 VALUE rb_Sprite_getZoomX(VALUE self) { check_disposed(get_sprite(self)); return DBL2NUM(get_sprite(self)->zoom_x); }
 VALUE rb_Sprite_getZoomY(VALUE self) { check_disposed(get_sprite(self)); return DBL2NUM(get_sprite(self)->zoom_y); }
-VALUE rb_Sprite_setZoomX(VALUE self, VALUE v) { check_disposed(get_sprite(self)); get_sprite(self)->zoom_x = (float)NUM2DBL(v); return v; }
-VALUE rb_Sprite_setZoomY(VALUE self, VALUE v) { check_disposed(get_sprite(self)); get_sprite(self)->zoom_y = (float)NUM2DBL(v); return v; }
+VALUE rb_Sprite_setZoomX(VALUE self, VALUE v)
+{
+    check_disposed(get_sprite(self));
+    auto *s = get_sprite(self);
+    s->zoom_x = (float)NUM2DBL(v);
+    if (s->has_sprite) s->sprite->scale(s->zoom_x, s->zoom_y);
+    return v;
+}
+VALUE rb_Sprite_setZoomY(VALUE self, VALUE v)
+{
+    check_disposed(get_sprite(self));
+    auto *s = get_sprite(self);
+    s->zoom_y = (float)NUM2DBL(v);
+    if (s->has_sprite) s->sprite->scale(s->zoom_x, s->zoom_y);
+    return v;
+}
 
 VALUE rb_Sprite_setZoom(VALUE self, VALUE v)
 {
@@ -148,6 +260,7 @@ VALUE rb_Sprite_setZoom(VALUE self, VALUE v)
     auto *s = get_sprite(self);
     s->zoom_x = z;
     s->zoom_y = z;
+    if (s->has_sprite) s->sprite->scale(z, z);
     return v;
 }
 
@@ -155,12 +268,24 @@ VALUE rb_Sprite_getOpacity(VALUE self) { check_disposed(get_sprite(self)); retur
 VALUE rb_Sprite_setOpacity(VALUE self, VALUE v)
 {
     check_disposed(get_sprite(self));
-    get_sprite(self)->opacity = (uint8_t)cgss::normalize_long(RB_NUM2LONG(v), 0, 255);
+    auto *s = get_sprite(self);
+    s->opacity = (uint8_t)cgss::normalize_long(RB_NUM2LONG(v), 0, 255);
+    apply_opacity(s);
     return v;
 }
 
 VALUE rb_Sprite_getMirror(VALUE self) { check_disposed(get_sprite(self)); return get_sprite(self)->mirror ? Qtrue : Qfalse; }
-VALUE rb_Sprite_setMirror(VALUE self, VALUE v) { check_disposed(get_sprite(self)); get_sprite(self)->mirror = RTEST(v); return v; }
+VALUE rb_Sprite_setMirror(VALUE self, VALUE v)
+{
+    check_disposed(get_sprite(self));
+    auto *s = get_sprite(self);
+    const bool wanted = RTEST(v);
+    s->mirror = wanted;
+    if (s->has_sprite && s->has_texture) {
+        s->sprite->setMirror(wanted);
+    }
+    return v;
+}
 
 // LiteRGSS2 returned a Rect instance for src_rect, not an Array. Match
 // that — PSDK reads `sprite.src_rect.set(x, y, w, h)` and `.width`.
@@ -183,13 +308,15 @@ VALUE rb_Sprite_setRect(VALUE self, VALUE val)
         s->src_y = r->y;
         s->src_width  = r->width;
         s->src_height = r->height;
-        return val;
+    } else {
+        Check_Type(val, T_ARRAY);
+        s->src_x = NUM2INT(rb_ary_entry(val, 0));
+        s->src_y = NUM2INT(rb_ary_entry(val, 1));
+        s->src_width = NUM2INT(rb_ary_entry(val, 2));
+        s->src_height = NUM2INT(rb_ary_entry(val, 3));
     }
-    Check_Type(val, T_ARRAY);
-    s->src_x = NUM2INT(rb_ary_entry(val, 0));
-    s->src_y = NUM2INT(rb_ary_entry(val, 1));
-    s->src_width = NUM2INT(rb_ary_entry(val, 2));
-    s->src_height = NUM2INT(rb_ary_entry(val, 3));
+    s->src_rect_user_set = true;
+    apply_src_rect(s);
     return val;
 }
 
@@ -217,6 +344,7 @@ VALUE rb_Sprite_setPosition(VALUE self, VALUE x, VALUE y)
     auto *s = get_sprite(self);
     s->x = (float)NUM2DBL(x);
     s->y = (float)NUM2DBL(y);
+    if (s->has_sprite) s->sprite->move(s->x, s->y);
     return self;
 }
 
@@ -226,51 +354,18 @@ VALUE rb_Sprite_setOrigin(VALUE self, VALUE x, VALUE y)
     auto *s = get_sprite(self);
     s->ox = (float)NUM2DBL(x);
     s->oy = (float)NUM2DBL(y);
+    if (s->has_sprite) s->sprite->moveOrigin(s->ox, s->oy);
     return self;
 }
 
 VALUE rb_Sprite_getViewport(VALUE self) { check_disposed(get_sprite(self)); return get_sprite(self)->rViewport; }
 
-// --- draw (called from Ruby render loop) ---
-
+// Backwards-compat: pre-Phase-2 the Ruby render loop drew sprites via
+// explicit per-frame `sprite.draw` calls. cgss::DisplayWindow::draw() now
+// iterates the DrawableStack and renders every registered sprite — this
+// method is kept as a no-op so existing PSDK / test code keeps working.
 VALUE rb_Sprite_draw(VALUE self)
 {
-    auto *s = get_sprite(self);
-    if (s->disposed || !s->visible || !s->has_texture) return self;
-
-    if (s->rViewport != Qnil) {
-        auto *vp = get_viewport(s->rViewport);
-        if (vp->disposed || !vp->visible) return self;
-    }
-
-    auto* window = get_active_native_window();
-    if (window == nullptr) return self;
-
-    // Route through the extension SPI to reach the native texture inside
-    // the cgss::Texture wrapper. Ops::texture_share returns a shared_ptr;
-    // we use it for the live native reference.
-    auto nativePtr = Ops::texture_share(s->texture);
-    if (!nativePtr) return self;
-
-    auto& target = Ops::target_from_window(*window);
-
-    const cgss::IntRect src{
-        s->src_x, s->src_y,
-        s->mirror ? -s->src_width : s->src_width,
-        s->src_height };
-
-    Ops::draw_texture_pro(
-        target,
-        *nativePtr,
-        src,
-        s->x, s->y,
-        static_cast<float>(s->src_width)  * s->zoom_x,
-        static_cast<float>(s->src_height) * s->zoom_y,
-        s->ox * s->zoom_x,
-        s->oy * s->zoom_y,
-        s->angle,
-        cgss::Color{ 255, 255, 255, s->opacity });
-
     return self;
 }
 

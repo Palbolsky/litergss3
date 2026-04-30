@@ -5,17 +5,21 @@
 
 #include <LiteCGSS/Common/IntRect.h>
 #include <LiteCGSS/Common/NormalizeNumbers.h>
+#include <LiteCGSS/Graphics/Sprite.h>
 #include <LiteCGSS/Graphics/Texture.h>
+#include <memory>
 
 void Init_Sprite();
 extern VALUE rb_cSprite;
 
-// Ruby Sprite data. All rendering state is cross-backend (cgss::Texture
-// for the GPU backing; plain floats for transform). The per-frame draw()
-// routes through Ops::draw_texture_pro — raylib: DrawTexturePro;
-// SFML: emulated via sf::Sprite on the active render target.
+// Ruby Sprite data. The cgss::Sprite is registered into the parent View's
+// DrawableStack at Sprite.new time and drawn automatically by
+// cgss::DisplayWindow::draw(). Ruby setters forward to the cgss::Sprite
+// proxy (transform, color, texture, mirror) — no manual per-frame draw.
 struct SpriteData
 {
+    // Cached Ruby-side state. Mirrors what the cgss::Sprite holds so reads
+    // round-trip without going back through the backend.
     float x = 0.0f;
     float y = 0.0f;
     float ox = 0.0f;
@@ -31,15 +35,21 @@ struct SpriteData
     uint8_t opacity = 255;
 
     int z = 0;
-
-    // GPU-resident texture. Empty (default-constructed) means "no bitmap
-    // assigned" — `has_texture` tells draw() whether to render.
-    cgss::Texture texture;
-    bool has_texture = false;
     int src_x = 0;
     int src_y = 0;
     int src_width = 0;
     int src_height = 0;
+    bool src_rect_user_set = false;
+
+    // GPU-resident texture. Empty (default-constructed) means "no bitmap
+    // assigned" — has_texture tells the bind path whether a bitmap exists.
+    cgss::Texture texture;
+    bool has_texture = false;
+
+    // The actual cgss::Sprite, lazily move-assigned in initialize after the
+    // parent View is known. has_sprite gates all forwarding setters.
+    std::unique_ptr<cgss::Sprite> sprite;
+    bool has_sprite = false;
 
     VALUE rBitmap = Qnil;
     VALUE rViewport = Qnil;

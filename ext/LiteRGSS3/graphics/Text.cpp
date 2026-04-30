@@ -1,13 +1,13 @@
-// Ruby Text binding. Wraps cgss::Text via a per-Text private DrawableStack
-// (see header for rationale + limitation). Drawing flushes the private
-// stack into the active window's render target.
+// Ruby Text binding. The cgss::Text registers into the parent View's
+// DrawableStack at Text.new time and is drawn automatically inside
+// cgss::DisplayWindow::draw(). Setters forward to the cgss::Text proxy.
 
 #include "LiteRGSS.h"
 #include "RubyValue.h"
 #include "../rbAdapter.h"
 #include <LiteCGSS/Common/NormalizeNumbers.h>
-#include <LiteCGSS/Backend/ActiveBackend.h>
-#include <LiteCGSS/Graphics/RenderTarget.h>
+#include <LiteCGSS/Views/DisplayWindow.h>
+#include <LiteCGSS/Views/Viewport.h>
 #include <string>
 #include "Text.h"
 #include "Color.h"
@@ -15,11 +15,6 @@
 #include "Viewport.h"
 #include "Fonts.h"
 #include "DisplayWindow.h"
-
-namespace {
-    using Backend = cgss::backend::ActiveBackend;
-    using Ops = Backend::Ops;
-}
 
 VALUE rb_cText = Qnil;
 
@@ -53,8 +48,22 @@ VALUE rb_Text_Initialize(int argc, VALUE *argv, VALUE self)
                  &align, &outlinesize, &colorid, &sizeid);
 
     auto *t = get_text(self);
-    t->text = cgss::Text::create(t->stack);
-    t->rViewport = viewport;
+    auto* window = get_active_display_window();
+    if (window == nullptr) {
+        rb_raise(rb_eRGSSError, "Text.new requires an open DisplayWindow");
+    }
+    // LiteRGSS2 accepted either a Viewport or the DisplayWindow as parent.
+    const bool is_viewport = RTEST(viewport) && rb_obj_is_kind_of(viewport, rb_cViewport) == Qtrue;
+    if (is_viewport) {
+        auto *vp = get_viewport(viewport);
+        if (vp == nullptr || !vp->viewport) {
+            rb_raise(rb_eRGSSError, "Text.new viewport is not initialized");
+        }
+        t->text = cgss::Text::create(*vp->viewport);
+    } else {
+        t->text = cgss::Text::create(*window);
+    }
+    t->rViewport = is_viewport ? viewport : Qnil;
 
     rb_check_type(x, T_FIXNUM); t->rX = x;
     rb_check_type(y, T_FIXNUM); t->rY = y;
@@ -248,15 +257,12 @@ VALUE rb_Text_load_color(VALUE self, VALUE id)
     return self;
 }
 
+// Backwards-compat: pre-Phase-4 the Ruby render loop drew Text via
+// explicit per-frame `text.draw` calls. cgss::DisplayWindow::draw() now
+// iterates the parent View's DrawableStack and renders the Text
+// automatically — kept as a no-op for callers that still issue it.
 VALUE rb_Text_draw(VALUE self)
 {
-    auto *t = get_text(self);
-    if (t->disposed || !t->text.isVisible()) return self;
-    auto *window = get_active_native_window();
-    if (window == nullptr) return self;
-    auto &target = Ops::target_from_window(*window);
-    cgss::RenderTarget rt{target};
-    t->stack.drawFast(rt);
     return self;
 }
 

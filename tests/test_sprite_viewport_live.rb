@@ -125,21 +125,13 @@ until window.should_close?
     puts "Sprite visible: #{sprite.visible}"
     sleep 0.15
   end
-  
+
   # Viewport visibility toggle
   if input.press?(LiteRGSS::Inputs::Keyboard::O)
     vp.visible = !vp.visible
     puts "Viewport visible: #{vp.visible}"
     sleep 0.15
   end
-  
-  # Draw
-  vp.begin_draw
-  sprite.draw if sprite.visible
-  sprite2.draw if sprite2.visible
-  vp.end_draw
-  
-  window.present
 end
 
 img.dispose
