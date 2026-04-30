@@ -47,6 +47,14 @@ bool cgss::basic_Font<B>::load(const std::string& filename) {
 }
 
 template <class B>
+bool cgss::basic_Font<B>::load(const std::string& filename, unsigned int fontSize) {
+	if (m_loaded) B::Ops::font_destroy(*m_font);
+	m_loaded = B::Ops::font_load_from_file_with_size(*m_font, filename.c_str(),
+	                                                  static_cast<int>(fontSize));
+	return m_loaded;
+}
+
+template <class B>
 typename cgss::basic_Font<B>::native_type& cgss::basic_Font<B>::native() noexcept { return *m_font; }
 
 template <class B>

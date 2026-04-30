@@ -102,14 +102,12 @@ namespace cgss {
 		::Color m_outline { 0, 0, 0, 255 };
 		float m_outlineThickness = 0.f;
 		bool m_drawShadow = true;
-		// Default smooth=true matches sf::Font's own default (SFML text comes
-		// out bilinear-filtered unless a consumer opts out). Raylib bakes its
-		// atlas at a fixed base size (32 px by default in font_load_from_file)
-		// and DrawTextPro rescales via texture sampling — POINT filtering on
-		// the common downscale path (e.g. 32-atlas → 18 render) aliases glyph
-		// edges and reads as slightly thinner / smaller to the eye. BILINEAR
-		// is the closer match to sf::Text's native-rasterized look.
-		bool m_smooth = true;
+		// Default to point filter. Atlases now build at exactly the
+		// requested pixel size via FONT_BITMAP (binary 0/255 alpha) — the
+		// previous BILINEAR default interpolates that into the AA fringe
+		// observed around PSDK pixel fonts. Smooth TTF fonts rendered at
+		// large sizes can opt in via `text.smooth = true`.
+		bool m_smooth = false;
 		std::uint32_t m_numCharsToDraw = (std::numeric_limits<std::uint32_t>::max)();
 		float m_x = 0.f, m_y = 0.f;
 		float m_ox = 0.f, m_oy = 0.f;

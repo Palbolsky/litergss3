@@ -587,6 +587,50 @@ namespace cgss::backend {
 			// atlas texture id == 0 signals that.
 			return f.texture.id != 0;
 		}
+		// Size-aware reload: rebuilds the GPU atlas at exactly `fontSize`
+		// pixels per glyph using FONT_BITMAP (binary alpha, no AA). The
+		// equivalent of LoadFontEx — but LoadFontEx defaults to
+		// FONT_DEFAULT, whose anti-aliased grayscale alpha produces a
+		// speckled fringe around glyphs at integer-grid render positions
+		// and shows clearly on top of any drop-shadow stamp. Pixel fonts
+		// (PSDK's PowerGreenSmall et al.) are designed at exact pixel
+		// sizes — bitmap rasterization gives the crisp, no-fringe look
+		// PSDK was authored for. Smooth TTF fonts trade a bit of edge
+		// quality but stay legible.
+		static inline bool font_load_from_file_with_size(native_font& f, const char* filename, int fontSize) {
+			if (!IsWindowReady()) return false;
+			if (f.texture.id != 0) UnloadFont(f);
+
+			int dataSize = 0;
+			unsigned char* fileData = LoadFileData(filename, &dataSize);
+			if (fileData == nullptr) {
+				f = native_font{};
+				return false;
+			}
+			constexpr int kGlyphCount = 95; // ASCII default range
+			::Font built{};
+			built.baseSize    = fontSize;
+			built.glyphCount  = kGlyphCount;
+			built.glyphs      = LoadFontData(fileData, dataSize, fontSize, nullptr, kGlyphCount, FONT_BITMAP);
+			UnloadFileData(fileData);
+			if (built.glyphs == nullptr) {
+				f = native_font{};
+				return false;
+			}
+			::Rectangle* recs = nullptr;
+			// padding=4 matches raylib's stock LoadFontEx. With padding=0,
+			// glyphs touch in the atlas, so DrawTexturePro's edge sampling
+			// of one glyph rect spills the leftmost/rightmost column of
+			// the *neighbouring* atlas glyph into the rendered text — this
+			// is the source of the residual "ghost stroke" noise around
+			// letters even after FONT_BITMAP + POINT filter were in place.
+			::Image atlas = GenImageFontAtlas(built.glyphs, &recs, kGlyphCount, fontSize, /*padding*/ 4, /*packMethod*/ 0);
+			built.recs    = recs;
+			built.texture = LoadTextureFromImage(atlas);
+			UnloadImage(atlas);
+			f = built;
+			return f.texture.id != 0;
+		}
 		static inline bool font_load_from_memory(native_font& f, const void* data, std::size_t size) {
 			if (!IsWindowReady()) return false;
 			if (f.texture.id != 0) UnloadFont(f);

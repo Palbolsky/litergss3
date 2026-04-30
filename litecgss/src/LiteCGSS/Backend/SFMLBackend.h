@@ -627,6 +627,13 @@ namespace cgss::backend {
 		static inline bool font_load_from_file(native_font& f, const char* filename) {
 			return f.loadFromFile(filename);
 		}
+		// SFML rasterizes per-size on demand from the loaded face — the size
+		// hint here is unused. Provided for Ops symmetry with raylib, which
+		// must rebuild its atlas at the target size to avoid downscaling
+		// pixel fonts.
+		static inline bool font_load_from_file_with_size(native_font& f, const char* filename, int /*fontSize*/) {
+			return f.loadFromFile(filename);
+		}
 		static inline bool font_load_from_memory(native_font& f, const void* data, std::size_t size) {
 			return f.loadFromMemory(data, size);
 		}

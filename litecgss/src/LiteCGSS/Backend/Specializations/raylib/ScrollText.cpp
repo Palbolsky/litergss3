@@ -41,7 +41,13 @@ namespace {
 	// or tighter metrics (e.g. Arial is closer to 1.12, some CJK fonts go
 	// above 1.3) will still look off; a Phase-3 refinement could compute
 	// this ratio at setFont() time from a reference glyph's atlas rect.
-	constexpr float kRaylibEmCompensation = 1.25f;
+	// Earlier revisions multiplied by 1.25 to roughly match SFML's perceived
+	// glyph height. That extra factor pushes pixel fonts off integer
+	// boundaries when the surrounding rlScalef applies a window-scale
+	// multiplier on top, causing the notched look PSDK exhibits at
+	// title-menu sizes. Drop the compensation: render at exactly the
+	// requested character size so pixel fonts stay on integer pixel grid.
+	constexpr float kRaylibEmCompensation = 1.0f;
 
 	float fontSizeF(unsigned int charSize) noexcept {
 		return static_cast<float>(charSize) * kRaylibEmCompensation;
@@ -192,27 +198,29 @@ void cgss::ScrollText::draw() const {
 	const ::Vector2 origin = { m_ox, m_oy };
 	const float rot        = vd.rotation;
 
-	// Shadow vs outline — matches SFML ScrollText's exclusivity: shadow
-	// short-circuits the outline pass. Shadow renders as 3 stamps in the
-	// bottom-right direction (mirroring addGlyphQuad's +1/+1/+1,+1/0,+1
-	// triplet in the SFML vendored impl). Outline stamps 8 directions at
-	// m_outlineThickness; raylib has no per-glyph outline equivalent, so
-	// this approximates via repeated DrawTextPro calls in outline color.
-	if (m_drawShadow) {
-		::DrawTextPro(*m_font, text, ::Vector2{ 1.f, 0.f }, origin, rot, fs, spacing, m_outline);
+	// Shadow vs outline — shadow short-circuits the outline pass. SFML's
+	// vendored ScrollText emits a 3-quad shadow triplet per glyph through a
+	// batched vertex array, which renders as a tight sub-pixel thickening.
+	// Translating that to 3 full-text DrawTextPro calls in raylib produces
+	// visible ghosting at any rlScalef > 1, since each call lays full glyph
+	// rectangles from the atlas. A single offset stamp matches PSDK's
+	// "outlinesize.nil? → drop shadow" usage and looks clean at any scale.
+	// Outline stamps 8 directions at m_outlineThickness; raylib has no
+	// per-glyph outline equivalent, approximated via repeated DrawTextPro.
+	// Both shadow and outline collapse to a single +1,+1 stamp (drop
+	// shadow). SFML's outline is *baked into the glyph* — its
+	// `font.getGlyph(charSize, bold, outlineThickness)` returns a wider
+	// glyph that already contains the outline within its own bounding
+	// box, so adjacent letters never collide. Raylib has no outline-glyph
+	// concept; its atlases store plain glyphs only. Stamping at +/-1 in
+	// four cardinal directions outside each glyph rect makes the outline
+	// of one letter spill into the bounding box of the next at tight
+	// letter spacings (PSDK's title-menu / FPS-counter sizes), producing
+	// the "noise between letters" PSDK users see. Until per-glyph outline
+	// rasterization is added (Phase-2 work — pre-bake outlined variants
+	// into the GenImageFontAtlas pass), one stamp is the cleanest visual.
+	if (m_drawShadow || m_outlineThickness > 0.f) {
 		::DrawTextPro(*m_font, text, ::Vector2{ 1.f, 1.f }, origin, rot, fs, spacing, m_outline);
-		::DrawTextPro(*m_font, text, ::Vector2{ 0.f, 1.f }, origin, rot, fs, spacing, m_outline);
-	} else if (m_outlineThickness > 0.f) {
-		const float t = m_outlineThickness;
-		const ::Vector2 offsets[8] = {
-			{  t,  0.f }, { -t,  0.f },
-			{ 0.f,  t  }, { 0.f, -t  },
-			{  t,   t  }, { -t,  -t  },
-			{  t,  -t  }, { -t,   t  },
-		};
-		for (const auto& off : offsets) {
-			::DrawTextPro(*m_font, text, off, origin, rot, fs, spacing, m_outline);
-		}
 	}
 
 	// Fill pass. Synthetic bold re-stamps at +1px — raylib has no synthetic
