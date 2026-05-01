@@ -18,12 +18,9 @@
 #include <LiteCGSS/Views/DisplayWindow.h>
 #include <LiteCGSS/Views/Viewport.h>
 
-// GC roots SpriteData holds across the Ruby heap. Must be declared before
-// any instantiation of rb::GetDataType<SpriteData> so this specialization
-// lands in the generic type descriptor.
 namespace rb {
     template <>
-    inline void Mark<SpriteData>(void *ptr)
+    void Mark<SpriteData>(void *ptr)
     {
         auto *s = static_cast<SpriteData *>(ptr);
         if (s == nullptr) return;

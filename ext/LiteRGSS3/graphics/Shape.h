@@ -2,6 +2,7 @@
 #define Shape_H
 
 #include "RubyValue.h"
+#include "../rbAdapter.h"
 #include <LiteCGSS/Graphics/Shape.h>
 #include <LiteCGSS/Graphics/ShapeGeometry.h>
 
@@ -30,5 +31,11 @@ struct ShapeData
         if (!disposed) shape.detach();
     }
 };
+
+// Forward-declare the Mark specialization so every TU that instantiates
+// rb::GetDataType<ShapeData> binds the same out-of-line symbol.
+namespace rb {
+    template <> void Mark<ShapeData>(void *ptr);
+}
 
 #endif

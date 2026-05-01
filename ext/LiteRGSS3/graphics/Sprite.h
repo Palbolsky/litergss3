@@ -2,6 +2,7 @@
 #define Sprite_H
 
 #include "RubyValue.h"
+#include "../rbAdapter.h"
 
 #include <LiteCGSS/Common/IntRect.h>
 #include <LiteCGSS/Common/NormalizeNumbers.h>
@@ -69,5 +70,13 @@ struct SpriteData
         if (sprite && !disposed) sprite->detach();
     }
 };
+
+// Mark hook MUST be declared in the header so every TU that instantiates
+// rb::GetDataType<SpriteData> (Sprite.cpp AND ShaderSprite.cpp) wires the
+// same specialization into the static rb_data_type_t. The body lives in
+// Sprite.cpp — one out-of-line symbol shared by all callers.
+namespace rb {
+    template <> void Mark<SpriteData>(void *ptr);
+}
 
 #endif

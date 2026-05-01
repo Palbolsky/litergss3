@@ -5,7 +5,7 @@
 
 namespace rb {
     template <>
-    inline void Mark<RectData>(void *ptr)
+    void Mark<RectData>(void *ptr)
     {
         auto *r = static_cast<RectData *>(ptr);
         if (r == nullptr) return;

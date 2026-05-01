@@ -2,6 +2,7 @@
 #define SpriteMap_H
 
 #include "RubyValue.h"
+#include "../rbAdapter.h"
 #include <LiteCGSS/Graphics/SpriteMap.h>
 
 extern VALUE rb_cSpriteMap;
@@ -26,5 +27,11 @@ struct SpriteMapData
         if (!disposed) spriteMap.detach();
     }
 };
+
+// Forward-declare the Mark specialization so every TU that instantiates
+// rb::GetDataType<SpriteMapData> binds the same out-of-line symbol.
+namespace rb {
+    template <> void Mark<SpriteMapData>(void *ptr);
+}
 
 #endif

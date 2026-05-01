@@ -2,6 +2,7 @@
 #define Rect_H
 
 #include "RubyValue.h"
+#include "../rbAdapter.h"
 
 extern VALUE rb_cRect;
 void Init_Rect();
@@ -31,5 +32,13 @@ struct RectData
 };
 
 RectData *get_rect_data(VALUE self);
+
+// Mark hook MUST be declared in the header so every TU that instantiates
+// rb::GetDataType<RectData> (Rect.cpp AND Sprite.cpp via get_rect_data)
+// initialises the static rb_data_type_t with the real mark, not the
+// generic no-op from rbAdapter.h. Body lives in Rect.cpp.
+namespace rb {
+    template <> void Mark<RectData>(void *ptr);
+}
 
 #endif

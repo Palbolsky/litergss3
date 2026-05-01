@@ -2,6 +2,7 @@
 #define FramedView_H
 
 #include "RubyValue.h"
+#include "../rbAdapter.h"
 
 extern VALUE rb_cFramedView;
 void Init_FramedView();
@@ -38,5 +39,11 @@ struct FramedViewData
     VALUE rWindowBuilder = Qnil;
     VALUE rCursorRect = Qnil;
 };
+
+// Forward-declare the Mark specialization so every TU that instantiates
+// rb::GetDataType<FramedViewData> binds the same out-of-line symbol.
+namespace rb {
+    template <> void Mark<FramedViewData>(void *ptr);
+}
 
 #endif

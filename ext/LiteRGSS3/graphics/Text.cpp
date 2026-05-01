@@ -20,7 +20,7 @@ VALUE rb_cText = Qnil;
 
 namespace rb {
     template <>
-    inline void Mark<TextData>(void *ptr)
+    void Mark<TextData>(void *ptr)
     {
         auto *t = static_cast<TextData *>(ptr);
         if (t == nullptr) return;

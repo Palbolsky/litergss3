@@ -20,7 +20,7 @@ VALUE rb_cSpriteMap = Qnil;
 
 namespace rb {
     template <>
-    inline void Mark<SpriteMapData>(void *ptr)
+    void Mark<SpriteMapData>(void *ptr)
     {
         auto *s = static_cast<SpriteMapData *>(ptr);
         if (s == nullptr) return;

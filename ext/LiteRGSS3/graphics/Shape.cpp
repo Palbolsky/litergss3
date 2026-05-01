@@ -21,7 +21,7 @@ static ID rb_iShapeRectangle = 0;
 
 namespace rb {
     template <>
-    inline void Mark<ShapeData>(void *ptr)
+    void Mark<ShapeData>(void *ptr)
     {
         auto *s = static_cast<ShapeData *>(ptr);
         if (s == nullptr) return;

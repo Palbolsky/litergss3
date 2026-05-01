@@ -2,6 +2,7 @@
 #define Text_H
 
 #include "RubyValue.h"
+#include "../rbAdapter.h"
 #include <LiteCGSS/Graphics/Text.h>
 
 extern VALUE rb_cText;
@@ -28,5 +29,11 @@ struct TextData
         if (!disposed) text.detach();
     }
 };
+
+// Forward-declare the Mark specialization so every TU that instantiates
+// rb::GetDataType<TextData> binds the same out-of-line symbol.
+namespace rb {
+    template <> void Mark<TextData>(void *ptr);
+}
 
 #endif

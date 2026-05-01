@@ -12,7 +12,7 @@ VALUE rb_cFramedView = Qnil;
 
 namespace rb {
     template <>
-    inline void Mark<FramedViewData>(void *ptr)
+    void Mark<FramedViewData>(void *ptr)
     {
         auto *w = static_cast<FramedViewData *>(ptr);
         if (w == nullptr) return;
