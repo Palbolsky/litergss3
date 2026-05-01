@@ -143,8 +143,13 @@ VALUE rb_Sprite_setBitmap(VALUE self, VALUE val)
         return val;
     }
 
-    // Allocate a fresh GPU texture sized to the image + upload its pixels.
-    s->texture = cgss::Texture::create(img->image);
+    // Reuse the GPU texture cached on the Image. Multiple Sprites bound to
+    // the same Bitmap share one upload — and cgss::Sprite::setTexture takes
+    // its own shared_ptr ref via texture_share, so even if the Image is
+    // GC'd later the GPU handle stays alive for as long as this sprite
+    // holds it. The local copy in s->texture deep-copies the CPU image
+    // mirror but only on rebind, not per frame.
+    s->texture = image_acquire_texture(img);
     s->has_texture = true;
 
     if (!s->src_rect_user_set) {

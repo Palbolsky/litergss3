@@ -23,6 +23,33 @@ static void check_disposed(ImageData *img)
         rb_raise(rb_eRuntimeError, "Image is disposed");
 }
 
+// Internal: any operation that mutates `image` calls this so the next
+// `image_acquire_texture` re-syncs the GPU side. Cheap to call
+// repeatedly — actual work is deferred until a drawable asks for the
+// texture.
+static void mark_image_dirty(ImageData *img)
+{
+    img->textureDirty = true;
+}
+
+cgss::Texture& image_acquire_texture(ImageData *img)
+{
+    if (!img->textureValid) {
+        img->cachedTexture = cgss::Texture::create(img->image);
+        img->textureValid = true;
+        img->textureDirty = false;
+    } else if (img->textureDirty) {
+        // Re-upload pixels into the existing GPU texture rather than
+        // reallocating — preserves the shared_ptr<native_texture> identity
+        // so any Sprite/SpriteMap that already cached a pointer to the
+        // native handle keeps working. cgss::Texture::update(image) is the
+        // dedicated re-upload path.
+        img->cachedTexture.update(img->image);
+        img->textureDirty = false;
+    }
+    return img->cachedTexture;
+}
+
 VALUE rb_Image_Initialize(int argc, VALUE *argv, VALUE self)
 {
     VALUE arg1, arg2;
@@ -65,8 +92,15 @@ VALUE rb_Image_InitializeCopy(VALUE self, VALUE other)
     rb_check_frozen(self);
     auto *dst = get_image(self);
     auto *src = get_image(other);
-    if (src->valid())
+    if (src->valid()) {
         dst->image = src->image;  // cgss::Image copy-assign = deep copy of pixels
+        // The GPU texture wasn't copied — invalidate so the next acquire
+        // uploads from the freshly-copied CPU pixels. (Don't share the
+        // src's cached texture: the dst is logically independent and the
+        // user may mutate it without expecting src to follow.)
+        dst->textureValid = false;
+        dst->textureDirty = false;
+    }
     return self;
 }
 
@@ -141,6 +175,7 @@ VALUE rb_Image_setPixel(VALUE self, VALUE x, VALUE y, VALUE color)
     ColorData *cd = get_color_data(color);
     img->image.setPixel(static_cast<unsigned int>(px), static_cast<unsigned int>(py),
                         cgss::Color{cd->r, cd->g, cd->b, cd->a});
+    mark_image_dirty(img);
     return self;
 }
 
@@ -154,6 +189,7 @@ VALUE rb_Image_fillRect(VALUE self, VALUE x, VALUE y, VALUE w, VALUE h, VALUE co
                         static_cast<unsigned int>(NUM2INT(y)),
                         static_cast<unsigned int>(NUM2INT(w)),
                         static_cast<unsigned int>(NUM2INT(h)));
+    mark_image_dirty(img);
     return self;
 }
 
@@ -166,6 +202,7 @@ VALUE rb_Image_clearRect(VALUE self, VALUE x, VALUE y, VALUE w, VALUE h)
                         static_cast<unsigned int>(NUM2INT(y)),
                         static_cast<unsigned int>(NUM2INT(w)),
                         static_cast<unsigned int>(NUM2INT(h)));
+    mark_image_dirty(img);
     return self;
 }
 
@@ -198,6 +235,7 @@ VALUE rb_Image_blt(VALUE self, VALUE x, VALUE y, VALUE src_image, VALUE rect)
                     static_cast<unsigned int>(NUM2INT(x)),
                     static_cast<unsigned int>(NUM2INT(y)),
                     src_rect);
+    mark_image_dirty(dst);
     return self;
 }
 
@@ -211,6 +249,7 @@ VALUE rb_Image_stretchBlt(VALUE self, VALUE dst_rect, VALUE src_image, VALUE src
     cgss::IntRect drect = rect_arg_to_intrect(dst_rect);
     cgss::IntRect srect = rect_arg_to_intrect(src_rect);
     dst->image.stretchBlit(src->image, drect, srect);
+    mark_image_dirty(dst);
     return self;
 }
 
@@ -226,6 +265,7 @@ VALUE rb_Image_copyToBitmap(VALUE self, VALUE dst)
     auto *d = get_image(dst);
     cgss::IntRect r{ 0, 0, static_cast<int>(src->width()), static_cast<int>(src->height()) };
     d->image.blit(src->image, 0u, 0u, r);
+    mark_image_dirty(d);
     return self;
 }
 
@@ -237,6 +277,7 @@ VALUE rb_Image_createMask(VALUE self, VALUE color, VALUE alpha)
     const auto target_alpha = static_cast<unsigned char>(
         cgss::normalize_long(NUM2LONG(alpha), 0, 255));
     img->image.createMaskFromColor(cgss::Color{cd->r, cd->g, cd->b, cd->a}, target_alpha);
+    mark_image_dirty(img);
     return self;
 }
 
@@ -262,10 +303,16 @@ VALUE rb_Image_toPNG(VALUE self)
     return result;
 }
 
-// litergss2's Bitmap exposed `update` as a no-op refresh. In litergss3 the
-// GPU texture is rebuilt inside Sprite#bitmap=, so this stays a no-op for
-// compat.
-VALUE rb_Image_update(VALUE self) { return self; }
+// LiteRGSS2's Bitmap#update committed CPU-side edits to the GPU texture.
+// Same contract here: flag the cached texture dirty so the next drawable
+// that acquires it re-uploads. Cheap; the actual upload happens lazily.
+VALUE rb_Image_update(VALUE self)
+{
+    auto *img = get_image(self);
+    if (img == nullptr || img->disposed) return self;
+    mark_image_dirty(img);
+    return self;
+}
 
 VALUE rb_Image_toPNGFile(VALUE self, VALUE filename)
 {

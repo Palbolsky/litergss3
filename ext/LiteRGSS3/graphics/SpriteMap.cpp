@@ -25,7 +25,6 @@ namespace rb {
         auto *s = static_cast<SpriteMapData *>(ptr);
         if (s == nullptr) return;
         rb_gc_mark(s->rViewport);
-        rb_gc_mark(s->rBitmap);
         rb_gc_mark(s->rX);
         rb_gc_mark(s->rY);
         rb_gc_mark(s->rOX);
@@ -153,16 +152,13 @@ VALUE rb_SpriteMap_Set(int argc, VALUE *argv, VALUE self)
     ImageData *img = get_image(rBitmap);
     if (img == nullptr || !img->valid()) return self;
 
-    // Re-upload the texture only when the bound bitmap VALUE changes.
-    // PSDK's typical usage binds one tilemap per SpriteMap and calls set()
-    // many times — caching avoids re-uploading the same pixels every call.
-    if (s->rBitmap != rBitmap || !s->has_texture) {
-        s->texture = cgss::Texture::create(img->image);
-        s->has_texture = true;
-        s->rBitmap = rBitmap;
-    }
+    // The Image owns its GPU texture (lazily uploaded). cgss::SpriteMap
+    // takes a shared_ptr ref internally via texture_share, so the bitmap
+    // can be GC'd later and the GPU handle stays alive — no per-binding
+    // cache or rBitmap GC-rooting needed here.
+    cgss::Texture& tex = image_acquire_texture(img);
     const auto rect = rect_from_rb(rRect);
-    s->spriteMap.setTile(NUM2ULONG(rIndex), rect, s->texture);
+    s->spriteMap.setTile(NUM2ULONG(rIndex), rect, tex);
     return self;
 }
 
