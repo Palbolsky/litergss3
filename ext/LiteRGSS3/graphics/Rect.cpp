@@ -3,9 +3,30 @@
 #include "../rbAdapter.h"
 #include "Rect.h"
 
+namespace rb {
+    template <>
+    inline void Mark<RectData>(void *ptr)
+    {
+        auto *r = static_cast<RectData *>(ptr);
+        if (r == nullptr) return;
+        // Owner is the drawable (e.g. Sprite) holding this Rect via its
+        // src_rect; marking it keeps the cycle reachable while the Rect is
+        // alive. Standalone Rects have owner=Qnil — rb_gc_mark(Qnil) is a
+        // no-op.
+        rb_gc_mark(r->owner);
+    }
+}
+
 VALUE rb_cRect = Qnil;
 
 RectData *get_rect_data(VALUE self) { return rb::GetPtr<RectData>(self); }
+
+// Internal: invoke the drawable-binding hook after a mutation. Centralised
+// so every mutator path looks identical and the inlined check is cheap.
+static inline void rect_notify_change(RectData *r)
+{
+    if (r->on_change != nullptr) r->on_change(r->owner);
+}
 
 // Rect.new(width, height)
 // Rect.new(x, width, height)        // y defaults to 0
@@ -52,6 +73,7 @@ VALUE rb_Rect_set(int argc, VALUE *argv, VALUE self)
     if (!NIL_P(y))      r->y = NUM2INT(y);
     if (!NIL_P(width))  r->width = NUM2INT(width);
     if (!NIL_P(height)) r->height = NUM2INT(height);
+    rect_notify_change(r);
     return self;
 }
 
@@ -60,10 +82,10 @@ VALUE rb_Rect_getY(VALUE self) { return INT2NUM(get_rect_data(self)->y); }
 VALUE rb_Rect_getWidth(VALUE self) { return INT2NUM(get_rect_data(self)->width); }
 VALUE rb_Rect_getHeight(VALUE self) { return INT2NUM(get_rect_data(self)->height); }
 
-VALUE rb_Rect_setX(VALUE self, VALUE v) { get_rect_data(self)->x = NUM2INT(v); return v; }
-VALUE rb_Rect_setY(VALUE self, VALUE v) { get_rect_data(self)->y = NUM2INT(v); return v; }
-VALUE rb_Rect_setWidth(VALUE self, VALUE v) { get_rect_data(self)->width = NUM2INT(v); return v; }
-VALUE rb_Rect_setHeight(VALUE self, VALUE v) { get_rect_data(self)->height = NUM2INT(v); return v; }
+VALUE rb_Rect_setX(VALUE self, VALUE v)      { auto *r = get_rect_data(self); r->x      = NUM2INT(v); rect_notify_change(r); return v; }
+VALUE rb_Rect_setY(VALUE self, VALUE v)      { auto *r = get_rect_data(self); r->y      = NUM2INT(v); rect_notify_change(r); return v; }
+VALUE rb_Rect_setWidth(VALUE self, VALUE v)  { auto *r = get_rect_data(self); r->width  = NUM2INT(v); rect_notify_change(r); return v; }
+VALUE rb_Rect_setHeight(VALUE self, VALUE v) { auto *r = get_rect_data(self); r->height = NUM2INT(v); rect_notify_change(r); return v; }
 
 static VALUE rb_Rect_eql_array(RectData *r, VALUE oth)
 {

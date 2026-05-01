@@ -53,6 +53,13 @@ struct SpriteData
 
     VALUE rBitmap = Qnil;
     VALUE rViewport = Qnil;
+    // Cached Rect returned by `sprite.src_rect`. Lazily allocated on first
+    // read; mutations (rect.set / rect.x= etc.) propagate back to this
+    // sprite via the Rect's on_change hook (see Rect.h). A standalone
+    // RectData (without on_change) wouldn't survive PSDK's idiom of
+    // `sprite.src_rect.set(0, 0, 32, 32)` — Ruby returns the Rect, then
+    // mutates it, so the change has to flow through the Rect itself.
+    VALUE rRect = Qnil;
 
     // cgss::basic_SpriteItem holds a raw `m_transformable` pointer to the
     // owning cgss::Sprite. The wrapper MUST outlive its registration in the

@@ -29,6 +29,7 @@ namespace rb {
         if (s == nullptr) return;
         rb_gc_mark(s->rBitmap);
         rb_gc_mark(s->rViewport);
+        rb_gc_mark(s->rRect);
     }
 }
 
@@ -157,6 +158,15 @@ VALUE rb_Sprite_setBitmap(VALUE self, VALUE val)
         s->src_y = 0;
         s->src_width  = static_cast<int>(img->width());
         s->src_height = static_cast<int>(img->height());
+        // Keep the cached Rect (if any) in sync so a later
+        // `sprite.src_rect` read sees the new texture's full extent.
+        if (!NIL_P(s->rRect)) {
+            auto *r = get_rect_data(s->rRect);
+            r->x      = s->src_x;
+            r->y      = s->src_y;
+            r->width  = s->src_width;
+            r->height = s->src_height;
+        }
     }
 
     if (s->has_sprite) {
@@ -292,36 +302,81 @@ VALUE rb_Sprite_setMirror(VALUE self, VALUE v)
     return v;
 }
 
+// Pulled from `s->rRect`'s RectData when the user mutates the cached Rect
+// returned by `sprite.src_rect`. Reads the latest Rect values into the
+// sprite's int fields and re-applies to the native sprite. Triggered by
+// the Rect's on_change hook installed in ensure_src_rect_cache.
+static void sprite_rect_did_change(VALUE sprite_value)
+{
+    auto *s = get_sprite(sprite_value);
+    if (s == nullptr || NIL_P(s->rRect)) return;
+    const auto *r = get_rect_data(s->rRect);
+    s->src_x      = r->x;
+    s->src_y      = r->y;
+    s->src_width  = r->width;
+    s->src_height = r->height;
+    s->src_rect_user_set = true;
+    apply_src_rect(s);
+}
+
+// Lazily allocate the Rect cached on the sprite, syncing its values from
+// the sprite's current src_x/y/width/height and wiring its on_change hook
+// back to this sprite. Subsequent calls return the same Rect instance, so
+// `sprite.src_rect.set(0, 0, 32, 32)` mutates state the sprite actually
+// reads.
+static VALUE ensure_src_rect_cache(VALUE self)
+{
+    auto *s = get_sprite(self);
+    if (NIL_P(s->rRect)) {
+        VALUE args[4] = { INT2NUM(s->src_x), INT2NUM(s->src_y),
+                          INT2NUM(s->src_width), INT2NUM(s->src_height) };
+        s->rRect = rb_class_new_instance(4, args, rb_cRect);
+        auto *r = get_rect_data(s->rRect);
+        r->owner = self;
+        r->on_change = sprite_rect_did_change;
+    } else {
+        // Already allocated — refresh its values from the sprite in case
+        // anything (e.g. setBitmap with !src_rect_user_set) updated the
+        // sprite's int fields directly without going through the Rect.
+        auto *r = get_rect_data(s->rRect);
+        r->x      = s->src_x;
+        r->y      = s->src_y;
+        r->width  = s->src_width;
+        r->height = s->src_height;
+    }
+    return s->rRect;
+}
+
 // LiteRGSS2 returned a Rect instance for src_rect, not an Array. Match
 // that — PSDK reads `sprite.src_rect.set(x, y, w, h)` and `.width`.
 VALUE rb_Sprite_getRect(VALUE self)
 {
     check_disposed(get_sprite(self));
-    auto *s = get_sprite(self);
-    VALUE args[4] = { INT2NUM(s->src_x), INT2NUM(s->src_y),
-                      INT2NUM(s->src_width), INT2NUM(s->src_height) };
-    return rb_class_new_instance(4, args, rb_cRect);
+    return ensure_src_rect_cache(self);
 }
 
 VALUE rb_Sprite_setRect(VALUE self, VALUE val)
 {
     check_disposed(get_sprite(self));
     auto *s = get_sprite(self);
+    // Mutate the cached Rect (creating it if needed) so any prior reference
+    // the user holds keeps observing the same Rect.
+    VALUE rect = ensure_src_rect_cache(self);
+    auto *dst = get_rect_data(rect);
     if (rb_obj_is_kind_of(val, rb_cRect) == Qtrue) {
-        const auto *r = get_rect_data(val);
-        s->src_x = r->x;
-        s->src_y = r->y;
-        s->src_width  = r->width;
-        s->src_height = r->height;
+        const auto *src = get_rect_data(val);
+        dst->x = src->x;
+        dst->y = src->y;
+        dst->width  = src->width;
+        dst->height = src->height;
     } else {
         Check_Type(val, T_ARRAY);
-        s->src_x = NUM2INT(rb_ary_entry(val, 0));
-        s->src_y = NUM2INT(rb_ary_entry(val, 1));
-        s->src_width = NUM2INT(rb_ary_entry(val, 2));
-        s->src_height = NUM2INT(rb_ary_entry(val, 3));
+        dst->x = NUM2INT(rb_ary_entry(val, 0));
+        dst->y = NUM2INT(rb_ary_entry(val, 1));
+        dst->width = NUM2INT(rb_ary_entry(val, 2));
+        dst->height = NUM2INT(rb_ary_entry(val, 3));
     }
-    s->src_rect_user_set = true;
-    apply_src_rect(s);
+    sprite_rect_did_change(self);
     return val;
 }
 

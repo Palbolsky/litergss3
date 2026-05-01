@@ -179,6 +179,17 @@ VALUE rb_Shader_isAvailable(VALUE self) { (void)self; return RenderStatesElement
 VALUE rb_Shader_setAvailable(VALUE self, VALUE val) { (void)self; RenderStatesElement::enableShaders(RTEST(val)); return val; }
 VALUE rb_Shader_isGeometryAvailable(VALUE self) { (void)self; return RenderStatesElement::areGeometryShadersEnabled() ? Qtrue : Qfalse; }
 
+// True when the active GL context accepts the SFML legacy fixed-pipeline
+// GLSL contract (gl_FragColor / gl_TexCoord[0] / texture2D / gl_Color).
+// PSDK uses this to drive PSDK_SHADER_FIXED_PIPELINE — set it from
+// Shader.fixed_pipeline? at game-load time so the right shader source
+// variant gets emitted for the underlying backend (SFML always true;
+// raylib true iff built with GRAPHICS_API_OPENGL_21 or _11).
+VALUE rb_Shader_supportsFixedPipeline(VALUE self) {
+    (void)self;
+    return RenderStatesElement::supportsFixedPipeline() ? Qtrue : Qfalse;
+}
+
 VALUE rb_Shader_Copy(VALUE self) { (void)self; rb_raise(rb_eRGSSError, "Shaders cannot be cloned or duplicated."); return self; }
 
 void Init_Shader()
@@ -200,6 +211,7 @@ void Init_Shader()
     rb_define_singleton_method(rb_cShader, "available?", _rbf rb_Shader_isAvailable, 0);
     rb_define_singleton_method(rb_cShader, "available=", _rbf rb_Shader_setAvailable, 1);
     rb_define_singleton_method(rb_cShader, "is_geometry_available?", _rbf rb_Shader_isGeometryAvailable, 0);
+    rb_define_singleton_method(rb_cShader, "fixed_pipeline?", _rbf rb_Shader_supportsFixedPipeline, 0);
 
     rb_define_const(rb_cShader, "Fragment", LONG2FIX(static_cast<long>(cgss::ShaderType::Fragment)));
     rb_define_const(rb_cShader, "Vertex", LONG2FIX(static_cast<long>(cgss::ShaderType::Vertex)));
