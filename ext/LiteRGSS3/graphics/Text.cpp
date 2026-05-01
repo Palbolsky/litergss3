@@ -15,6 +15,7 @@
 #include "Viewport.h"
 #include "Fonts.h"
 #include "DisplayWindow.h"
+#include "window/FramedView.h"
 
 VALUE rb_cText = Qnil;
 
@@ -52,18 +53,28 @@ VALUE rb_Text_Initialize(int argc, VALUE *argv, VALUE self)
     if (window == nullptr) {
         rb_raise(rb_eRGSSError, "Text.new requires an open DisplayWindow");
     }
-    // LiteRGSS2 accepted either a Viewport or the DisplayWindow as parent.
+    // LiteRGSS2 accepted Viewport, Window (FramedView) or DisplayWindow as
+    // parent. PSDK passes a Window for the message-box text stack so the
+    // text coords are local to the dialog box.
     const bool is_viewport = RTEST(viewport) && rb_obj_is_kind_of(viewport, rb_cViewport) == Qtrue;
+    const bool is_framed   = !is_viewport && RTEST(viewport) &&
+                             rb_obj_is_kind_of(viewport, rb_cFramedView) == Qtrue;
     if (is_viewport) {
         auto *vp = get_viewport(viewport);
         if (vp == nullptr || !vp->viewport) {
             rb_raise(rb_eRGSSError, "Text.new viewport is not initialized");
         }
         t->text = cgss::Text::create(*vp->viewport);
+    } else if (is_framed) {
+        auto *fv = get_framed_view(viewport);
+        if (fv == nullptr || !fv->has_view) {
+            rb_raise(rb_eRGSSError, "Text.new Window parent is not initialized");
+        }
+        t->text = cgss::Text::create(*fv->view);
     } else {
         t->text = cgss::Text::create(*window);
     }
-    t->rViewport = is_viewport ? viewport : Qnil;
+    t->rViewport = (is_viewport || is_framed) ? viewport : Qnil;
 
     rb_check_type(x, T_FIXNUM); t->rX = x;
     rb_check_type(y, T_FIXNUM); t->rY = y;

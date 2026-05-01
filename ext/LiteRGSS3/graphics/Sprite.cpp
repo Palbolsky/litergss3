@@ -7,6 +7,7 @@
 #include "RubyValue.h"
 #include "../rbAdapter.h"
 #include "window/DisplayWindow.h"
+#include "window/FramedView.h"
 #include "Sprite.h"
 #include "Image.h"
 #include "Rect.h"
@@ -64,16 +65,18 @@ VALUE rb_Sprite_Initialize(int argc, VALUE *argv, VALUE self)
     rb_scan_args(argc, argv, "01", &parent);
     auto *s = get_sprite(self);
 
-    // Register into the parent View. LiteRGSS2 accepted either a Viewport
-    // (register in viewport's child stack) or the DisplayWindow itself
-    // (register at window level). PSDK uses the latter for ShaderedSprite —
-    // see Graphics.rb#freeze.
+    // Register into the parent View. LiteRGSS2 accepted Viewport, Window
+    // (FramedView) or the DisplayWindow as parent. PSDK uses Window as
+    // parent for in-dialog sprites (e.g. text_stack inside the message
+    // box) so sprite coords are local to the box.
     auto* window = get_active_display_window();
     if (window == nullptr) {
         rb_raise(rb_eRGSSError, "Sprite.new requires an open DisplayWindow");
     }
     const bool is_viewport = RTEST(parent) && rb_obj_is_kind_of(parent, rb_cViewport) == Qtrue;
-    s->rViewport = is_viewport ? parent : Qnil;
+    const bool is_framed   = !is_viewport && RTEST(parent) &&
+                             rb_obj_is_kind_of(parent, rb_cFramedView) == Qtrue;
+    s->rViewport = (is_viewport || is_framed) ? parent : Qnil;
 
     if (is_viewport) {
         auto *vp = get_viewport(parent);
@@ -81,6 +84,12 @@ VALUE rb_Sprite_Initialize(int argc, VALUE *argv, VALUE self)
             rb_raise(rb_eRGSSError, "Sprite.new viewport is not initialized");
         }
         s->sprite = std::make_unique<cgss::Sprite>(cgss::Sprite::create(*vp->viewport));
+    } else if (is_framed) {
+        auto *fv = get_framed_view(parent);
+        if (fv == nullptr || !fv->has_view) {
+            rb_raise(rb_eRGSSError, "Sprite.new Window parent is not initialized");
+        }
+        s->sprite = std::make_unique<cgss::Sprite>(cgss::Sprite::create(*fv->view));
     } else {
         s->sprite = std::make_unique<cgss::Sprite>(cgss::Sprite::create(*window));
     }

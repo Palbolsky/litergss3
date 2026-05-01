@@ -4,33 +4,34 @@
 #include "RubyValue.h"
 #include "../rbAdapter.h"
 
+#include <LiteCGSS/Views/FramedView.h>
+#include <memory>
+
 extern VALUE rb_cFramedView;
 void Init_FramedView();
 
-// LiteRGSS::Window — the FramedView-based UI widget (per-game-menu frame).
-// Distinct from LiteRGSS::DisplayWindow (the host OS window).
+// LiteRGSS::Window — backs PSDK's per-game-menu/dialog window. Wraps a
+// cgss::FramedView registered into either a parent cgss::Viewport or the
+// active cgss::DisplayWindow at construction time. Sprite/Text/Shape
+// instantiated with a Window as parent register into THIS FramedView's
+// child stack — that's how the dialog text gets offset to the box's
+// position and clipped to the box's bounds.
 //
-// Implementation note: cgss::FramedView requires MainEventDispatcher +
-// DisplayWindowUserData + DisplayWindowSettings, which litergss3's
-// DisplayWindow doesn't currently expose. This port stores the widget's
-// state on the Ruby side (skin, cursor rect, opacity, geometry) so the
-// API surface matches litergss2's Window — full cgss::FramedView wiring
-// folds in once DisplayWindow exposes the cgss event/window context.
+// Distinct from LiteRGSS::DisplayWindow (the host OS window).
 struct FramedViewData
 {
+    // The cgss FramedView. Move-assigned in initialize once the parent
+    // (Viewport or DisplayWindow) is known. has_view gates forwarding.
+    std::unique_ptr<cgss::FramedView> view;
+    bool has_view = false;
+    bool disposed = false;
+
+    // Cached Ruby-side state used as the source of truth for getters and
+    // for round-tripping back through Ruby (mirrors litergss2's
+    // FramedViewElement). Width/height also fall back to these for getters
+    // because cgss::FramedView only exposes float getters.
     int x = 0, y = 0, width = 0, height = 0;
     int ox = 0, oy = 0;
-    int z = 0;
-    int pause_x = 0, pause_y = 0;
-    uint8_t opacity = 255;
-    uint8_t back_opacity = 255;
-    uint8_t contents_opacity = 255;
-    bool active = false;
-    bool paused = false;
-    bool stretch = false;
-    bool visible = true;
-    bool locked = false;
-    bool disposed = false;
 
     VALUE rViewport = Qnil;
     VALUE rWindowskin = Qnil;
@@ -38,6 +39,10 @@ struct FramedViewData
     VALUE rPauseskin = Qnil;
     VALUE rWindowBuilder = Qnil;
     VALUE rCursorRect = Qnil;
+
+    ~FramedViewData() {
+        if (view && !disposed) view->detach();
+    }
 };
 
 // Forward-declare the Mark specialization so every TU that instantiates
@@ -45,5 +50,7 @@ struct FramedViewData
 namespace rb {
     template <> void Mark<FramedViewData>(void *ptr);
 }
+
+FramedViewData* get_framed_view(VALUE self);
 
 #endif

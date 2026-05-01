@@ -13,6 +13,7 @@
 #include "DrawableDisposable.h"
 #include "DisplayWindow.h"
 #include "Viewport.h"
+#include "window/FramedView.h"
 
 VALUE rb_cShape = Qnil;
 static ID rb_iShapeCircle = 0;
@@ -84,18 +85,26 @@ VALUE rb_Shape_Initialize(int argc, VALUE *argv, VALUE self)
     if (window == nullptr) {
         rb_raise(rb_eRGSSError, "Shape.new requires an open DisplayWindow");
     }
-    // LiteRGSS2 accepted either a Viewport or the DisplayWindow as parent.
+    // LiteRGSS2 accepted Viewport, Window (FramedView) or DisplayWindow.
     const bool is_viewport = RTEST(viewport) && rb_obj_is_kind_of(viewport, rb_cViewport) == Qtrue;
+    const bool is_framed   = !is_viewport && RTEST(viewport) &&
+                             rb_obj_is_kind_of(viewport, rb_cFramedView) == Qtrue;
     if (is_viewport) {
         auto *vp = get_viewport(viewport);
         if (vp == nullptr || !vp->viewport) {
             rb_raise(rb_eRGSSError, "Shape.new viewport is not initialized");
         }
         s->shape = cgss::Shape::create(*vp->viewport, std::move(geometry));
+    } else if (is_framed) {
+        auto *fv = get_framed_view(viewport);
+        if (fv == nullptr || !fv->has_view) {
+            rb_raise(rb_eRGSSError, "Shape.new Window parent is not initialized");
+        }
+        s->shape = cgss::Shape::create(*fv->view, std::move(geometry));
     } else {
         s->shape = cgss::Shape::create(*window, std::move(geometry));
     }
-    if (!is_viewport) s->rViewport = Qnil;
+    if (!is_viewport && !is_framed) s->rViewport = Qnil;
     return self;
 }
 
