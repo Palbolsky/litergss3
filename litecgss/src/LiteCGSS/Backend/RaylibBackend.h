@@ -489,6 +489,12 @@ namespace cgss::backend {
 			InitWindow(static_cast<int>(opts.width),
 			           static_cast<int>(opts.height),
 			           title != nullptr ? title : "LiteRGSS");
+			// raylib defaults to KEY_ESCAPE as the "exit key", which sets
+			// WindowShouldClose() and surfaces as a Closed event in the cgss
+			// pipeline. SFML had no such auto-exit, and PSDK maps Escape to
+			// the in-game :B virtual button (cancel/back). Disable the
+			// hard-coded exit so Escape behaves like any other key.
+			SetExitKey(0);
 			raylib_detail::resetWindowClosed();
 			// Defer CloseWindow to process exit. window_close() only flips the
 			// sticky-closed flag, so nothing else tears down raylib's GL
@@ -758,18 +764,46 @@ namespace cgss::backend {
 		}
 
 		// Translate SFML-style legacy GLSL fragment source to raylib-compatible
-		// GLSL-330. Pass-through for anything that already declares a #version.
+		// GLSL-330. A leading `#version` directive is parsed: legacy desktop
+		// versions (110/120/130/140/150) are stripped and translated, since
+		// they still rely on gl_TexCoord / gl_FragColor which raylib's GL3.3
+		// core context rejects. Modern (>= 330) and ES profiles pass through
+		// verbatim — those are assumed already raylib-compatible.
+		//
+		// This matters because higher layers (e.g. PSDK's Ruby Shader class)
+		// auto-prepend `#version 130` regardless of source, which would
+		// otherwise short-circuit the legacy rewrite and leave gl_FragColor
+		// in the source for a core-profile compiler that no longer accepts
+		// it (silent failure, raylib falls back to default sampler shader).
 		static inline std::string shader_translate_fragment(const std::string& src) {
-			// Skip leading whitespace / line-leading comments to find a
-			// `#version`. Cheap heuristic — a stray `#version` deep in a
-			// multi-line comment would short-circuit translation, but that's
-			// not idiomatic shader source.
 			std::size_t i = 0;
 			while (i < src.size() && std::isspace(static_cast<unsigned char>(src[i]))) ++i;
-			if (i + 8 <= src.size() && src.compare(i, 8, "#version") == 0) {
-				return src;
-			}
+
 			std::string body = src;
+			if (i + 8 <= src.size() && src.compare(i, 8, "#version") == 0) {
+				// Parse the directive: "#version <number>[ profile]".
+				std::size_t numStart = i + 8;
+				while (numStart < src.size() && (src[numStart] == ' ' || src[numStart] == '\t')) ++numStart;
+				std::size_t numEnd = numStart;
+				int version = 0;
+				while (numEnd < src.size() && std::isdigit(static_cast<unsigned char>(src[numEnd]))) {
+					version = version * 10 + (src[numEnd] - '0');
+					++numEnd;
+				}
+				// Skip optional profile keyword ("core", "compatibility", "es")
+				// and reach end-of-line so we can excise the whole directive.
+				std::size_t lineEnd = numEnd;
+				while (lineEnd < src.size() && src[lineEnd] != '\n') ++lineEnd;
+				if (lineEnd < src.size()) ++lineEnd; // consume the newline
+				const bool isEs = src.find(" es", numEnd) < lineEnd;
+
+				// Modern desktop (>= 330) or any ES profile: pass through.
+				if (version >= 330 || isEs) {
+					return src;
+				}
+				// Legacy desktop: strip directive, fall through to rewrite.
+				body = src.substr(0, i) + src.substr(lineEnd);
+			}
 			// Order matters: rename the user's `texture` sampler to `texture0`
 			// FIRST so subsequent `texture2D(` → `texture(` rewrites don't
 			// collide with the user's identifier.

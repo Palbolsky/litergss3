@@ -8,6 +8,7 @@
 #include <raylib.h>
 
 #include <array>
+#include <cstdio>
 #include <cstring>
 #include <deque>
 
