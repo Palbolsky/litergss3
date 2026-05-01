@@ -28,8 +28,11 @@ bool cgss::basic_RenderStatesData<B>::enabledShaders() {
 template <class B>
 void cgss::basic_RenderStatesData<B>::warnIfShadersNotAvailable() {
 	if (SHADERS_ENABLED && !B::Ops::shader_is_available()) {
+		// TODO: surface this through the engine logger so the host can
+		// degrade gracefully (skip shader binds, fall back to plain blits).
+		// Today the message is built and immediately discarded.
 		std::string m_lastError = "Shaders are not available :(";
-		//TODO
+		(void)m_lastError;
 	}
 }
 

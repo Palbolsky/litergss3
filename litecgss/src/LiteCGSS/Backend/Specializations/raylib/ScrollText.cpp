@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <string_view>
 
 #include "LiteCGSS/Backend/ActiveBackend.h"
 
@@ -251,6 +252,7 @@ void cgss::ScrollText::draw() const {
 	const float spacing = spacingFromFactor(m_letterSpacingFactor);
 
 	const bool drawBold       = (m_style & ScrollText::Bold) != 0;
+	const bool drawItalic     = (m_style & ScrollText::Italic) != 0;
 	const bool drawUnderlined = (m_style & ScrollText::Underlined) != 0;
 	const bool drawStrike     = (m_style & ScrollText::StrikeThrough) != 0;
 
@@ -267,6 +269,25 @@ void cgss::ScrollText::draw() const {
 	::rlPushMatrix();
 	::rlTranslatef(vd.tx + m_x * vd.zoomX, vd.ty + m_y * vd.zoomY, 0.f);
 	::rlScalef(m_sx * vd.zoomX, m_sy * vd.zoomY, 1.f);
+
+	// Synthetic italic — column-major 4x4 with x-axis shear of `italicShear`
+	// matching SFML's vendored ScrollText constant (0.209 ≈ tan(11.5°)). The
+	// shear is applied AFTER scale in the matrix stack so it produces the
+	// same slanted-fill look at any view zoom; the `-m_oy * shear` translate
+	// re-anchors the origin row so glyphs above the origin slant the same
+	// distance as glyphs below it (otherwise origin-relative text would drift
+	// horizontally as font size changed).
+	if (drawItalic) {
+		constexpr float italicShear = 0.209f;
+		const float shearMatrix[16] = {
+			1.f,         0.f, 0.f, 0.f,
+			italicShear, 1.f, 0.f, 0.f,
+			0.f,         0.f, 1.f, 0.f,
+			0.f,         0.f, 0.f, 1.f,
+		};
+		::rlMultMatrixf(shearMatrix);
+		::rlTranslatef(-m_oy * italicShear, 0.f, 0.f);
+	}
 
 	const ::Vector2 origin = { m_ox, m_oy };
 	const float rot        = vd.rotation;
@@ -331,22 +352,40 @@ void cgss::ScrollText::draw() const {
 	// heuristic offsets that match typical typographic positions:
 	//   underline baseline ~ 95% of character height,
 	//   strikethrough      ~ 55% (mid-height).
-	// Thickness = max(1, fs/16). Single-line extent only: MeasureTextEx on a
-	// multi-line string returns the widest line, so strike/underline will
-	// over-extend on multi-line text — tracked as a multi-line layout TODO.
+	// Thickness = max(1, fs/16). Per-line: split on '\n' and measure each
+	// line's width independently — `MeasureTextEx` on a multi-line string
+	// returns the widest line, so a single rect would over-extend on
+	// shorter lines. raylib's DrawTextPro lays multi-line text top-down
+	// stepping by the same fontSize used for measurement, so we match that
+	// step here (raylib's GetFontDefault uses height==fontSize for the
+	// baseline-to-baseline distance — close enough for our heuristic).
 	if (drawUnderlined || drawStrike) {
-		const ::Vector2 extent = ::MeasureTextEx(*m_font, text, fs, spacing);
-		const float thickness  = std::max(1.f, fs / 16.f);
-		// Glyph top-left in matrix-local coords is (-ox, -oy); rectangles
-		// line up with the text by offsetting likewise.
-		const float left = -m_ox;
-		if (drawUnderlined) {
-			const float yTop = fs * 0.95f - m_oy - thickness * 0.5f;
-			::DrawRectangleRec(::Rectangle{ left, yTop, extent.x, thickness }, m_fill);
-		}
-		if (drawStrike) {
-			const float yTop = fs * 0.55f - m_oy - thickness * 0.5f;
-			::DrawRectangleRec(::Rectangle{ left, yTop, extent.x, thickness }, m_fill);
+		const float thickness = std::max(1.f, fs / 16.f);
+		const float left      = -m_ox;
+		const std::string_view textView{ truncated };
+		std::size_t start = 0;
+		std::size_t lineIndex = 0;
+		while (start <= textView.size()) {
+			const std::size_t nl = textView.find('\n', start);
+			const std::size_t end = (nl == std::string_view::npos) ? textView.size() : nl;
+			// MeasureTextEx accepts a NUL-terminated cstring; substr+c_str
+			// is acceptable for UI text sizes (handful of lines).
+			const std::string lineCopy(textView.substr(start, end - start));
+			const ::Vector2 extent = lineCopy.empty()
+				? ::Vector2{ 0.f, 0.f }
+				: ::MeasureTextEx(*m_font, lineCopy.c_str(), fs, spacing);
+			const float yLineTop = fs * static_cast<float>(lineIndex) - m_oy;
+			if (drawUnderlined && extent.x > 0.f) {
+				::DrawRectangleRec(::Rectangle{ left, yLineTop + fs * 0.95f - thickness * 0.5f,
+				                                extent.x, thickness }, m_fill);
+			}
+			if (drawStrike && extent.x > 0.f) {
+				::DrawRectangleRec(::Rectangle{ left, yLineTop + fs * 0.55f - thickness * 0.5f,
+				                                extent.x, thickness }, m_fill);
+			}
+			if (nl == std::string_view::npos) break;
+			start = nl + 1;
+			++lineIndex;
 		}
 	}
 

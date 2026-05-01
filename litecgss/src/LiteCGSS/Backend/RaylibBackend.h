@@ -1,27 +1,24 @@
 #ifndef CGSS_BACKEND_RAYLIB_BACKEND_H
 #define CGSS_BACKEND_RAYLIB_BACKEND_H
 
-// Raylib backend — scaffold only (PR M scope b).
+// Raylib backend — full Op implementation.
 //
-// Defines `RaylibBackend::Ops` so that wrappers whose bodies route exclusively
-// through `B::Ops::*` (Camera, DrawState, Font, Event, RenderTarget) can
-// instantiate under `CGSS_BACKEND=raylib`. Texture / Image / Sprite / Shape /
-// DisplayWindow currently FAIL to instantiate — by design, to expose where
-// further work is required:
+// Defines `RaylibBackend::Ops` for the complete BackendConcept surface:
+// Texture / Image / Sprite / Shape / Text / RenderTarget / RenderTexture /
+// View / Window / Event. Drawable bodies route through these Ops (DrawTexturePro,
+// rlgl matrix stack, BeginTextureMode/EndTextureMode) so basic_Sprite<B>,
+// basic_Shape<B>, basic_DisplayWindow<B> instantiate cleanly under
+// CGSS_BACKEND=raylib alongside the SFML backend.
 //
-//   * Texture/Image: `create(filename)` calls `TextureFileSerializeMethod` /
-//     `ImageFileSerializeMethod`, both SFML-typed (PR K deferred templating
-//     of the SerializeMethod structs themselves).
-//   * Sprite/Shape: bodies build `sf::RenderStates` and call `.draw(sprite,
-//     states)` on the native render target — SFML-shaped APIs with no
-//     drop-in raylib equivalent.
-//   * DisplayWindow: body is fully SFML-coupled (PR J); needs a full
-//     `basic_DisplayWindow<RaylibBackend>` specialization.
-//
-// Op bodies below are intentionally stubs (no raylib lib linked yet). The
-// goal is to validate the abstraction's *shape* — that backend selection
-// flips through CMake without changing public-API names — not to render
-// anything.
+// Capability gaps tracked via tag dispatch on RaylibBackendFwd.h:
+//   - has_snapshot = false: full freeze/transition machinery isn't ported
+//     (basic_DisplayWindow<B>::Snapshot resolves to StubDisplayWindowSnapshot,
+//     whose `takeSnapshot` delegates to `cgss::detail::backendCaptureScreen`
+//     in DisplayWindowSnapshot.cpp — basic screen captures still work).
+// Backend-shaped pieces that get full per-backend folder specializations
+// rather than living in this Ops bag: cgss::FramedView's 9-slice skin,
+// cgss::ScrollText, cgss::ViewportItem::takeSnapshot. See
+// Backend/Specializations/raylib/ for those.
 
 #include "LiteCGSS/Backend/RaylibBackendFwd.h"
 #include "LiteCGSS/Backend/Internal/RaylibEventQueue.h"

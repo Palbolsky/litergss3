@@ -21,6 +21,16 @@
 #include "LiteCGSS/Views/DisplayWindow.h"
 #include "LiteCGSS/Views/DisplayWindowSnapshot.h"
 
+// SFML uses the real DisplayWindowSnapshot (has_snapshot = true), so the
+// StubDisplayWindowSnapshot template — which delegates takeSnapshot to
+// detail::backendCaptureScreen — is never instantiated for the active
+// DisplayWindow. We still define the hook with a stub body to keep the
+// symbol linkable in case any TU instantiates the stub (tests, future
+// backends compiled side-by-side).
+std::unique_ptr<cgss::Texture> cgss::detail::backendCaptureScreen() {
+	return nullptr;
+}
+
 cgss::DisplayWindowSnapshot::DisplayWindowSnapshot(DisplayWindow& window) :
 	m_window(window) {
 }

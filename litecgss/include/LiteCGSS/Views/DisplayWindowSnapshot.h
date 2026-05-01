@@ -13,17 +13,31 @@ namespace sf {
 
 namespace cgss {
 
-	// No-op snapshot for backends that don't yet have an snapshot impl
-	// (currently raylib). Methods accept any window type via templates so
-	// the same call sites in basic_DisplayWindow<B> compile under either
-	// backend; under non-SFML the calls just no-op.
+	namespace detail {
+		// Backend hook for capturing the current screen into a fresh
+		// cgss::Texture. Body is defined in the per-backend
+		// DisplayWindowSnapshot.cpp — raylib uses LoadImageFromScreen +
+		// LoadTextureFromImage; SFML's StubDisplayWindowSnapshot is unused
+		// (real DisplayWindowSnapshot owns its own snapshot path) but a
+		// stub body is still provided to keep the symbol resolvable.
+		std::unique_ptr<cgss::Texture> backendCaptureScreen();
+	}
+
+	// Backends without a full snapshot/transition path (currently raylib)
+	// route through this stub — `freeze`/`transition`/`draw` are no-ops,
+	// `takeSnapshot` delegates to backendCaptureScreen so basic
+	// "capture the current frame" calls (PSDK's `Graphics.snap_to_bitmap`)
+	// still produce a usable bitmap. SFML uses the real DisplayWindowSnapshot
+	// instead and never instantiates this stub.
 	template <class DisplayWindowT>
 	class StubDisplayWindowSnapshot {
 	public:
 		StubDisplayWindowSnapshot(DisplayWindowT&) {}
 		void init() {}
 		void stop() {}
-		template <class W> std::unique_ptr<cgss::Texture> takeSnapshot(const W&) const { return nullptr; }
+		template <class W> std::unique_ptr<cgss::Texture> takeSnapshot(const W&) const {
+			return detail::backendCaptureScreen();
+		}
 		template <class W> void freeze(const W&) {}
 		void transition(long, cgss::Texture* = nullptr) {}
 		template <class W> void draw(W&) {}

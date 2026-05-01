@@ -23,10 +23,13 @@
 // using heuristic line metrics — raylib exposes no underlinePosition /
 // underlineThickness), and synthetic Bold (1-offset stamp).
 //
-// Still deferred: Italic (would need a custom rlMultMatrixf shear matrix
-// post-view — see the SFML italicShear constant of 0.209f for reference);
-// kerning (raylib has no GetKerning equivalent); true per-glyph bounds
-// via GetGlyphInfo / GetGlyphAtlasRec (Phase 3).
+// Italic now uses rlMultMatrixf with the same 0.209f shear as the SFML
+// vendored ScrollText; underline / strikethrough now measure each line
+// independently so multi-line text gets per-line decorations rather than
+// a single max-width strip.
+//
+// Still deferred: kerning (raylib has no GetKerning equivalent); true
+// per-glyph bounds via GetGlyphInfo / GetGlyphAtlasRec (Phase 3).
 
 #include <raylib.h>
 

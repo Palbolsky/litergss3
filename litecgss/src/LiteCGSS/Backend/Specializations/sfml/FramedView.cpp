@@ -117,7 +117,10 @@ void cgss::FramedViewItem::drawFast(cgss::RenderTarget& target) const {
 void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, cgss::Camera& targetView) const {
 	using Ops = cgss::backend::ActiveBackend::Ops;
 	using cgss::backend::native_of;
-	// TODO : can be based on event system ? when parent viewport is moved / resized.
+	// TODO: cache the computed view across frames and recompute only on
+	// ViewportChangeEvent (parent resize/move) instead of every drawFast.
+	// Cheap as-is for typical UI scenes (a handful of nested FramedViews)
+	// but a measurable cost in pathological cases.
 	LOG_DEBUG << "Draw calculate view";
 
 	const cgss::IntRect parentViewport = parent.getViewportBox();
