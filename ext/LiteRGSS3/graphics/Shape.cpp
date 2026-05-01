@@ -12,6 +12,7 @@
 #include "Color.h"
 #include "DrawableDisposable.h"
 #include "DisplayWindow.h"
+#include "Image.h"
 #include "Viewport.h"
 #include "window/FramedView.h"
 
@@ -264,11 +265,21 @@ VALUE rb_Shape_setHeight(VALUE self, VALUE val) { get_shape(self)->shape.setHeig
 VALUE rb_Shape_getBitmap(VALUE self) { return get_shape(self)->rBitmap; }
 VALUE rb_Shape_setBitmap(VALUE self, VALUE val)
 {
-    // Texture binding not yet wired through cgss::Shape::setTexture in this
-    // pass — Sprite handles textures directly because that's the legacy
-    // litergss3 path; Shape texture support folds in once Viewport hosts
-    // the stack (then setTexture composes naturally).
-    get_shape(self)->rBitmap = val;
+    auto *s = get_shape(self);
+    s->rBitmap = val;
+    if (NIL_P(val)) {
+        s->shape.setTexture(nullptr);
+        return val;
+    }
+    if (rb_obj_is_kind_of(val, rb_cImage) != Qtrue) {
+        rb_raise(rb_eRGSSError, "Shape#bitmap= expects a Bitmap (Image).");
+    }
+    auto *img = get_image(val);
+    if (!img->valid()) {
+        s->shape.setTexture(nullptr);
+        return val;
+    }
+    s->shape.setTexture(&image_acquire_texture(img), true);
     return val;
 }
 
