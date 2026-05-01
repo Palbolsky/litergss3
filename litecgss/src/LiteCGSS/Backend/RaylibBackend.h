@@ -1442,14 +1442,61 @@ namespace cgss::backend {
 		static inline void image_blit(native_image& dst, unsigned int x, unsigned int y,
 		                              const native_image& src, const cgss::IntRect& srcRect,
 		                              bool applyAlpha = false) {
-			(void)applyAlpha; // raylib's ImageDraw always alpha-blends.
 			::Rectangle sr{ static_cast<float>(srcRect.left),  static_cast<float>(srcRect.top),
 			                static_cast<float>(srcRect.width), static_cast<float>(srcRect.height) };
 			::Rectangle dr{ static_cast<float>(x),             static_cast<float>(y),
 			                static_cast<float>(srcRect.width), static_cast<float>(srcRect.height) };
-			// Fully-qualified ::Color{} to avoid the raylib WHITE macro
-			// colliding with `cgss::Color` via namespace lookup.
-			ImageDraw(&dst, src, sr, dr, ::Color{ 255, 255, 255, 255 });
+			if (applyAlpha) {
+				// Alpha-blend src over dst (raylib's default ImageDraw).
+				// Fully-qualified ::Color{} to avoid the raylib WHITE macro
+				// colliding with `cgss::Color` via namespace lookup.
+				ImageDraw(&dst, src, sr, dr, ::Color{ 255, 255, 255, 255 });
+				return;
+			}
+			// applyAlpha=false → REPLACE: copy source pixels (including their
+			// own alpha) into dst, matching sf::Image::copy(applyAlpha=false).
+			// raylib's ImageDraw always alpha-blends, so do a manual row-wise
+			// memcpy after clipping. Both images are assumed to be
+			// PIXELFORMAT_UNCOMPRESSED_R8G8B8A8 (the only format the litecgss
+			// Image pipeline produces — see image_create_with_pixels and
+			// basic_ImageEmptySerializeMethod). If a caller hands us a
+			// different format, fall back to alpha-blend rather than
+			// corrupting pixels.
+			constexpr int kRGBA8 = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
+			if (src.format != kRGBA8 || dst.format != kRGBA8 ||
+			    src.data == nullptr || dst.data == nullptr) {
+				ImageDraw(&dst, src, sr, dr, ::Color{ 255, 255, 255, 255 });
+				return;
+			}
+			// Clip src rect into source bounds.
+			int sx0 = srcRect.left;
+			int sy0 = srcRect.top;
+			int sx1 = sx0 + srcRect.width;
+			int sy1 = sy0 + srcRect.height;
+			int dx0 = static_cast<int>(x);
+			int dy0 = static_cast<int>(y);
+			if (sx0 < 0) { dx0 += -sx0; sx0 = 0; }
+			if (sy0 < 0) { dy0 += -sy0; sy0 = 0; }
+			if (sx1 > src.width)  sx1 = src.width;
+			if (sy1 > src.height) sy1 = src.height;
+			if (sx0 >= sx1 || sy0 >= sy1) return;
+			int dx1 = dx0 + (sx1 - sx0);
+			int dy1 = dy0 + (sy1 - sy0);
+			if (dx0 < 0) { sx0 += -dx0; dx0 = 0; }
+			if (dy0 < 0) { sy0 += -dy0; dy0 = 0; }
+			if (dx1 > dst.width)  dx1 = dst.width;
+			if (dy1 > dst.height) dy1 = dst.height;
+			if (dx0 >= dx1 || dy0 >= dy1) return;
+			const int copyW = dx1 - dx0;
+			const int copyH = dy1 - dy0;
+			auto*       dstBytes = static_cast<std::uint8_t*>(dst.data);
+			const auto* srcBytes = static_cast<const std::uint8_t*>(src.data);
+			const std::size_t rowBytes = static_cast<std::size_t>(copyW) * 4u;
+			for (int row = 0; row < copyH; ++row) {
+				const std::size_t srcOff = (static_cast<std::size_t>(sy0 + row) * src.width + sx0) * 4u;
+				const std::size_t dstOff = (static_cast<std::size_t>(dy0 + row) * dst.width + dx0) * 4u;
+				std::memcpy(dstBytes + dstOff, srcBytes + srcOff, rowBytes);
+			}
 		}
 
 		static inline const std::uint8_t* get_image_pixels_ptr(const native_image& i) noexcept {
