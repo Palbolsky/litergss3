@@ -48,6 +48,7 @@ extern "C" {
 #include <cmath>
 #include <cstdint>
 #include <cstddef>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <optional>
@@ -436,6 +437,9 @@ namespace cgss::backend {
 			return native_view{ w * 0.5f, h * 0.5f, w, h, 0.f, 0.f, 1.f, 1.f, 0.f };
 		}
 		static inline void window_set_view(native_window&, const native_view& v) {
+			raylib_detail::setCurrentTargetSize(
+				static_cast<float>(IsWindowReady() ? GetScreenWidth()  : 0),
+				static_cast<float>(IsWindowReady() ? GetScreenHeight() : 0));
 			raylib_detail::setCurrentView(v);
 		}
 		static inline cgss::DisplayWindowContextSettings window_get_settings(const native_window&) {
@@ -516,7 +520,32 @@ namespace cgss::backend {
 			static native_render_target placeholder = {};
 			return placeholder;
 		}
-		static inline void window_draw_render_texture(native_window&, const native_render_texture&, const native_render_states*) {}
+		// Composite the FBO (the per-frame scene render texture) onto the
+		// window, scaling to the screen and applying the optional global
+		// shader/blend. Called from DisplayWindow::postProcessing() after
+		// EndTextureMode has flushed the FBO. Without this, every frame
+		// renders to the FBO and nothing reaches the screen.
+		//
+		// raylib's FBO color attachment is bottom-up in texel space (OpenGL
+		// convention) while our logical content was rendered top-down via
+		// BeginTextureMode's flipped projection. To present it upright we
+		// pass a source rect with negative height — DrawTexturePro samples
+		// from the bottom row up, which inverts back to top-down on screen.
+		static inline void window_draw_render_texture(native_window&,
+		                                              const native_render_texture& rt,
+		                                              const native_render_states* states) {
+			if (!IsWindowReady() || rt.texture.id == 0) return;
+			const float srcW = static_cast<float>(rt.texture.width);
+			const float srcH = static_cast<float>(rt.texture.height);
+			const float dstW = static_cast<float>(GetScreenWidth());
+			const float dstH = static_cast<float>(GetScreenHeight());
+			::Rectangle src{ 0.f, srcH, srcW, -srcH };
+			::Rectangle dst{ 0.f, 0.f, dstW, dstH };
+			::Vector2   origin{ 0.f, 0.f };
+			draw_with_render_states(states, [&]() {
+				DrawTexturePro(rt.texture, src, dst, origin, 0.f, ::WHITE);
+			});
+		}
 		// Solid-color overlay on the window (used for brightness fade etc.).
 		// Bypasses the view transform: draws directly in window pixel space.
 		static inline void window_draw_color_quad(native_window&, float x, float y, float w, float h, cgss::Color c) {
@@ -550,7 +579,10 @@ namespace cgss::backend {
 			SetTextureFilter(rt.texture, smooth ? TEXTURE_FILTER_BILINEAR : TEXTURE_FILTER_POINT);
 		}
 		static inline const native_texture& render_texture_get_texture(const native_render_texture& rt) { return rt.texture; }
-		static inline void render_texture_set_view(native_render_texture&, const native_view& v) {
+		static inline void render_texture_set_view(native_render_texture& rt, const native_view& v) {
+			raylib_detail::setCurrentTargetSize(
+				static_cast<float>(rt.texture.width),
+				static_cast<float>(rt.texture.height));
 			raylib_detail::setCurrentView(v);
 		}
 		// Closes the current BeginTextureMode block opened by
@@ -740,114 +772,32 @@ namespace cgss::backend {
 		static inline bool shader_is_available()          { return IsWindowReady(); }
 		static inline bool shader_is_geometry_available() { return false; }
 
-		// Internal: word-aware token replace used by the legacy GLSL shim.
-		// Avoids touching `texture2D` when substituting `texture` because
-		// `\b` matching requires an alphanumeric boundary on both sides.
-		static inline std::string shader_replace_token(std::string s, const std::string& tok, const std::string& with) {
-			std::string out;
-			out.reserve(s.size());
-			std::size_t i = 0;
-			while (i < s.size()) {
-				if (s.compare(i, tok.size(), tok) == 0) {
-					const bool prevOk = (i == 0) || (!std::isalnum(static_cast<unsigned char>(s[i-1])) && s[i-1] != '_');
-					const std::size_t next = i + tok.size();
-					const bool nextOk = (next >= s.size()) || (!std::isalnum(static_cast<unsigned char>(s[next])) && s[next] != '_');
-					if (prevOk && nextOk) {
-						out.append(with);
-						i += tok.size();
-						continue;
-					}
-				}
-				out.push_back(s[i++]);
-			}
-			return out;
+		// Whether the current GL context accepts the SFML legacy fixed-pipeline
+		// GLSL contract (gl_FragColor / gl_TexCoord[0] / texture2D / gl_Color).
+		// raylib's profile is baked at compile time of the raylib library —
+		// rlGetVersion() returns the active enum without needing a live GL
+		// context. RL_OPENGL_11 / RL_OPENGL_21 ship a legacy-compat profile
+		// where the keywords work; RL_OPENGL_33 / 43 / ES variants don't.
+		// PSDK reads this to set PSDK_SHADER_FIXED_PIPELINE and choose
+		// between its legacy and modern shader sources.
+		static inline bool shader_supports_fixed_pipeline() {
+			const int v = rlGetVersion();
+			return v == RL_OPENGL_11 || v == RL_OPENGL_21;
 		}
 
-		// Translate SFML-style legacy GLSL fragment source to raylib-compatible
-		// GLSL-330. A leading `#version` directive is parsed: legacy desktop
-		// versions (110/120/130/140/150) are stripped and translated, since
-		// they still rely on gl_TexCoord / gl_FragColor which raylib's GL3.3
-		// core context rejects. Modern (>= 330) and ES profiles pass through
-		// verbatim — those are assumed already raylib-compatible.
-		//
-		// This matters because higher layers (e.g. PSDK's Ruby Shader class)
-		// auto-prepend `#version 130` regardless of source, which would
-		// otherwise short-circuit the legacy rewrite and leave gl_FragColor
-		// in the source for a core-profile compiler that no longer accepts
-		// it (silent failure, raylib falls back to default sampler shader).
-		static inline std::string shader_translate_fragment(const std::string& src) {
-			std::size_t i = 0;
-			while (i < src.size() && std::isspace(static_cast<unsigned char>(src[i]))) ++i;
-
-			std::string body = src;
-			if (i + 8 <= src.size() && src.compare(i, 8, "#version") == 0) {
-				// Parse the directive: "#version <number>[ profile]".
-				std::size_t numStart = i + 8;
-				while (numStart < src.size() && (src[numStart] == ' ' || src[numStart] == '\t')) ++numStart;
-				std::size_t numEnd = numStart;
-				int version = 0;
-				while (numEnd < src.size() && std::isdigit(static_cast<unsigned char>(src[numEnd]))) {
-					version = version * 10 + (src[numEnd] - '0');
-					++numEnd;
-				}
-				// Skip optional profile keyword ("core", "compatibility", "es")
-				// and reach end-of-line so we can excise the whole directive.
-				std::size_t lineEnd = numEnd;
-				while (lineEnd < src.size() && src[lineEnd] != '\n') ++lineEnd;
-				if (lineEnd < src.size()) ++lineEnd; // consume the newline
-				const bool isEs = src.find(" es", numEnd) < lineEnd;
-
-				// Modern desktop (>= 330) or any ES profile: pass through.
-				if (version >= 330 || isEs) {
-					return src;
-				}
-				// Legacy desktop: strip directive, fall through to rewrite.
-				body = src.substr(0, i) + src.substr(lineEnd);
-			}
-			// Order matters: rename the user's `texture` sampler to `texture0`
-			// FIRST so subsequent `texture2D(` → `texture(` rewrites don't
-			// collide with the user's identifier.
-			body = shader_replace_token(std::move(body), "texture",        "texture0");
-			body = shader_replace_token(std::move(body), "texture2D",      "texture");
-			body = shader_replace_token(std::move(body), "gl_FragColor",   "finalColor");
-			body = shader_replace_token(std::move(body), "gl_Color",       "fragColor");
-			// gl_TexCoord[0].xy is the common SFML idiom; the longer form
-			// hits first so `gl_TexCoord[0]` (without .xy) still works.
-			const std::string longTC  = "gl_TexCoord[0].xy";
-			const std::string shortTC = "gl_TexCoord[0]";
-			std::string tmp;
-			tmp.reserve(body.size());
-			std::size_t j = 0;
-			while (j < body.size()) {
-				if (body.compare(j, longTC.size(), longTC) == 0) {
-					tmp.append("fragTexCoord");
-					j += longTC.size();
-				} else if (body.compare(j, shortTC.size(), shortTC) == 0) {
-					tmp.append("vec4(fragTexCoord, 0.0, 0.0)");
-					j += shortTC.size();
-				} else {
-					tmp.push_back(body[j++]);
-				}
-			}
-			body = std::move(tmp);
-
-			// Note: `uniform sampler2D texture0;` may now appear in the user's
-			// translated source. We do NOT add it ourselves to avoid double-
-			// declaration when the user's shader sampled the texture.
-			std::string header =
-				"#version 330\n"
-				"in vec2 fragTexCoord;\n"
-				"in vec4 fragColor;\n"
-				"out vec4 finalColor;\n";
-			return header + body;
-		}
-
+		// Shaders are passed to raylib verbatim — the `#version` directive on
+		// the source selects the GL profile. PSDK and other LiteRGSS clients
+		// author against the SFML legacy fixed-pipeline contract (`#version
+		// 130` with `gl_FragColor`/`gl_TexCoord[0]`/`texture2D`/`gl_Color`);
+		// supporting that requires raylib to be built with
+		// GRAPHICS_API_OPENGL_21 (legacy GL 2.1 + GLSL 1.20 compat profile).
+		// raylib built with the default GRAPHICS_API_OPENGL_33 cannot accept
+		// those keywords and the shader will compile to a silent no-op.
 		static inline bool shader_load_from_memory(native_shader& sh, const std::string& src, cgss::ShaderType type) {
 			if (!IsWindowReady()) return false;
 			if (sh.id != 0) UnloadShader(sh);
 			if (type == cgss::ShaderType::Fragment) {
-				const auto translated = shader_translate_fragment(src);
-				sh = LoadShaderFromMemory(nullptr, translated.c_str());
+				sh = LoadShaderFromMemory(nullptr, src.c_str());
 			} else if (type == cgss::ShaderType::Vertex) {
 				sh = LoadShaderFromMemory(src.c_str(), nullptr);
 			} else {
@@ -858,8 +808,7 @@ namespace cgss::backend {
 		static inline bool shader_load_from_memory(native_shader& sh, const std::string& vsrc, const std::string& fsrc) {
 			if (!IsWindowReady()) return false;
 			if (sh.id != 0) UnloadShader(sh);
-			const auto translated = shader_translate_fragment(fsrc);
-			sh = LoadShaderFromMemory(vsrc.c_str(), translated.c_str());
+			sh = LoadShaderFromMemory(vsrc.c_str(), fsrc.c_str());
 			return sh.id != 0;
 		}
 		// 3-arg form takes a geometry shader, which raylib's default GL
@@ -983,7 +932,21 @@ namespace cgss::backend {
 		// raylib_detail::currentView() and — if the view has a sub-viewport —
 		// opens a matching scissor. Callers restore the previous view by
 		// invoking target_set_view again with the saved native_view value.
-		static inline void target_set_view(native_render_target&, const native_view& v) {
+		//
+		// Also stashes the target's pixel dimensions so the view-zoom and
+		// scissor math sample the right "screen" — important inside
+		// BeginTextureMode where the FBO's size differs from the window's
+		// (e.g., scale!=1 windows or per-viewport-shader FBO compositing).
+		static inline void target_set_view(native_render_target& t, const native_view& v) {
+			float tw, th;
+			if (t.texture.id != 0) {
+				tw = static_cast<float>(t.texture.width);
+				th = static_cast<float>(t.texture.height);
+			} else {
+				tw = static_cast<float>(IsWindowReady() ? GetScreenWidth()  : 0);
+				th = static_cast<float>(IsWindowReady() ? GetScreenHeight() : 0);
+			}
+			raylib_detail::setCurrentTargetSize(tw, th);
 			raylib_detail::setCurrentView(v);
 		}
 		static inline native_view target_get_view(const native_render_target&) {
@@ -1022,22 +985,31 @@ namespace cgss::backend {
 
 		// Resolve the effective screen-pixel translation + uniform zoom
 		// implied by the currently-installed raylib::View. Matches sf::View
-		// semantics: a world point (wx, wy) maps to screen pixel
-		//     screen = viewport_px_center + (world - view_center) * zoom
-		// where viewport_px_center = (vpX + vpW/2) * screenW,
-		//       zoom              = (vpW * screenW) / sizeX (uniform fallback).
+		// semantics: a world point (wx, wy) maps to target pixel
+		//     pixel = viewport_px_center + (world - view_center) * zoom
+		// where viewport_px_center = (vpX + vpW/2) * targetW,
+		//       zoom              = (vpW * targetW) / sizeX.
+		// targetW/H are the dimensions of the CURRENT draw target — the
+		// window when drawing direct, or the FBO inside BeginTextureMode.
+		// raylib's GetScreenWidth/Height always reports the window even
+		// inside BeginTextureMode, so we read the target dims from
+		// raylib_detail (written by target_set_view from the bound target).
 		struct ViewDerived { float tx = 0.f, ty = 0.f, zoomX = 1.f, zoomY = 1.f, rotation = 0.f; };
 		static inline ViewDerived derive_current_view() noexcept {
 			const auto& v = raylib_detail::currentView();
 			ViewDerived d;
 			d.rotation = v.rotation;
 			if (v.sizeX == 0.f || v.sizeY == 0.f) return d;
-			const float sw = static_cast<float>(IsWindowReady() ? GetScreenWidth()  : 0);
-			const float sh = static_cast<float>(IsWindowReady() ? GetScreenHeight() : 0);
-			d.zoomX = (v.vpW * sw) / v.sizeX;
-			d.zoomY = (v.vpH * sh) / v.sizeY;
-			const float vpCenterX = v.vpX * sw + v.vpW * sw * 0.5f;
-			const float vpCenterY = v.vpY * sh + v.vpH * sh * 0.5f;
+			float tw = raylib_detail::currentTargetWidth();
+			float th = raylib_detail::currentTargetHeight();
+			if (tw <= 0.f || th <= 0.f) {
+				tw = static_cast<float>(IsWindowReady() ? GetScreenWidth()  : 0);
+				th = static_cast<float>(IsWindowReady() ? GetScreenHeight() : 0);
+			}
+			d.zoomX = (v.vpW * tw) / v.sizeX;
+			d.zoomY = (v.vpH * th) / v.sizeY;
+			const float vpCenterX = v.vpX * tw + v.vpW * tw * 0.5f;
+			const float vpCenterY = v.vpY * th + v.vpH * th * 0.5f;
 			d.tx = vpCenterX - v.cx * d.zoomX;
 			d.ty = vpCenterY - v.cy * d.zoomY;
 			return d;

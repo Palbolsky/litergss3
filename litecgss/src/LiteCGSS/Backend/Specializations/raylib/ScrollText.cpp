@@ -2,11 +2,84 @@
 
 #include <rlgl.h>
 
+#include <algorithm>
 #include <cmath>
 
 #include "LiteCGSS/Backend/ActiveBackend.h"
 
 namespace {
+
+	// Encased outline shader. SFML bakes the outline into a wider glyph
+	// (font.getGlyph(charSize, bold, outlineThickness) returns a glyph rect
+	// already containing the stroke around the fill); raylib has no
+	// equivalent, and the pre-shader implementation collapsed the outline
+	// to a single +1,+1 drop stamp because multi-direction stamps overlap
+	// between adjacent letters at PSDK's tight letter spacings.
+	//
+	// This fragment shader recovers the SFML look without atlas
+	// duplication: it samples the font atlas at +/-thickness in the 8
+	// surrounding directions and emits outline color where any neighbour
+	// has alpha but the centre does not — i.e. one-pixel inflation of the
+	// glyph mask, restricted to the rendered quad. To make outline pixels
+	// land OUTSIDE the glyph's tight bounds (where SFML's baked outline
+	// lives), the outline-pass DrawTextPro is given a temporary Font with
+	// glyphPadding > 0. The atlas was built with GenImageFontAtlas
+	// padding=4, so up to 4 px of expansion is safe: the source-rect
+	// expansion samples into pre-zeroed inter-glyph gutter, never into
+	// neighbouring glyphs.
+	constexpr const char* kOutlineFragShader = R"GLSL(
+#version 330
+in vec2 fragTexCoord;
+in vec4 fragColor;
+uniform sampler2D texture0;
+uniform vec4 colDiffuse;
+uniform vec2 atlasTexel;
+uniform float thickness;
+out vec4 finalColor;
+void main() {
+    float centre = texture(texture0, fragTexCoord).a;
+    float n = 0.0;
+    for (int dy = -1; dy <= 1; ++dy) {
+        for (int dx = -1; dx <= 1; ++dx) {
+            if (dx == 0 && dy == 0) continue;
+            vec2 off = vec2(float(dx), float(dy)) * atlasTexel * thickness;
+            n = max(n, texture(texture0, fragTexCoord + off).a);
+        }
+    }
+    float outline = n * (1.0 - centre);
+    vec4 base = fragColor * colDiffuse;
+    finalColor = vec4(base.rgb, base.a * outline);
+}
+)GLSL";
+
+	struct OutlineShaderState {
+		::Shader shader{};
+		int locAtlasTexel = -1;
+		int locThickness  = -1;
+		bool tried        = false;
+	};
+
+	OutlineShaderState& outlineShaderState() {
+		static OutlineShaderState s;
+		return s;
+	}
+
+	// Lazy-load on first use. Returns true only when the program is bound
+	// and uniform locations resolved. The Shader is intentionally leaked:
+	// raylib's CloseWindow runs as an atexit handler in
+	// RaylibBackend::window_initialize, so the GL context outlives us;
+	// calling UnloadShader from a static destructor would race with
+	// context teardown.
+	bool ensureOutlineShader() {
+		auto& s = outlineShaderState();
+		if (s.tried) return s.shader.id != 0;
+		s.tried = true;
+		s.shader = ::LoadShaderFromMemory(nullptr, kOutlineFragShader);
+		if (s.shader.id == 0) return false;
+		s.locAtlasTexel = ::GetShaderLocation(s.shader, "atlasTexel");
+		s.locThickness  = ::GetShaderLocation(s.shader, "thickness");
+		return true;
+	}
 
 	// Returns the number of bytes in `utf8` that encode the first `n`
 	// codepoints, or the whole string's length if it has fewer than `n`
@@ -205,22 +278,45 @@ void cgss::ScrollText::draw() const {
 	// visible ghosting at any rlScalef > 1, since each call lays full glyph
 	// rectangles from the atlas. A single offset stamp matches PSDK's
 	// "outlinesize.nil? → drop shadow" usage and looks clean at any scale.
-	// Outline stamps 8 directions at m_outlineThickness; raylib has no
-	// per-glyph outline equivalent, approximated via repeated DrawTextPro.
-	// Both shadow and outline collapse to a single +1,+1 stamp (drop
-	// shadow). SFML's outline is *baked into the glyph* — its
-	// `font.getGlyph(charSize, bold, outlineThickness)` returns a wider
-	// glyph that already contains the outline within its own bounding
-	// box, so adjacent letters never collide. Raylib has no outline-glyph
-	// concept; its atlases store plain glyphs only. Stamping at +/-1 in
-	// four cardinal directions outside each glyph rect makes the outline
-	// of one letter spill into the bounding box of the next at tight
-	// letter spacings (PSDK's title-menu / FPS-counter sizes), producing
-	// the "noise between letters" PSDK users see. Until per-glyph outline
-	// rasterization is added (Phase-2 work — pre-bake outlined variants
-	// into the GenImageFontAtlas pass), one stamp is the cleanest visual.
-	if (m_drawShadow || m_outlineThickness > 0.f) {
+	if (m_drawShadow) {
+		// PSDK uses shadow as an asymmetric drop, not a wraparound — single
+		// offset stamp is intentional and faster than going through the
+		// outline shader.
 		::DrawTextPro(*m_font, text, ::Vector2{ 1.f, 1.f }, origin, rot, fs, spacing, m_outline);
+	} else if (m_outlineThickness > 0.f) {
+		// Encased outline via fragment shader. Falls back to the legacy
+		// single-stamp +1,+1 if the shader fails to compile (e.g. a Mesa
+		// driver that rejects #version 330 — unlikely on the GL 3.3
+		// raylib already requires, but the fallback keeps PSDK readable
+		// rather than going outline-less).
+		if (ensureOutlineShader()) {
+			const auto& s = outlineShaderState();
+			const ::Vector2 atlasTexel = {
+				1.0f / static_cast<float>(m_font->texture.width),
+				1.0f / static_cast<float>(m_font->texture.height)
+			};
+			::SetShaderValue(s.shader, s.locAtlasTexel, &atlasTexel, SHADER_UNIFORM_VEC2);
+			::SetShaderValue(s.shader, s.locThickness,  &m_outlineThickness, SHADER_UNIFORM_FLOAT);
+
+			// font_load_from_file_with_size leaves Font::glyphPadding at 0,
+			// which makes DrawTextPro render glyph quads tight to the
+			// glyph's bitmap bounds — leaving no room for outline pixels
+			// outside the glyph (where SFML's baked outline lives). Pass a
+			// temporary copy with glyphPadding = ceil(thickness), clamped
+			// to the GenImageFontAtlas inter-glyph padding (4 px) so the
+			// expanded source rect samples the pre-zeroed gutter, never
+			// into neighbouring glyphs.
+			::Font fontCopy = *m_font;
+			const int padding = std::clamp(
+				static_cast<int>(std::ceil(m_outlineThickness)), 1, 4);
+			fontCopy.glyphPadding = padding;
+
+			::BeginShaderMode(s.shader);
+			::DrawTextPro(fontCopy, text, ::Vector2{ 0.f, 0.f }, origin, rot, fs, spacing, m_outline);
+			::EndShaderMode();
+		} else {
+			::DrawTextPro(*m_font, text, ::Vector2{ 1.f, 1.f }, origin, rot, fs, spacing, m_outline);
+		}
 	}
 
 	// Fill pass. Synthetic bold re-stamps at +1px — raylib has no synthetic

@@ -14,3 +14,7 @@ bool cgss::RenderStates::areShadersEnabled() {
 void cgss::RenderStates::enableShaders(bool enable) {
 	cgss::RenderStatesData::enableShaders(enable);
 }
+
+bool cgss::RenderStates::supportsFixedPipeline() {
+	return Ops::shader_supports_fixed_pipeline();
+}

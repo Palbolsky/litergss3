@@ -58,6 +58,15 @@ namespace cgss::backend::raylib_detail {
 		cgss::backend::raylib::View           g_currentView{};
 		bool                                  g_scissorActive = false;
 
+		// Active draw-target dimensions — see header comment on
+		// setCurrentTargetSize. Initialized to 0; the first target_set_view of
+		// the frame populates them. derive_current_view falls back to
+		// GetScreenWidth/Height when these are zero (e.g., a draw that runs
+		// before any target_set_view, which shouldn't happen but defends
+		// against bad ordering).
+		float                                 g_currentTargetW = 0.f;
+		float                                 g_currentTargetH = 0.f;
+
 		bool viewNeedsScissor(const cgss::backend::raylib::View& v) noexcept {
 			// Scissor only when the viewport is a strict sub-region of the
 			// render target. Full-rect viewports skip the scissor call to
@@ -335,15 +344,27 @@ namespace cgss::backend::raylib_detail {
 		}
 		g_currentView = v;
 		if (!IsWindowReady() || !viewNeedsScissor(v)) return;
-		const float sw = static_cast<float>(GetScreenWidth());
-		const float sh = static_cast<float>(GetScreenHeight());
+		// Scissor coordinates are pixels of the CURRENT TARGET — the window
+		// when drawing direct, or the FBO inside BeginTextureMode. Use the
+		// target dims tracked alongside the view; fall back to the window if
+		// the caller never wrote them (safe default).
+		const float tw = g_currentTargetW > 0.f ? g_currentTargetW : static_cast<float>(GetScreenWidth());
+		const float th = g_currentTargetH > 0.f ? g_currentTargetH : static_cast<float>(GetScreenHeight());
 		BeginScissorMode(
-			static_cast<int>(v.vpX * sw),
-			static_cast<int>(v.vpY * sh),
-			static_cast<int>(v.vpW * sw),
-			static_cast<int>(v.vpH * sh));
+			static_cast<int>(v.vpX * tw),
+			static_cast<int>(v.vpY * th),
+			static_cast<int>(v.vpW * tw),
+			static_cast<int>(v.vpH * th));
 		g_scissorActive = true;
 	}
+
+	void setCurrentTargetSize(float width, float height) noexcept {
+		g_currentTargetW = width;
+		g_currentTargetH = height;
+	}
+
+	float currentTargetWidth() noexcept  { return g_currentTargetW; }
+	float currentTargetHeight() noexcept { return g_currentTargetH; }
 
 	const cgss::backend::raylib::View& currentView() noexcept {
 		return g_currentView;

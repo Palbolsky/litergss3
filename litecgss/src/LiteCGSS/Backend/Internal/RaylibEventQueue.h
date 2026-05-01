@@ -44,6 +44,18 @@ namespace cgss::backend::raylib_detail {
 	// window_display before EndDrawing to leave GL state tidy across frames.
 	void                     endCurrentScissor() noexcept;
 
+	// Track the active draw target's pixel dimensions. raylib's GetScreenWidth
+	// /Height always reports the window size; when a draw is bracketed in
+	// BeginTextureMode the actual target is an FBO of different dimensions,
+	// and view-zoom + scissor math must use those FBO dims, not the window's.
+	// target_set_view writes these from the bound `native_render_target`
+	// (`t.texture.width/height` for an FBO, GetScreenWidth/Height for the
+	// window placeholder); derive_current_view + setCurrentView read them.
+	// Single-threaded by design, like every other piece of state in this TU.
+	void                     setCurrentTargetSize(float width, float height) noexcept;
+	float                    currentTargetWidth() noexcept;
+	float                    currentTargetHeight() noexcept;
+
 	// Frame-boundary signal. Called from window_display so the next frame's
 	// event-queue drain can re-enter refillQueue once (see g_frameRefillDone
 	// in the .cpp for the rationale — GetMouseDelta and friends are

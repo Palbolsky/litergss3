@@ -648,6 +648,13 @@ namespace cgss::backend {
 		static inline bool shader_is_available()          { return sf::Shader::isAvailable(); }
 		static inline bool shader_is_geometry_available() { return sf::Shader::isGeometryAvailable(); }
 
+		// Whether the current GL context accepts the SFML legacy fixed-pipeline
+		// GLSL contract (gl_FragColor / gl_TexCoord[0] / texture2D / gl_Color).
+		// SFML always creates a compat-profile context where these work, so
+		// this is unconditionally true for the SFML backend. PSDK reads this
+		// to decide whether to emit legacy or modern shader sources.
+		static inline bool shader_supports_fixed_pipeline() { return true; }
+
 		// Compile from in-memory source. The 1-arg-typed form takes the cgss
 		// stage enum (Vertex / Fragment / Geometry); the 2-arg form is
 		// vertex+fragment; the 3-arg form is vertex+geometry+fragment.
