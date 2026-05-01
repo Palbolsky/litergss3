@@ -5,3 +5,5 @@ In plan and agent modes, do not hesitate to ask questions if you need more infor
 For the architecture / high complexity code related tasks, behave like a Senior Software engineer / an architect.
 
 Challenge the solutions I am proposing (if there is an existing better way, don't challenge everything for the sake of challenge...).
+
+When modifying anything under `external/litecgss2/`, rebuild that submodule explicitly (`cd external/litecgss2 && rake compile -- --enable-debug --enable-raylib`) BEFORE running `rake compile` at the LiteRGSS3 root — the root Rakefile does not propagate changes to the litecgss2 static library transitively, so a litecgss2 source edit will silently be ignored otherwise.

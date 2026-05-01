@@ -23,12 +23,19 @@ static VALUE rb_ShaderSprite_setShader(VALUE self, VALUE shader)
         rb_raise(rb_eRGSSError, "ShaderedSprite shader must be a BlendMode (or subclass).");
     rb_iv_set(self, "@shader", shader);
 
-    // The cgss::Sprite renders with bound RenderStates via
-    // bindRenderStates() — but litergss3's Sprite uses immediate-mode
-    // Ops::draw_texture_pro and doesn't currently consult render states.
-    // Storing the shader at the Ruby level preserves API compatibility;
-    // wiring it through to the draw path lands when the Sprite renderer
-    // adopts render-state-aware drawing (Phase 5 / shader work).
+    // Wire the shader through to the cgss::Sprite so its draw path picks
+    // up the bound RenderStates (BeginShaderMode/EndShaderMode under
+    // raylib, equivalent under SFML). The @shader ivar above pins the
+    // Ruby wrapper so its underlying cgss::RenderStates outlives the
+    // binding for GC purposes.
+    auto *s = rb::GetPtr<SpriteData>(self);
+    if (s != nullptr && s->has_sprite) {
+        if (NIL_P(shader)) {
+            s->sprite->bindRenderStates(nullptr);
+        } else {
+            s->sprite->bindRenderStates(rb::GetPtr<RenderStatesElement>(shader));
+        }
+    }
     return shader;
 }
 

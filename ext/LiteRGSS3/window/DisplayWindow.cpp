@@ -533,9 +533,25 @@ static VALUE drain_events_internal(VALUE self)
 		switch (ev.type())
 		{
 			case ET::Closed: {
+				// LiteRGSS2 surfaced a window-close request as a raised
+				// `LiteRGSS::DisplayWindow::ClosedWindowError` so the main loop
+				// would bail out of `Graphics.update`; PSDK's on_closed proc
+				// returns truthy specifically to opt into that. Match that
+				// behaviour: invoke the user's callback first, and if it
+				// returns truthy (or is unset) raise the same error to break
+				// the run loop. Without this, PSDK nils its @window and then
+				// spins forever in update_no_input — that's the close-window
+				// freeze. Emit the error AFTER tearing down the window so any
+				// `ensure` block downstream still sees a disposed state.
+				VALUE cb = rb_hash_lookup(cb_hash, ID2SYM(rb_intern("on_closed")));
+				const bool do_raise = NIL_P(cb)
+					|| RTEST(rb_proc_call_with_block(cb, 0, nullptr, Qnil));
 				g_window->stop();
 				rb_ivar_set(self, iv_disposed, Qtrue);
-				invoke_cb(cb_hash, "on_closed", 0, nullptr);
+				if (do_raise) {
+					rb_raise(rb_eClosedWindowError,
+					         "Game Window has been closed by user");
+				}
 				break;
 			}
 			case ET::LostFocus: {
