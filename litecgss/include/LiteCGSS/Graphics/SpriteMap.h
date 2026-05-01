@@ -21,6 +21,13 @@ namespace cgss {
 	private:
 		struct ActivableSprite {
 			std::unique_ptr<typename cgss::backend::ActiveBackend::native_sprite> sprite;
+			// Keeps the GPU texture alive for as long as this tile references
+			// it — mirrors cgss::basic_Sprite's `m_linkedTexture`. native_sprite
+			// only stores a non-owning pointer to the native texture, so
+			// without this shared_ptr the GPU handle could be freed (e.g. when
+			// the cgss::Texture passed to setTile goes out of scope) while
+			// drawFast is still dereferencing it.
+			std::shared_ptr<typename cgss::backend::ActiveBackend::native_texture> linkedTexture;
 			bool active = false;
 
 			ActivableSprite();

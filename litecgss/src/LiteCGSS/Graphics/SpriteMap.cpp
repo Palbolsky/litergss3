@@ -60,7 +60,12 @@ void cgss::SpriteMap::setTile(std::size_t index, const cgss::IntRect& tile, cgss
 	}
 	LOG_DEBUG << "Activate tile index = " << index << " tileRect = " << tile.left << ", " << tile.top << ", " << tile.width << ", " << tile.height;
 	auto& sprite = m_proxy->m_sprites[index];
-	Ops::set_sprite_texture(*sprite.sprite, cgss::backend::native_of(texture), /*resetRect=*/false);
+	// Take a shared_ptr ref on the native texture so the GPU handle survives
+	// the cgss::Texture wrapper going out of scope (callers commonly pass a
+	// temporary or a cache slot). set_sprite_texture itself only stores a
+	// non-owning pointer; this shared_ptr is the owning anchor.
+	sprite.linkedTexture = Ops::texture_share(texture);
+	Ops::set_sprite_texture(*sprite.sprite, *sprite.linkedTexture, /*resetRect=*/false);
 	Ops::set_sprite_texture_rect(*sprite.sprite, tile);
 	sprite.active = true;
 }
