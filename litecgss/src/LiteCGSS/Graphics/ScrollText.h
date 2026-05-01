@@ -43,12 +43,24 @@ freely, subject to the following restrictions:
 #include <vector>
 #include <cstdint>
 
+#include "LiteCGSS/Common/Color.h"
+#include "LiteCGSS/Common/FloatRect.h"
+
 namespace cgss {
 
+	// sf::Drawable stays a public base because sf::RenderTarget::draw(const
+	// sf::Drawable&) is the SFML render path used by Ops::draw_text. The
+	// sf::Transformable inheritance is private to keep its sf::Vector2f /
+	// sf::Transform API out of ScrollText's public surface; the few methods
+	// that the unified TextItem actually calls are re-exposed below.
 	class ScrollText :
 		public sf::Drawable,
-		public sf::Transformable {
+		private sf::Transformable {
 	public:
+		using sf::Transformable::setPosition;
+		using sf::Transformable::setOrigin;
+		using sf::Transformable::setScale;
+		using sf::Transformable::move;
 
 		enum Style {
 			Regular = 0,
@@ -59,35 +71,33 @@ namespace cgss {
 		};
 
 		ScrollText();
-		ScrollText(const sf::String& string, const sf::Font& font, unsigned int characterSize = 30);
+		ScrollText(const std::string& utf8, const sf::Font& font, unsigned int characterSize = 30);
 
-		void setString(const sf::String& string);
+		void setString(const std::string& utf8);
 		void setFont(const sf::Font& font);
 		void setCharacterSize(unsigned int size);
 		void setLineSpacing(float spacingFactor);
 		void setLetterSpacing(float spacingFactor);
 		void setStyle(sf::Uint32 style);
-		void setFillColor(const sf::Color& color);
-		void setOutlineColor(const sf::Color& color);
+		void setFillColor(cgss::Color color);
+		void setOutlineColor(cgss::Color color);
 		void setOutlineThickness(float thickness);
-		const sf::String& getString() const;
 		const sf::Font* getFont() const;
 		unsigned int getCharacterSize() const;
 		float getLetterSpacing() const;
 		float getLineSpacing() const;
 		sf::Uint32 getStyle() const;
-		const sf::Color& getFillColor() const;
-		const sf::Color& getOutlineColor() const;
+		cgss::Color getFillColor() const;
+		cgss::Color getOutlineColor() const;
 		float getOutlineThickness() const;
-		sf::Vector2f findCharacterPos(std::size_t index) const;
-		sf::FloatRect getLocalBounds() const;
-		sf::FloatRect getGlobalBounds() const;
+		cgss::FloatRect getLocalBounds() const;
+		cgss::FloatRect getGlobalBounds() const;
 		void setDrawShadow(bool drawshadow);
 		bool getDrawShadow() const;
 		void setNumCharToDraw(sf::Uint32 num);
 		sf::Uint32 getNumCharToDraw() const;
 		void setLineHeight(float height);
-		sf::Uint32 getTextWidth(const sf::String& string) const;
+		std::uint32_t getTextWidth(const std::string& utf8) const;
 		void setSmooth(bool smooth);
 		bool getSmooth() const;
 

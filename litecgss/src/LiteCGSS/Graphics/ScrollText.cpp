@@ -79,8 +79,8 @@ cgss::ScrollText::ScrollText() :
 	m_geometryNeedUpdate(false) {
 }
 
-cgss::ScrollText::ScrollText(const sf::String& string, const sf::Font& font, unsigned int characterSize) :
-	m_string(string),
+cgss::ScrollText::ScrollText(const std::string& utf8, const sf::Font& font, unsigned int characterSize) :
+	m_string(sf::String::fromUtf8(utf8.begin(), utf8.end())),
 	m_font(&font),
 	m_characterSize(characterSize),
 	m_style(Regular),
@@ -92,7 +92,8 @@ cgss::ScrollText::ScrollText(const sf::String& string, const sf::Font& font, uns
 	m_geometryNeedUpdate(true) {
 }
 
-void cgss::ScrollText::setString(const sf::String& string) {
+void cgss::ScrollText::setString(const std::string& utf8) {
+	const sf::String string = sf::String::fromUtf8(utf8.begin(), utf8.end());
 	if (m_string != string) {
 		m_string = string;
 		m_geometryNeedUpdate = true;
@@ -172,9 +173,10 @@ void cgss::ScrollText::setStyle(sf::Uint32 style) {
 	}
 }
 
-void cgss::ScrollText::setFillColor(const sf::Color& color) {
-	if (color != m_fillColor) {
-		m_fillColor = color;
+void cgss::ScrollText::setFillColor(cgss::Color color) {
+	const sf::Color sfColor(color.r, color.g, color.b, color.a);
+	if (sfColor != m_fillColor) {
+		m_fillColor = sfColor;
 
 		// Change vertex colors directly, no need to update whole geometry
 		// (if geometry is updated anyway, we can skip this step)
@@ -186,9 +188,10 @@ void cgss::ScrollText::setFillColor(const sf::Color& color) {
 	}
 }
 
-void cgss::ScrollText::setOutlineColor(const sf::Color& color) {
-	if (color != m_outlineColor) {
-		m_outlineColor = color;
+void cgss::ScrollText::setOutlineColor(cgss::Color color) {
+	const sf::Color sfColor(color.r, color.g, color.b, color.a);
+	if (sfColor != m_outlineColor) {
+		m_outlineColor = sfColor;
 
 		// Change vertex colors directly, no need to update whole geometry
 		// (if geometry is updated anyway, we can skip this step)
@@ -206,10 +209,6 @@ void cgss::ScrollText::setOutlineThickness(float thickness) {
 		m_drawShadow = (thickness < 1.0f);
 		m_geometryNeedUpdate = true;
 	}
-}
-
-const sf::String& cgss::ScrollText::getString() const {
-	return m_string;
 }
 
 const sf::Font* cgss::ScrollText::getFont() const {
@@ -232,68 +231,27 @@ sf::Uint32 cgss::ScrollText::getStyle() const {
 	return m_style;
 }
 
-const sf::Color& cgss::ScrollText::getFillColor() const {
-	return m_fillColor;
+cgss::Color cgss::ScrollText::getFillColor() const {
+	return cgss::Color{ m_fillColor.r, m_fillColor.g, m_fillColor.b, m_fillColor.a };
 }
 
-const sf::Color& cgss::ScrollText::getOutlineColor() const {
-	return m_outlineColor;
+cgss::Color cgss::ScrollText::getOutlineColor() const {
+	return cgss::Color{ m_outlineColor.r, m_outlineColor.g, m_outlineColor.b, m_outlineColor.a };
 }
 
 float cgss::ScrollText::getOutlineThickness() const {
 	return m_outlineThickness;
 }
 
-sf::Vector2f cgss::ScrollText::findCharacterPos(std::size_t index) const {
-	// Make sure that we have a valid font
-	if (!m_font) {
-		return sf::Vector2f();
-	}
-
-	// Adjust the index if it's out of range
-	if (index > m_string.getSize()) index = m_string.getSize();
-
-	// Precompute the variables needed by the algorithm
-	const bool  isBold = m_style & Bold;
-	float whitespaceWidth = m_font->getGlyph(U' ', m_characterSize, isBold).advance;
-	const float letterSpacing = (whitespaceWidth / 3.f) * (m_letterSpacingFactor - 1.f);
-	whitespaceWidth += letterSpacing;
-	const float lineSpacing = m_lineHeight * m_lineSpacingFactor;
-
-	sf::Vector2f position;
-	std::uint32_t prevChar = 0;
-	for (std::size_t i = 0; i < index; ++i) {
-		const std::uint32_t curChar = m_string[i];
-
-		// Apply the kerning offset
-		position.x += m_font->getKerning(prevChar, curChar, m_characterSize, isBold);
-		prevChar = curChar;
-
-		// Handle special characters
-		switch (curChar) {
-		case U' ':  position.x += whitespaceWidth;			 continue;
-		case U'\t': position.x += whitespaceWidth * 4;		 continue;
-		case U'\n': position.y += lineSpacing; position.x = 0; continue;
-		}
-
-		// For regular characters, add the advance offset of the glyph
-		position.x += m_font->getGlyph(curChar, m_characterSize, isBold).advance + letterSpacing;
-	}
-
-	// Transform the position to global coordinates
-	position = getTransform().transformPoint(position);
-
-	return position;
-}
-
-sf::FloatRect cgss::ScrollText::getLocalBounds() const {
+cgss::FloatRect cgss::ScrollText::getLocalBounds() const {
 	ensureGeometryUpdate();
 
-	return m_bounds;
+	return cgss::FloatRect{ m_bounds.left, m_bounds.top, m_bounds.width, m_bounds.height };
 }
 
-sf::FloatRect cgss::ScrollText::getGlobalBounds() const {
-	return getTransform().transformRect(getLocalBounds());
+cgss::FloatRect cgss::ScrollText::getGlobalBounds() const {
+	const sf::FloatRect r = getTransform().transformRect(m_bounds);
+	return cgss::FloatRect{ r.left, r.top, r.width, r.height };
 }
 
 void cgss::ScrollText::draw(sf::RenderTarget& target, sf::RenderStates states) const {
@@ -313,7 +271,8 @@ void cgss::ScrollText::draw(sf::RenderTarget& target, sf::RenderStates states) c
 	}
 }
 
-sf::Uint32 cgss::ScrollText::getTextWidth(const sf::String& string) const {
+std::uint32_t cgss::ScrollText::getTextWidth(const std::string& utf8) const {
+	const sf::String string = sf::String::fromUtf8(utf8.begin(), utf8.end());
 	// No font or cgss::ScrollText: nothing to draw
 	if (!m_font || string.isEmpty()) {
 		return 0;

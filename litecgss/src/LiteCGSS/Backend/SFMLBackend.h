@@ -40,9 +40,13 @@
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
 
+#include <cstdlib>
 #include <optional>
 
+#include <lodepng.h>
+
 #include "LiteCGSS/Backend/Internal/SFMLConversions.h"
+#include "LiteCGSS/Common/Serializer.h"
 #include "LiteCGSS/Common/Color.h"
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Configuration/DisplayWindowContextSettings.h"
@@ -55,6 +59,7 @@
 #include "LiteCGSS/Graphics/ShapeGeometry.h"
 #include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Graphics/Transformable.h"
+#include "LiteCGSS/Graphics/ScrollText.h"
 
 namespace cgss::backend {
 
@@ -721,6 +726,11 @@ namespace cgss::backend {
 			target.draw(sprite, states);
 		}
 
+		// ScrollText is a sf::Drawable on SFML; one-line forwarder.
+		static inline void draw_text(native_render_target& target, const cgss::ScrollText& text) {
+			target.draw(text);
+		}
+
 		// Draws the sprite with a caller-prebuilt transform composed in,
 		// optionally over a base render state (for shaders). Callers (Sprite /
 		// Shape items) cache the `native_transform` keyed by
@@ -1041,6 +1051,48 @@ namespace cgss::backend {
 		// Op exists for Ops-symmetry with RaylibBackend::Ops::image_destroy,
 		// which must explicitly call UnloadImage on the POD.
 		static inline void image_destroy(native_image&) noexcept {}
+
+		// PNG codec layer for the unified Image/Texture serializers.
+		// SFML side decodes via sf::Image::loadFromMemory / loadFromFile
+		// (SFML uses stb-image internally) and encodes via lodepng so we
+		// keep deterministic byte-for-byte output.
+		static inline bool png_decode_memory(native_image& image, const void* data, std::size_t size) {
+			return image.loadFromMemory(data, size);
+		}
+
+		static inline bool png_decode_file(native_image& image, const char* filename) {
+			return image.loadFromFile(filename);
+		}
+
+		// Returns a heap-allocated PNG buffer (caller frees with std::free).
+		// MemorySerializerData lifecycle expects std::free in the saver path.
+		static inline cgss::MemorySerializerData png_encode_memory(const native_image& image) {
+			unsigned char* out = nullptr;
+			std::size_t size = 0;
+			if (lodepng_encode32(&out, &size, image.getPixelsPtr(), image.getSize().x, image.getSize().y) != 0) {
+				if (out != nullptr) std::free(out);
+				return { nullptr, 0u };
+			}
+			return { out, size };
+		}
+
+		// Returns 0 on success — matches lodepng_encode32_file's contract.
+		static inline unsigned int png_encode_file(const native_image& image, const char* filename) {
+			return lodepng_encode32_file(filename, image.getPixelsPtr(), image.getSize().x, image.getSize().y);
+		}
+
+		// Allocate an empty RGBA image (all pixels transparent). Used by
+		// the EmptySerializeMethod template specialisations.
+		static inline bool image_create_blank_rgba(native_image& image, unsigned int width, unsigned int height) {
+			image.create(width, height, sf::Color(0, 0, 0, 0));
+			return true;
+		}
+
+		// Read GPU texels back to a CPU image (used by the texture saver).
+		static inline bool texture_read_to_image(const native_texture& t, native_image& image) {
+			image = t.copyToImage();
+			return true;
+		}
 	};
 
 	// Free-function helper that forwards to the active backend's

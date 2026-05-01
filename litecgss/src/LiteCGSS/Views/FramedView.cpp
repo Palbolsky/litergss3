@@ -1,19 +1,20 @@
-// Raylib implementation of cgss::FramedViewItem / cgss::FramedView. Selected
-// by CMake when CGSS_BACKEND=raylib (folder-based per-backend specialization).
+// Backend-agnostic body for cgss::FramedViewItem / cgss::FramedView.
 //
-// 9-slice skin + cursor + pause draws are implemented via DrawTexturePro
-// (one call per source slice). raylib's NPatch path was considered but its
-// stretch-only behavior doesn't match the per-section blt-vs-stretch
-// selection PSDK relies on for its message frames. The natural fit is one
-// `Ops::draw_texture_pro` call per section: corners are 1:1, edges/middle
-// either tile (blt mode) or stretch (stretch mode).
-
+// 9-slice skin + cursor + pause draws are implemented via Ops::draw_texture_pro
+// (≤9 calls per frame, all going through the active render target). SFML's
+// `draw_texture_pro` thunk uses a thread-local sf::Sprite — the per-frame
+// state churn is negligible at the FramedView usage rate (1-3 message
+// windows on screen) and we trade VertexArray batching for a single shared
+// `.cpp`. Raylib's thunk wraps DrawTexturePro directly.
+//
+// The previous SFML-specific updateVerticesBlt / updateVerticesStretch /
+// allocateVerticesBlt / allocateVerticesStretch / cached `m_impl->vertices`
+// path is gone; geometry is rebuilt on every drawFast.
 #include <algorithm>
 #include <cstdint>
-#include <vector>
+#include "LiteCGSS/Views/LoggerViews.h"
 #include "LiteCGSS/Views/FramedView.h"
 #include "LiteCGSS/Views/Viewport.h"
-#include "LiteCGSS/Views/LoggerViews.h"
 #include "LiteCGSS/Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Rectangle.h"
 
@@ -23,33 +24,13 @@ SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::FramedViewItem)
 #define LOG_INFO  SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info,  cgss::FramedViewItem)
 #define LOG_WARN  SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Warn,  cgss::FramedViewItem)
 
-// Backend state for the cursor + pause overlays. The 9-slice skin itself is
-// re-derived from the public window-builder + texture on every draw — cheap
-// (≤9 DrawTexturePro calls) and avoids vertex/state caching complexity.
+// Backend state shared by both backends — just two non-owning skin handles.
+// The 9-slice skin, cursor + pause overlays are re-derived from the public
+// FramedView state on every drawFast (cheap; ≤9 draw calls).
 struct cgss::detail::FramedViewImpl {
 	const cgss::Texture* cursorSkin = nullptr;
 	const cgss::Texture* pauseSkin  = nullptr;
 };
-
-cgss::FramedViewItem::FramedViewItem(FramedView*, MainEventDispatcher& eventDispatcher, DisplayWindowUserData windowData, const DisplayWindowSettings& windowSettings, std::weak_ptr<ViewportItem> parent) :
-	ViewBox(eventDispatcher, windowSettings),
-	SubObserver<ViewportChangeEvent>(std::bind(&FramedViewItem::onViewportChange, this, std::placeholders::_1), *this),
-	m_windowData(std::move(windowData)),
-	m_impl(std::make_unique<detail::FramedViewImpl>()),
-	m_parent(std::move(parent)) {
-}
-
-cgss::FramedViewItem::~FramedViewItem() = default;
-
-bool cgss::FramedViewItem::onViewportChange(cgss::ViewportChangeEvent& event) {
-	if (m_bondRectViewport == nullptr) return true;
-	m_bondRectViewport->setValue(event.viewportBox);
-	return true;
-}
-
-void cgss::FramedViewItem::bindRectangleViewport(Rectangle* output) {
-	m_bondRectViewport = output;
-}
 
 namespace {
 	using Ops = cgss::backend::ActiveBackend::Ops;
@@ -128,11 +109,31 @@ namespace {
 	}
 }
 
+cgss::FramedViewItem::FramedViewItem(FramedView*, MainEventDispatcher& eventDispatcher, DisplayWindowUserData windowData, const DisplayWindowSettings& windowSettings, std::weak_ptr<ViewportItem> parent) :
+	ViewBox(eventDispatcher, windowSettings),
+	SubObserver<ViewportChangeEvent>(std::bind(&FramedViewItem::onViewportChange, this, std::placeholders::_1), *this),
+	m_windowData(std::move(windowData)),
+	m_impl(std::make_unique<detail::FramedViewImpl>()),
+	m_parent(std::move(parent)) {
+}
+
+cgss::FramedViewItem::~FramedViewItem() = default;
+
+bool cgss::FramedViewItem::onViewportChange(cgss::ViewportChangeEvent& event) {
+	if (m_bondRectViewport == nullptr) return true;
+	m_bondRectViewport->setValue(event.viewportBox);
+	return true;
+}
+
+void cgss::FramedViewItem::bindRectangleViewport(Rectangle* output) {
+	m_bondRectViewport = output;
+}
+
 void cgss::FramedViewItem::draw(cgss::RenderTarget& target) const {
 	drawFast(target);
 }
 
-// Draw order mirrors the SFML specialization:
+// Draw order:
 //   1. Skin (current/parent view)
 //   2. Children (inner view = ViewBox::clone, optionally clipped to parent)
 //   3. Cursor (inner view — cursor coords are local to the dialog)
@@ -236,7 +237,7 @@ void cgss::FramedViewItem::drawFast(cgss::RenderTarget& target) const {
 		if (m_impl->cursorSkin != nullptr && m_cursorRect.width > 0 && m_cursorRect.height > 0) {
 			const auto cs = m_impl->cursorSkin->getSize();
 			// Animated alpha — 0..63 = fade in, 64..127 = fade out (active),
-			// or steady 128 when inactive. Mirrors SFML's updateCursorSprite.
+			// or steady 128 when inactive. Mirrors SFML's old updateCursorSprite.
 			const long v = m_counter;
 			uint8_t a;
 			if (v > 64) {
@@ -278,12 +279,9 @@ void cgss::FramedViewItem::drawFast(cgss::RenderTarget& target) const {
 
 // Parent-aware clipping: if this FramedView is inside a Viewport, the
 // inner view must be intersected with the parent's viewport box so children
-// don't render outside the parent. Math mirrors the SFML specialization
-// — the only backend-specific bits are the view_get/set_* Ops.
+// don't render outside the parent. Pure math + Ops::view_*; no backend
+// native types involved.
 void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, cgss::Camera& targetView) const {
-	using Ops = cgss::backend::ActiveBackend::Ops;
-	using cgss::backend::native_of;
-
 	const cgss::IntRect parentViewport = parent.getViewportBox();
 	const float zoom = parent.getZoom();
 
@@ -358,25 +356,11 @@ void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, cgss::Camera&
 }
 
 void cgss::FramedViewItem::update() {
-	updatePauseSprite();
-	updateCursorSprite();
 	m_counter = (m_counter + 1) % 128;
-}
-
-void cgss::FramedViewItem::onMove() {
-	updateVertices();
-	updateView();
-}
-
-void cgss::FramedViewItem::onResize() {
-	updateVertices();
-	updateView();
 }
 
 void cgss::FramedViewItem::updateVertices() {
 	if (m_locked || m_wantedWidth <= 0 || m_wantedHeight <= 0) return;
-	updateBackOpacity();
-	resetPausePosition();
 	updateContents();
 }
 
@@ -396,29 +380,25 @@ void cgss::FramedViewItem::updateView() {
 	moveViewport(static_cast<float>(x), static_cast<float>(y));
 }
 
-void cgss::FramedViewItem::move(float x, float y) {
-	m_x = x;
-	m_y = y;
-	updateView();
-}
-
-// State-only — actual cursor/pause draws happen in drawFast using m_counter
-// + m_active. Kept as members to match SFML's hook points.
+// Animation/positioning is now derived per-frame in drawFast; these hooks
+// are kept (header-declared) but have no work to do.
 void cgss::FramedViewItem::updatePauseSprite() {}
 void cgss::FramedViewItem::updateCursorSprite() {}
 void cgss::FramedViewItem::resetPausePosition() {}
-void cgss::FramedViewItem::updateContents() {
-	setCursorRectangle(m_cursorRect);
-}
 void cgss::FramedViewItem::updateBackOpacity() {}
-void cgss::FramedViewItem::updateContentsOpacity() {
-	const auto opacity = static_cast<uint8_t>((m_opacity * m_contentOpacity) / 255.f);
-	drawables().updateContentsOpacity(opacity);
-}
 void cgss::FramedViewItem::updateVerticesBlt(long, long) {}
 void cgss::FramedViewItem::updateVerticesStretch(long, long) {}
 void cgss::FramedViewItem::allocateVerticesBlt(long, long, long, long) {}
 void cgss::FramedViewItem::allocateVerticesStretch() {}
+
+void cgss::FramedViewItem::updateContents() {
+	setCursorRectangle(m_cursorRect);
+}
+
+void cgss::FramedViewItem::updateContentsOpacity() {
+	const auto opacity = static_cast<uint8_t>((m_opacity * m_contentOpacity) / 255.f);
+	drawables().updateContentsOpacity(opacity);
+}
 
 void cgss::FramedViewItem::setBuilder(std::array<long, 6> windowBuilder) {
 	LOG_INFO << "Setting window builder 6";
@@ -466,18 +446,32 @@ void cgss::FramedViewItem::setCursorRectangle(cgss::IntRect rect) {
 void cgss::FramedViewItem::setPauseSkin(cgss::Texture& texture) {
 	m_impl->pauseSkin = &texture;
 }
-void cgss::FramedViewItem::pause(bool pause) { m_paused = pause; }
+
+void cgss::FramedViewItem::pause(bool pause) {
+	m_paused = pause;
+}
+bool cgss::FramedViewItem::isPaused() const { return m_paused; }
+
 void cgss::FramedViewItem::setPausePosition(float x, float y) {
 	m_pauseX = static_cast<long>(x);
 	m_pauseY = static_cast<long>(y);
 }
-bool cgss::FramedViewItem::isPaused() const { return m_paused; }
 
 void cgss::FramedViewItem::setCursorSkin(cgss::Texture& texture) {
 	m_impl->cursorSkin = &texture;
 }
+
 void cgss::FramedViewItem::active(bool active) { m_active = active; }
-bool cgss::FramedViewItem::isActive() const    { return m_active; }
+bool cgss::FramedViewItem::isActive() const { return m_active; }
+
+void cgss::FramedViewItem::onMove() {
+	updateVertices();
+	updateView();
+}
+void cgss::FramedViewItem::onResize() {
+	updateVertices();
+	updateView();
+}
 
 void cgss::FramedViewItem::stretch(bool stretch) {
 	m_stretch = stretch;
@@ -505,11 +499,17 @@ void cgss::FramedViewItem::setSkin(cgss::Texture* skin) {
 }
 cgss::Texture* cgss::FramedViewItem::getSkin() const { return m_texture; }
 
+void cgss::FramedViewItem::move(float x, float y) {
+	m_x = x;
+	m_y = y;
+	updateView();
+}
+
 void cgss::FramedViewItem::updateFromValue(const cgss::IntRect* rectangle) {
 	setCursorRectangle(rectangle == nullptr ? cgss::IntRect{} : *rectangle);
 }
 
-// ---- FramedView (proxy forwarder; identical between backends) ----
+// ---- FramedView (proxy forwarder; backend-agnostic) ----
 
 void cgss::FramedView::move(float x, float y)             { m_proxy->move(x, y); }
 void cgss::FramedView::lock()                              { m_proxy->lock(); }

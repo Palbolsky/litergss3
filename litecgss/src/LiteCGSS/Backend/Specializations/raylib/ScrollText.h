@@ -37,6 +37,9 @@
 #include <limits>
 #include <string>
 
+#include "LiteCGSS/Common/Color.h"
+#include "LiteCGSS/Common/FloatRect.h"
+
 namespace cgss {
 
 	class ScrollText {
@@ -57,8 +60,8 @@ namespace cgss {
 		void setString(const std::string& utf8);
 		void setFont(const ::Font& font);
 		void setCharacterSize(unsigned int size);
-		void setFillColor(::Color c);
-		void setOutlineColor(::Color c);
+		void setFillColor(cgss::Color c);
+		void setOutlineColor(cgss::Color c);
 		void setOutlineThickness(float thickness);
 		void setDrawShadow(bool on);
 		void setStyle(std::uint32_t style);
@@ -72,8 +75,8 @@ namespace cgss {
 		void setOrigin(float ox, float oy);
 		void setScale(float sx, float sy);
 
-		const ::Color& getFillColor() const noexcept { return m_fill; }
-		const ::Color& getOutlineColor() const noexcept { return m_outline; }
+		cgss::Color getFillColor() const noexcept { return cgss::Color{ m_fill.r, m_fill.g, m_fill.b, m_fill.a }; }
+		cgss::Color getOutlineColor() const noexcept { return cgss::Color{ m_outline.r, m_outline.g, m_outline.b, m_outline.a }; }
 		float getOutlineThickness() const noexcept { return m_outlineThickness; }
 		bool getDrawShadow() const noexcept { return m_drawShadow; }
 		bool getSmooth() const noexcept { return m_smooth; }
@@ -84,7 +87,7 @@ namespace cgss {
 		// Returns {0, 0, width, height} — the text's measured box in local
 		// (pre-transform) coordinates. Mirrors sf::Text::getLocalBounds()
 		// in semantics used by Text.cpp's updateAlign.
-		::Rectangle getLocalBounds() const;
+		cgss::FloatRect getLocalBounds() const;
 		std::uint32_t getTextWidth(const std::string& utf8) const;
 
 		// Issues raylib draw calls against the current active render state

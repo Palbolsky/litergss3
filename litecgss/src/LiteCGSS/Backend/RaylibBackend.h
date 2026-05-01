@@ -54,6 +54,7 @@ extern "C" {
 #include "LiteCGSS/Common/Color.h"
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Common/Point.h"
+#include "LiteCGSS/Common/Serializer.h"
 #include "LiteCGSS/Configuration/DisplayWindowContextSettings.h"
 #include "LiteCGSS/Events/EventPayloads.h"
 #include "LiteCGSS/Events/EventType.h"
@@ -63,6 +64,7 @@ extern "C" {
 #include "LiteCGSS/Graphics/ShapeGeometry.h"
 #include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Graphics/Transformable.h"
+#include "LiteCGSS/Backend/Specializations/raylib/ScrollText.h"
 
 #include <string>
 
@@ -1129,6 +1131,13 @@ namespace cgss::backend {
 		static inline void draw_sprite(native_render_target&, const native_sprite& s) {
 			draw_sprite_impl(s, s.x, s.y, s.originX, s.originY, s.scaleX, s.scaleY, 0.f);
 		}
+
+		// Raylib draws against the currently-active BeginDrawing /
+		// BeginTextureMode scope; the target is implicit. ScrollText emits
+		// DrawTextPro via its own `draw()` method against that active state.
+		static inline void draw_text(native_render_target&, const cgss::ScrollText& text) {
+			text.draw();
+		}
 		static inline Size2u get_sprite_bound_texture_size(const native_sprite& s) noexcept {
 			if (s.texture == nullptr) return { 0u, 0u };
 			return { static_cast<unsigned int>(s.texture->width),
@@ -1544,6 +1553,61 @@ namespace cgss::backend {
 				UnloadImage(i);
 				i = native_image{};
 			}
+		}
+
+		// PNG codec layer for the unified Image/Texture serializers.
+		// raylib's stb-image-based decoder autodetects PNG/JPG/etc. from the
+		// buffer header regardless of the extension hint, so ".png" is fine.
+		// Empty-image creation goes via GenImageColor with a transparent fill.
+		static inline bool png_decode_memory(native_image& image, const void* data, std::size_t size) {
+			image_destroy(image);
+			image = LoadImageFromMemory(".png",
+			                            reinterpret_cast<const unsigned char*>(data),
+			                            static_cast<int>(size));
+			return image.data != nullptr;
+		}
+
+		static inline bool png_decode_file(native_image& image, const char* filename) {
+			image_destroy(image);
+			image = LoadImage(filename);
+			return image.data != nullptr;
+		}
+
+		// raylib's ExportImageToMemory allocates with RL_MALLOC, which
+		// defaults to plain malloc — so std::free in the standard saver
+		// teardown is compatible. Document as a config-coupled assumption
+		// (custom allocator builds would need to swap to MemFree on the
+		// caller side).
+		static inline cgss::MemorySerializerData png_encode_memory(const native_image& image) {
+			if (image.data == nullptr) return { nullptr, 0u };
+			int size = 0;
+			unsigned char* bytes = ExportImageToMemory(image, ".png", &size);
+			if (bytes == nullptr || size <= 0) return { nullptr, 0u };
+			return { bytes, static_cast<std::size_t>(size) };
+		}
+
+		// Returns 0 on success — matches the SFML/lodepng convention.
+		static inline unsigned int png_encode_file(const native_image& image, const char* filename) {
+			if (image.data == nullptr) return 1u;
+			return ExportImage(image, filename) ? 0u : 1u;
+		}
+
+		static inline bool image_create_blank_rgba(native_image& image, unsigned int width, unsigned int height) {
+			image_destroy(image);
+			image = GenImageColor(static_cast<int>(width), static_cast<int>(height), ::Color{ 0, 0, 0, 0 });
+			return image.data != nullptr;
+		}
+
+		// Read GPU texels back to a CPU image (used by the texture saver).
+		// raylib has no in-place equivalent — we LoadImageFromTexture, then
+		// the caller owns the freshly-allocated image and must release it
+		// (typically via image_destroy when the cgss::Image wrapper goes out
+		// of scope).
+		static inline bool texture_read_to_image(const native_texture& t, native_image& image) {
+			if (t.id == 0) return false;
+			image_destroy(image);
+			image = LoadImageFromTexture(t);
+			return image.data != nullptr;
 		}
 	};
 

@@ -153,12 +153,12 @@ void cgss::ScrollText::setCharacterSize(unsigned int size) {
 	m_characterSize = size;
 }
 
-void cgss::ScrollText::setFillColor(::Color c) {
-	m_fill = c;
+void cgss::ScrollText::setFillColor(cgss::Color c) {
+	m_fill = ::Color{ c.r, c.g, c.b, c.a };
 }
 
-void cgss::ScrollText::setOutlineColor(::Color c) {
-	m_outline = c;
+void cgss::ScrollText::setOutlineColor(cgss::Color c) {
+	m_outline = ::Color{ c.r, c.g, c.b, c.a };
 }
 
 void cgss::ScrollText::setOutlineThickness(float thickness) {
@@ -212,8 +212,8 @@ void cgss::ScrollText::setScale(float sx, float sy) {
 	m_sy = sy;
 }
 
-::Rectangle cgss::ScrollText::getLocalBounds() const {
-	if (!m_font || m_utf8.empty()) return ::Rectangle{ 0.f, 0.f, 0.f, 0.f };
+cgss::FloatRect cgss::ScrollText::getLocalBounds() const {
+	if (!m_font || m_utf8.empty()) return cgss::FloatRect{ 0.f, 0.f, 0.f, 0.f };
 	const ::Vector2 size = ::MeasureTextEx(*m_font, m_utf8.c_str(),
 	                                       fontSizeF(m_characterSize),
 	                                       spacingFromFactor(m_letterSpacingFactor));
@@ -222,9 +222,9 @@ void cgss::ScrollText::setScale(float sx, float sy) {
 	// stamped pixels around the glyph fill.
 	if (m_outlineThickness != 0.f && !m_drawShadow) {
 		const float outline = std::fabs(std::ceil(m_outlineThickness));
-		return ::Rectangle{ -outline, -outline, size.x + 2.f * outline, size.y + 2.f * outline };
+		return cgss::FloatRect{ -outline, -outline, size.x + 2.f * outline, size.y + 2.f * outline };
 	}
-	return ::Rectangle{ 0.f, 0.f, size.x, size.y };
+	return cgss::FloatRect{ 0.f, 0.f, size.x, size.y };
 }
 
 std::uint32_t cgss::ScrollText::getTextWidth(const std::string& utf8) const {
