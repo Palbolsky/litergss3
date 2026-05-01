@@ -239,6 +239,36 @@ VALUE rb_Image_blt(VALUE self, VALUE x, VALUE y, VALUE src_image, VALUE rect)
     return self;
 }
 
+// Destructive variant — Ruby `!` convention. Wipes the receiver to fully
+// transparent before blitting the source rect at (x, y). PSDK chunk-loading
+// relies on this: a reusable `working_surface` is `blt!`'d with a partial
+// chunk and then `copy_to_bitmap`'d into a fresh Texture. Without the prior
+// wipe, the rows outside the source rect retain the previous iteration's
+// chunk pixels, polluting the next chunk's bitmap (visible as e.g. outdoor
+// roof tiles bleeding into an indoor map's high-tile-id slots).
+//
+// Note: callers that previously used `blt!` to *accumulate* multiple blits
+// into one image (PSDK's tools — take_map_snap.rb, Tiled2Rxdata/tile.rb,
+// Editors/SystemTags.rb) must switch to non-bang `blt`, since the wipe will
+// erase prior content on every call.
+VALUE rb_Image_bltBang(VALUE self, VALUE x, VALUE y, VALUE src_image, VALUE rect)
+{
+    check_disposed(get_image(self));
+    auto *dst = get_image(self);
+    auto *src = get_image(src_image);
+    if (!src->valid()) return self;
+
+    dst->image.fillRect(cgss::Colors::Transparent, 0u, 0u, dst->width(), dst->height());
+
+    cgss::IntRect src_rect = rect_arg_to_intrect(rect);
+    dst->image.blit(src->image,
+                    static_cast<unsigned int>(NUM2INT(x)),
+                    static_cast<unsigned int>(NUM2INT(y)),
+                    src_rect);
+    mark_image_dirty(dst);
+    return self;
+}
+
 VALUE rb_Image_stretchBlt(VALUE self, VALUE dst_rect, VALUE src_image, VALUE src_rect)
 {
     check_disposed(get_image(self));
@@ -342,7 +372,7 @@ void Init_Image()
     rb_define_method(rb_cImage, "fill_rect", _rbf rb_Image_fillRect, 5);
     rb_define_method(rb_cImage, "clear_rect", _rbf rb_Image_clearRect, 4);
     rb_define_method(rb_cImage, "blt", _rbf rb_Image_blt, 4);
-    rb_define_method(rb_cImage, "blt!", _rbf rb_Image_blt, 4);
+    rb_define_method(rb_cImage, "blt!", _rbf rb_Image_bltBang, 4);
     rb_define_method(rb_cImage, "stretch_blt", _rbf rb_Image_stretchBlt, 3);
     rb_define_method(rb_cImage, "stretch_blt!", _rbf rb_Image_stretchBlt, 3);
     rb_define_method(rb_cImage, "copy_to_bitmap", _rbf rb_Image_copyToBitmap, 1);
