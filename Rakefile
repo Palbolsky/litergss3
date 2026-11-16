@@ -5,6 +5,7 @@
 #   PRESET=release rake compile  # any preset from CMakePresets.json
 #   rake test                    # C++ + Ruby test suites (CTest)
 #   rake lint                    # module boundary check
+#   rake psdk                    # play ../PSDKTechnicalDemo on this build (tools/psdk-demo.sh)
 #
 # Generator: CMake honours the CMAKE_GENERATOR environment variable
 # (e.g. CMAKE_GENERATOR="MinGW Makefiles" on Windows).
@@ -50,6 +51,11 @@ end
 desc 'Check the LiteCGSS/LiteRGSS module boundaries (also run by every build)'
 task :lint do
   Dir.chdir(ROOT) { cmake('-P', 'cmake/CheckBoundaries.cmake') }
+end
+
+desc 'Build, then start a PSDK game on this LiteRGSS3 (tools/psdk-demo.sh; PSDK_GAME_DIR, PRESET)'
+task :psdk do
+  sh(File.join(ROOT, 'tools', 'psdk-demo.sh'), '--preset', preset)
 end
 
 desc 'Remove every build tree'
