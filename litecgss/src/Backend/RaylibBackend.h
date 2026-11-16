@@ -1525,12 +1525,18 @@ namespace cgss::backend {
 				float dstX, float dstY, float dstWidth, float dstHeight,
 				float originX, float originY,
 				float angleDegrees, cgss::Color tint) {
+			// In the target's current view, like SFML's draw (and draw_sprite):
+			// the destination is in view coordinates, not target pixels. A
+			// window scaled 2x drew the framed views' skins at half size.
+			const auto vd = derive_current_view();
 			::Rectangle src{
 				static_cast<float>(srcRect.left),  static_cast<float>(srcRect.top),
 				static_cast<float>(srcRect.width), static_cast<float>(srcRect.height) };
-			::Rectangle dst{ dstX, dstY, dstWidth, dstHeight };
-			::Vector2 origin{ originX, originY };
-			DrawTexturePro(tex, src, dst, origin, angleDegrees,
+			::Rectangle dst{
+				vd.tx + dstX * vd.zoomX, vd.ty + dstY * vd.zoomY,
+				dstWidth * vd.zoomX, dstHeight * vd.zoomY };
+			::Vector2 origin{ originX * vd.zoomX, originY * vd.zoomY };
+			DrawTexturePro(tex, src, dst, origin, angleDegrees + vd.rotation,
 			               ::Color{ tint.r, tint.g, tint.b, tint.a });
 		}
 

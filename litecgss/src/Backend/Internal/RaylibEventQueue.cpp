@@ -28,6 +28,10 @@ namespace cgss::backend::raylib_detail {
 		struct PrevFrameState {
 			bool  initialized = false;
 			bool  windowFocused = true;
+			// Assumed inside at first, as games do (PSDK): the first poll
+			// sends MouseLeft when the pointer isn't over the window, like
+			// SFML does when its window shows up.
+			bool  cursorOnScreen = true;
 
 			std::array<bool, kMaxRaylibKey> keyDown{};
 			std::array<bool, kMouseButtons> mouseButtonDown{};
@@ -142,6 +146,13 @@ namespace cgss::backend::raylib_detail {
 					pushEvent(ev);
 				}
 				g_prev.mouseButtonDown[i] = nowDown;
+			}
+
+			// Enter / leave — edge-diff, before the moves made inside.
+			const bool nowOnScreen = IsCursorOnScreen();
+			if (nowOnScreen != g_prev.cursorOnScreen) {
+				pushEvent(makeEvent(nowOnScreen ? cgss::EventType::MouseEntered : cgss::EventType::MouseLeft));
+				g_prev.cursorOnScreen = nowOnScreen;
 			}
 
 			const auto delta = GetMouseDelta();
