@@ -1,0 +1,9 @@
+uniform sampler2D texture;
+uniform sampler2D noise;
+uniform sampler2D color_gradient;
+void main() {
+  vec4 base  = texture2D(texture, gl_TexCoord[0].xy);
+  vec4 n     = texture2D(noise, gl_TexCoord[0].xy);
+  vec4 c     = texture2D(color_gradient, vec2(n.r, 0.5));
+  gl_FragColor = base + n + c;
+}

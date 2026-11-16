@@ -1,0 +1,9 @@
+// Macro body wrapped in parens: `#define TEX (texture)`. The discovery pass
+// peels the parens so the alias resolves to `texture`, just like the bare
+// `#define TEX texture` form would.
+uniform sampler2D texture;
+#define TEX (texture)
+
+void main() {
+  gl_FragColor = texture2D(TEX, gl_TexCoord[0].xy);
+}

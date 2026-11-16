@@ -1,0 +1,20 @@
+// `outer` takes a sampler2D param and calls `inner` (also with a sampler2D
+// param) passing it through. The companion factor must thread through both
+// signatures and both call sites:
+//   - outer: signature gets `vec2 s_factor_npot` after `sampler2D s`.
+//   - outer's call to inner: gets `s_factor_npot` injected (the factor that
+//     now exists in outer's scope thanks to the signature injection).
+//   - main's call to outer: gets `texture_factor_npot` injected.
+uniform sampler2D texture;
+
+vec4 inner(sampler2D s, vec2 uv) {
+  return texture2D(s, uv);
+}
+
+vec4 outer(sampler2D s, vec2 uv) {
+  return inner(s, uv);
+}
+
+void main() {
+  gl_FragColor = outer(texture, gl_TexCoord[0].xy);
+}

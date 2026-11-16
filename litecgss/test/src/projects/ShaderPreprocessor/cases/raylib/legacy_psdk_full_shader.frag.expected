@@ -1,0 +1,36 @@
+#version 330
+// [LiteCGSS::ShaderPreprocessor glsl330]
+out vec4 cgss_FragColor;
+// [LiteCGSS::ShaderPreprocessor processed]
+#ifdef GL_ES
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+#else
+precision mediump float;
+#endif
+#endif
+in vec2 v_texture_coordinates;
+in vec2 v_inv_texture_coordinates;
+in vec4 sf_color;
+in vec2 v_factor_npot;
+// Old PSDK (Foret Eternelle, PSDK 26.42) full_shader, as its Shader.register
+// builds it: "#version 130" + DEFAULT_SHADER + color, tone and alpha processes.
+
+uniform sampler2D texture0;
+uniform vec4 color;
+uniform vec4 tone;
+const vec3 lumaF = vec3(.299, .587, .114);
+// --- per-sampler NPOT factors (auto-generated) ---
+#define texture_factor_npot v_factor_npot
+// -------------------------------------------------
+void main() {
+  vec4 frag = texture(texture0, ((v_texture_coordinates / v_factor_npot).xy) * texture_factor_npot);
+  frag.rgb = mix(frag.rgb, color.rgb, color.a);
+  float luma = dot(frag.rgb, lumaF);
+  frag.rgb = mix(frag.rgb, vec3(luma), tone.w);
+  frag.rgb += tone.rgb;
+  frag.a *= sf_color.a;
+  cgss_FragColor = frag;
+}

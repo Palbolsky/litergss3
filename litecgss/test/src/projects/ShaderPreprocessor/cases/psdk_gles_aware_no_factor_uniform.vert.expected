@@ -1,0 +1,21 @@
+// Handles GL ES itself, with nothing about the NPOT factor: a return in main
+// must not skip the varying.
+attribute vec2 position;
+attribute vec2 texCoord;
+uniform mat4 sf_modelview;
+uniform mat4 sf_projection;
+uniform mat4 sf_texture;
+varying vec2 v_texture_coordinates;
+void sf_author_main() {
+  v_texture_coordinates = (sf_texture * vec4(texCoord, 0.0, 1.0)).xy;
+  gl_Position = sf_projection * sf_modelview * vec4(position, 0.0, 1.0);
+  return;
+}
+
+varying vec2 v_factor_npot;
+uniform vec2 factor_npot;
+void main()
+{
+    sf_author_main();
+    v_factor_npot = factor_npot;
+}

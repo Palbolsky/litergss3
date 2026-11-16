@@ -1,0 +1,13 @@
+// Two sampler params in one signature: each gets its own injected companion
+// `vec2 <name>_factor_npot`, and the call site injects two matching factor
+// arguments at positions 1 and 3 (right after each sampler arg).
+uniform sampler2D texture;
+uniform sampler2D mask;
+
+vec4 blend(sampler2D a, sampler2D b, vec2 uv) {
+  return texture2D(a, uv) * texture2D(b, uv);
+}
+
+void main() {
+  gl_FragColor = blend(texture, mask, gl_TexCoord[0].xy);
+}

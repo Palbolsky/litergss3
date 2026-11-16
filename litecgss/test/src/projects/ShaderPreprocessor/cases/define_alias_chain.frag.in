@@ -1,0 +1,14 @@
+// Alias chain: A → B → texture. The resolver walks the chain to the final
+// real sampler. Used at both a texture2D call and a helper call site to
+// exercise both wrap and call-site injection paths.
+uniform sampler2D texture;
+#define B texture
+#define A B
+
+vec4 helper(sampler2D s, vec2 uv) {
+  return texture2D(s, uv);
+}
+
+void main() {
+  gl_FragColor = helper(A, gl_TexCoord[0].xy) + texture2D(A, gl_TexCoord[1].xy);
+}

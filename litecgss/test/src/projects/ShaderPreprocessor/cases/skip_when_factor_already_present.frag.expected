@@ -1,0 +1,31 @@
+// [LiteCGSS::ShaderPreprocessor processed]
+#ifdef GL_ES
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+#else
+precision mediump float;
+#endif
+#endif
+#ifdef GL_ES
+varying vec2 v_texture_coordinates;
+varying vec2 v_inv_texture_coordinates;
+varying vec4 sf_color;
+varying vec2 v_factor_npot;
+#else
+const vec2 v_factor_npot = vec2(1.0, 1.0);
+#endif
+uniform sampler2D texture;
+uniform sampler2D noise;
+uniform vec2 noise_factor_npot;
+// --- per-sampler NPOT factors (auto-generated) ---
+#define texture_factor_npot v_factor_npot
+// -------------------------------------------------
+void main() {
+  // The UV already references a *_factor_npot identifier, so the preprocessor
+  // must NOT wrap this call (would otherwise double-multiply the factor).
+  vec4 n = texture2D(noise, (v_texture_coordinates / v_factor_npot).xy * noise_factor_npot);
+  vec4 base = texture2D(texture, ((v_texture_coordinates / v_factor_npot).xy) * texture_factor_npot);
+  gl_FragColor = base + n;
+}

@@ -1,0 +1,32 @@
+// [LiteCGSS::ShaderPreprocessor processed]
+#ifdef GL_ES
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+#else
+precision mediump float;
+#endif
+#endif
+#ifdef GL_ES
+varying vec2 v_texture_coordinates;
+varying vec2 v_inv_texture_coordinates;
+varying vec4 sf_color;
+varying vec2 v_factor_npot;
+#else
+const vec2 v_factor_npot = vec2(1.0, 1.0);
+#endif
+// Identifiers that look like rewrite targets MUST stay untouched when they
+// live inside comments. The token-based pipeline classifies '//' and '/* */'
+// regions distinctly so the rewrite pass never visits them.
+uniform sampler2D texture;
+
+// gl_Color and gl_TexCoord[0] are mentioned here but in a comment.
+/* texture2D(texture, ignored_uv) is mentioned in a block comment too. */
+// --- per-sampler NPOT factors (auto-generated) ---
+#define texture_factor_npot v_factor_npot
+// -------------------------------------------------
+void main() {
+  // Real code: should be rewritten.
+  gl_FragColor = texture2D(texture, ((v_texture_coordinates / v_factor_npot).xy) * texture_factor_npot) * sf_color;
+}

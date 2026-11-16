@@ -1,0 +1,16 @@
+// The author has already threaded `image_factor_npot` through manually. The
+// signature-injection pass must NOT add a duplicate parameter, and the
+// call-site pass must NOT add a duplicate argument — the author is already
+// passing both through. The texture2D wrap inside the helper still fires
+// because the existing UV math doesn't yet apply the factor (it only
+// references `image_factor_npot` after we add the wrap), so we let the
+// wrap proceed.
+uniform sampler2D texture;
+
+vec4 helper(sampler2D image, vec2 image_factor_npot, vec2 uv) {
+  return texture2D(image, uv);
+}
+
+void main() {
+  gl_FragColor = helper(texture, texture_factor_npot, gl_TexCoord[0].xy);
+}

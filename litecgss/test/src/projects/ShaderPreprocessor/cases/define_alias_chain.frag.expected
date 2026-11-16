@@ -1,0 +1,35 @@
+// [LiteCGSS::ShaderPreprocessor processed]
+#ifdef GL_ES
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+#else
+precision mediump float;
+#endif
+#endif
+#ifdef GL_ES
+varying vec2 v_texture_coordinates;
+varying vec2 v_inv_texture_coordinates;
+varying vec4 sf_color;
+varying vec2 v_factor_npot;
+#else
+const vec2 v_factor_npot = vec2(1.0, 1.0);
+#endif
+// Alias chain: A → B → texture. The resolver walks the chain to the final
+// real sampler. Used at both a texture2D call and a helper call site to
+// exercise both wrap and call-site injection paths.
+uniform sampler2D texture;
+#define B texture
+#define A B
+
+// --- per-sampler NPOT factors (auto-generated) ---
+#define texture_factor_npot v_factor_npot
+// -------------------------------------------------
+vec4 helper(sampler2D s, vec2 s_factor_npot, vec2 uv) {
+  return texture2D(s, (uv) * s_factor_npot);
+}
+
+void main() {
+  gl_FragColor = helper(A, texture_factor_npot, (v_texture_coordinates / v_factor_npot).xy) + texture2D(A, ((v_inv_texture_coordinates / v_factor_npot).xy) * texture_factor_npot);
+}

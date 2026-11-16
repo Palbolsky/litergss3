@@ -23,6 +23,7 @@
 #include "LiteCGSS/Backend/RaylibBackendFwd.h"
 #include "Backend/Internal/RaylibEventQueue.h"
 #include "Backend/Internal/RaylibKeyTranslation.h"
+#include "Backend/Shader/ShaderPreprocessor.h"
 
 // rlgl.h — raylib's immediate-mode matrix stack (rlPushMatrix/rlTranslatef/
 // rlScalef). Used by viewport_begin/end Ops. Lives alongside raylib.h on
@@ -771,19 +772,12 @@ namespace cgss::backend {
 		}
 
 		// ---- Shader ops ----
-		// Raylib's modern GL3.3 core profile rejects the GLSL-110 entry shape
-		// SFML accepts (gl_TexCoord / gl_FragColor / texture2D / `texture` as
-		// a sampler name). To let the same fragment-shader source work
-		// unchanged on both backends, we translate legacy sources on the fly:
-		// a source that lacks a `#version` directive is rewritten to GLSL-330
-		// with raylib's standard fragTexCoord / fragColor varyings and the
-		// auto-bound `texture0` sampler. Sources that DO start with
-		// `#version` pass through verbatim — those are assumed to already be
-		// raylib-compatible.
-		//
-		// Vertex shaders are not auto-translated (gl_Position / gl_Vertex
-		// rewrites are non-trivial); pass `#version 330` GLSL with raylib's
-		// `vertexPosition` / `vertexTexCoord` / `vertexColor` attributes.
+		// Clients author shaders against the legacy fixed-pipeline GLSL
+		// contract (gl_TexCoord / gl_Color / gl_FragColor / texture2D, a
+		// `texture` sampler, gl_Vertex-style vertex shaders), which raylib
+		// never feeds. cgss::ShaderPreprocessor rewrites them for the target
+		// below before they reach these Ops (see RenderStatesData), and pairs
+		// a single stage with a matching default one.
 		//
 		// Geometry shaders aren't supported on raylib's default GL profile —
 		// shader_is_geometry_available() returns false and the 3-arg load
@@ -804,31 +798,35 @@ namespace cgss::backend {
 			return v == RL_OPENGL_11 || v == RL_OPENGL_21;
 		}
 
-		// Shaders are passed to raylib verbatim — the `#version` directive on
-		// the source selects the GL profile. PSDK and other LiteRGSS clients
-		// author against the SFML legacy fixed-pipeline contract (`#version
-		// 130` with `gl_FragColor`/`gl_TexCoord[0]`/`texture2D`/`gl_Color`);
-		// supporting that requires raylib to be built with
-		// GRAPHICS_API_OPENGL_21 (legacy GL 2.1 + GLSL 1.20 compat profile).
-		// raylib built with the default GRAPHICS_API_OPENGL_33 cannot accept
-		// those keywords and the shader will compile to a silent no-op.
-		static inline bool shader_load_from_memory(native_shader& sh, const std::string& src, cgss::ShaderType type) {
+		// Preprocessor target: GLSL 330 core on raylib's attributes for
+		// desktop GL 3.3 / 4.3 builds. Other raylib profiles (GL 1.1 / 2.1,
+		// GL ES 2) have no dedicated target yet and get sources unchanged.
+		static inline cgss::ShaderPreprocessor::Target shader_preprocessor_target() {
+			const int v = rlGetVersion();
+			return v == RL_OPENGL_33 || v == RL_OPENGL_43
+				? cgss::ShaderPreprocessor::Target::RaylibGlsl330
+				: cgss::ShaderPreprocessor::Target::DesktopFixedPipeline;
+		}
+
+		// raylib never pads textures to a power of two.
+		static constexpr bool texture_supports_npot() noexcept { return true; }
+
+		// Loads a program from optional vertex / fragment sources (nullptr =
+		// raylib's default stage).
+		static inline bool shader_load_program(native_shader& sh, const std::string* vsrc, const std::string* fsrc) {
 			if (!IsWindowReady()) return false;
 			if (sh.id != 0) UnloadShader(sh);
-			if (type == cgss::ShaderType::Fragment) {
-				sh = LoadShaderFromMemory(nullptr, src.c_str());
-			} else if (type == cgss::ShaderType::Vertex) {
-				sh = LoadShaderFromMemory(src.c_str(), nullptr);
-			} else {
-				return false;
-			}
-			return sh.id != 0;
+			sh = LoadShaderFromMemory(vsrc ? vsrc->c_str() : nullptr, fsrc ? fsrc->c_str() : nullptr);
+			// raylib falls back to its default shader on a compile/link error.
+			return sh.id != 0 && sh.id != rlGetShaderIdDefault();
+		}
+		static inline bool shader_load_from_memory(native_shader& sh, const std::string& src, cgss::ShaderType type) {
+			if (type == cgss::ShaderType::Fragment) return shader_load_program(sh, nullptr, &src);
+			if (type == cgss::ShaderType::Vertex) return shader_load_program(sh, &src, nullptr);
+			return false;
 		}
 		static inline bool shader_load_from_memory(native_shader& sh, const std::string& vsrc, const std::string& fsrc) {
-			if (!IsWindowReady()) return false;
-			if (sh.id != 0) UnloadShader(sh);
-			sh = LoadShaderFromMemory(vsrc.c_str(), fsrc.c_str());
-			return sh.id != 0;
+			return shader_load_program(sh, &vsrc, &fsrc);
 		}
 		// 3-arg form takes a geometry shader, which raylib's default GL
 		// profile doesn't support — refused outright.
@@ -841,7 +839,9 @@ namespace cgss::backend {
 		// hood — cheap enough for per-frame uniform writes; cgss callers don't
 		// expect us to cache.
 		static inline int shader_loc(const native_shader& sh, const std::string& name) {
-			return (sh.id == 0) ? -1 : GetShaderLocation(sh, name.c_str());
+			if (sh.id == 0) return -1;
+			// The preprocessor renames some uniforms (the `texture` sampler...).
+			return GetShaderLocation(sh, cgss::ShaderPreprocessor::uniformName(name, shader_preprocessor_target()).c_str());
 		}
 
 		static inline void shader_set_uniform(native_shader& sh, const std::string& name, float v) {
@@ -932,10 +932,9 @@ namespace cgss::backend {
 			SetShaderValueTexture(sh, loc, t);
 		}
 
-		// CurrentTexture sentinel — the shim renames the user's `texture`
+		// CurrentTexture sentinel — the preprocessor renames the `texture`
 		// sampler to `texture0`, which raylib auto-binds to the active
-		// drawing texture during DrawTexturePro. So this needs no work on
-		// the raylib side.
+		// drawing texture during DrawTexturePro. Nothing to do here.
 		static inline void shader_set_uniform_current_texture(native_shader&, const std::string&) {}
 
 		static inline void shader_set_uniform_array(native_shader& sh, const std::string& name, const float* arr, std::size_t n) {

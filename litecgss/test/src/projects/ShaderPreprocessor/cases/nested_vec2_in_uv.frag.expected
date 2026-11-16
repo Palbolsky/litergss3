@@ -1,0 +1,25 @@
+// [LiteCGSS::ShaderPreprocessor processed]
+#ifdef GL_ES
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+#else
+precision mediump float;
+#endif
+#endif
+#ifdef GL_ES
+varying vec2 v_texture_coordinates;
+varying vec2 v_inv_texture_coordinates;
+varying vec4 sf_color;
+varying vec2 v_factor_npot;
+#else
+const vec2 v_factor_npot = vec2(1.0, 1.0);
+#endif
+uniform sampler2D extra;
+// --- per-sampler NPOT factors (auto-generated) ---
+#define extra_factor_npot v_factor_npot
+// -------------------------------------------------
+void main() {
+  gl_FragColor = texture2D(extra, ((v_texture_coordinates / v_factor_npot).xy + vec2(0.5, 0.25)) * extra_factor_npot);
+}

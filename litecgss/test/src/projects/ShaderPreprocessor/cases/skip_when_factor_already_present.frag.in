@@ -1,0 +1,10 @@
+uniform sampler2D texture;
+uniform sampler2D noise;
+uniform vec2 noise_factor_npot;
+void main() {
+  // The UV already references a *_factor_npot identifier, so the preprocessor
+  // must NOT wrap this call (would otherwise double-multiply the factor).
+  vec4 n = texture2D(noise, gl_TexCoord[0].xy * noise_factor_npot);
+  vec4 base = texture2D(texture, gl_TexCoord[0].xy);
+  gl_FragColor = base + n;
+}

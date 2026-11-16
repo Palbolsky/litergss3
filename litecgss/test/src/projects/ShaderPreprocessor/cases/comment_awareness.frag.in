@@ -1,0 +1,11 @@
+// Identifiers that look like rewrite targets MUST stay untouched when they
+// live inside comments. The token-based pipeline classifies '//' and '/* */'
+// regions distinctly so the rewrite pass never visits them.
+uniform sampler2D texture;
+
+// gl_Color and gl_TexCoord[0] are mentioned here but in a comment.
+/* texture2D(texture, ignored_uv) is mentioned in a block comment too. */
+void main() {
+  // Real code: should be rewritten.
+  gl_FragColor = texture2D(texture, gl_TexCoord[0].xy) * gl_Color;
+}

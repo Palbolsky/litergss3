@@ -1,0 +1,11 @@
+#version 130
+// Old PSDK (Foret Eternelle) graphics/shaders/battle_shadow.frag: integer
+// constructor arguments, which GLSL ES accepts.
+uniform sampler2D texture;
+const vec4 gray = vec4(0.5, 0.5, 0.5, 0.8);
+const vec4 blank = vec4(0, 0, 0, 0);
+void main()
+{
+  vec4 frag = texture2D(texture, gl_TexCoord[0].xy);
+  gl_FragColor = mix(blank, gray, frag.a) * gl_Color;
+}

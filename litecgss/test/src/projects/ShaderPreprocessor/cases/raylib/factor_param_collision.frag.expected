@@ -1,0 +1,36 @@
+#version 330
+// [LiteCGSS::ShaderPreprocessor glsl330]
+out vec4 cgss_FragColor;
+// [LiteCGSS::ShaderPreprocessor processed]
+#ifdef GL_ES
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+#else
+precision mediump float;
+#endif
+#endif
+in vec2 v_texture_coordinates;
+in vec2 v_inv_texture_coordinates;
+in vec4 sf_color;
+in vec2 v_factor_npot;
+// The author has already threaded `image_factor_npot` through manually. The
+// signature-injection pass must NOT add a duplicate parameter, and the
+// call-site pass must NOT add a duplicate argument — the author is already
+// passing both through. The texture2D wrap inside the helper still fires
+// because the existing UV math doesn't yet apply the factor (it only
+// references `image_factor_npot` after we add the wrap), so we let the
+// wrap proceed.
+uniform sampler2D texture0;
+
+// --- per-sampler NPOT factors (auto-generated) ---
+#define texture_factor_npot v_factor_npot
+// -------------------------------------------------
+vec4 helper(sampler2D image, vec2 image_factor_npot, vec2 uv) {
+  return texture(image, (uv) * image_factor_npot);
+}
+
+void main() {
+  cgss_FragColor = helper(texture0, texture_factor_npot, (v_texture_coordinates / v_factor_npot).xy);
+}

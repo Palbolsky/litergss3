@@ -49,7 +49,9 @@
 
 #include <lodepng.h>
 
+#include "Backend/Internal/SFMLCapabilities.h"
 #include "Backend/Internal/SFMLConversions.h"
+#include "Backend/Shader/ShaderPreprocessor.h"
 #include "LiteCGSS/Common/Serializer.h"
 #include "LiteCGSS/Common/Color.h"
 #include "LiteCGSS/Common/IntRect.h"
@@ -700,6 +702,21 @@ namespace cgss::backend {
 		// this is unconditionally true for the SFML backend. PSDK reads this
 		// to decide whether to emit legacy or modern shader sources.
 		static inline bool shader_supports_fixed_pipeline() { return true; }
+
+		// Preprocessor target: desktop SFML feeds the fixed-pipeline built-ins;
+		// SFML ES (the SFML-opengl-es2 fork, LITECGSS_USE_FIXED_PIPELINE off)
+		// needs them rewritten onto its attributes, in GLSL ES 1.00.
+		static constexpr cgss::ShaderPreprocessor::Target shader_preprocessor_target() noexcept {
+#ifdef LITECGSS_USE_FIXED_PIPELINE
+			return cgss::ShaderPreprocessor::Target::DesktopFixedPipeline;
+#else
+			return cgss::ShaderPreprocessor::Target::SfmlEs100;
+#endif
+		}
+
+		// Whether textures are stored at their size, or padded to the next
+		// power of two (GL ES 2 without OES_texture_npot, SFML fork only).
+		static inline bool texture_supports_npot() { return sfml_caps::isNonPowerOfTwoSupported(); }
 
 		// Compile from in-memory source. The 1-arg-typed form takes the cgss
 		// stage enum (Vertex / Fragment / Geometry); the 2-arg form is

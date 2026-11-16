@@ -1,0 +1,25 @@
+// Negative-match cases: substrings that look like texture2D / gl_TexCoord /
+// gl_Color but are actually part of longer identifiers must NOT be rewritten.
+// (Identifier-boundary check exercises the i==0 || !isIdentChar(prev) guard
+// in wrapTexture2DCallsImpl and the \b anchors in the regex rewrites.)
+uniform sampler2D texture;
+
+vec2 my_texture2D_helper(vec2 uv) {
+  return uv * 2.0;
+}
+
+float read_gl_Color_alpha(vec4 c) {
+  return c.a;
+}
+
+float pick_from_gl_TexCoord_slot(vec2 uv) {
+  return uv.x;
+}
+
+void main() {
+  vec2 uv = my_texture2D_helper(gl_TexCoord[0].xy);
+  vec4 frag = texture2D(texture, uv);
+  frag.a *= read_gl_Color_alpha(frag);
+  float k = pick_from_gl_TexCoord_slot(uv);
+  gl_FragColor = frag * k;
+}

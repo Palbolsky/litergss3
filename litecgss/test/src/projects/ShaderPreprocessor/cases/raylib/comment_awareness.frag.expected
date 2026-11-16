@@ -1,0 +1,31 @@
+#version 330
+// [LiteCGSS::ShaderPreprocessor glsl330]
+out vec4 cgss_FragColor;
+// [LiteCGSS::ShaderPreprocessor processed]
+#ifdef GL_ES
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+#else
+precision mediump float;
+#endif
+#endif
+in vec2 v_texture_coordinates;
+in vec2 v_inv_texture_coordinates;
+in vec4 sf_color;
+in vec2 v_factor_npot;
+// Identifiers that look like rewrite targets MUST stay untouched when they
+// live inside comments. The token-based pipeline classifies '//' and '/* */'
+// regions distinctly so the rewrite pass never visits them.
+uniform sampler2D texture0;
+
+// gl_Color and gl_TexCoord[0] are mentioned here but in a comment.
+/* texture2D(texture, ignored_uv) is mentioned in a block comment too. */
+// --- per-sampler NPOT factors (auto-generated) ---
+#define texture_factor_npot v_factor_npot
+// -------------------------------------------------
+void main() {
+  // Real code: should be rewritten.
+  cgss_FragColor = texture(texture0, ((v_texture_coordinates / v_factor_npot).xy) * texture_factor_npot) * sf_color;
+}

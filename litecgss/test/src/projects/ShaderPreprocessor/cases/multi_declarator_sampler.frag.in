@@ -1,0 +1,10 @@
+// `uniform sampler2D foo, bar;` declares two samplers in one statement.
+// The token-based discovery picks up both, and each gets its own
+// _factor_npot injected: `texture` (primary, by name convention) gets a
+// #define against v_factor_npot; `secondary` gets a uniform of its own.
+uniform sampler2D texture, secondary;
+void main() {
+  vec4 a = texture2D(texture,   gl_TexCoord[0].xy);
+  vec4 b = texture2D(secondary, gl_TexCoord[0].xy);
+  gl_FragColor = a + b;
+}

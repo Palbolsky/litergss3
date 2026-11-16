@@ -1,0 +1,13 @@
+// Author defensively redeclared v_factor_npot. The preprocessor must strip
+// both the GL_ES varying and the desktop const fallback so its own injected
+// header does not collide with them.
+#ifdef GL_ES
+varying vec2 v_factor_npot;
+#else
+const vec2 v_factor_npot = vec2(1.0, 1.0);
+#endif
+
+uniform sampler2D texture;
+void main() {
+  gl_FragColor = texture2D(texture, gl_TexCoord[0].xy);
+}

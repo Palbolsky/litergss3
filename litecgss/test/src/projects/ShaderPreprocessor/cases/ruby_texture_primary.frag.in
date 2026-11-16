@@ -1,0 +1,7 @@
+uniform sampler2D rubyTexture;
+uniform sampler2D filter;
+void main() {
+  vec4 a = texture2D(rubyTexture, gl_TexCoord[0].xy);
+  vec4 b = texture2D(filter, gl_TexCoord[0].xy);
+  gl_FragColor = mix(a, b, 0.5);
+}

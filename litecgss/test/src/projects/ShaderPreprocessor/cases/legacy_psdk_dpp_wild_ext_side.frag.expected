@@ -1,0 +1,38 @@
+#version 100
+// [LiteCGSS::ShaderPreprocessor processed]
+#ifdef GL_ES
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+#else
+precision mediump float;
+#endif
+#endif
+#ifdef GL_ES
+varying vec2 v_texture_coordinates;
+varying vec2 v_inv_texture_coordinates;
+varying vec4 sf_color;
+varying vec2 v_factor_npot;
+#else
+const vec2 v_factor_npot = vec2(1.0, 1.0);
+#endif
+// Old PSDK (Foret Eternelle) graphics/shaders/dpp_wild_ext_side.frag: integer modulus (%).
+uniform sampler2D texture;
+uniform float textureHeight;
+uniform int lineOffset;
+
+// --- per-sampler NPOT factors (auto-generated) ---
+#define texture_factor_npot v_factor_npot
+// -------------------------------------------------
+void main() {
+    vec2 tc = (v_texture_coordinates / v_factor_npot).xy;
+    vec4 frag = texture2D(texture, (tc) * texture_factor_npot);
+
+    int lineIndex = int(floor(tc.y * textureHeight));
+    if (int(mod(float((lineIndex / 6)), float(2))) == 1) {
+        frag.a = 0.0;
+    }
+
+    gl_FragColor = frag;
+}

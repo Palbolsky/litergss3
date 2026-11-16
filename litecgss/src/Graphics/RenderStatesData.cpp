@@ -2,7 +2,51 @@
 
 #include "LiteCGSS/Graphics/RenderStatesData.h"
 #include "Backend/ActiveBackend.h"
+#include "Backend/Shader/ShaderPreprocessor.h"
 #include "LiteCGSS/Graphics/Texture.h"
+
+// Every shader source goes through cgss::ShaderPreprocessor (NPOT handling,
+// and the fixed-pipeline built-ins rewritten for backends that don't feed
+// them), for the target the active backend reports.
+
+namespace {
+	using Preprocessor = cgss::ShaderPreprocessor;
+	using UniformDefaults = std::vector<Preprocessor::UniformDefault>;
+
+	Preprocessor::Stage stageFromShaderType(cgss::ShaderType type) {
+		switch (type) {
+			case cgss::ShaderType::Vertex:   return Preprocessor::Stage::Vertex;
+			case cgss::ShaderType::Geometry: return Preprocessor::Stage::Geometry;
+			case cgss::ShaderType::Fragment: // fall through
+			default:                         return Preprocessor::Stage::Fragment;
+		}
+	}
+
+	template <class B>
+	Preprocessor::Result preprocess(const std::string& source, Preprocessor::Stage stage) {
+		return Preprocessor::processDetailed(source, stage, Preprocessor::Options{ B::Ops::shader_preprocessor_target() });
+	}
+
+	// Gives the uniforms the values their declarations held (removed by the
+	// preprocessor on GL ES, which forbids them).
+	template <class B>
+	void applyUniformDefaults(typename B::native_shader& shader, const UniformDefaults& defaults) {
+		for (const auto& d : defaults) {
+			const auto& v = d.values;
+			if (d.type == "float")     B::Ops::shader_set_uniform(shader, d.name, v[0]);
+			else if (d.type == "vec2") B::Ops::shader_set_uniform(shader, d.name, cgss::Glsl::Vec2{ v[0], v[1] });
+			else if (d.type == "vec3") B::Ops::shader_set_uniform(shader, d.name, cgss::Glsl::Vec3{ v[0], v[1], v[2] });
+			else if (d.type == "vec4") B::Ops::shader_set_uniform(shader, d.name, cgss::Glsl::Vec4{ v[0], v[1], v[2], v[3] });
+			else if (d.type == "int")  B::Ops::shader_set_uniform(shader, d.name, static_cast<int>(v[0]));
+			else if (d.type == "bool") B::Ops::shader_set_uniform(shader, d.name, v[0] != 0.f);
+		}
+	}
+
+	UniformDefaults concat(UniformDefaults a, const UniformDefaults& b) {
+		a.insert(a.end(), b.begin(), b.end());
+		return a;
+	}
+}
 
 template <class B> bool cgss::basic_RenderStatesData<B>::SHADERS_ENABLED = true;
 
@@ -126,12 +170,25 @@ bool cgss::basic_RenderStatesData<B>::loadShaderFromMemory(const std::string& sh
 	if (m_shader == nullptr) {
 		m_shader = std::make_unique<typename B::native_shader>();
 	}
-	const bool success = B::Ops::shader_load_from_memory(*m_shader, shader, type);
+	const auto target = B::Ops::shader_preprocessor_target();
+	const auto processed = preprocess<B>(shader, stageFromShaderType(type));
+	bool success;
+	if (target != Preprocessor::Target::DesktopFixedPipeline && type == cgss::ShaderType::Fragment) {
+		// Without the fixed pipeline, the vertex stage must write the
+		// varyings the processed fragment shader reads.
+		success = B::Ops::shader_load_from_memory(*m_shader, Preprocessor::defaultVertexShader(target), processed.source);
+	} else if (target == Preprocessor::Target::RaylibGlsl330 && type == cgss::ShaderType::Vertex) {
+		// raylib's default fragment stage reads other varyings.
+		success = B::Ops::shader_load_from_memory(*m_shader, processed.source, Preprocessor::defaultFragmentShader(target));
+	} else {
+		success = B::Ops::shader_load_from_memory(*m_shader, processed.source, type);
+	}
 	enableShader(success);
 	if (!success) {
-		std::cerr << "Shader content:" << std::endl << shader << std::endl;
+		std::cerr << "Shader content:" << std::endl << processed.source << std::endl;
 		return false;
 	}
+	applyUniformDefaults<B>(*m_shader, processed.uniformDefaults);
 	return true;
 }
 
@@ -143,13 +200,16 @@ bool cgss::basic_RenderStatesData<B>::loadShaderFromMemory(const std::string& ve
 	if (m_shader == nullptr) {
 		m_shader = std::make_unique<typename B::native_shader>();
 	}
-	const bool success = B::Ops::shader_load_from_memory(*m_shader, vertexShader, fragmentShader);
+	const auto processedVert = preprocess<B>(vertexShader,   Preprocessor::Stage::Vertex);
+	const auto processedFrag = preprocess<B>(fragmentShader, Preprocessor::Stage::Fragment);
+	const bool success = B::Ops::shader_load_from_memory(*m_shader, processedVert.source, processedFrag.source);
 	enableShader(success);
 	if (!success) {
-		std::cerr << "Vertex shader content:" << std::endl << vertexShader << std::endl;
-		std::cerr << "Fragment shader content:" << std::endl << fragmentShader << std::endl;
+		std::cerr << "Vertex shader content:" << std::endl << processedVert.source << std::endl;
+		std::cerr << "Fragment shader content:" << std::endl << processedFrag.source << std::endl;
 		return false;
 	}
+	applyUniformDefaults<B>(*m_shader, concat(processedVert.uniformDefaults, processedFrag.uniformDefaults));
 	return true;
 }
 
@@ -159,14 +219,19 @@ bool cgss::basic_RenderStatesData<B>::loadShaderFromMemory(const std::string& ve
 		if (m_shader == nullptr) {
 			m_shader = std::make_unique<typename B::native_shader>();
 		}
-		const bool success = B::Ops::shader_load_from_memory(*m_shader, vertexShader, geometryShader, fragmentShader);
+		const auto processedVert = preprocess<B>(vertexShader,   Preprocessor::Stage::Vertex);
+		const auto processedGeom = preprocess<B>(geometryShader, Preprocessor::Stage::Geometry);
+		const auto processedFrag = preprocess<B>(fragmentShader, Preprocessor::Stage::Fragment);
+		const bool success = B::Ops::shader_load_from_memory(*m_shader, processedVert.source, processedGeom.source, processedFrag.source);
 		enableShader(success);
 		if (!success) {
-			std::cerr << "Vertex shader content:" << std::endl << vertexShader << std::endl;
-			std::cerr << "Geometry shader content:" << std::endl << geometryShader << std::endl;
-			std::cerr << "Fragment shader content:" << std::endl << fragmentShader << std::endl;
+			std::cerr << "Vertex shader content:" << std::endl << processedVert.source << std::endl;
+			std::cerr << "Geometry shader content:" << std::endl << processedGeom.source << std::endl;
+			std::cerr << "Fragment shader content:" << std::endl << processedFrag.source << std::endl;
 			return false;
 		}
+		applyUniformDefaults<B>(*m_shader, concat(concat(processedVert.uniformDefaults, processedGeom.uniformDefaults),
+		                                          processedFrag.uniformDefaults));
 		return true;
 	}
 	enableShader(false);
@@ -250,7 +315,14 @@ void cgss::basic_RenderStatesData<B>::setShaderUniform(const std::string& name, 
 
 template <class B>
 void cgss::basic_RenderStatesData<B>::setShaderUniform(const std::string& name, const basic_Texture<B>& texture) {
-	if (m_shader != nullptr) B::Ops::shader_set_uniform(*m_shader, name, cgss::backend::native_of(texture));
+	if (m_shader == nullptr) return;
+	B::Ops::shader_set_uniform(*m_shader, name, cgss::backend::native_of(texture));
+	// The preprocessor declares `<name>_factor_npot` for every secondary
+	// sampler and scales its lookups by it: push the texture's factor too,
+	// or it would be sampled at the padded size where storage is padded.
+	const auto factor = texture.factorNpot();
+	B::Ops::shader_set_uniform(*m_shader, name + "_factor_npot",
+		cgss::Glsl::Vec2{ static_cast<float>(factor[0]), static_cast<float>(factor[1]) });
 }
 
 template <class B>

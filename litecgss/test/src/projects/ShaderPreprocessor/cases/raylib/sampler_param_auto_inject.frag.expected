@@ -1,0 +1,34 @@
+#version 330
+// [LiteCGSS::ShaderPreprocessor glsl330]
+out vec4 cgss_FragColor;
+// [LiteCGSS::ShaderPreprocessor processed]
+#ifdef GL_ES
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+#else
+precision mediump float;
+#endif
+#endif
+in vec2 v_texture_coordinates;
+in vec2 v_inv_texture_coordinates;
+in vec4 sf_color;
+in vec2 v_factor_npot;
+// A helper function takes a `sampler2D` parameter. The preprocessor injects
+// a companion `vec2 <name>_factor_npot` parameter into the signature, and at
+// each call site injects the matching factor argument (`<arg>_factor_npot`)
+// so that the auto-NPOT wrap inside the helper body has a real identifier to
+// multiply with.
+uniform sampler2D texture0;
+
+// --- per-sampler NPOT factors (auto-generated) ---
+#define texture_factor_npot v_factor_npot
+// -------------------------------------------------
+vec4 sample_helper(sampler2D image, vec2 image_factor_npot, vec2 uv) {
+  return texture(image, (uv + vec2(0.5, 0.25)) * image_factor_npot);
+}
+
+void main() {
+  cgss_FragColor = sample_helper(texture0, texture_factor_npot, (v_texture_coordinates / v_factor_npot).xy);
+}

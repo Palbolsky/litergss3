@@ -1,0 +1,7 @@
+// Precision-qualified sampler declarations are recognized: the discovery
+// pass skips the qualifier and picks up `tex` as the sampler name. The
+// rewriter wraps calls to it just like an unqualified declaration.
+uniform highp sampler2D tex;
+void main() {
+  gl_FragColor = texture2D(tex, gl_TexCoord[0].xy);
+}

@@ -1,0 +1,3 @@
+# Golden files compare byte for byte: no line ending conversion (the legacy_psdk_*
+# cases keep the CRLF of the Windows-made game they come from)
+* -text

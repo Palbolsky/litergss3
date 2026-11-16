@@ -35,6 +35,9 @@ endif()
 message(STATUS "CGSS_BACKEND=${CGSS_BACKEND}")
 
 option(CGSS_NO_LOGS "Compile out LiteCGSS logging" OFF)
+# SFML backend only: OFF for SFML ES (the SFML-opengl-es2 fork on GL ES), whose
+# shaders the preprocessor rewrites to GLSL ES 1.00 on SFML ES's attributes.
+option(LITECGSS_USE_FIXED_PIPELINE "SFML backend: desktop GL feeding the fixed-pipeline GLSL built-ins" ON)
 option(LITECGSS_USE_PHYSFS "Load assets through PhysicsFS" OFF)
 option(LITECGSS_BUILD_TESTS "Build the LiteCGSS unit tests" ${PROJECT_IS_TOP_LEVEL})
 option(LITECGSS_BUILD_PLAYGROUND "Build the LiteCGSS playground executable" ${PROJECT_IS_TOP_LEVEL})
@@ -226,6 +229,10 @@ target_include_directories(LiteCGSS_engine
 	PRIVATE ${LITE_CGSS_EXTERNAL}/lodepng
 	PRIVATE ${LITE_CGSS_EXTERNAL}/libnsgif
 )
+if(CGSS_BACKEND STREQUAL "sfml" AND LITECGSS_USE_FIXED_PIPELINE)
+	target_compile_definitions(LiteCGSS_engine PRIVATE LITECGSS_USE_FIXED_PIPELINE)
+endif()
+
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 	target_compile_options(LiteCGSS_engine PRIVATE -Wall -Wextra -pedantic)
 endif()
@@ -245,6 +252,21 @@ add_library(LiteCGSS::extension_spi ALIAS LiteCGSS_extension_spi)
 target_link_libraries(LiteCGSS_extension_spi INTERFACE LiteCGSS::engine LiteCGSS_backend)
 target_include_directories(LiteCGSS_extension_spi INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_definitions(LiteCGSS_extension_spi INTERFACE CGSS_ENABLE_EXTENSION_SPI)
+
+# Manual target to regenerate the GLSL lexer of the shader preprocessor from
+# its re2c source. Not part of `all`: builds consume the committed
+# glsl_lexer.cpp, so re2c (>= 3.0) is only needed when editing glsl_lexer.re:
+#   cmake --build <build-dir> --target regen_glsl_lexer
+find_program(RE2C_EXECUTABLE re2c)
+if(RE2C_EXECUTABLE)
+	add_custom_target(regen_glsl_lexer
+		COMMAND ${RE2C_EXECUTABLE} -W --no-generation-date
+			-o ${CMAKE_CURRENT_SOURCE_DIR}/src/Backend/Shader/preprocessor/glsl_lexer.cpp
+			${CMAKE_CURRENT_SOURCE_DIR}/src/Backend/Shader/preprocessor/glsl_lexer.re
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+		COMMENT "Regenerating glsl_lexer.cpp from glsl_lexer.re using re2c"
+		VERBATIM)
+endif()
 
 if(LITECGSS_BUILD_TESTS)
 	enable_testing()

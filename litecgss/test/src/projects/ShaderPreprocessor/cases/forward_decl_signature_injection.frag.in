@@ -1,0 +1,14 @@
+// A forward declaration appears before the definition. The signature
+// injection must apply to BOTH so the GLSL linker still sees matching
+// signatures.
+uniform sampler2D texture;
+
+vec4 lookup(sampler2D s, vec2 uv);
+
+void main() {
+  gl_FragColor = lookup(texture, gl_TexCoord[0].xy);
+}
+
+vec4 lookup(sampler2D s, vec2 uv) {
+  return texture2D(s, uv);
+}

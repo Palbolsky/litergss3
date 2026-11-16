@@ -1,0 +1,10 @@
+// Function-like macros are deliberately NOT tracked as aliases. The
+// `#define BLEND(a, b)` directive has '(' immediately after the name, so
+// alias discovery skips it. The rewriter still sees the underlying
+// `texture2D(texture, ...)` call and wraps it normally.
+uniform sampler2D texture;
+#define BLEND(a, b) ((a) + (b))
+
+void main() {
+  gl_FragColor = BLEND(texture2D(texture, gl_TexCoord[0].xy), vec4(0.0));
+}

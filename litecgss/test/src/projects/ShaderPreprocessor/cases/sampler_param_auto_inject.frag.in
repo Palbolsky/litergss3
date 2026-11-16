@@ -1,0 +1,14 @@
+// A helper function takes a `sampler2D` parameter. The preprocessor injects
+// a companion `vec2 <name>_factor_npot` parameter into the signature, and at
+// each call site injects the matching factor argument (`<arg>_factor_npot`)
+// so that the auto-NPOT wrap inside the helper body has a real identifier to
+// multiply with.
+uniform sampler2D texture;
+
+vec4 sample_helper(sampler2D image, vec2 uv) {
+  return texture2D(image, uv + vec2(0.5, 0.25));
+}
+
+void main() {
+  gl_FragColor = sample_helper(texture, gl_TexCoord[0].xy);
+}

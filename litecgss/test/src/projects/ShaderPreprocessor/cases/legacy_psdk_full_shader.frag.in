@@ -1,0 +1,17 @@
+#version 130
+// Old PSDK (Foret Eternelle, PSDK 26.42) full_shader, as its Shader.register
+// builds it: "#version 130" + DEFAULT_SHADER + color, tone and alpha processes.
+
+uniform sampler2D texture;
+uniform vec4 color;
+uniform vec4 tone;
+const vec3 lumaF = vec3(.299, .587, .114);
+void main() {
+  vec4 frag = texture2D(texture, gl_TexCoord[0].xy);
+  frag.rgb = mix(frag.rgb, color.rgb, color.a);
+  float luma = dot(frag.rgb, lumaF);
+  frag.rgb = mix(frag.rgb, vec3(luma), tone.w);
+  frag.rgb += tone.rgb;
+  frag.a *= gl_Color.a;
+  gl_FragColor = frag;
+}

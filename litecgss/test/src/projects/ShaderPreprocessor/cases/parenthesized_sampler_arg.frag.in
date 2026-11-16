@@ -1,0 +1,12 @@
+// The sampler argument is wrapped in parentheses — semantically the same as
+// a bare identifier. The rewriter must peel the parens to recognise the
+// underlying sampler and proceed with wrap / call-site injection.
+uniform sampler2D texture;
+
+vec4 helper(sampler2D s, vec2 uv) {
+  return texture2D((s), uv);
+}
+
+void main() {
+  gl_FragColor = helper((texture), gl_TexCoord[0].xy);
+}
