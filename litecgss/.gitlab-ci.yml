@@ -1,0 +1,56 @@
+stages:
+  - compile
+  - test
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
+compile:linux:gcc:
+  stage: compile
+  tags:
+    - linux
+  image: 'scorbutics/sfml-rake:latest'
+  before_script:
+    - rake configure
+    - rake clean
+  script:
+    - rake compile
+  artifacts:
+    name: "LiteCGSS-linux-gcc-$CI_COMMIT_REF_NAME"
+    paths:
+      - bin/
+      - lib/
+    expire_in: 1 day
+
+compile:linux:clang:
+  stage: compile
+  tags:
+    - linux
+  image: 'scorbutics/sfml-rake:latest'
+  before_script:
+    - apt-get update && apt-get -y install clang
+    - export CC=/usr/bin/clang
+    - export CXX=/usr/bin/clang++
+    - rake configure
+    - rake clean
+  script:
+    - rake compile
+  artifacts:
+    name: "LiteCGSS-linux-clang-$CI_COMMIT_REF_NAME"
+    paths:
+      - bin/
+      - lib/
+    expire_in: 1 day
+
+#test:
+#  stage: test
+#  services: 
+#    - docker:dind
+#  tags:
+#    - linux
+#  image: 'scorbutics/sfml-exec:latest'
+#  script: 
+#    - docker build docker/test -t litecgss_test
+#    - docker run --network=host --volume=$(pwd)/generated/html:/html --volume=$(pwd):/litecgss litecgss_test
+#  dependencies:
+#    - compile:linux:gcc
