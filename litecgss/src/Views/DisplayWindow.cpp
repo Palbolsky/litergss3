@@ -6,6 +6,7 @@
 #include <thread>
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
+#include "LiteCGSS/Platform/Android/HostSurface.h"
 #include "Views/LoggerViews.h"
 
 // Backend-neutral: every native interaction goes through B::Ops.
@@ -21,41 +22,43 @@ static cgss::backend::ActiveBackend::native_window& sharedGameWindow() {
 	static cgss::backend::ActiveBackend::native_window instance;
 	return instance;
 }
+
+// The preserved window survives DisplayWindow lifetimes (GL context
+// included): for fullscreen settings, or when the host opted in (a hosted
+// Android game restarted in the same process). Otherwise the window is
+// owned and destroyed with the DisplayWindow (a splash / loader leaving a
+// clean state behind).
+static bool usesSharedGameWindow(const cgss::DisplayWindowSettings& settings) {
+	return settings.fullscreen || cgss::android::isReuseSharedWindowEnabled();
+}
 #endif
 
 template <class B>
 cgss::basic_DisplayWindow<B>::basic_DisplayWindow(const DisplayWindowSettings& settings) :
-#ifdef CGSS_WINDOW_PRESERVATION
-	m_gameWindow(sharedGameWindow()),
-#else
 	m_ownedGameWindow(std::make_unique<typename B::native_window>()),
+#ifdef CGSS_WINDOW_PRESERVATION
+	m_gameWindow(usesSharedGameWindow(settings) ? sharedGameWindow() : *m_ownedGameWindow),
+#else
 	m_gameWindow(*m_ownedGameWindow),
 #endif
 	m_snapshot{ *this },
 	m_userRenderSprite(std::make_unique<typename B::native_sprite>()),
 	m_userRenderTexture(std::make_unique<typename B::native_render_texture>()) {
-#ifdef CGSS_WINDOW_PRESERVATION
+	if (!usesSharedWindow()) {
+		initUserRender();
+	}
 	reload(settings, true);
-#else
-	initUserRender();
-	reload(settings, true);
-#endif
 }
 
+// No settings, so no fullscreen to ask for the preserved window: owned.
 template <class B>
 cgss::basic_DisplayWindow<B>::basic_DisplayWindow() :
-#ifdef CGSS_WINDOW_PRESERVATION
-	m_gameWindow(sharedGameWindow()),
-#else
 	m_ownedGameWindow(std::make_unique<typename B::native_window>()),
 	m_gameWindow(*m_ownedGameWindow),
-#endif
 	m_snapshot{ *this },
 	m_userRenderSprite(std::make_unique<typename B::native_sprite>()),
 	m_userRenderTexture(std::make_unique<typename B::native_render_texture>()) {
-#ifndef CGSS_WINDOW_PRESERVATION
 	initUserRender();
-#endif
 }
 
 template <class B>
@@ -127,6 +130,7 @@ void cgss::basic_DisplayWindow<B>::applyReload(DisplayWindowSettings settings, b
 
 	if (m_settings.headless) {
 		B::Ops::window_close(m_gameWindow);
+		cgss::android::hostSurfaceEventsDropped();
 	} else {
 		const auto scaledWidth = static_cast<unsigned int>(m_settings.video.width * m_settings.video.scale);
 		const auto scaledHeight = static_cast<unsigned int>(m_settings.video.height * m_settings.video.scale);
@@ -149,6 +153,10 @@ void cgss::basic_DisplayWindow<B>::applyReload(DisplayWindowSettings settings, b
 					m_settings.vSync,
 					&m_settings.context,
 				};
+				// The old window goes first: a close requested while the new
+				// one is created lands in its queue, and is counted
+				B::Ops::window_close(m_gameWindow);
+				cgss::android::hostSurfaceEventsDropped();
 				B::Ops::window_create(m_gameWindow, opts, m_settings.title.c_str());
 			}
 		} else {
@@ -241,21 +249,42 @@ bool cgss::basic_DisplayWindow<B>::isOpen() const {
 }
 
 template <class B>
+bool cgss::basic_DisplayWindow<B>::usesSharedWindow() const {
+	return &m_gameWindow != m_ownedGameWindow.get();
+}
+
+template <class B>
 void cgss::basic_DisplayWindow<B>::stop() {
 	m_snapshot.stop();
-#ifdef CGSS_WINDOW_PRESERVATION
-	// Don't close the shared window — just clear drawables.
-	// The GL context stays valid so member destructors can clean up GL resources safely.
-	drawables().clear();
-	B::Ops::window_clear(m_gameWindow);
-	B::Ops::window_display(m_gameWindow);
-#else
+	if (usesSharedWindow()) {
+		// The preserved window stays open for the next DisplayWindow, left
+		// clean. That's GL work: skipped if the hosted surface is gone.
+		if (!cgss::android::beginHostedDraw()) {
+			// The context may still be current on this (exiting) thread:
+			// release it, or the next render thread can't make it current.
+			B::Ops::window_set_active(m_gameWindow, false);
+			return;
+		}
+		drawables().clear();
+		B::Ops::window_clear(m_gameWindow);
+		B::Ops::window_display(m_gameWindow);
+		// Same: the context survives this DisplayWindow and its thread.
+		B::Ops::window_set_active(m_gameWindow, false);
+		cgss::android::endHostedDraw();
+		return;
+	}
+	// Owned window: closed with its DisplayWindow (its queue with it).
 	B::Ops::window_close(m_gameWindow);
-#endif
+	cgss::android::hostSurfaceEventsDropped();
 }
 
 template <class B>
 void cgss::basic_DisplayWindow<B>::setActive(bool active) {
+	// Back from the background, the GL surface is rebuilt by the event
+	// pump: activating before can only fail. The next frame activates it.
+	if (active && m_pumpPending) {
+		return;
+	}
 	B::Ops::window_set_active(m_gameWindow, active);
 }
 
@@ -263,6 +292,20 @@ template <class B>
 void cgss::basic_DisplayWindow<B>::draw() {
 	CGSS_PROFILE_ZONE("cgss::DisplayWindow::draw");
 	using Ops = typename B::Ops;
+	// Hosted surface (Android; always passes elsewhere): no GL work while
+	// it is detached, the frame waiting for it to come back (the game
+	// pauses in the background) or for a close request. A detach can't
+	// happen during the frame. Back from it, nothing is drawn until the
+	// event pump has rebuilt the GL surface.
+	bool surfaceChanged = false;
+	if (!cgss::android::beginHostedFrame(m_hostSurfaceDetaches, surfaceChanged)) {
+		if (surfaceChanged) m_pumpPending = true;
+		return;
+	}
+	if (m_pumpPending) {
+		cgss::android::endHostedDraw();
+		return;
+	}
 	applyPendingReload();
 	Ops::window_clear(m_gameWindow);
 
@@ -281,15 +324,27 @@ void cgss::basic_DisplayWindow<B>::draw() {
 	postProcessing();
 
 	Ops::window_display(m_gameWindow);
+
+	cgss::android::endHostedDraw();
 }
 
 template <class B>
 bool cgss::basic_DisplayWindow<B>::popEvent(cgss::Event& event) {
 	using Ops = typename B::Ops;
 	using cgss::backend::native_of;
-	return m_eventPolicyPolling
-		? Ops::window_poll_event(m_gameWindow, native_of(event))
-		: Ops::window_wait_event(m_gameWindow, native_of(event));
+	// Not gated on the hosted surface: the queue survives a detach, and the
+	// focus pair a detach / attach pushes must be pumped (the backend drops
+	// and rebuilds the GL surface from them).
+	bool popped = Ops::window_poll_event(m_gameWindow, native_of(event));
+	if (!popped) {
+		// Drained: the backend handled its window events (the GL surface rebuild)
+		m_pumpPending = false;
+		popped = !m_eventPolicyPolling && Ops::window_wait_event(m_gameWindow, native_of(event));
+	}
+	if (popped && event.type() == cgss::EventType::Closed) {
+		cgss::android::hostSurfaceCloseDelivered();
+	}
+	return popped;
 }
 
 template <class B>

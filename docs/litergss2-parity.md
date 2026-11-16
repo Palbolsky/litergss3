@@ -22,7 +22,7 @@ audit), **N/A** (doesn't apply to this repository), **pending**.
 | 1f2737b | SpriteMap batching per texture | ported 95c8bdd |
 | ecf1729 | Tracy support | ported e4bce22 (off by default) |
 | c95179c, d8e3cb1 | window origin, `originPixels` | ported fdd76d8 |
-| 628a10d, d0a4616, 43d14a3, 83b74df, ca8717d, 3459962, 4d52e3b, 4116310, 8342891, dad4db8, bc90bcd, 716c81a, 04f519f, 38e11f0, caf2ad8, b404f38, 58452f1 | Android HostSurface, window preservation, EGL lifecycle | **pending** (design to agree, see below) |
+| 628a10d, d0a4616, 43d14a3, 83b74df, ca8717d, 3459962, 4d52e3b, 4116310, 8342891, dad4db8, bc90bcd, 716c81a, 04f519f, 38e11f0, caf2ad8, b404f38, 58452f1 | Android HostSurface, window preservation, EGL lifecycle | ported (see Android below) |
 | c0c7389, 29cbb83, 2d54e20, 4b53009 | CI, Rakefile cache refresh | N/A (CMake presets, Rake proxy) |
 | 8a711d1, fd9e442, 8ff7bb1, f49f00c, 2c9e158 | merges | — |
 
@@ -39,7 +39,7 @@ audit), **N/A** (doesn't apply to this repository), **pending**.
 | c66e8db | Closed event no longer falls through to Resized | ported 9077cc1 |
 | 9762adb, 08fcc9d, 86dea45 | `DisplayWindow#game_area`, `screen_width/height`, `Viewport#screen_space` | ported fdd76d8 |
 | 044c274 | Tracy (`LiteRGSS_tracy` extension) | ported e4bce22 |
-| 05c41be … a8ed2ab | Android HostSurface counterparts | **pending** |
+| 05c41be … a8ed2ab | Android HostSurface counterparts | ported (window built from its settings already; frames drawn without the GVL) |
 | d6c11e6, 2d40083, 4b260da, ff7d5c7, f5babf4 | Docker / Ruby 3.4 / glibc build | N/A (packaging, litergss-everywhere) |
 | 5d7d064, 2ef9dd3, 6891fad | stash entries | — |
 | 49fd6da, d369a94 and merges | submodule bumps | — |
@@ -73,17 +73,24 @@ built without physfs does.
   ran them (ac9030b).
 - The physfs build no longer configured on CMake 4 (e8abff3).
 
-## Pending
+## Android host surface
 
-- **Android HostSurface** (17 + 13 commits). It is Android platform code:
-  only the windowing bridge (`sf::android::*`) is SFML-specific. Proposed
-  layout:
-  - a backend-neutral public API under `include/LiteCGSS/Platform/Android/`;
-  - the attach / detach gate and bookkeeping in shared code;
-  - the windowing calls through backend Ops: SFML implements them, raylib
-    reports them unsupported.
-
-  Waiting for agreement on this layout.
+- Public, backend-neutral API: `LiteCGSS/Platform/Android/HostSurface.h`
+  (same `cgss_android_*` C entry points as LiteCGSS2, for the JNI bridge).
+  The oracle's unused surface "generation" argument is dropped.
+- The lifecycle gate (background pause, close requests, JNI context,
+  window preservation opt-in) is shared code, `src/Platform/Android/`.
+- Windowing per backend, `Specializations/<backend>/AndroidHostSurface.cpp`:
+  SFML implements it (SFML-opengl-es2's hosted window); raylib doesn't
+  yet (it logs once that it's unsupported). raylib-on-Android needs a
+  raylib platform of ours (EGL on the host's window) and a modern GL ES
+  shader target: a follow-up.
+- `DisplayWindow#update` draws without the GVL, as LiteRGSS2 does, so a
+  game paused in the background doesn't freeze other Ruby threads.
+- Checked by compiling for Android (NDK 28): SFML 2.6's `sf::String` doesn't
+  build against NDK 28's libc++ (`std::char_traits<unsigned int>` was
+  removed), for LiteCGSS2 as well: Android builds need an older NDK or an
+  SFML fix.
 
 ## Known gaps (not from these commits)
 

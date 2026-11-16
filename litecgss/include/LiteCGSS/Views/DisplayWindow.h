@@ -130,18 +130,26 @@ namespace cgss {
 
 		void initUserRender();
 		void drawBrightness();
+		// Bound to the preserved window rather than its own (see m_gameWindow)
+		bool usesSharedWindow() const;
 		cgss::RenderTarget configureAndGetRenderTarget(cgss::Camera& defview);
 		void postProcessing();
 		void setShader(const cgss::DrawState* shader);
 		void updateFromValue(const RenderStatesData* renderStatesData) override;
 
 		bool m_eventPolicyPolling = true;
+		// Hosted surface (Android): detaches seen by this window's frames,
+		// and whether a frame must wait for the event pump (the GL surface
+		// is rebuilt there after the surface came back).
+		unsigned int m_hostSurfaceDetaches = 0;
+		bool m_pumpPending = false;
 		MainEventDispatcher m_eventDispatcher {};
 		DisplayWindowSettings m_settings {};
-		/* m_ownedGameWindow holds the owned window; m_gameWindow is the bound reference
-			(either to the owned one, or to a shared static one in the CGSS_WINDOW_PRESERVATION
-			case — see DisplayWindow.cpp ctors). Declaration order matters: m_ownedGameWindow
-			must come before m_gameWindow so it is constructed first. */
+		/* m_ownedGameWindow holds the owned window; m_gameWindow is the bound reference:
+			to the owned one, or, in CGSS_WINDOW_PRESERVATION builds, to the process-wide
+			preserved one for fullscreen settings or when the host opted in
+			(cgss::android::setReuseSharedWindow) — see DisplayWindow.cpp ctors.
+			Declaration order matters: m_ownedGameWindow must come before m_gameWindow. */
 		std::unique_ptr<typename B::native_window> m_ownedGameWindow;
 		typename B::native_window& m_gameWindow;
 		// The full snapshot/transition path is implemented per backend. For

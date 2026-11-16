@@ -1,4 +1,7 @@
 #include "DisplayWindow.h"
+
+#include <ruby/thread.h>
+
 #include "LiteRGSS.h"
 #include "../events/Events.h"
 #include "../inputs/SfJoystick.h"
@@ -466,26 +469,76 @@ VALUE rb_DisplayWindow_desktopHeight(VALUE self)
 // pipeline via cgss::DisplayWindow::draw(), then drains pending events into
 // the registered on_* callbacks. Matches LiteRGSS2's update semantics where
 // a single call advances both render and input.
+// As in LiteRGSS2, a frame is drawn outside the GVL: other Ruby threads
+// run meanwhile, and a hosted Android game paused in the background (the
+// frame waits for its surface) doesn't freeze them. No Ruby API in there.
+namespace {
+	// A thread calling update while another one is inside it (its frame
+	// drawn without the GVL) returns at once, as in LiteRGSS2.
+	bool g_inside_update = false;
+
+	void* draw_without_gvl(void*)
+	{
+		g_window->draw();
+		return nullptr;
+	}
+
+	void draw_frame()
+	{
+		rb_thread_call_without_gvl(draw_without_gvl, nullptr, nullptr, nullptr);
+	}
+
+	VALUE leave_update(VALUE)
+	{
+		g_inside_update = false;
+		return Qnil;
+	}
+
+	// Runs body(self) as the one update in progress.
+	VALUE guarded_update(VALUE (*body)(VALUE), VALUE self)
+	{
+		if (g_inside_update) return Qnil;
+		g_inside_update = true;
+		return rb_ensure(body, self, leave_update, Qnil);
+	}
+
+	VALUE update_body(VALUE self)
+	{
+		// Like LiteRGSS2: a window closed by anything but its Closed event
+		// (which raises ClosedWindowError) stops the game loop with StoppedError.
+		if (!g_window->isOpen()) {
+			rb_raise(rb_eStoppedWindowError, "Game Window was closed during DisplayWindow.update by an unknown cause...");
+		}
+		draw_frame();
+		if (RTEST(rb_ivar_get(self, iv_polling))) drain_events_internal(self);
+		return g_window != nullptr && g_window->isOpen() ? Qtrue : Qfalse;
+	}
+
+	VALUE update_no_input_body(VALUE self)
+	{
+		draw_frame();
+		return self;
+	}
+
+	VALUE update_only_input_body(VALUE self)
+	{
+		drain_events_internal(self);
+		return self;
+	}
+}
+
 VALUE rb_DisplayWindow_update(VALUE self)
 {
 	ensureWindow();
-	// Like LiteRGSS2: a window closed by anything but its Closed event (which
-	// raises ClosedWindowError) stops the game loop with StoppedError.
-	if (!g_window->isOpen()) {
-		rb_raise(rb_eStoppedWindowError, "Game Window was closed during DisplayWindow.update by an unknown cause...");
-	}
-	g_window->draw();
-	if (RTEST(rb_ivar_get(self, iv_polling))) drain_events_internal(self);
-	return g_window->isOpen() ? Qtrue : Qfalse;
+	return guarded_update(update_body, self);
 }
 
 // LiteRGSS2: update with no input pump. Used during transitions where
 // PSDK doesn't want callbacks to fire.
 VALUE rb_DisplayWindow_updateNoInput(VALUE self)
 {
-	(void)self;
 	ensureWindow();
-	g_window->draw();
+	guarded_update(update_no_input_body, self);
 	return self;
 }
 
@@ -493,7 +546,7 @@ VALUE rb_DisplayWindow_updateNoInput(VALUE self)
 VALUE rb_DisplayWindow_updateOnlyInput(VALUE self)
 {
 	ensureWindow();
-	drain_events_internal(self);
+	guarded_update(update_only_input_body, self);
 	return self;
 }
 
