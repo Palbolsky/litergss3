@@ -28,6 +28,11 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 if(EXISTS ${PROJECT_SOURCE_DIR}/vendor/raylib/include/raylib.h)
 	set(RAYLIB_ROOT ${PROJECT_SOURCE_DIR}/vendor/raylib CACHE PATH "")
 endif()
+# Likewise an SFML 2.6 install for the SFML backend (cmake --install <sfml-build>
+# --prefix vendor/sfml), unless SFML_DIR names another one.
+if(EXISTS ${PROJECT_SOURCE_DIR}/vendor/sfml/lib/cmake/SFML/SFMLConfig.cmake)
+	set(SFML_DIR ${PROJECT_SOURCE_DIR}/vendor/sfml/lib/cmake/SFML CACHE PATH "SFML 2.6 CMake package")
+endif()
 
 enable_testing()
 

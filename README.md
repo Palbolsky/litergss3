@@ -32,7 +32,9 @@ The tests open no window on the desktop: CTest runs the Ruby suite with
 shown. A display server is still needed (`xvfb-run rake test` without one).
 
 The `debug-sfml` preset needs SFML **2.6** (SFML 3 is not supported), e.g. a
-build of the SFML-opengl-es2 fork: point CMake at it with
+build of the SFML-opengl-es2 fork. Install it in `vendor/sfml/` (ignored by
+git, found automatically): `cmake --install <sfml-build> --prefix vendor/sfml`;
+or point CMake at another install with
 `cmake --preset debug-sfml -DSFML_DIR=<sfml-install>/lib/cmake/SFML`.
 
 Optional engine features (CMake options, off by default):

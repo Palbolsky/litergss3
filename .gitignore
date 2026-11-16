@@ -1,8 +1,9 @@
 # Build
 /build
 
-# Raylib
+# Prebuilt dependencies (see README)
 vendor/raylib
+vendor/sfml
 
 # Other things
 .vscode

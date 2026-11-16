@@ -15,8 +15,8 @@
 # Anything after `--` (or any unknown argument) is passed to Game.rb, e.g.
 # `tools/psdk-demo.sh -b sfml -- debug`.
 #
-# The SFML preset needs SFML 2.6: the first configure takes it from
-# $SFML_DIR (<sfml-install>/lib/cmake/SFML), kept in the CMake cache after.
+# The SFML preset needs SFML 2.6: vendor/sfml (see README), else $SFML_DIR
+# (<sfml-install>/lib/cmake/SFML) at the first configure.
 #
 # The window title gets " - LiteRGSS3 <backend> (<preset>)" appended, to tell
 # runs apart (LITERGSS_TITLE_SUFFIX, read by the extension).
