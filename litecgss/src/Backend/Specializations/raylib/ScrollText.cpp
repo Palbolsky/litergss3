@@ -153,11 +153,26 @@ void cgss::ScrollText::setString(const std::string& utf8) {
 	for (const char c : utf8) {
 		if (c != '\r') m_utf8.push_back(c);
 	}
+	ensureGlyphs();
 }
 
 void cgss::ScrollText::setFont(const ::Font& font) {
 	m_font = &font;
-	if (m_font->texture.id != 0) {
+	ensureGlyphs();
+	applyFilter();
+}
+
+// The font's atlas gets the characters of this text it lacks (glyphs on
+// demand, see Internal/RaylibFontAtlas.h); a rebuilt atlas needs the filter.
+void cgss::ScrollText::ensureGlyphs() {
+	if (m_font == nullptr || m_utf8.empty()) return;
+	const auto texture = m_font->texture.id;
+	cgss::backend::raylib_detail::ensureFontGlyphs(const_cast<::Font&>(*m_font), m_utf8.data(), m_utf8.size());
+	if (m_font->texture.id != texture) applyFilter();
+}
+
+void cgss::ScrollText::applyFilter() {
+	if (m_font != nullptr && m_font->texture.id != 0) {
 		::SetTextureFilter(m_font->texture,
 		                   m_smooth ? TEXTURE_FILTER_BILINEAR : TEXTURE_FILTER_POINT);
 	}

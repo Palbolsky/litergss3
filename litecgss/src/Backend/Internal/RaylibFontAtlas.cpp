@@ -1,6 +1,11 @@
 #include "Backend/Internal/RaylibFontAtlas.h"
 
+#include <algorithm>
 #include <cmath>
+#include <memory>
+#include <mutex>
+#include <unordered_map>
+#include <unordered_set>
 #include <cstring>
 #include <vector>
 
@@ -48,20 +53,101 @@ namespace cgss::backend::raylib_detail {
 		}
 	}
 
-	bool buildFontAtlas(::Font& out, const unsigned char* data, int dataSize, int characterSize) {
-		if (data == nullptr || dataSize <= 0 || characterSize <= 0) return false;
-		stbtt_fontinfo info;
-		const int offset = stbtt_GetFontOffsetForIndex(data, 0);
-		if (offset < 0 || !stbtt_InitFont(&info, data, offset)) return false;
-		const float scale = stbtt_ScaleForMappingEmToPixels(&info, static_cast<float>(characterSize));
-
-		std::vector<int> codepoints;
-		for (const auto& range : kCodepointRanges) {
-			for (int cp = range[0]; cp <= range[1]; ++cp) {
-				// Space and '?' (raylib's fallback glyph) are always present.
-				if (cp == ' ' || cp == '?' || stbtt_FindGlyphIndex(&info, cp) != 0) codepoints.push_back(cp);
-			}
+	namespace {
+		bool initFontInfo(stbtt_fontinfo& info, const unsigned char* data, int dataSize) {
+			if (data == nullptr || dataSize <= 0) return false;
+			const int offset = stbtt_GetFontOffsetForIndex(data, 0);
+			return offset >= 0 && stbtt_InitFont(&info, data, offset) != 0;
 		}
+
+		// The common ranges' characters the font has, plus space and '?'
+		// (raylib's fallback glyph), always present.
+		std::vector<int> initialCodepoints(const stbtt_fontinfo& info) {
+			std::vector<int> codepoints;
+			for (const auto& range : kCodepointRanges) {
+				for (int cp = range[0]; cp <= range[1]; ++cp) {
+					if (cp == ' ' || cp == '?' || stbtt_FindGlyphIndex(&info, cp) != 0) codepoints.push_back(cp);
+				}
+			}
+			return codepoints;
+		}
+
+		bool buildAtlas(::Font& out, const stbtt_fontinfo& info, int characterSize, const std::vector<int>& codepoints);
+
+		// What a loaded font was built from, to add glyphs later.
+		struct FontSource {
+			std::vector<unsigned char> data;
+			stbtt_fontinfo info{};
+			int characterSize = 0;
+			std::unordered_set<int> baked;   // in the atlas
+			std::unordered_set<int> missing; // asked for, not in the font
+		};
+		std::mutex g_sourcesMutex;
+		std::unordered_map<const ::Font*, std::unique_ptr<FontSource>> g_sources;
+	}
+
+	bool buildFontAtlas(::Font& out, const unsigned char* data, int dataSize, int characterSize) {
+		stbtt_fontinfo info;
+		if (characterSize <= 0 || !initFontInfo(info, data, dataSize)) return false;
+		return buildAtlas(out, info, characterSize, initialCodepoints(info));
+	}
+
+	bool loadFontAtlas(::Font& font, const unsigned char* data, int dataSize, int characterSize) {
+		if (characterSize <= 0 || data == nullptr || dataSize <= 0) return false;
+		auto source = std::make_unique<FontSource>();
+		source->data.assign(data, data + dataSize); // stb reads it for the font's lifetime
+		source->characterSize = characterSize;
+		if (!initFontInfo(source->info, source->data.data(), dataSize)) return false;
+		const auto codepoints = initialCodepoints(source->info);
+		::Font built{};
+		if (!buildAtlas(built, source->info, characterSize, codepoints)) return false;
+		forgetFontAtlas(font);
+		if (font.texture.id != 0) UnloadFont(font);
+		font = built;
+		source->baked.insert(codepoints.begin(), codepoints.end());
+		std::lock_guard<std::mutex> lock(g_sourcesMutex);
+		g_sources[&font] = std::move(source);
+		return true;
+	}
+
+	void ensureFontGlyphs(::Font& font, const char* utf8, std::size_t size) {
+		std::lock_guard<std::mutex> lock(g_sourcesMutex);
+		const auto it = g_sources.find(&font);
+		if (it == g_sources.end() || utf8 == nullptr) return;
+		FontSource& source = *it->second;
+		std::vector<int> added;
+		const char* p = utf8;
+		const char* end = utf8 + size;
+		while (p < end) {
+			int bytes = 0;
+			const int cp = GetCodepointNext(p, &bytes);
+			p += bytes > 0 ? bytes : 1;
+			if (cp < 0x20 || source.baked.count(cp) != 0 || source.missing.count(cp) != 0) continue;
+			if (stbtt_FindGlyphIndex(&source.info, cp) == 0) {
+				source.missing.insert(cp);
+				continue;
+			}
+			if (std::find(added.begin(), added.end(), cp) == added.end()) added.push_back(cp);
+		}
+		if (added.empty()) return;
+		std::vector<int> codepoints(source.baked.begin(), source.baked.end());
+		codepoints.insert(codepoints.end(), added.begin(), added.end());
+		std::sort(codepoints.begin(), codepoints.end());
+		::Font built{};
+		if (!buildAtlas(built, source.info, source.characterSize, codepoints)) return;
+		if (font.texture.id != 0) UnloadFont(font);
+		font = built;
+		source.baked.insert(added.begin(), added.end());
+	}
+
+	void forgetFontAtlas(const ::Font& font) {
+		std::lock_guard<std::mutex> lock(g_sourcesMutex);
+		g_sources.erase(&font);
+	}
+
+	namespace {
+	bool buildAtlas(::Font& out, const stbtt_fontinfo& info, int characterSize, const std::vector<int>& codepoints) {
+		const float scale = stbtt_ScaleForMappingEmToPixels(&info, static_cast<float>(characterSize));
 
 		const int count = static_cast<int>(codepoints.size());
 		auto* glyphs = static_cast<::GlyphInfo*>(MemAlloc(static_cast<unsigned int>(count) * sizeof(::GlyphInfo)));
@@ -102,6 +188,7 @@ namespace cgss::backend::raylib_detail {
 		SetTextureFilter(font.texture, TEXTURE_FILTER_POINT);
 		out = font;
 		return true;
+	}
 	}
 
 }

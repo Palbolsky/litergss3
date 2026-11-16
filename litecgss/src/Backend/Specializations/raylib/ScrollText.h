@@ -99,6 +99,8 @@ namespace cgss {
 	private:
 		std::string m_utf8;
 		const ::Font* m_font = nullptr;
+		void ensureGlyphs();
+		void applyFilter();
 		unsigned int m_characterSize = 30;
 		float m_letterSpacingFactor = 1.f;
 		float m_lineSpacingFactor = 1.f;

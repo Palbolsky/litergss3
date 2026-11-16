@@ -826,13 +826,8 @@ namespace cgss::backend {
 
 		static inline bool font_load_from_memory_with_size(native_font& f, const void* data, std::size_t size, int fontSize) {
 			if (!IsWindowReady()) return false;
-			::Font built{};
-			if (!raylib_detail::buildFontAtlas(built, static_cast<const unsigned char*>(data), static_cast<int>(size), fontSize)) {
-				return false;
-			}
-			if (f.texture.id != 0) UnloadFont(f);
-			f = built;
-			return true;
+			// Glyphs beyond the common ranges are added when texts use them
+			return raylib_detail::loadFontAtlas(f, static_cast<const unsigned char*>(data), static_cast<int>(size), fontSize);
 		}
 		static inline bool font_load_from_file_with_size(native_font& f, const char* filename, int fontSize) {
 			if (!IsWindowReady()) return false;
@@ -851,6 +846,7 @@ namespace cgss::backend {
 		}
 		// Release the GPU atlas a raylib Font owns. Safe on zero-initialized.
 		static inline void font_destroy(native_font& f) noexcept {
+			raylib_detail::forgetFontAtlas(f);
 			if (f.texture.id != 0) {
 				UnloadFont(f);
 				f = native_font{};

@@ -17,6 +17,8 @@
 // The result is a regular raylib Font (baseSize = characterSize) drawn 1:1
 // by DrawTextPro at that size.
 
+#include <cstddef>
+
 #include <raylib.h>
 
 namespace cgss::backend::raylib_detail {
@@ -24,6 +26,15 @@ namespace cgss::backend::raylib_detail {
 	// Builds `out` from TrueType/OpenType data. False when the data isn't a
 	// usable font (`out` left untouched).
 	bool buildFontAtlas(::Font& out, const unsigned char* data, int dataSize, int characterSize);
+
+	// Glyphs on demand, as SFML loads them: the atlas starts with the common
+	// ranges, and a text using characters the font has but the atlas lacks
+	// (PSDK's number font draws digits at box-drawing code points) gets them
+	// added, the atlas rebuilt in place. Fonts loaded through
+	// loadFontAtlas only; forgetFontAtlas when the font goes away.
+	bool loadFontAtlas(::Font& font, const unsigned char* data, int dataSize, int characterSize);
+	void ensureFontGlyphs(::Font& font, const char* utf8, std::size_t size);
+	void forgetFontAtlas(const ::Font& font);
 
 }
 
