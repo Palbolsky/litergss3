@@ -39,7 +39,8 @@ namespace cgss {
 		static basic_Texture create(const DisplayWindow& window, const std::string& filename);
 		static basic_Texture create(const std::string& filename);
 		// Allocate a GPU texture sized to the source image and upload its
-		// pixels. Used by ext/Sprite to promote a CPU image into a drawable.
+		// pixels. Keeps no CPU mirror: the caller owns the pixels and pushes
+		// later edits with update(image).
 		static basic_Texture create(const basic_Image<B>& image);
 
 		// Backend-coupling hatch: adopt an existing native texture. Only meant
@@ -60,6 +61,8 @@ namespace cgss {
 		void clearRect(long x, long y, unsigned int width, unsigned int height);
 		void setSmooth(bool smooth);
 
+		// Shares the GPU texture (no pixel copy, no CPU mirror). Prefer it
+		// over the copy constructor / assignment, which deep-copy the mirror.
 		basic_Texture clone() const;
 
 		// Read the GPU texels back into a new CPU image (slow: GPU sync).

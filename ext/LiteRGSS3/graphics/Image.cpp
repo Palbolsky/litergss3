@@ -12,6 +12,8 @@
 #include "Image.h"
 #include "Rect.h"
 #include "DrawableDisposable.h"
+#include <algorithm>
+#include <vector>
 
 VALUE rb_cImage = Qnil;
 
@@ -23,13 +25,44 @@ static void check_disposed(ImageData *img)
         rb_raise(rb_eRuntimeError, "Image is disposed");
 }
 
-// Internal: any operation that mutates `image` calls this so the next
-// `image_acquire_texture` re-syncs the GPU side. Cheap to call
-// repeatedly — actual work is deferred until a drawable asks for the
-// texture.
+// Images whose GPU texture exists but lags behind their pixels. Only
+// touched with the GVL held (mutators, frame flush, GC free).
+static std::vector<ImageData*> pending_uploads;
+
+static void unqueue_upload(ImageData *img)
+{
+    if (!img->uploadQueued) return;
+    img->uploadQueued = false;
+    auto it = std::find(pending_uploads.begin(), pending_uploads.end(), img);
+    if (it != pending_uploads.end()) pending_uploads.erase(it);
+}
+
+ImageData::~ImageData()
+{
+    unqueue_upload(this);
+}
+
+// Internal: any operation that mutates `image` calls this. Cheap to call
+// repeatedly — the upload happens once, at the next acquire or before the
+// next frame (whichever comes first). An image never uploaded yet has no
+// texture to refresh: its first acquire uploads it.
 static void mark_image_dirty(ImageData *img)
 {
     img->textureDirty = true;
+    if (img->textureValid && !img->uploadQueued) {
+        img->uploadQueued = true;
+        pending_uploads.push_back(img);
+    }
+}
+
+static void sync_texture(ImageData *img)
+{
+    // Re-upload pixels into the existing GPU texture rather than
+    // reallocating — preserves the shared_ptr<native_texture> identity
+    // so any Sprite/SpriteMap that already holds the native handle sees
+    // the new pixels.
+    img->cachedTexture.update(img->image);
+    img->textureDirty = false;
 }
 
 cgss::Texture& image_acquire_texture(ImageData *img)
@@ -39,15 +72,20 @@ cgss::Texture& image_acquire_texture(ImageData *img)
         img->textureValid = true;
         img->textureDirty = false;
     } else if (img->textureDirty) {
-        // Re-upload pixels into the existing GPU texture rather than
-        // reallocating — preserves the shared_ptr<native_texture> identity
-        // so any Sprite/SpriteMap that already cached a pointer to the
-        // native handle keeps working. cgss::Texture::update(image) is the
-        // dedicated re-upload path.
-        img->cachedTexture.update(img->image);
-        img->textureDirty = false;
+        sync_texture(img);
     }
     return img->cachedTexture;
+}
+
+void image_flush_pending_uploads()
+{
+    for (ImageData *img : pending_uploads) {
+        img->uploadQueued = false;
+        if (img->textureDirty && img->textureValid && img->valid()) {
+            sync_texture(img);
+        }
+    }
+    pending_uploads.clear();
 }
 
 VALUE image_from_texture(cgss::Texture&& texture)
@@ -124,6 +162,7 @@ VALUE rb_Image_InitializeCopy(VALUE self, VALUE other)
 VALUE rb_Image_Dispose(VALUE self)
 {
     auto *img = get_image(self);
+    unqueue_upload(img);
     img->image = cgss::Image{};   // replacing triggers old image's destructor
     img->disposed = true;
     return self;

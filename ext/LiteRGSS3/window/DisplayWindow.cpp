@@ -570,6 +570,9 @@ namespace {
 
 	void draw_frame(VALUE self)
 	{
+		// Bitmaps edited since the last frame reach the GPU now, while the
+		// GVL (and the GL context) is still held.
+		image_flush_pending_uploads();
 		rb_thread_call_without_gvl(draw_without_gvl, &window_of(self), nullptr, nullptr);
 	}
 

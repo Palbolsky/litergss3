@@ -154,9 +154,8 @@ VALUE rb_Sprite_setBitmap(VALUE self, VALUE val)
     // the same Bitmap share one upload — and cgss::Sprite::setTexture takes
     // its own shared_ptr ref via texture_share, so even if the Image is
     // GC'd later the GPU handle stays alive for as long as this sprite
-    // holds it. The local copy in s->texture deep-copies the CPU image
-    // mirror but only on rebind, not per frame.
-    s->texture = image_acquire_texture(img);
+    // holds it. clone() shares the GPU handle only — no pixel copy.
+    s->texture = image_acquire_texture(img).clone();
     s->has_texture = true;
 
     if (!s->src_rect_user_set) {

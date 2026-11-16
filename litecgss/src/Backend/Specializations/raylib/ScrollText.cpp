@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <mutex>
 #include <string_view>
 
 #include "Backend/ActiveBackend.h"
@@ -143,6 +144,11 @@ void main() {
 		return std::max(0.f, (factor - 1.f) * 2.f);
 	}
 
+	// A frame is drawn without the GVL while Ruby threads keep running: one
+	// may (re)build a text's layout (Text#x= measures it) while the frame
+	// reads it.
+	std::mutex g_layoutMutex;
+
 }
 
 void cgss::ScrollText::setString(const std::string& utf8) {
@@ -154,12 +160,14 @@ void cgss::ScrollText::setString(const std::string& utf8) {
 		if (c != '\r') m_utf8.push_back(c);
 	}
 	ensureGlyphs();
+	invalidateLayout();
 }
 
 void cgss::ScrollText::setFont(const ::Font& font) {
 	m_font = &font;
 	ensureGlyphs();
 	applyFilter();
+	invalidateLayout();
 }
 
 // The font's atlas gets the characters of this text it lacks (glyphs on
@@ -180,6 +188,7 @@ void cgss::ScrollText::applyFilter() {
 
 void cgss::ScrollText::setCharacterSize(unsigned int size) {
 	m_characterSize = size;
+	invalidateLayout();
 }
 
 void cgss::ScrollText::setFillColor(cgss::Color c) {
@@ -212,14 +221,17 @@ void cgss::ScrollText::setSmooth(bool smooth) {
 
 void cgss::ScrollText::setLineHeight(float h) {
 	m_lineHeight = h;
+	invalidateLayout();
 }
 
 void cgss::ScrollText::setLetterSpacing(float factor) {
 	m_letterSpacingFactor = factor;
+	invalidateLayout();
 }
 
 void cgss::ScrollText::setLineSpacing(float factor) {
 	m_lineSpacingFactor = factor;
+	invalidateLayout();
 }
 
 void cgss::ScrollText::setNumCharToDraw(std::uint32_t n) {
@@ -241,37 +253,67 @@ void cgss::ScrollText::setScale(float sx, float sy) {
 	m_sy = sy;
 }
 
-cgss::FloatRect cgss::ScrollText::getLocalBounds() const {
-	if (!m_font || m_utf8.empty() || m_font->baseSize <= 0) return cgss::FloatRect{ 0.f, 0.f, 0.f, 0.f };
-	// Same bounds as SFML's ScrollText: the glyphs' ink extents (not their
-	// advances — the last glyph's right bearing doesn't count), whitespace
-	// advancing the max, the outline expanding them. Text alignment relies on
-	// this width. Advances are the ones DrawTextPro uses.
-	const float fs      = fontSizeF(m_characterSize);
-	const float scale   = fs / static_cast<float>(m_font->baseSize);
-	const float spacing = spacingFromFactor(m_letterSpacingFactor);
+void cgss::ScrollText::ensureLayout() const {
+	const bool atlasChanged = m_font != nullptr
+		&& (m_font->glyphs != m_layoutGlyphs || m_font->glyphCount != m_layoutGlyphCount
+		    || m_font->texture.id != m_layoutTexture);
+	if (!m_layoutDirty && !atlasChanged) return;
+	m_layoutDirty = false;
+	m_layout.clear();
+	m_inkBounds = cgss::FloatRect{ 0.f, 0.f, 0.f, 0.f };
+	m_layoutGlyphs     = m_font ? m_font->glyphs : nullptr;
+	m_layoutGlyphCount = m_font ? m_font->glyphCount : 0;
+	m_layoutTexture    = m_font ? m_font->texture.id : 0;
+	if (!m_font || m_utf8.empty() || m_font->baseSize <= 0 || m_font->glyphCount <= 0) return;
+
+	const float fs       = fontSizeF(m_characterSize);
+	const float scale    = fs / static_cast<float>(m_font->baseSize);
+	const float spacing  = spacingFromFactor(m_letterSpacingFactor);
+	const float lineStep = lineStepOf(m_lineHeight, m_lineSpacingFactor);
+
+	// Pen positions, stepped as raylib's DrawTextEx steps them (lines by
+	// SetTextLineSpacing's integer step, a glyph without advance by its
+	// width), so drawing the layout matches DrawTextPro pixel for pixel.
+	float penX = 0.f, penY = 0.f;
+	// Ink box, as SFML's ScrollText measures it: the glyphs' ink extents (not
+	// their advances — the last glyph's right bearing doesn't count),
+	// whitespace advancing the max. Text alignment relies on this width.
 	float x = 0.f, y = 0.f;
 	float minX = fs, minY = fs, maxX = 0.f, maxY = 0.f;
+
+	m_layout.reserve(m_utf8.size());
 	const char* text = m_utf8.c_str();
 	const char* end  = text + m_utf8.size();
 	while (text < end) {
 		int bytes = 0;
 		const int cp = ::GetCodepointNext(text, &bytes);
-		text += bytes > 0 ? bytes : 1;
-		const int index = ::GetGlyphIndex(*m_font, cp);
-		const float advance = static_cast<float>(m_font->glyphs[index].advanceX) * scale + spacing;
+		if (bytes <= 0) break; // utf8BytesForCodepoints' count stops here too
+		text += bytes;
+		const int index = ::GetGlyphIndex(*m_font, cp); // '?' when the atlas lacks cp
+		const ::GlyphInfo& glyph = m_font->glyphs[index];
+		const ::Rectangle& rec   = m_font->recs[index];
+		const float advance = static_cast<float>(glyph.advanceX) * scale + spacing;
+
+		if (cp == '\n') {
+			m_layout.push_back({ -1, penX, penY });
+			penY += static_cast<float>(static_cast<int>(lineStep));
+			penX = 0.f;
+		} else {
+			const bool blank = cp == ' ' || cp == '\t';
+			m_layout.push_back({ blank ? -1 : index, penX, penY });
+			penX += glyph.advanceX == 0 ? rec.width * scale + spacing : advance;
+		}
+
 		if (cp == ' ' || cp == '\t' || cp == '\n') {
 			minX = std::min(minX, x);
 			minY = std::min(minY, y);
 			if (cp == ' ') x += advance;
 			else if (cp == '\t') x += advance * 4.f;
-			else { y += lineStepOf(m_lineHeight, m_lineSpacingFactor); x = 0.f; }
+			else { y += lineStep; x = 0.f; }
 			maxX = std::max(maxX, x);
 			maxY = std::max(maxY, y);
 			continue;
 		}
-		const ::GlyphInfo& glyph = m_font->glyphs[index];
-		const ::Rectangle& rec   = m_font->recs[index];
 		const float left = x + static_cast<float>(glyph.offsetX) * scale;
 		const float top  = y + static_cast<float>(glyph.offsetY) * scale;
 		minX = std::min(minX, left);
@@ -280,14 +322,53 @@ cgss::FloatRect cgss::ScrollText::getLocalBounds() const {
 		maxY = std::max(maxY, top + rec.height * scale);
 		x += advance;
 	}
+	m_inkBounds = cgss::FloatRect{ minX, minY, maxX - minX, maxY - minY };
+}
+
+cgss::FloatRect cgss::ScrollText::getLocalBounds() const {
+	if (!m_font || m_utf8.empty() || m_font->baseSize <= 0) return cgss::FloatRect{ 0.f, 0.f, 0.f, 0.f };
+	cgss::FloatRect bounds;
+	{
+		std::lock_guard<std::mutex> lock(g_layoutMutex);
+		ensureLayout();
+		bounds = m_inkBounds;
+	}
+	// The outline expands the ink box.
 	if (m_outlineThickness != 0.f) {
 		const float outline = std::fabs(std::ceil(m_outlineThickness));
-		minX -= outline;
-		maxX += outline;
-		minY -= outline;
-		maxY += outline;
+		bounds.left   -= outline;
+		bounds.top    -= outline;
+		bounds.width  += 2.f * outline;
+		bounds.height += 2.f * outline;
 	}
-	return cgss::FloatRect{ minX, minY, maxX - minX, maxY - minY };
+	return bounds;
+}
+
+// What DrawTextPro(font, text, offset, origin, rotation, ...) draws, from the
+// layout: same matrix, and DrawTextCodepoint's quads (`padding` standing for
+// the font's glyphPadding).
+void cgss::ScrollText::drawGlyphs(const ::Font& font, int padding, ::Vector2 offset, ::Vector2 origin,
+                                  float rotation, std::size_t count, ::Color tint) const {
+	const float scale = fontSizeF(m_characterSize) / static_cast<float>(font.baseSize);
+	const float pad   = static_cast<float>(padding);
+	::rlPushMatrix();
+	::rlTranslatef(offset.x, offset.y, 0.f);
+	::rlRotatef(rotation, 0.f, 0.f, 1.f);
+	::rlTranslatef(-origin.x, -origin.y, 0.f);
+	for (std::size_t i = 0; i < count; ++i) {
+		const LaidGlyph& g = m_layout[i];
+		if (g.index < 0) continue;
+		const ::GlyphInfo& glyph = font.glyphs[g.index];
+		const ::Rectangle& rec   = font.recs[g.index];
+		const ::Rectangle dst{
+			g.x + (static_cast<float>(glyph.offsetX) - pad) * scale,
+			g.y + (static_cast<float>(glyph.offsetY) - pad) * scale,
+			(rec.width + 2.f * pad) * scale,
+			(rec.height + 2.f * pad) * scale };
+		const ::Rectangle src{ rec.x - pad, rec.y - pad, rec.width + 2.f * pad, rec.height + 2.f * pad };
+		::DrawTexturePro(font.texture, src, dst, ::Vector2{ 0.f, 0.f }, 0.f, tint);
+	}
+	::rlPopMatrix();
 }
 
 std::uint32_t cgss::ScrollText::getTextWidth(const std::string& utf8) const {
@@ -304,19 +385,15 @@ void cgss::ScrollText::draw() const {
 		return;
 	}
 
-	const std::size_t bytes = utf8BytesForCodepoints(m_utf8, m_numCharsToDraw);
-	if (bytes == 0) return;
+	std::lock_guard<std::mutex> lock(g_layoutMutex);
+	ensureLayout();
+	const std::size_t count = std::min<std::size_t>(m_layout.size(), m_numCharsToDraw);
+	if (count == 0) return;
 
-	// Null-terminate the truncated view. `substr` allocates; acceptable
-	// for UI text sizes (< a few hundred chars). Phase 2 can amortize by
-	// caching the truncated buffer when m_utf8 / m_numCharsToDraw change.
-	const std::string truncated = m_utf8.substr(0, bytes);
-	const char* text    = truncated.c_str();
 	const float fs      = fontSizeF(m_characterSize);
 	const float spacing = spacingFromFactor(m_letterSpacingFactor);
 	const float lineStep = lineStepOf(m_lineHeight, m_lineSpacingFactor);
-	// DrawTextPro steps each '\n' by this raylib global (15 by default,
-	// whatever the font size).
+	// MeasureTextEx (underline widths below) reads this raylib global.
 	::SetTextLineSpacing(static_cast<int>(lineStep));
 
 	const bool drawBold       = (m_style & ScrollText::Bold) != 0;
@@ -365,9 +442,9 @@ void cgss::ScrollText::draw() const {
 	// are binary-alpha and drawn 1:1 (Internal/RaylibFontAtlas), so the
 	// integer stamps stay exact under any rlScalef.
 	if (m_drawShadow) {
-		::DrawTextPro(*m_font, text, ::Vector2{ 1.f, 0.f }, origin, rot, fs, spacing, m_outline);
-		::DrawTextPro(*m_font, text, ::Vector2{ 1.f, 1.f }, origin, rot, fs, spacing, m_outline);
-		::DrawTextPro(*m_font, text, ::Vector2{ 0.f, 1.f }, origin, rot, fs, spacing, m_outline);
+		drawGlyphs(*m_font, 0, ::Vector2{ 1.f, 0.f }, origin, rot, count, m_outline);
+		drawGlyphs(*m_font, 0, ::Vector2{ 1.f, 1.f }, origin, rot, count, m_outline);
+		drawGlyphs(*m_font, 0, ::Vector2{ 0.f, 1.f }, origin, rot, count, m_outline);
 	} else if (m_outlineThickness > 0.f) {
 		// Encased outline via fragment shader. Falls back to the legacy
 		// single-stamp +1,+1 if the shader fails to compile (e.g. a Mesa
@@ -383,33 +460,30 @@ void cgss::ScrollText::draw() const {
 			::SetShaderValue(s.shader, s.locAtlasTexel, &atlasTexel, SHADER_UNIFORM_VEC2);
 			::SetShaderValue(s.shader, s.locThickness,  &m_outlineThickness, SHADER_UNIFORM_FLOAT);
 
-			// font_load_from_file_with_size leaves Font::glyphPadding at 0,
-			// which makes DrawTextPro render glyph quads tight to the
-			// glyph's bitmap bounds — leaving no room for outline pixels
-			// outside the glyph (where SFML's baked outline lives). Pass a
-			// temporary copy with glyphPadding = ceil(thickness), clamped
-			// to the GenImageFontAtlas inter-glyph padding (4 px) so the
+			// The atlas leaves Font::glyphPadding at 0, so glyph quads are
+			// tight to the glyph's bitmap bounds — leaving no room for
+			// outline pixels outside the glyph (where SFML's baked outline
+			// lives). Draw the quads padded by ceil(thickness), clamped to
+			// the GenImageFontAtlas inter-glyph padding (4 px) so the
 			// expanded source rect samples the pre-zeroed gutter, never
 			// into neighbouring glyphs.
-			::Font fontCopy = *m_font;
 			const int padding = std::clamp(
 				static_cast<int>(std::ceil(m_outlineThickness)), 1, 4);
-			fontCopy.glyphPadding = padding;
 
 			::BeginShaderMode(s.shader);
-			::DrawTextPro(fontCopy, text, ::Vector2{ 0.f, 0.f }, origin, rot, fs, spacing, m_outline);
+			drawGlyphs(*m_font, padding, ::Vector2{ 0.f, 0.f }, origin, rot, count, m_outline);
 			::EndShaderMode();
 		} else {
-			::DrawTextPro(*m_font, text, ::Vector2{ 1.f, 1.f }, origin, rot, fs, spacing, m_outline);
+			drawGlyphs(*m_font, 0, ::Vector2{ 1.f, 1.f }, origin, rot, count, m_outline);
 		}
 	}
 
 	// Fill pass. Synthetic bold re-stamps at +1px — raylib has no synthetic
 	// bold, and proper bold requires a separately-loaded font variant; this
 	// thickens the stroke as a best-effort fallback.
-	::DrawTextPro(*m_font, text, ::Vector2{ 0.f, 0.f }, origin, rot, fs, spacing, m_fill);
+	drawGlyphs(*m_font, 0, ::Vector2{ 0.f, 0.f }, origin, rot, count, m_fill);
 	if (drawBold) {
-		::DrawTextPro(*m_font, text, ::Vector2{ 1.f, 0.f }, origin, rot, fs, spacing, m_fill);
+		drawGlyphs(*m_font, 0, ::Vector2{ 1.f, 0.f }, origin, rot, count, m_fill);
 	}
 
 	// Underline / StrikeThrough — raylib has no underline metrics API; pick
@@ -426,6 +500,7 @@ void cgss::ScrollText::draw() const {
 	if (drawUnderlined || drawStrike) {
 		const float thickness = std::max(1.f, fs / 16.f);
 		const float left      = -m_ox;
+		const std::string truncated = m_utf8.substr(0, utf8BytesForCodepoints(m_utf8, static_cast<std::uint32_t>(count)));
 		const std::string_view textView{ truncated };
 		std::size_t start = 0;
 		std::size_t lineIndex = 0;

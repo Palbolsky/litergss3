@@ -120,8 +120,8 @@ cgss::basic_Texture<B> cgss::basic_Texture<B>::create(const basic_Image<B>& imag
 	// + uploads pixels.
 	// basic_Texture friends basic_Image so image.m_image is reachable.
 	cgss::detail::uploadImage<typename B::Ops>(*result.m_texture, *image.m_image);
-	// Cache the CPU side too so later `update()` (no-arg) can refresh.
-	B::Ops::copy_image(*result.m_image, *image.m_image);
+	// No CPU mirror: the caller owns the pixels (and re-uploads them through
+	// update(image)). Mirroring would double the image's memory.
 	result.m_loaded = true;
 	return result;
 }
@@ -141,20 +141,27 @@ bool cgss::basic_Texture<B>::load(const TextureLoader& loader) {
 template <class B>
 cgss::basic_Texture<B> cgss::basic_Texture<B>::clone() const {
 	auto result = basic_Texture{};
+	result.m_loaded = m_loaded;
 	result.m_texture = m_texture;
 	return result;
 }
 
 template <class B>
 void cgss::basic_Texture<B>::update() {
-	B::Ops::update_texture_from_image(*m_texture, *m_image);
+	// Only textures loaded from a file keep a CPU mirror to refresh from.
+	if (hasImage()) {
+		B::Ops::update_texture_from_image(*m_texture, *m_image);
+	}
 }
 
 template <class B>
 void cgss::basic_Texture<B>::update(const basic_Image<B>& image) {
-	// Explicit copy from the provided cgss::Image's backing native image.
-	B::Ops::copy_image(*m_image, *image.m_image);
-	B::Ops::update_texture_from_image(*m_texture, *m_image);
+	// Upload straight from the caller's pixels; refresh the CPU mirror only
+	// when this texture keeps one (loaded from a file).
+	if (hasImage()) {
+		B::Ops::copy_image(*m_image, *image.m_image);
+	}
+	B::Ops::update_texture_from_image(*m_texture, *image.m_image);
 }
 
 template <class B>

@@ -36,6 +36,7 @@
 #include <cstdint>
 #include <limits>
 #include <string>
+#include <vector>
 
 #include "LiteCGSS/Common/Color.h"
 #include "LiteCGSS/Common/FloatRect.h"
@@ -97,6 +98,32 @@ namespace cgss {
 		void draw() const;
 
 	private:
+		// One codepoint of m_utf8, placed as raylib's DrawTextEx places it
+		// (pen position, before the glyph's own offset). index < 0: nothing
+		// drawn (space, tab, newline). Built once per string / font / metric
+		// change, so a frame draws quads without raylib's per-character
+		// glyph lookup (a linear scan of the atlas in GetGlyphIndex).
+		struct LaidGlyph {
+			int index;
+			float x, y;
+		};
+
+		// The layout, and the glyphs' ink box it yields (outline excluded).
+		// Rebuilt lazily: after a setter, or when the font's atlas got rebuilt
+		// (glyphs on demand by any text sharing the font move the indices).
+		void ensureLayout() const;
+		void invalidateLayout() noexcept { m_layoutDirty = true; }
+		void drawGlyphs(const ::Font& font, int padding, ::Vector2 offset, ::Vector2 origin,
+		                float rotation, std::size_t count, ::Color tint) const;
+
+		mutable std::vector<LaidGlyph> m_layout;
+		mutable cgss::FloatRect m_inkBounds{ 0.f, 0.f, 0.f, 0.f };
+		mutable bool m_layoutDirty = true;
+		// Atlas the layout was built against.
+		mutable const ::GlyphInfo* m_layoutGlyphs = nullptr;
+		mutable int m_layoutGlyphCount = 0;
+		mutable unsigned int m_layoutTexture = 0;
+
 		std::string m_utf8;
 		const ::Font* m_font = nullptr;
 		void ensureGlyphs();
