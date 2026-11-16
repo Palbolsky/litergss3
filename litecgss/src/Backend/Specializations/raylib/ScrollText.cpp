@@ -213,18 +213,52 @@ void cgss::ScrollText::setScale(float sx, float sy) {
 }
 
 cgss::FloatRect cgss::ScrollText::getLocalBounds() const {
-	if (!m_font || m_utf8.empty()) return cgss::FloatRect{ 0.f, 0.f, 0.f, 0.f };
-	const ::Vector2 size = ::MeasureTextEx(*m_font, m_utf8.c_str(),
-	                                       fontSizeF(m_characterSize),
-	                                       spacingFromFactor(m_letterSpacingFactor));
-	// Matches SFML ScrollText: outline expands the bounding box by ceil(thickness)
-	// in every direction so layout code (centering, clipping) accounts for the
-	// stamped pixels around the glyph fill.
-	if (m_outlineThickness != 0.f && !m_drawShadow) {
-		const float outline = std::fabs(std::ceil(m_outlineThickness));
-		return cgss::FloatRect{ -outline, -outline, size.x + 2.f * outline, size.y + 2.f * outline };
+	if (!m_font || m_utf8.empty() || m_font->baseSize <= 0) return cgss::FloatRect{ 0.f, 0.f, 0.f, 0.f };
+	// Same bounds as SFML's ScrollText: the glyphs' ink extents (not their
+	// advances — the last glyph's right bearing doesn't count), whitespace
+	// advancing the max, the outline expanding them. Text alignment relies on
+	// this width. Advances are the ones DrawTextPro uses.
+	const float fs      = fontSizeF(m_characterSize);
+	const float scale   = fs / static_cast<float>(m_font->baseSize);
+	const float spacing = spacingFromFactor(m_letterSpacingFactor);
+	float x = 0.f, y = 0.f;
+	float minX = fs, minY = fs, maxX = 0.f, maxY = 0.f;
+	const char* text = m_utf8.c_str();
+	const char* end  = text + m_utf8.size();
+	while (text < end) {
+		int bytes = 0;
+		const int cp = ::GetCodepointNext(text, &bytes);
+		text += bytes > 0 ? bytes : 1;
+		const int index = ::GetGlyphIndex(*m_font, cp);
+		const float advance = static_cast<float>(m_font->glyphs[index].advanceX) * scale + spacing;
+		if (cp == ' ' || cp == '\t' || cp == '\n') {
+			minX = std::min(minX, x);
+			minY = std::min(minY, y);
+			if (cp == ' ') x += advance;
+			else if (cp == '\t') x += advance * 4.f;
+			else { y += fs; x = 0.f; }
+			maxX = std::max(maxX, x);
+			maxY = std::max(maxY, y);
+			continue;
+		}
+		const ::GlyphInfo& glyph = m_font->glyphs[index];
+		const ::Rectangle& rec   = m_font->recs[index];
+		const float left = x + static_cast<float>(glyph.offsetX) * scale;
+		const float top  = y + static_cast<float>(glyph.offsetY) * scale;
+		minX = std::min(minX, left);
+		maxX = std::max(maxX, left + rec.width * scale);
+		minY = std::min(minY, top);
+		maxY = std::max(maxY, top + rec.height * scale);
+		x += advance;
 	}
-	return cgss::FloatRect{ 0.f, 0.f, size.x, size.y };
+	if (m_outlineThickness != 0.f) {
+		const float outline = std::fabs(std::ceil(m_outlineThickness));
+		minX -= outline;
+		maxX += outline;
+		minY -= outline;
+		maxY += outline;
+	}
+	return cgss::FloatRect{ minX, minY, maxX - minX, maxY - minY };
 }
 
 std::uint32_t cgss::ScrollText::getTextWidth(const std::string& utf8) const {
@@ -292,18 +326,14 @@ void cgss::ScrollText::draw() const {
 	const ::Vector2 origin = { m_ox, m_oy };
 	const float rot        = vd.rotation;
 
-	// Shadow vs outline — shadow short-circuits the outline pass. SFML's
-	// vendored ScrollText emits a 3-quad shadow triplet per glyph through a
-	// batched vertex array, which renders as a tight sub-pixel thickening.
-	// Translating that to 3 full-text DrawTextPro calls in raylib produces
-	// visible ghosting at any rlScalef > 1, since each call lays full glyph
-	// rectangles from the atlas. A single offset stamp matches PSDK's
-	// "outlinesize.nil? → drop shadow" usage and looks clean at any scale.
+	// Shadow vs outline — shadow short-circuits the outline pass. Same
+	// 3-stamp shadow as SFML's ScrollText: (+1, 0), (+1, +1), (0, +1). Glyphs
+	// are binary-alpha and drawn 1:1 (Internal/RaylibFontAtlas), so the
+	// integer stamps stay exact under any rlScalef.
 	if (m_drawShadow) {
-		// PSDK uses shadow as an asymmetric drop, not a wraparound — single
-		// offset stamp is intentional and faster than going through the
-		// outline shader.
+		::DrawTextPro(*m_font, text, ::Vector2{ 1.f, 0.f }, origin, rot, fs, spacing, m_outline);
 		::DrawTextPro(*m_font, text, ::Vector2{ 1.f, 1.f }, origin, rot, fs, spacing, m_outline);
+		::DrawTextPro(*m_font, text, ::Vector2{ 0.f, 1.f }, origin, rot, fs, spacing, m_outline);
 	} else if (m_outlineThickness > 0.f) {
 		// Encased outline via fragment shader. Falls back to the legacy
 		// single-stamp +1,+1 if the shader fails to compile (e.g. a Mesa

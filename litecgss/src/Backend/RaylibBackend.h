@@ -22,6 +22,7 @@
 
 #include "LiteCGSS/Backend/RaylibBackendFwd.h"
 #include "Backend/Internal/RaylibEventQueue.h"
+#include "Backend/Internal/RaylibFontAtlas.h"
 #include "Backend/Internal/RaylibKeyTranslation.h"
 #include "Backend/Shader/ShaderPreprocessor.h"
 
@@ -717,70 +718,36 @@ namespace cgss::backend {
 		// window_create" pattern used across this backend (window_set_position
 		// et al.) and just return false — cgss::Font stays in its unloaded
 		// state, non-GPU setters (size / color) remain usable.
-		static inline bool font_load_from_file(native_font& f, const char* filename) {
+		// Fonts are built by raylib_detail::buildFontAtlas, not LoadFontEx:
+		// SFML's sizing (character size = em size) and baseline (first one at
+		// y = character size), Latin + common symbols, binary alpha for crisp
+		// pixel fonts. See Internal/RaylibFontAtlas.h.
+		static constexpr int kDefaultFontSize = 32;
+
+		static inline bool font_load_from_memory_with_size(native_font& f, const void* data, std::size_t size, int fontSize) {
 			if (!IsWindowReady()) return false;
+			::Font built{};
+			if (!raylib_detail::buildFontAtlas(built, static_cast<const unsigned char*>(data), static_cast<int>(size), fontSize)) {
+				return false;
+			}
 			if (f.texture.id != 0) UnloadFont(f);
-			f = LoadFont(filename);
-			// raylib's LoadFont returns a default Font on failure — the
-			// atlas texture id == 0 signals that.
-			return f.texture.id != 0;
+			f = built;
+			return true;
 		}
-		// Size-aware reload: rebuilds the GPU atlas at exactly `fontSize`
-		// pixels per glyph using FONT_BITMAP (binary alpha, no AA). The
-		// equivalent of LoadFontEx — but LoadFontEx defaults to
-		// FONT_DEFAULT, whose anti-aliased grayscale alpha produces a
-		// speckled fringe around glyphs at integer-grid render positions
-		// and shows clearly on top of any drop-shadow stamp. Pixel fonts
-		// (PSDK's PowerGreenSmall et al.) are designed at exact pixel
-		// sizes — bitmap rasterization gives the crisp, no-fringe look
-		// PSDK was authored for. Smooth TTF fonts trade a bit of edge
-		// quality but stay legible.
 		static inline bool font_load_from_file_with_size(native_font& f, const char* filename, int fontSize) {
 			if (!IsWindowReady()) return false;
-			if (f.texture.id != 0) UnloadFont(f);
-
 			int dataSize = 0;
 			unsigned char* fileData = LoadFileData(filename, &dataSize);
-			if (fileData == nullptr) {
-				f = native_font{};
-				return false;
-			}
-			constexpr int kGlyphCount = 95; // ASCII default range
-			::Font built{};
-			built.baseSize    = fontSize;
-			built.glyphCount  = kGlyphCount;
-			built.glyphs      = LoadFontData(fileData, dataSize, fontSize, nullptr, kGlyphCount, FONT_BITMAP);
+			if (fileData == nullptr) return false;
+			const bool loaded = font_load_from_memory_with_size(f, fileData, static_cast<std::size_t>(dataSize), fontSize);
 			UnloadFileData(fileData);
-			if (built.glyphs == nullptr) {
-				f = native_font{};
-				return false;
-			}
-			::Rectangle* recs = nullptr;
-			// padding=4 matches raylib's stock LoadFontEx. With padding=0,
-			// glyphs touch in the atlas, so DrawTexturePro's edge sampling
-			// of one glyph rect spills the leftmost/rightmost column of
-			// the *neighbouring* atlas glyph into the rendered text — this
-			// is the source of the residual "ghost stroke" noise around
-			// letters even after FONT_BITMAP + POINT filter were in place.
-			::Image atlas = GenImageFontAtlas(built.glyphs, &recs, kGlyphCount, fontSize, /*padding*/ 4, /*packMethod*/ 0);
-			built.recs    = recs;
-			built.texture = LoadTextureFromImage(atlas);
-			UnloadImage(atlas);
-			f = built;
-			return f.texture.id != 0;
+			return loaded;
+		}
+		static inline bool font_load_from_file(native_font& f, const char* filename) {
+			return font_load_from_file_with_size(f, filename, kDefaultFontSize);
 		}
 		static inline bool font_load_from_memory(native_font& f, const void* data, std::size_t size) {
-			if (!IsWindowReady()) return false;
-			if (f.texture.id != 0) UnloadFont(f);
-			// LoadFontFromMemory needs a file-type hint (e.g. ".ttf").
-			// We assume .ttf here — callers with other formats should
-			// call LoadFontFromMemory directly via the extension SPI.
-			f = LoadFontFromMemory(".ttf",
-			                       reinterpret_cast<const unsigned char*>(data),
-			                       static_cast<int>(size),
-			                       32,    // default character size
-			                       nullptr, 0);
-			return f.texture.id != 0;
+			return font_load_from_memory_with_size(f, data, size, kDefaultFontSize);
 		}
 		// Release the GPU atlas a raylib Font owns. Safe on zero-initialized.
 		static inline void font_destroy(native_font& f) noexcept {

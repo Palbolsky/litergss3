@@ -207,6 +207,8 @@ elseif(CGSS_BACKEND STREQUAL "raylib")
 	target_link_libraries(LiteCGSS_backend INTERFACE raylib)
 	# Vendored raylib 5.0 header: sets the API contract (see find_package above).
 	target_include_directories(LiteCGSS_backend INTERFACE ${LITE_CGSS_EXTERNAL}/raylib)
+	# stb_truetype: font rasterization with SFML's metrics (Internal/RaylibFontAtlas.cpp).
+	target_include_directories(LiteCGSS_backend INTERFACE ${LITE_CGSS_EXTERNAL}/stb)
 	if(WIN32)
 		# Safety net: raylib's Windows build needs winmm (timeBeginPeriod).
 		# Normally propagated transitively by find_package(raylib), but some
