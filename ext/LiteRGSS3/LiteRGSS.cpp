@@ -3,7 +3,7 @@
 #include "window/FramedView.h"
 #include "yuki/Yuki.h"
 #ifdef LITECGSS_USE_PHYSFS
-#include "assets/Asset.h"
+#include "vfs/VfsLock.h"
 #endif
 #include "inputs/Inputs.h"
 #include "graphics/Graphics.h"
@@ -49,7 +49,7 @@ extern "C"
     Init_Yuki();
     Init_YukiGifReader();
 #ifdef LITECGSS_USE_PHYSFS
-    Init_Asset();
+    Init_VfsLock();
 #endif
   }
 }

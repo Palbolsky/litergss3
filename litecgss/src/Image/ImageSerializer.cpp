@@ -5,7 +5,7 @@
 
 #include <iostream>
 #include "Backend/ActiveBackend.h"
-#include "LiteCGSS/Common/Assets.h"
+#include "LiteCGSS/Common/VFS.h"
 #include "LiteCGSS/Image/Serializers/ImageSerializer.h"
 
 namespace cgss {
@@ -31,11 +31,11 @@ namespace cgss {
 #ifdef LITECGSS_USE_PHYSFS
 	template <>
 	bool basic_ImageAssetSerializeMethod<ActiveBackend>::load(ActiveBackend::native_image& image, const std::string& filename) {
-		if (!AssetFile::exists(filename)) {
+		if (!cgss::vfs::exists(filename)) {
 			return Ops::png_decode_file(image, filename.c_str());
 		}
 		try {
-			const auto buffer = AssetFile { filename, "r" }.fullLoad();
+			const auto buffer = cgss::vfs::loadFully(filename);
 			return Ops::png_decode_memory(image, buffer.data(), buffer.size());
 		} catch (const std::exception& err) {
 			std::cerr << "Error while loading asset \"" << filename << "\" : " << err.what() << std::endl;
@@ -45,8 +45,7 @@ namespace cgss {
 
 	template <>
 	unsigned int basic_ImageAssetSerializeMethod<ActiveBackend>::save(const ActiveBackend::native_image& image, const std::string& filename) {
-		// Currently unsupported in an archive — fall through to direct file
-		// write. Should we route via AssetFile{...,"w"} instead?
+		// Saves go to the real filesystem, not into the mounted archives.
 		return Ops::png_encode_file(image, filename.c_str());
 	}
 #else

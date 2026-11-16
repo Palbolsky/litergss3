@@ -7,7 +7,7 @@
 
 #include <iostream>
 #include "Backend/ActiveBackend.h"
-#include "LiteCGSS/Common/Assets.h"
+#include "LiteCGSS/Common/VFS.h"
 #include "LiteCGSS/Graphics/Serializers/TextureSerializer.h"
 #include "Graphics/Serializers/TextureUploadDiagnostic.h"
 
@@ -50,11 +50,11 @@ namespace cgss {
 	bool basic_TextureAssetSerializeMethod<ActiveBackend>::load(ActiveBackend::native_texture& texture, const std::string& filename, ActiveBackend::native_image& image) {
 		Ops::texture_destroy(texture);
 		bool ok = false;
-		if (!AssetFile::exists(filename)) {
+		if (!cgss::vfs::exists(filename)) {
 			ok = Ops::png_decode_file(image, filename.c_str());
 		} else {
 			try {
-				const auto buffer = AssetFile{ filename, "r" }.fullLoad();
+				const auto buffer = cgss::vfs::loadFully(filename);
 				ok = Ops::png_decode_memory(image, buffer.data(), buffer.size());
 			} catch (const std::exception& err) {
 				std::cerr << "Error while loading asset \"" << filename << "\" : " << err.what() << std::endl;
@@ -67,21 +67,13 @@ namespace cgss {
 
 	template <>
 	unsigned int basic_TextureAssetSerializeMethod<ActiveBackend>::save(const ActiveBackend::native_texture& texture, const std::string& filename) {
+		// Saves go to the real filesystem, not into the mounted archives
+		// (as LiteCGSS2 does): a game writes its files through its own IO.
 		ActiveBackend::native_image image{};
 		if (!Ops::texture_read_to_image(texture, image)) return 1u;
-		const auto buffer = Ops::png_encode_memory(image);
+		const unsigned int rc = Ops::png_encode_file(image, filename.c_str());
 		Ops::image_destroy(image);
-		if (buffer.first == nullptr || buffer.second == 0u) return 1u;
-		unsigned int result = 1u;
-		try {
-			AssetFile file{ filename, "w" };
-			file.writeRaw(buffer.first, buffer.second);
-			result = 0u;
-		} catch (const std::exception&) {
-			result = 1u;
-		}
-		std::free(buffer.first);
-		return result;
+		return rc;
 	}
 #else
 	template <>

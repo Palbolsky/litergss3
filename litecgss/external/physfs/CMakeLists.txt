@@ -10,4 +10,7 @@ FetchContent_Declare(
         GIT_SHALLOW TRUE
 )
 
+# physfs 3.2.0 declares cmake_minimum_required(VERSION 2.8.x), which CMake 4
+# rejects; scoped to this directory, so only physfs gets the floor.
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 FetchContent_MakeAvailable(physfs)

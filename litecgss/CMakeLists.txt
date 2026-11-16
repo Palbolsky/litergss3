@@ -134,7 +134,6 @@ if(LITECGSS_USE_PHYSFS)
 	set(PHYSFS_BUILD_SHARED OFF CACHE INTERNAL "")
 	add_subdirectory(${LITE_CGSS_EXTERNAL}/physfs)
 	set_property(TARGET physfs-static PROPERTY POSITION_INDEPENDENT_CODE ON)
-	target_include_directories(physfs-static INTERFACE ${FETCHCONTENT_BASE_DIR}/physfs-src/src)
 endif()
 
 set(BUILD_SHARED_LIBS ${_cgss_old_build_shared_libs})

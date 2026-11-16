@@ -35,6 +35,15 @@
       "cacheVariables": { "CGSS_BACKEND": "sfml" }
     },
     {
+      "name": "debug-physfs",
+      "displayName": "Debug (raylib, PhysicsFS assets)",
+      "inherits": "debug",
+      "cacheVariables": {
+        "LITECGSS_USE_PHYSFS": "ON",
+        "LITERGSS_EXT_OUTPUT_DIR": "${sourceDir}/build/${presetName}/lib"
+      }
+    },
+    {
       "name": "litecgss",
       "displayName": "LiteCGSS only (no Ruby)",
       "inherits": "debug",
@@ -48,11 +57,13 @@
     { "name": "debug", "configurePreset": "debug" },
     { "name": "release", "configurePreset": "release" },
     { "name": "debug-sfml", "configurePreset": "debug-sfml" },
+    { "name": "debug-physfs", "configurePreset": "debug-physfs" },
     { "name": "litecgss", "configurePreset": "litecgss" }
   ],
   "testPresets": [
     { "name": "debug", "configurePreset": "debug", "output": { "outputOnFailure": true } },
     { "name": "debug-sfml", "configurePreset": "debug-sfml", "output": { "outputOnFailure": true } },
+    { "name": "debug-physfs", "configurePreset": "debug-physfs", "output": { "outputOnFailure": true } },
     { "name": "litecgss", "configurePreset": "litecgss", "output": { "outputOnFailure": true } }
   ]
 }
