@@ -23,6 +23,7 @@
 #include "LiteCGSS/Backend/RaylibBackendFwd.h"
 #include "Backend/Internal/RaylibEventQueue.h"
 #include "Backend/Internal/RaylibFontAtlas.h"
+#include "Backend/Internal/RaylibPlatformQueries.h"
 #include "Backend/Internal/RaylibKeyTranslation.h"
 #include "Backend/Shader/ShaderPreprocessor.h"
 
@@ -260,6 +261,12 @@ namespace cgss::backend {
 		// only answer this after the window is created. Callers that need
 		// pre-window monitor info (to e.g. size the window to a fraction of
 		// the desktop) must guard on the returned zero dims.
+		static inline std::vector<cgss::VideoMode> fullscreen_modes() {
+			return raylib_detail::fullscreenModes();
+		}
+		static inline unsigned int texture_max_size() {
+			return raylib_detail::maxTextureSize();
+		}
 		static inline Size2u desktop_size() noexcept {
 			if (!IsWindowReady()) return { 0u, 0u };
 			const int m = GetCurrentMonitor();
@@ -482,8 +489,18 @@ namespace cgss::backend {
 				static_cast<float>(IsWindowReady() ? GetScreenHeight() : 0));
 			raylib_detail::setCurrentView(v);
 		}
+		// raylib's GL profile is fixed when raylib is built: report it.
 		static inline cgss::DisplayWindowContextSettings window_get_settings(const native_window&) {
-			return {};
+			cgss::DisplayWindowContextSettings settings{};
+			switch (rlGetVersion()) {
+				case RL_OPENGL_11:    settings.majorVersion = 1; settings.minorVersion = 1; break;
+				case RL_OPENGL_21:    settings.majorVersion = 2; settings.minorVersion = 1; break;
+				case RL_OPENGL_33:    settings.majorVersion = 3; settings.minorVersion = 3; break;
+				case RL_OPENGL_43:    settings.majorVersion = 4; settings.minorVersion = 3; break;
+				case RL_OPENGL_ES_20: settings.majorVersion = 2; settings.minorVersion = 0; break;
+				default: break;
+			}
+			return settings;
 		}
 		// Create — or re-configure — the process-global raylib window. Two
 		// code paths fold into this one Op to match SFML's single-call

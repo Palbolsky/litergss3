@@ -8,6 +8,7 @@
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
 #include "LiteCGSS/Events/Event.h"
 #include "LiteCGSS/Image/Image.h"
+#include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Views/DisplayWindow.h"
 
 #include <filesystem>
@@ -32,6 +33,7 @@ namespace {
 
 VALUE rb_cDisplayWindow      = Qnil;
 VALUE rb_eClosedWindowError  = Qnil;
+VALUE rb_eStoppedWindowError = Qnil;
 
 // Singleton DisplayWindow Ruby instance — the LiteRGSS2 surface exposes
 // `LiteRGSS::DisplayWindow.desktop_width` / `.desktop_height` as class
@@ -333,6 +335,50 @@ VALUE rb_DisplayWindow_move(VALUE self, VALUE x, VALUE y)
 	return self;
 }
 
+VALUE rb_DisplayWindow_setX(VALUE self, VALUE x)
+{
+	ensureWindow();
+	g_window->move(NUM2INT(x), g_window->getY());
+	return self;
+}
+
+VALUE rb_DisplayWindow_setY(VALUE self, VALUE y)
+{
+	ensureWindow();
+	g_window->move(g_window->getX(), NUM2INT(y));
+	return self;
+}
+
+// [major, minor] of the GL context the window renders with.
+VALUE rb_DisplayWindow_openGLVersion(VALUE self)
+{
+	(void)self;
+	ensureWindow();
+	const auto settings = g_window->getContextSettings();
+	VALUE result = rb_ary_new_capa(2);
+	rb_ary_push(result, UINT2NUM(settings.majorVersion));
+	rb_ary_push(result, UINT2NUM(settings.minorVersion));
+	return result;
+}
+
+// [[width, height], ...] of the 32 bpp fullscreen modes, best first.
+VALUE rb_DisplayWindow_listResolutions(VALUE self)
+{
+	(void)self;
+	VALUE result = rb_ary_new();
+	for (const auto& mode : cgss::DisplayWindow::FullscreenModes()) {
+		if (mode.bitsPerPixel != 32) continue;
+		rb_ary_push(result, rb_ary_new_from_args(2, UINT2NUM(mode.width), UINT2NUM(mode.height)));
+	}
+	return result;
+}
+
+VALUE rb_DisplayWindow_maxTextureSize(VALUE self)
+{
+	(void)self;
+	return UINT2NUM(cgss::Texture::getMaximumSize());
+}
+
 // LiteRGSS2 exposed desktop dimensions as instance methods AND as class
 // methods. Provide both so PSDK's `LiteRGSS::DisplayWindow.desktop_width`
 // works pre-instance.
@@ -355,6 +401,11 @@ VALUE rb_DisplayWindow_desktopHeight(VALUE self)
 VALUE rb_DisplayWindow_update(VALUE self)
 {
 	ensureWindow();
+	// Like LiteRGSS2: a window closed by anything but its Closed event (which
+	// raises ClosedWindowError) stops the game loop with StoppedError.
+	if (!g_window->isOpen()) {
+		rb_raise(rb_eStoppedWindowError, "Game Window was closed during DisplayWindow.update by an unknown cause...");
+	}
 	g_window->draw();
 	if (RTEST(rb_ivar_get(self, iv_polling))) drain_events_internal(self);
 	return g_window->isOpen() ? Qtrue : Qfalse;
@@ -484,6 +535,7 @@ VALUE rb_DisplayWindow_snapToBitmap(VALUE self)
 	}
 
 DEFINE_CB_SETTER("on_closed",                  on_closed)
+DEFINE_CB_SETTER("on_resized",                 on_resized)
 DEFINE_CB_SETTER("on_lost_focus",              on_lost_focus)
 DEFINE_CB_SETTER("on_gained_focus",            on_gained_focus)
 DEFINE_CB_SETTER("on_text_entered",            on_text_entered)
@@ -537,16 +589,15 @@ static VALUE drain_events_internal(VALUE self)
 				// spins forever in update_no_input — that's the close-window
 				// freeze. Emit the error AFTER tearing down the window so any
 				// `ensure` block downstream still sees a disposed state.
+				// Like LiteRGSS2, only an explicit `false` keeps the window
+				// open (nil included, any other answer closes it).
 				VALUE cb = rb_hash_lookup(cb_hash, ID2SYM(rb_intern("on_closed")));
-				const bool do_raise = NIL_P(cb)
-					|| RTEST(rb_proc_call_with_block(cb, 0, nullptr, Qnil));
+				const bool close = NIL_P(cb)
+					|| rb_proc_call_with_block(cb, 0, nullptr, Qnil) != Qfalse;
+				if (!close) break; // on_closed returned false: the window stays open
 				g_window->stop();
 				rb_ivar_set(self, iv_disposed, Qtrue);
-				if (do_raise) {
-					rb_raise(rb_eClosedWindowError,
-					         "Game Window has been closed by user");
-				}
-				break;
+				rb_raise(rb_eClosedWindowError, "Game Window has been closed by user");
 			}
 			case ET::LostFocus: {
 				rb_ivar_set(self, iv_focus, Qfalse);
@@ -587,6 +638,8 @@ static VALUE drain_events_internal(VALUE self)
 					rb_ary_store(arr, SI_WIDTH,  UINT2NUM(p->width));
 					rb_ary_store(arr, SI_HEIGHT, UINT2NUM(p->height));
 				}
+				VALUE args[2] = { UINT2NUM(p->width), UINT2NUM(p->height) };
+				invoke_cb(cb_hash, "on_resized", 2, args);
 				break;
 			}
 			case ET::MouseMoved: {
@@ -772,6 +825,7 @@ void Init_DisplayWindow()
 	rb_eClosedWindowError = rb_define_class_under(rb_cDisplayWindow,
 	                                              "ClosedWindowError",
 	                                              rb_eRGSSError);
+	rb_eStoppedWindowError = rb_define_class_under(rb_cDisplayWindow, "StoppedError", rb_eStandardError);
 
 	iv_settings        = rb_intern("@settings");
 	iv_brightness      = rb_intern("@brightness");
@@ -797,6 +851,12 @@ void Init_DisplayWindow()
 	rb_define_method(rb_cDisplayWindow, "x",                _rbf rb_DisplayWindow_getX,               0);
 	rb_define_method(rb_cDisplayWindow, "y",                _rbf rb_DisplayWindow_getY,               0);
 	rb_define_method(rb_cDisplayWindow, "move",             _rbf rb_DisplayWindow_move,               2);
+	rb_define_method(rb_cDisplayWindow, "x=",               _rbf rb_DisplayWindow_setX,               1);
+	rb_define_method(rb_cDisplayWindow, "y=",               _rbf rb_DisplayWindow_setY,               1);
+	rb_define_method(rb_cDisplayWindow, "openGL_version",   _rbf rb_DisplayWindow_openGLVersion,      0);
+	rb_define_method(rb_cDisplayWindow, "on_resized=",      _rbf rb_DisplayWindow_set_on_resized,     1);
+	rb_define_singleton_method(rb_cDisplayWindow, "list_resolutions", _rbf rb_DisplayWindow_listResolutions, 0);
+	rb_define_singleton_method(rb_cDisplayWindow, "max_texture_size", _rbf rb_DisplayWindow_maxTextureSize,  0);
 	rb_define_method(rb_cDisplayWindow, "desktop_width",    _rbf rb_DisplayWindow_desktopWidth,       0);
 	rb_define_method(rb_cDisplayWindow, "desktop_height",   _rbf rb_DisplayWindow_desktopHeight,      0);
 	rb_define_method(rb_cDisplayWindow, "update",           _rbf rb_DisplayWindow_update,             0);

@@ -33,6 +33,13 @@ namespace cgss {
 		// the window opens.
 		static bool supportsFixedPipeline();
 
+		// True when clients should author shaders against the fixed pipeline
+		// (gl_TexCoord / gl_Color...): the engine feeds or translates them on
+		// this backend. False on GL ES through SFML ES, where clients pass
+		// their own vertex shader on SFML ES's attributes. PSDK reads it as
+		// LITECGSS_SHADER_FIXED_PIPELINE.
+		static bool areShaderPipelineFixed();
+
 		RenderStatesData& data() { return value(); }
 	};
 

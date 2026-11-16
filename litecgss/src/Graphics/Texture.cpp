@@ -94,6 +94,11 @@ cgss::basic_Texture<B> cgss::basic_Texture<B>::create_from_native(typename B::na
 }
 
 template <class B>
+unsigned int cgss::basic_Texture<B>::getMaximumSize() {
+	return B::Ops::texture_max_size();
+}
+
+template <class B>
 cgss::basic_Image<B> cgss::basic_Texture<B>::copyToImage() const {
 	auto result = basic_Image<B>{};
 	// basic_Texture friends basic_Image, so result.m_image is reachable.

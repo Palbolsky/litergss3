@@ -11,6 +11,8 @@
 #include "Shader.h"
 #include "Color.h"
 #include "Tone.h"
+#include "Image.h"
+#include <LiteCGSS/Graphics/RenderStates.h>
 
 VALUE rb_cShader = Qnil;
 
@@ -135,12 +137,36 @@ VALUE rb_Shader_setTextureUniform(VALUE self, VALUE name, VALUE uniform)
 {
     auto &rs = rb::Get<RenderStatesElement>(self);
     rb_check_type(name, T_STRING);
-    // Bitmap is the LiteRGSS::Bitmap alias of LiteRGSS::Image. Texture
-    // binding via a ready-made cgss::Texture isn't yet hooked up here —
-    // the Image-to-Texture bridge is in Sprite#bitmap=. For now, fall back
-    // to the CurrentTexture sampler (sane default for fullscreen pp).
-    (void)uniform;
+    // A Bitmap (alias of Image) binds its GPU texture — the engine also
+    // pushes `<name>_factor_npot` for it. Anything else binds the texture
+    // of the drawable being drawn (CurrentTexture), like LiteRGSS2.
+    if (rb_obj_is_kind_of(uniform, rb_cImage) == Qtrue) {
+        ImageData *img = get_image(uniform);
+        if (img != nullptr && !img->disposed && img->valid()) {
+            rs.data().setShaderUniform(StringValueCStr(name), image_acquire_texture(img));
+        }
+        return self;
+    }
     rs.data().setShaderUniform(StringValueCStr(name), cgss::CurrentTexture);
+    return self;
+}
+
+// LiteRGSS2 API: binds `texture_name` and, when given, also sets
+// `factor_npot_name` to the texture's NPOT factor (the engine already sets
+// `<texture_name>_factor_npot` itself).
+VALUE rb_Shader_setTextureFactorUniforms(VALUE self, VALUE texture_name, VALUE texture, VALUE factor_npot_name)
+{
+    if (rb_obj_is_kind_of(texture, rb_cImage) == Qfalse) {
+        rb_raise(rb_eTypeError, "Expected Texture (Bitmap) got %s.", RSTRING_PTR(rb_class_name(CLASS_OF(texture))));
+    }
+    rb_Shader_setTextureUniform(self, texture_name, texture);
+    if (NIL_P(factor_npot_name)) return self;
+    rb_check_type(factor_npot_name, T_STRING);
+    ImageData *img = get_image(texture);
+    if (img == nullptr || img->disposed || !img->valid()) return self;
+    const auto factor = image_acquire_texture(img).factorNpot();
+    rb::Get<RenderStatesElement>(self).data().setShaderUniform(StringValueCStr(factor_npot_name),
+        cgss::Glsl::Vec2{ static_cast<float>(factor[0]), static_cast<float>(factor[1]) });
     return self;
 }
 
@@ -202,6 +228,7 @@ void Init_Shader()
     rb_define_method(rb_cShader, "set_int_uniform", _rbf rb_Shader_setIntUniform, 2);
     rb_define_method(rb_cShader, "set_bool_uniform", _rbf rb_Shader_setBoolUniform, 2);
     rb_define_method(rb_cShader, "set_texture_uniform", _rbf rb_Shader_setTextureUniform, 2);
+    rb_define_method(rb_cShader, "set_texture_factor_uniforms", _rbf rb_Shader_setTextureFactorUniforms, 3);
     rb_define_method(rb_cShader, "set_matrix_uniform", _rbf rb_Shader_setMatrixUniform, 2);
     rb_define_method(rb_cShader, "set_float_array_uniform", _rbf rb_Shader_setFloatArrayUniform, 2);
     rb_define_method(rb_cShader, "clone", _rbf rb_Shader_Copy, 0);
@@ -215,4 +242,12 @@ void Init_Shader()
     rb_define_const(rb_cShader, "Fragment", LONG2FIX(static_cast<long>(cgss::ShaderType::Fragment)));
     rb_define_const(rb_cShader, "Vertex", LONG2FIX(static_cast<long>(cgss::ShaderType::Vertex)));
     rb_define_const(rb_cShader, "Geometry", LONG2FIX(static_cast<long>(cgss::ShaderType::Geometry)));
+
+    // PSDK picks its shader sources from it (Shader::FIXED_PIPELINE).
+    rb_define_const(rb_cShader, "LITECGSS_SHADER_FIXED_PIPELINE",
+                    cgss::RenderStates::areShaderPipelineFixed() ? Qtrue : Qfalse);
+    // LiteRGSS2 also defines the Shape type symbols on Shader.
+    rb_define_const(rb_cShader, "CIRCLE", ID2SYM(rb_intern("circle")));
+    rb_define_const(rb_cShader, "CONVEX", ID2SYM(rb_intern("convex")));
+    rb_define_const(rb_cShader, "RECTANGLE", ID2SYM(rb_intern("rectangle")));
 }

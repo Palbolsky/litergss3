@@ -435,4 +435,9 @@ unsigned int cgss::basic_DisplayWindow<B>::DesktopHeight() {
 	return B::Ops::desktop_size().y;
 }
 
+template <class B>
+std::vector<cgss::VideoMode> cgss::basic_DisplayWindow<B>::FullscreenModes() {
+	return B::Ops::fullscreen_modes();
+}
+
 template class cgss::basic_DisplayWindow<cgss::backend::ActiveBackend>;

@@ -1,5 +1,6 @@
 #include "LiteCGSS/Graphics/RenderStates.h"
 #include "Backend/ActiveBackend.h"
+#include "Backend/Shader/ShaderPreprocessor.h"
 
 namespace { using Ops = cgss::backend::ActiveBackend::Ops; }
 
@@ -17,4 +18,8 @@ void cgss::RenderStates::enableShaders(bool enable) {
 
 bool cgss::RenderStates::supportsFixedPipeline() {
 	return Ops::shader_supports_fixed_pipeline();
+}
+
+bool cgss::RenderStates::areShaderPipelineFixed() {
+	return Ops::shader_preprocessor_target() != cgss::ShaderPreprocessor::Target::SfmlEs100;
 }

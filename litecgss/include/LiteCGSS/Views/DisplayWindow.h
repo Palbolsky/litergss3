@@ -5,8 +5,10 @@
 #include <mutex>
 #include <optional>
 #include <type_traits>
+#include <vector>
 
 #include "LiteCGSS/Backend/ActiveBackendFwd.h"
+#include "LiteCGSS/Configuration/VideoMode.h"
 #include "LiteCGSS/Events/Event.h"
 #include "LiteCGSS/Views/View.h"
 #include "LiteCGSS/Views/ViewAuthorizations.h"
@@ -45,6 +47,8 @@ namespace cgss {
 	public:
 		static unsigned int DesktopWidth();
 		static unsigned int DesktopHeight();
+		// Fullscreen modes of the primary display, best first.
+		static std::vector<cgss::VideoMode> FullscreenModes();
 
 		basic_DisplayWindow(const DisplayWindowSettings& settings);
 

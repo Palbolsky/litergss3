@@ -71,12 +71,24 @@ bool cgss::basic_RenderStatesData<B>::enabledShaders() {
 
 template <class B>
 void cgss::basic_RenderStatesData<B>::warnIfShadersNotAvailable() {
-	if (SHADERS_ENABLED && !B::Ops::shader_is_available()) {
-		// TODO: surface this through the engine logger so the host can
-		// degrade gracefully (skip shader binds, fall back to plain blits).
-		// Today the message is built and immediately discarded.
-		std::string m_lastError = "Shaders are not available :(";
-		(void)m_lastError;
+	// Two distinct disable paths — surface both so the cause is unambiguous:
+	//   - SHADERS_ENABLED == false: set by the host (Ruby:
+	//     `LiteRGSS::Shader.available = false`) and process-wide; a loader
+	//     disabling shaders and never restoring them silently breaks every
+	//     later shader load.
+	//   - the backend can't compile shaders at all (no GLSL support).
+	if (!SHADERS_ENABLED) {
+		std::cerr << "LiteCGSS: shader load attempted while SHADERS_ENABLED == false. "
+		             "Some Ruby code called `LiteRGSS::Shader.available = false` and never restored it. "
+		             "Until restored, every Shader.new returns a non-functional shader and sprites "
+		             "fall back to the default sampler shader (you'll see the bitmap, not your shader output)."
+		          << std::endl;
+		return;
+	}
+	if (!B::Ops::shader_is_available()) {
+		std::cerr << "LiteCGSS: shader load attempted but the graphics backend reports shaders as unavailable. "
+		             "The current GL context can't compile shaders (no GLSL support reported by the driver)."
+		          << std::endl;
 	}
 }
 
@@ -95,9 +107,6 @@ bool cgss::basic_RenderStatesData<B>::isAvailable() {
 
 template <class B>
 void cgss::basic_RenderStatesData<B>::enableShader(bool enable) {
-	if (enable) {
-		warnIfShadersNotAvailable();
-	}
 	m_shadersEnabled = enable && isAvailable();
 	updateShader();
 }
@@ -165,6 +174,7 @@ cgss::BlendEquation cgss::basic_RenderStatesData<B>::getBlendAlphaEquation() con
 template <class B>
 bool cgss::basic_RenderStatesData<B>::loadShaderFromMemory(const std::string& shader, cgss::ShaderType type) {
 	if (!isAvailable()) {
+		warnIfShadersNotAvailable();
 		return false;
 	}
 	if (m_shader == nullptr) {
@@ -195,6 +205,7 @@ bool cgss::basic_RenderStatesData<B>::loadShaderFromMemory(const std::string& sh
 template <class B>
 bool cgss::basic_RenderStatesData<B>::loadShaderFromMemory(const std::string& vertexShader, const std::string& fragmentShader) {
 	if (!isAvailable()) {
+		warnIfShadersNotAvailable();
 		return false;
 	}
 	if (m_shader == nullptr) {
@@ -233,6 +244,15 @@ bool cgss::basic_RenderStatesData<B>::loadShaderFromMemory(const std::string& ve
 		applyUniformDefaults<B>(*m_shader, concat(concat(processedVert.uniformDefaults, processedGeom.uniformDefaults),
 		                                          processedFrag.uniformDefaults));
 		return true;
+	}
+	// Shaders disabled / unavailable, or geometry shaders specifically
+	// unsupported: surface the reason.
+	if (!B::Ops::shader_is_geometry_available()) {
+		std::cerr << "LiteCGSS: geometry-shader load attempted but the graphics backend "
+		             "doesn't support geometry shaders."
+		          << std::endl;
+	} else {
+		warnIfShadersNotAvailable();
 	}
 	enableShader(false);
 	return false;

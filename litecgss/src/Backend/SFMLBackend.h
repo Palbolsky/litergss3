@@ -56,6 +56,7 @@
 #include "LiteCGSS/Common/Color.h"
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Configuration/DisplayWindowContextSettings.h"
+#include "LiteCGSS/Configuration/VideoMode.h"
 #include "LiteCGSS/Common/Point.h"
 #include "LiteCGSS/Common/Vector3.h"
 #include "LiteCGSS/Events/EventPayloads.h"
@@ -491,6 +492,16 @@ namespace cgss::backend {
 	public:
 
 		// Desktop-mode static query (independent of any window instance).
+		static inline std::vector<cgss::VideoMode> fullscreen_modes() {
+			std::vector<cgss::VideoMode> modes;
+			for (const auto& m : sf::VideoMode::getFullscreenModes()) {
+				modes.push_back({ m.width, m.height, m.bitsPerPixel });
+			}
+			return modes;
+		}
+		static inline unsigned int texture_max_size() {
+			return sf::Texture::getMaximumSize();
+		}
 		static inline Size2u desktop_size() noexcept {
 			const auto m = sf::VideoMode::getDesktopMode();
 			return { m.width, m.height };

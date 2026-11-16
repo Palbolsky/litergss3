@@ -52,6 +52,8 @@ namespace cgss {
 
 		struct Size { unsigned int x; unsigned int y; };
 		Size getSize() const;
+		// Largest texture side the graphics driver accepts.
+		static unsigned int getMaximumSize();
 
 		void blit(unsigned long x, unsigned long y, const basic_Texture& srcTexture, const Rectangle& rect);
 		void fillRect(long x, long y, unsigned int width, unsigned int height, cgss::Color color);
