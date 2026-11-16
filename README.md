@@ -50,16 +50,18 @@ Optional engine features (CMake options, off by default):
 Pick a generator with the `CMAKE_GENERATOR` environment variable
 (e.g. `MinGW Makefiles` on Windows).
 
-The extension is written to `build/lib/LiteRGSS.so`. To try it: `ruby ./start.rb`.
+Each preset writes the extension to its own `build/<preset>/lib/` (`build/debug/lib/LiteRGSS.so` for
+`rake compile`), so backends never overwrite each other. To try it: `ruby ./start.rb`.
 
 To play a PSDK game on it (instead of the LiteRGSS2 runtime of `Game.sh`):
 
-    tools/psdk-demo.sh                      # ../PSDKTechnicalDemo, debug preset
+    tools/psdk-demo.sh                      # ../PSDKTechnicalDemo, debug preset (raylib)
+    tools/psdk-demo.sh -b sfml              # the SFML backend (debug-sfml preset)
     tools/psdk-demo.sh -g /path/to/game -p release -- debug   # args after -- go to Game.rb
     rake psdk                               # same, honours PRESET / PSDK_GAME_DIR
 
 It builds the preset, stages the extension where PSDK's loader looks for it
-(`build/psdk-gamedeps`) and runs `Game.rb` with the Ruby the extension was
+(`build/<preset>/psdk-gamedeps`) and runs `Game.rb` with the Ruby the extension was
 compiled for. Audio stays silent (no SFMLAudio extension).
 
 ## LiteCGSS ↔ LiteRGSS boundary

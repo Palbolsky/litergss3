@@ -7,7 +7,8 @@
       "hidden": true,
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
-        "CGSS_BACKEND": "raylib"
+        "CGSS_BACKEND": "raylib",
+        "LITERGSS_EXT_OUTPUT_DIR": "${sourceDir}/build/${presetName}/lib"
       }
     },
     {
@@ -39,8 +40,7 @@
       "displayName": "Debug (raylib, PhysicsFS assets)",
       "inherits": "debug",
       "cacheVariables": {
-        "LITECGSS_USE_PHYSFS": "ON",
-        "LITERGSS_EXT_OUTPUT_DIR": "${sourceDir}/build/${presetName}/lib"
+        "LITECGSS_USE_PHYSFS": "ON"
       }
     },
     {
@@ -48,8 +48,7 @@
       "displayName": "Debug (raylib, Tracy instrumentation)",
       "inherits": "debug",
       "cacheVariables": {
-        "LITECGSS_USE_TRACY": "ON",
-        "LITERGSS_EXT_OUTPUT_DIR": "${sourceDir}/build/${presetName}/lib"
+        "LITECGSS_USE_TRACY": "ON"
       }
     },
     {

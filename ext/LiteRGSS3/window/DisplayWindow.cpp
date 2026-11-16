@@ -87,6 +87,15 @@ static ID iv_event_callbacks;
 static void apply_settings_array(VALUE self, VALUE arr);
 static VALUE drain_events_internal(VALUE self);
 
+// The title the window shows: the script's, plus LITERGSS_TITLE_SUFFIX if
+// set (tools/psdk-demo.sh names the build there). The settings keep the
+// script's own title.
+static std::string window_title(const char* title)
+{
+	const char* suffix = std::getenv("LITERGSS_TITLE_SUFFIX");
+	return suffix == nullptr ? std::string{title} : std::string{title} + suffix;
+}
+
 // Build a DisplayWindowSettings from the current 9-tuple ivar.
 static cgss::DisplayWindowSettings build_settings_from_array(VALUE arr)
 {
@@ -101,7 +110,7 @@ static cgss::DisplayWindowSettings build_settings_from_array(VALUE arr)
 	VALUE fullscreen    = rb_ary_entry(arr, SI_FULLSCREEN);
 	VALUE visible_mouse = rb_ary_entry(arr, SI_VISIBLE_MOUSE);
 
-	settings.title        = NIL_P(title) ? std::string{"LiteRGSS"} : std::string{StringValueCStr(title)};
+	settings.title        = window_title(NIL_P(title) ? "LiteRGSS" : StringValueCStr(title));
 	settings.video.width  = NUM2UINT(width);
 	settings.video.height = NUM2UINT(height);
 	settings.video.scale  = NUM2DBL(scale);
@@ -344,7 +353,7 @@ VALUE rb_DisplayWindow_resizeScreen(VALUE self, VALUE width, VALUE height)
 VALUE rb_DisplayWindow_setTitle(VALUE self, VALUE title)
 {
 	ensureWindow();
-	g_window->setTitle(StringValueCStr(title));
+	g_window->setTitle(window_title(StringValueCStr(title)).c_str());
 	VALUE arr = rb_ivar_get(self, iv_settings);
 	if (!NIL_P(arr)) rb_ary_store(arr, SI_TITLE, title);
 	return self;

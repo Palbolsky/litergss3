@@ -1,4 +1,4 @@
-require_relative './build/lib/LiteRGSS'
+require_relative 'tests/litergss' # LITERGSS_LIB, else build/debug/lib
 
 puts "=== LiteRGSS Test ==="
 

@@ -14,7 +14,9 @@ file(GLOB_RECURSE LITERGSS_SOURCES CONFIGURE_DEPENDS
 
 add_ruby_extension(LiteRGSS ${LITERGSS_SOURCES})
 
-# The Ruby side (tests/, start.rb, PSDK dev setups) loads build/lib/LiteRGSS.
+# Presets write it to build/<preset>/lib (CMakePresets.json), so builds of
+# different backends / options never overwrite each other; build/lib is for
+# builds configured without a preset.
 set(LITERGSS_EXT_OUTPUT_DIR ${PROJECT_SOURCE_DIR}/build/lib CACHE PATH
 	"Where the LiteRGSS extension is written")
 set_target_properties(LiteRGSS PROPERTIES
