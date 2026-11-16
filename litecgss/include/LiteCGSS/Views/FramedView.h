@@ -22,7 +22,7 @@ namespace cgss {
 		// Holds the backend-native state for the 9-slice skin (vertex buffers,
 		// pause/cursor sprite handles, native-typed helpers). Forward-declared
 		// here and defined in the matching specialization's FramedView.cpp —
-		// keeps <SFML/...> out of this public header.
+		// keeps backend headers out of this public header.
 		struct FramedViewImpl;
 	}
 

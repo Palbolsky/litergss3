@@ -1,11 +1,9 @@
 #ifndef CGSS_GAMEPAD_AXIS_H
 #define CGSS_GAMEPAD_AXIS_H
 
-// Backend-agnostic gamepad axis enum. Naming mirrors raylib's GAMEPAD_AXIS_*
-// (ext/LiteRGSS/inputs/Gamepad.cpp already exposes these names to Ruby).
-// SFMLBackend::Ops translates to sf::Joystick::Axis X/Y/Z/R/U/V indices
-// in gamepad_axis_position; normalization to [-1.0, 1.0] follows raylib's
-// convention (SFML returns [-100, 100] which the Op divides by 100).
+// Backend-agnostic gamepad axis enum. Numeric values are ABI (exposed to
+// scripts). Positions are always normalized to [-1.0, 1.0]: backends with a
+// different native range rescale in their Ops.
 
 namespace cgss {
 

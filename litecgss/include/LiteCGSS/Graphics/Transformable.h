@@ -8,10 +8,10 @@ namespace cgss {
 	// 2D transform state (position, origin, rotation, scale). The state is
 	// owned here directly — consumers do not need any backend-specific
 	// `setInstance(...)` binding. Each backend reads the state from the
-	// cgss::Transformable at draw time (e.g. SFMLBackend::build_transform).
+	// cgss::Transformable at draw time (Ops::build_transform).
 	//
 	// Angle is stored as given by the user; the sign convention for the
-	// chosen backend is applied inside `build_transform` (SFML flips the
+	// chosen backend is applied inside `build_transform` (e.g. flipping the
 	// sign to match screen-space Y-down rotation direction).
 	//
 	// `m_version` is bumped by every setter so callers (Sprite/Shape items)

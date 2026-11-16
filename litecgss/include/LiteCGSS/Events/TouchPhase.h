@@ -1,9 +1,8 @@
 #ifndef CGSS_TOUCH_PHASE_H
 #define CGSS_TOUCH_PHASE_H
 
-// Touch event phase. Neither SFML 2.6 nor raylib expose phase directly
-// on their touch APIs — cgss synthesizes it from touch-ID set diffs
-// in the backend's event queue (see Backend/Internal/RaylibEventQueue.cpp).
+// Touch event phase. Backends whose native touch API has no phase
+// synthesize it from touch-ID set diffs in their event queue.
 // `Cancelled` is reserved for future use (e.g. gesture interruption);
 // current backends never emit it.
 

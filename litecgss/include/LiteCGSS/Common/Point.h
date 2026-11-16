@@ -3,8 +3,8 @@
 
 namespace cgss {
 
-	// 2D float point — backend-agnostic POD. Replaces sf::Vector2f as the
-	// public return type of Shape::getPoint() and similar.
+	// 2D float point — backend-agnostic POD, the public return type of
+	// Shape::getPoint() and similar.
 	struct Point {
 		float x = 0.f;
 		float y = 0.f;

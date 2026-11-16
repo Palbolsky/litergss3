@@ -1,9 +1,8 @@
 #ifndef CGSS_BLEND_MODE_H
 #define CGSS_BLEND_MODE_H
 
-// Backend-agnostic blending enums. Numeric values are chosen to match
-// sf::BlendMode::Factor / sf::BlendMode::Equation so that static_cast at the
-// backend boundary is safe.
+// Backend-agnostic blending enums. Numeric values are ABI (exposed to
+// scripts); each backend maps them to its native blend state in its Ops.
 namespace cgss {
 
 	enum class BlendFactor : int {

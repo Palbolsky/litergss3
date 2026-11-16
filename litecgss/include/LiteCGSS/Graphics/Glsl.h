@@ -1,10 +1,8 @@
 #ifndef CGSS_GLSL_H
 #define CGSS_GLSL_H
 
-// Backend-agnostic GLSL uniform value types. Layouts are chosen to be
-// structurally compatible with sf::Glsl::* counterparts so that conversion
-// at the backend boundary (see Backend/Internal/SFMLConversions.h) is trivial.
-// No SFML dependency.
+// Backend-agnostic GLSL uniform value types (plain PODs). Each backend
+// converts them to its native uniform types.
 namespace cgss {
 namespace Glsl {
 

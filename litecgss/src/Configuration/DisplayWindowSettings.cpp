@@ -13,9 +13,8 @@ static cgss::detail::DisplayWindowVideoSettingsData BuildData(
 	unsigned int vmHeight = 480;
 	unsigned int vmBitsPerPixel = 32;
 
-	// bitsPerPixel is no longer queryable at the backend layer (raylib has
-	// no equivalent of sf::VideoMode::bitsPerPixel); modern displays are
-	// effectively always 32-bit, so we keep that as the implicit default.
+	// bitsPerPixel is not queryable through every backend; modern displays
+	// are effectively always 32-bit, so we keep that as the implicit default.
 	const int bitsPerPixelDefault = 32;
 	long maxWidth = 0xFFFFFF;
 	long maxHeight = 0xFFFFFF;

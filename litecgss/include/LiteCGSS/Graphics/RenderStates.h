@@ -26,11 +26,11 @@ namespace cgss {
 		static bool areGeometryShadersEnabled();
 		static void enableShaders(bool enable);
 
-		// True iff the active GL context accepts the SFML legacy fixed-pipeline
+		// True iff the active GL context accepts the legacy fixed-pipeline
 		// GLSL contract (gl_FragColor / gl_TexCoord[0] / texture2D / gl_Color).
 		// Lets clients (e.g. PSDK) detect at runtime whether to author shaders
 		// against the legacy or the modern pipeline. Cheap; safe to call before
-		// the window opens (raylib's rlGetVersion is compile-time).
+		// the window opens.
 		static bool supportsFixedPipeline();
 
 		RenderStatesData& data() { return value(); }

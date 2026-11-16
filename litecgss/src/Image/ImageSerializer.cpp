@@ -1,8 +1,7 @@
 // Backend-agnostic body for the Image serializer family. All PNG codec /
 // file-I/O / blank-image creation routes through Ops::png_* and
-// Ops::image_create_blank_rgba — each backend (lodepng on SFML; stb-image
-// via raylib's LoadImage* / ExportImage* on raylib) provides the matching
-// thunks in *Backend.h. The PhysFS path stays here (asset layer is shared).
+// Ops::image_create_blank_rgba — each backend provides the matching thunks
+// in its *Backend.h. The PhysFS path stays here (asset layer is shared).
 
 #include <iostream>
 #include "Backend/ActiveBackend.h"

@@ -5,10 +5,8 @@
 
 namespace cgss {
 
-	// Backend-agnostic RGBA color. Layout is chosen to be structurally
-	// compatible with sf::Color (same field order, same 8-bit unsigned channels)
-	// so that conversion at the backend boundary (see Backend/Internal/SFMLConversions.h)
-	// is trivial. No SFML dependency.
+	// Backend-agnostic RGBA color (8-bit unsigned channels). Backends convert
+	// it to their native color type at the boundary.
 	struct Color {
 		std::uint8_t r = 0;
 		std::uint8_t g = 0;

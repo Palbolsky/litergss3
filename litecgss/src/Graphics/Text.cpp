@@ -1,10 +1,8 @@
 // Backend-agnostic body for cgss::TextItem / cgss::Text. Each backend's
-// ScrollText (SFML-vendored sf::Text copy in src/Graphics/ vs
-// raylib-native DrawTextPro wrapper in Backend/Specializations/raylib/) is
-// pulled in via ActiveBackend.h, which selects the right backend header on
-// CGSS_BACKEND_*. Both ScrollText classes expose the same cgss-typed facade
-// (cgss::Color setters/getters, cgss::FloatRect bounds, std::string for
-// UTF-8 input) so this file no longer needs to fork on the backend.
+// ScrollText (Backend/Specializations/<backend>/ScrollText.{h,cpp}) is
+// pulled in via ActiveBackend.h. Every ScrollText exposes the same
+// cgss-typed facade (cgss::Color setters/getters, cgss::FloatRect bounds,
+// std::string for UTF-8 input) so this file never forks on the backend.
 
 #include <cmath>
 #include "Backend/ActiveBackend.h"

@@ -8,11 +8,11 @@ template <class B>
 cgss::basic_Image<B>::basic_Image() :
 	m_image(std::make_unique<typename B::native_image>()) {}
 
-// Custom destructor — raylib's `::Image` is a POD with no destructor that
-// knows to call `UnloadImage`, so pixel backing would leak on a default
-// `= default` dtor. Route through `Ops::image_destroy` which each backend
-// implements to match its native semantics (SFML no-op: sf::Image's own
-// dtor self-releases via unique_ptr<sf::Image>).
+// Custom destructor — a native image is not guaranteed to release its pixel
+// backing on destruction (C-style PODs need an explicit unload), so a
+// `= default` dtor could leak. Route through `Ops::image_destroy`, which each
+// backend implements to match its native semantics (a no-op when the native
+// type is self-releasing).
 template <class B>
 cgss::basic_Image<B>::~basic_Image() {
 	if (m_image) {

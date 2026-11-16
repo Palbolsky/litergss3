@@ -10,6 +10,12 @@
 // ADL finds the right overload via either the cgss:: or sf:: argument type.
 // The SFMLBackend::Ops struct uses these through `using cgss::backend::toNative;`
 // declarations; other .cpp callers qualify with `cgss::backend::toNative(...)`.
+//
+// Layout contract: cgss::Color, IntRect, FloatRect, Glsl::* and
+// DisplayWindowContextSettings have the same fields (names, types, order) as
+// their sf:: counterparts, and cgss::BlendFactor / BlendEquation / ShaderType
+// the same numeric values as sf::BlendMode::Factor / Equation and
+// sf::Shader::Type — conversions below are member-wise copies or casts.
 
 #include <SFML/Graphics/BlendMode.hpp>
 #include <SFML/Graphics/Color.hpp>

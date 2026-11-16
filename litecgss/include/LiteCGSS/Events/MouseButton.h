@@ -1,16 +1,12 @@
 #ifndef CGSS_MOUSE_BUTTON_H
 #define CGSS_MOUSE_BUTTON_H
 
-// Backend-agnostic mouse button enum. Left/Right/Middle/XButton1/XButton2
-// numeric values match SFML 2.6 sf::Mouse::Button AND raylib's
-// MOUSE_BUTTON_LEFT/RIGHT/MIDDLE — so `static_cast` works on both
-// backends for the first three. XButton1/XButton2 map to raylib's
-// MOUSE_BUTTON_SIDE/EXTRA via a small translation in RaylibBackend::Ops.
+// Backend-agnostic mouse button enum. Each backend maps it to its native
+// buttons in its Ops. Numeric values are ABI (exposed to scripts).
 //
 // VerticalWheel/HorizontalWheel are NOT real buttons — they're values
-// Ruby code passes to Mouse.press? to query wheel state under raylib.
-// SFML treats wheel input as events only, so mouse_is_button_pressed
-// returns false for them on SFML.
+// scripts pass to Mouse.press? to query wheel state. Backends that only
+// report the wheel through events return false for them.
 
 namespace cgss {
 

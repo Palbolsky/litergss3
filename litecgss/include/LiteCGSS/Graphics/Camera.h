@@ -9,7 +9,7 @@
 namespace cgss {
 
 	// Templated wrapper over `Backend::native_view` (the backend's 2D
-	// view/camera type — sf::View under SFMLBackend). Consumers refer to it
+	// view/camera type). Consumers refer to it
 	// as `cgss::Camera`. Copies perform a deep copy of the underlying native
 	// view (one heap allocation per clone).
 	//

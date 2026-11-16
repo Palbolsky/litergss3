@@ -27,6 +27,10 @@ wrapper over it.
     rake test                     # LiteCGSS (C++) + LiteRGSS (Ruby) tests, through CTest
     rake clean
 
+The `debug-sfml` preset needs SFML **2.6** (SFML 3 is not supported), e.g. a
+build of the SFML-opengl-es2 fork: point CMake at it with
+`cmake --preset debug-sfml -DSFML_DIR=<sfml-install>/lib/cmake/SFML`.
+
 Pick a generator with the `CMAKE_GENERATOR` environment variable
 (e.g. `MinGW Makefiles` on Windows).
 

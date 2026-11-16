@@ -3,10 +3,9 @@
 
 namespace cgss {
 
-	// Backend-agnostic float rectangle. Structurally equivalent to sf::FloatRect
-	// (same field names, same types, same order) so that SFML adapters can
-	// memcpy / aggregate-init at .cpp boundaries — see Backend/Internal/
-	// SFMLConversions.h. Mirrors the cgss::IntRect shape.
+	// Backend-agnostic float rectangle (plain POD). Backends convert it to
+	// their native rectangle type at .cpp boundaries. Mirrors the
+	// cgss::IntRect shape.
 	struct FloatRect {
 		float left = 0.f;
 		float top = 0.f;

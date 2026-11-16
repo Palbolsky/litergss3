@@ -130,7 +130,7 @@ void cgss::basic_DisplayWindow<B>::applyReload(DisplayWindowSettings settings, b
 			if (B::Ops::window_is_open(m_gameWindow)) {
 				// Window already exists (shared static), just update settings.
 				// Don't call setSize() — on Android the native window is always fullscreen,
-				// and setSize() would desync SFML's internal size from the actual surface.
+				// and resizing would desync the backend's internal size from the actual surface.
 				LOG_WARN << "Reusing existing window instead of recreating";
 				B::Ops::window_set_title(m_gameWindow, m_settings.title.c_str());
 			} else

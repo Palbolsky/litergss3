@@ -5,9 +5,8 @@
 
 namespace cgss {
 
-	// Backend-agnostic GL context settings. Structurally parallel to sf::ContextSettings
-	// (same field names and types) so that conversion at the backend boundary is trivial —
-	// see Backend/Internal/SFMLConversions.h.
+	// Backend-agnostic GL context settings. Each backend converts them to its
+	// native context configuration.
 	struct DisplayWindowContextSettings {
 		enum : std::uint32_t {
 			Default = 0,

@@ -1,22 +1,15 @@
 #ifndef CGSS_KEY_CODE_H
 #define CGSS_KEY_CODE_H
 
-// Backend-agnostic keyboard key enum. Numeric values mirror SFML 2.6
-// `sf::Keyboard::Key` exactly, so `SFMLBackend::Ops` can `static_cast`
-// without a lookup table. Raylib backend uses a translation table
-// (see Backend/Internal/RaylibKeyTranslation.{h,cpp}) because raylib's
-// KEY_* constants are sparse glyph codepoints.
+// Backend-agnostic keyboard key enum. Each backend maps it to its native
+// key codes in its Ops (by cast or translation table).
 //
 // Numeric layout is ABI: once exposed to Ruby scripts as integer
-// constants, renumbering is a breaking change. A future move to SFML 3
-// (which renumbers sf::Keyboard::Key) would require shifting the
-// translation burden from the raylib side to the SFML side.
+// constants, renumbering is a breaking change.
 //
-// Values 0..100 match SFML 2.6 sf::Keyboard::Key. Values >= 101 are
-// cgss extensions for keys raylib exposes that SFML 2.6's base enum
-// does not (e.g. numpad Decimal/Enter/Equal, CapsLock, NumLock, etc.).
-// On those keys, SFMLBackend returns `false` from keyboard_is_key_pressed
-// (they can be wired up via sf::Keyboard::Scan later if needed).
+// Values >= 101 (numpad Decimal/Enter/Equal, CapsLock, NumLock, ...) were
+// appended later: a backend that cannot observe one of them reports it as
+// never pressed.
 
 namespace cgss {
 
@@ -124,9 +117,8 @@ namespace cgss {
 		F15        = 99,
 		Pause      = 100,
 
-		// cgss extensions beyond SFML 2.6's base Key enum — raylib exposes
-		// these, SFML's base enum does not. SFMLBackend returns false for
-		// these on keyboard_is_key_pressed.
+		// Later additions — not every backend can observe these (see the
+		// header comment).
 		CapsLock       = 101,
 		ScrollLock     = 102,
 		NumLock        = 103,
@@ -140,9 +132,9 @@ namespace cgss {
 		NumpadEqual    = 111,
 	};
 
-	// Single source of truth for the cgss keyboard key list, used by ext/
-	// to emit Ruby constants (see ext/LiteRGSS/inputs/Keyboard.cpp) and by
-	// the raylib translation table to stay in sync.
+	// Single source of truth for the cgss keyboard key list, used by
+	// bindings to emit constants and by backend translation tables to stay
+	// in sync.
 	//
 	// X(Name) — name as exposed on the enum and to Ruby.
 	#define CGSS_KEYCODE_LIST(X) \

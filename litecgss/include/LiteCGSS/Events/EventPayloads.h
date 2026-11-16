@@ -2,12 +2,10 @@
 #define CGSS_EVENT_PAYLOADS_H
 
 // Plain-aggregate payload structs returned by `cgss::Event::as*()` methods.
-// Backend-agnostic POD — no SFML / raylib types leak into the public API.
+// Backend-agnostic POD — no backend type leaks into the public API.
 //
-// Field names are chosen to mirror SFML 2.6's sf::Event sub-structs where
-// semantics are identical, easing mental mapping; where cgss adds a field
-// (horizontal wheel, touch phase), the new field is appended and
-// documented.
+// Where cgss adds a field (horizontal wheel, touch phase), the new field is
+// appended and documented.
 
 #include <cstdint>
 

@@ -97,7 +97,7 @@ template <class B>
 cgss::basic_Texture<B> cgss::basic_Texture<B>::create(const basic_Image<B>& image) {
 	auto result = basic_Texture{};
 	// texture_create_from_image allocates GPU storage sized to the image
-	// + uploads pixels — raylib: LoadTextureFromImage; SFML: loadFromImage.
+	// + uploads pixels.
 	// basic_Texture friends basic_Image so image.m_image is reachable.
 	B::Ops::texture_create_from_image(*result.m_texture, *image.m_image);
 	// Cache the CPU side too so later `update()` (no-arg) can refresh.

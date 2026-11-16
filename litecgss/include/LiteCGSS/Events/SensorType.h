@@ -1,9 +1,8 @@
 #ifndef CGSS_SENSOR_TYPE_H
 #define CGSS_SENSOR_TYPE_H
 
-// Device sensor enum. Numeric values match SFML 2.6 sf::Sensor::Type, so the
-// SFML backend casts directly. Polled through Inputs/Sensor.h; backends
-// without sensors (raylib) report them unavailable.
+// Device sensor enum. Numeric values are ABI (exposed to scripts). Polled
+// through Inputs/Sensor.h; backends without sensors report them unavailable.
 
 namespace cgss {
 

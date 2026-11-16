@@ -18,7 +18,7 @@ namespace cgss {
 
 	// Backend-agnostic shape geometry + material state. ShapeItem owns one of
 	// these; the active backend constructs the corresponding native primitive
-	// (e.g. sf::RectangleShape) at draw time. No native graphics state is
+	// at draw time. No native graphics state is
 	// retained between draws, so the same geometry renders identically under
 	// any backend that implements `Backend::Ops::draw_shape`.
 	//

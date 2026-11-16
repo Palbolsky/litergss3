@@ -16,7 +16,7 @@ cgss::basic_Font<B>::basic_Font(basic_Font&& other) noexcept = default;
 
 template <class B>
 cgss::basic_Font<B>& cgss::basic_Font<B>::operator=(const basic_Font& other) {
-	// Release any existing backing before overwrite (raylib: GPU texture).
+	// Release any existing backing (e.g. a GPU atlas) before overwrite.
 	if (m_loaded) B::Ops::font_destroy(*m_font);
 	*m_font = *other.m_font;
 	m_loaded = other.m_loaded;
@@ -26,9 +26,9 @@ cgss::basic_Font<B>& cgss::basic_Font<B>::operator=(const basic_Font& other) {
 template <class B>
 cgss::basic_Font<B>& cgss::basic_Font<B>::operator=(basic_Font&& other) noexcept = default;
 
-// Custom destructor — mirrors basic_Image. Raylib's `::Font` POD has no
-// dtor-side release of its GPU atlas; route through Ops::font_destroy so
-// the backing is freed on the last copy going out of scope.
+// Custom destructor — mirrors basic_Image. A native font is not guaranteed
+// to release its GPU atlas on destruction; route through Ops::font_destroy
+// so the backing is freed on the last copy going out of scope.
 template <class B>
 cgss::basic_Font<B>::~basic_Font() {
 	if (m_font && m_loaded) {

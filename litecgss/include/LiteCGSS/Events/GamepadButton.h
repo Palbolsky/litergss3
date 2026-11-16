@@ -1,16 +1,10 @@
 #ifndef CGSS_GAMEPAD_BUTTON_H
 #define CGSS_GAMEPAD_BUTTON_H
 
-// Backend-agnostic gamepad button enum. Numeric values and naming
-// derive from raylib's `GamepadButton` enum (there is no named gamepad
-// button set in SFML 2.6 — sf::Joystick treats buttons as opaque 0..31
-// indices). The existing ext/LiteRGSS/inputs/Gamepad.cpp already
-// exposes these raylib names to Ruby, so this header lifts them into
-// the backend-agnostic layer unchanged.
-//
-// SFMLBackend::Ops translates via a lookup when asked
-// `gamepad_is_button_pressed(id, button)`, mapping cgss enum values to
-// raw sf::Joystick button indices (typically matching the Xbox layout).
+// Backend-agnostic gamepad button enum, named after the physical position
+// of each button (face / trigger / middle / thumb). Numeric values are ABI
+// (exposed to scripts). Backends whose native API only knows raw button
+// indices translate through a lookup table in their Ops.
 
 namespace cgss {
 

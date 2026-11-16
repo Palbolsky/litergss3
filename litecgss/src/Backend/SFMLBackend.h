@@ -175,11 +175,19 @@ namespace cgss::backend {
 
 		// ---- Event translation ops ----
 		// Translate an already-polled `sf::Event` to cgss-typed payloads.
-		// Numeric layout of cgss enums was chosen (see KeyCode.h,
-		// EventType.h, MouseButton.h) so most sf types just need a
-		// `static_cast`. Gamepad button/axis and the deprecated-wheel event
-		// need real re-mapping — handled by the small `to_cgss_*` helpers
-		// defined at the bottom of this struct.
+		// Enum layout contract with SFML 2.6 — these cgss enums have the same
+		// numeric values as their sf:: counterparts, so a `static_cast` is the
+		// whole conversion (keep them in sync if either side changes):
+		//   cgss::EventType   == sf::Event::EventType (7, the deprecated
+		//                        MouseWheelMoved, is folded into 8 below)
+		//   cgss::KeyCode     == sf::Keyboard::Key for 0..100
+		//   cgss::MouseButton == sf::Mouse::Button (Left..XButton2)
+		//   cgss::SensorType  == sf::Sensor::Type
+		//   cgss::BlendFactor / BlendEquation / ShaderType: see SFMLConversions.h
+		// cgss event payload field names mirror sf::Event's sub-structs.
+		// Gamepad button/axis and the deprecated-wheel event need real
+		// re-mapping — handled by the small `to_cgss_*` helpers defined at the
+		// bottom of this struct.
 
 		static inline cgss::EventType event_type(const native_event& e) noexcept {
 			// SFML's MouseWheelMoved (type 7) is deprecated but still emitted;
@@ -394,7 +402,7 @@ namespace cgss::backend {
 		}
 
 		// ---- Sensor ops ----
-		// cgss::SensorType mirrors sf::Sensor::Type 1:1 (see SensorType.h).
+		// cgss::SensorType mirrors sf::Sensor::Type 1:1.
 		static inline bool sensor_in_range(cgss::SensorType type) noexcept {
 			const int i = static_cast<int>(type);
 			return i >= 0 && i < static_cast<int>(sf::Sensor::Count);

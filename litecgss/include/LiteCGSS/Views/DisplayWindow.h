@@ -32,14 +32,10 @@ namespace cgss {
 	// Templated wrapper over `Backend::native_window` (+ render texture +
 	// user-render sprite). Consumers refer to it as `cgss::DisplayWindow`.
 	//
-	// The default body in DisplayWindow.cpp is SFML-coupled (it calls
-	// sf::RenderWindow / sf::RenderTexture / sf::Sprite methods directly).
-	// It compiles for `B = SFMLBackend` because `B::native_X` resolves to
-	// the matching sf:: types. Other backends (raylib, libretro) need a
-	// full specialization of `basic_DisplayWindow<Backend>` in their own
-	// .cpp — DisplayWindowSnapshot/DrawData/UserData are not yet templated
-	// either; per plan §1, full-class specialization is the documented
-	// escape hatch when a wrapper's behavior diverges radically per backend.
+	// The body in DisplayWindow.cpp is backend-neutral: every native
+	// interaction goes through `B::Ops`. Full-class specialization in a
+	// backend's Specializations folder remains the escape hatch when a
+	// wrapper's behavior diverges radically per backend.
 	template <class B>
 	class basic_DisplayWindow :
 		public View,
@@ -155,7 +151,7 @@ namespace cgss {
 		/* The user render sprite and texture belong to the window and are only used by children element on the window.
 			As of today, only viewports use this. The use of render sprite and texture is to be used as the target view of
 			children viewports (when render states, so shaders, are enabled).
-			Initialized in the constructor (sf:: types must remain complete in the .cpp only).
+			Initialized in the constructor (native types must remain complete in the .cpp only).
 		*/
 		std::unique_ptr<typename B::native_sprite> m_userRenderSprite;
 		std::unique_ptr<typename B::native_render_texture> m_userRenderTexture;

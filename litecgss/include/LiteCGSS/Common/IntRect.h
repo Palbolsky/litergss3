@@ -3,9 +3,8 @@
 
 namespace cgss {
 
-	// Backend-agnostic integer rectangle. Structurally equivalent to sf::IntRect
-	// (same field names, same types, same order) so that backend adapters can
-	// convert cheaply at .cpp boundaries — see Backend/Internal/SFMLConversions.h.
+	// Backend-agnostic integer rectangle (plain POD). Backends convert it to
+	// their native rectangle type at .cpp boundaries.
 	struct IntRect {
 		int left = 0;
 		int top = 0;

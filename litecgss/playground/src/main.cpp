@@ -143,12 +143,9 @@ static void ViewTest() {
 	settings.vSync = true;
 	auto window = cgss::DisplayWindow{ };
 
-	// Desktop-size queries and window-position setters need a live native
-	// window under raylib (GetMonitorWidth / SetWindowPosition dispatch to
-	// glfw, which asserts on a null handle). Reload first so InitWindow runs,
-	// then center. SFML tolerates the reverse order but the window is never
-	// actually repositioned there either — so the reordered form is correct
-	// on both backends.
+	// Desktop-size queries and window-position setters may need a live
+	// native window (some backends assert on a null window handle). Reload
+	// first so the window exists, then center — correct on every backend.
 	const auto videoWidth  = settings.video.width;
 	const auto videoHeight = settings.video.height;
 	window.reload(std::move(settings), true);
@@ -227,8 +224,8 @@ static void ViewTest() {
 
 	viewport.move(50, 50);
 
-	// ScrollText smoke test — Phase 1 of the raylib ScrollText impl. On SFML
-	// these same calls exercise the vendored sf::Text clone. When no system
+	// ScrollText smoke test — exercises the active backend's ScrollText
+	// through the backend-neutral cgss::Text API. When no system
 	// font is found (isLoaded() == false), the whole block is skipped so
 	// the playground still runs on hosts without any of the probe-list
 	// fonts.
@@ -240,8 +237,8 @@ static void ViewTest() {
 	cgss::Text shadowText;
 	cgss::Text boldUnderlinedText;
 	cgss::Text strikeText;
-	// ScrollText style bits match the private SFML ScrollText enum; the
-	// raylib impl keeps the same values so the uint32 mask is portable.
+	// ScrollText style bits are shared by every backend's ScrollText, so the
+	// uint32 mask is portable.
 	static constexpr std::uint32_t kStyleBold          = 1u << 0;
 	static constexpr std::uint32_t kStyleUnderlined    = 1u << 2;
 	static constexpr std::uint32_t kStyleStrikeThrough = 1u << 3;
@@ -258,7 +255,7 @@ static void ViewTest() {
 		titleText.move(8, 8);
 
 		// Typewriter — window level, bottom. numCharToDraw is advanced in
-		// the loop below to show the raylib UTF-8 truncation path.
+		// the loop below to show the UTF-8 truncation path.
 		typewriterText = cgss::Text::create(window);
 		typewriterText.setFont(demoFont);
 		typewriterText.setCharacterSize(14);
@@ -278,7 +275,7 @@ static void ViewTest() {
 
 		// Phase 2 showcase — each of these exercises a distinct style path:
 		//   outline      → 8-tap stamp in outline color
-		//   shadow       → 3-stamp bottom-right, mirrors SFML's addGlyphQuad
+		//   shadow       → 3-stamp bottom-right
 		//   bold+under   → synthetic bold re-stamp + underline rect
 		//   strike       → strikethrough rect mid-glyph
 		outlineText = cgss::Text::create(window);
@@ -324,7 +321,7 @@ static void ViewTest() {
 	// Shader demo — bind a fragment shader to the viewport's RenderStates so
 	// every drawable rendered through the viewport (framedView + sprite3 +
 	// rectShape + framedText) goes through the post-process. Window-level
-	// drawables (sprite2, circleShape, ScrollTexts) bypass it. Uses SFML's
+	// drawables (sprite2, circleShape, ScrollTexts) bypass it. Uses the
 	// legacy GLSL 110 entry shape (gl_TexCoord/gl_FragColor) so the same
 	// source compiles unchanged via cgss::ShaderType::Fragment. The u_time
 	// uniform is updated every frame inside the loop — wave + grayscale pulse.
@@ -355,7 +352,7 @@ static void ViewTest() {
 		// Backend-agnostic FPS counter + cumulative iteration count. FPS shows
 		// instantaneous pacing; (totalIters / totalSeconds) shows long-term
 		// average rate — if the loop is truly pegged at 60 Hz, the two must
-		// agree and stay stable across SFML and raylib.
+		// agree and stay stable across backends.
 		using clock = std::chrono::steady_clock;
 		const auto loopStart = clock::now();
 		auto fpsWindowStart  = loopStart;

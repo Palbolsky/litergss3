@@ -33,9 +33,7 @@ const typename cgss::basic_Event<B>::native_type& cgss::basic_Event<B>::native()
 
 // ---- Typed accessor bodies ----
 // Each forwards to the active backend's Ops thunk (lazy translation —
-// see the rationale in Event.h). SFMLBackend::Ops returns real payloads
-// from the backing sf::Event; RaylibBackend::Ops currently returns
-// nullopt/Closed until PR A2 brings its synthetic event queue online.
+// see the rationale in Event.h).
 
 template <class B>
 cgss::EventType cgss::basic_Event<B>::type() const noexcept {

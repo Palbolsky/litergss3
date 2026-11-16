@@ -17,8 +17,8 @@
 //     #include "LiteCGSS/Extension/NativeAccess.h"
 //
 //     cgss::Texture tex = ...;
-//     sf::Texture& raw = cgss::extension::native(tex);   // SFML build
-//     ::Texture&   raw = cgss::extension::native(tex);   // raylib build
+//     auto& raw = cgss::extension::native(tex);  // the active backend's
+//                                                // native_texture
 //
 // WARNINGS:
 // - Any TU that calls cgss::extension::native(...) is STRUCTURALLY coupled

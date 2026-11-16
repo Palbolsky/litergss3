@@ -30,11 +30,11 @@ namespace cgss {
 		// Load a font from a .ttf / .otf file. Returns true on success.
 		// On failure, the font state is left unloaded (isLoaded() == false).
 		bool load(const std::string& filename);
-		// Same, but also rebuilds the GPU atlas at exactly `fontSize` pixels
-		// per glyph. Required for pixel fonts under raylib — without this,
-		// LoadFont's default base size (32) downscales tiny PSDK fonts and
-		// produces aliased output. SFML ignores the size and rasterizes on
-		// demand; raylib reloads via LoadFontEx.
+		// Same, but also builds the glyph atlas at exactly `fontSize` pixels
+		// per glyph. Required for pixel fonts on backends that rasterize into
+		// a fixed-size atlas — without this, a default base size downscales
+		// tiny fonts and produces aliased output. Backends that rasterize on
+		// demand ignore the size.
 		bool load(const std::string& filename, unsigned int fontSize);
 		bool isLoaded() const noexcept { return m_loaded; }
 

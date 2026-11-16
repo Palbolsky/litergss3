@@ -7,9 +7,9 @@
 
 namespace cgss {
 
-	// Factories for ShapeGeometry. After PR E, shape geometry is held as a
+	// Factories for ShapeGeometry. Shape geometry is held as a
 	// backend-agnostic POD; callers construct one via these helpers (or
-	// directly) instead of building an `sf::Shape` themselves.
+	// directly) instead of building a native shape themselves.
 	class ShapeLoader {
 	public:
 		static ShapeGeometry buildRectangle(float width, float height) {

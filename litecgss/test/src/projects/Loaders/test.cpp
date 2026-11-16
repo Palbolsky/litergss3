@@ -17,8 +17,8 @@ TEST(LoaderGroup, Shape) {
 
 TEST(LoaderGroup, Texture) {
 	auto textureSerializer = cgss::TextureFileSerializer {"123.png"};
-	auto texture = sf::Texture{};
-	auto image = sf::Image{};
+	auto texture = cgss::backend::ActiveBackend::native_texture{};
+	auto image = cgss::backend::ActiveBackend::native_image{};
 	textureSerializer.load(texture, image);
 }
 */

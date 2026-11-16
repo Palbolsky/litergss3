@@ -2,9 +2,8 @@
 // is decoded via Ops::png_decode_*, then uploaded to the GPU texture via
 // Ops::texture_create_from_image. Saving reads the GPU texels back via
 // Ops::texture_read_to_image and then encodes them with Ops::png_encode_*.
-// Each backend's *Backend.h thunk hides the SFML (sf::Texture::loadFromImage,
-// copyToImage) / raylib (LoadTextureFromImage, LoadImageFromTexture)
-// difference + the matching memory lifecycle.
+// Each backend's *Backend.h thunks hide the native upload / read-back calls
+// and the matching memory lifecycle.
 
 #include <iostream>
 #include "Backend/ActiveBackend.h"

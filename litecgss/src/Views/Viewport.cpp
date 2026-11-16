@@ -67,10 +67,9 @@ void cgss::ViewportItem::draw(cgss::RenderTarget& target) const {
 }
 
 // `cgss::ViewportItem::takeSnapshot` is defined per-backend in
-// `Backend/Specializations/{sfml,raylib}/ViewportTakeSnapshot.cpp` because
+// `Backend/Specializations/<backend>/ViewportTakeSnapshot.cpp` because
 // the off-screen render-and-grab choreography is fundamentally backend-
-// shaped (SFML's RenderTexture+Sprite+display vs raylib's
-// BeginTextureMode/EndTextureMode/LoadImageFromTexture).
+// shaped.
 
 void cgss::ViewportItem::setupFullWindowView(cgss::RenderTarget& target) const {
 	using Ops = cgss::backend::ActiveBackend::Ops;

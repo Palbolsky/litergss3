@@ -1,15 +1,10 @@
 // Backend-agnostic body for cgss::FramedViewItem / cgss::FramedView.
 //
 // 9-slice skin + cursor + pause draws are implemented via Ops::draw_texture_pro
-// (≤9 calls per frame, all going through the active render target). SFML's
-// `draw_texture_pro` thunk uses a thread-local sf::Sprite — the per-frame
-// state churn is negligible at the FramedView usage rate (1-3 message
-// windows on screen) and we trade VertexArray batching for a single shared
-// `.cpp`. Raylib's thunk wraps DrawTexturePro directly.
-//
-// The previous SFML-specific updateVerticesBlt / updateVerticesStretch /
-// allocateVerticesBlt / allocateVerticesStretch / cached `m_impl->vertices`
-// path is gone; geometry is rebuilt on every drawFast.
+// (≤9 calls per frame, all going through the active render target). The
+// per-frame state churn is negligible at the FramedView usage rate (1-3
+// message windows on screen), so we trade vertex batching for a single
+// shared, backend-neutral `.cpp`; geometry is rebuilt on every drawFast.
 #include <algorithm>
 #include <cstdint>
 #include "Views/LoggerViews.h"
@@ -237,7 +232,7 @@ void cgss::FramedViewItem::drawFast(cgss::RenderTarget& target) const {
 		if (m_impl->cursorSkin != nullptr && m_cursorRect.width > 0 && m_cursorRect.height > 0) {
 			const auto cs = m_impl->cursorSkin->getSize();
 			// Animated alpha — 0..63 = fade in, 64..127 = fade out (active),
-			// or steady 128 when inactive. Mirrors SFML's old updateCursorSprite.
+			// or steady 128 when inactive (historical cursor blink behavior).
 			const long v = m_counter;
 			uint8_t a;
 			if (v > 64) {
