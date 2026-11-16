@@ -78,8 +78,8 @@ namespace cgss::backend {
 		// `shader` is non-owning — basic_RenderStatesData<B> holds the
 		// unique_ptr<Shader> and writes a raw pointer here via
 		// draw_state_set_shader. Blend factors track sf::BlendMode's 6-field
-		// shape; the raylib draw thunks coalesce them into raylib's BlendMode
-		// enum (Alpha / Additive / Multiplied / etc.) via a best-fit map.
+		// shape; the draw thunks apply them as-is through raylib's
+		// BLEND_CUSTOM_SEPARATE (RaylibBackend.h, apply_blend).
 		struct RenderStates {
 			::Shader* shader = nullptr;
 			cgss::BlendFactor   colorSrc  = cgss::BlendFactor::SrcAlpha;

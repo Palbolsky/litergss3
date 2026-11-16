@@ -42,7 +42,25 @@ extern "C" {
 	void rlPopMatrix(void);
 	void rlTranslatef(float x, float y, float z);
 	void rlScalef(float x, float y, float z);
+	void rlSetBlendMode(int mode);
+	void rlSetBlendFactorsSeparate(int glSrcRGB, int glDstRGB, int glSrcAlpha, int glDstAlpha, int glEqRGB, int glEqAlpha);
 }
+#  define RL_BLEND_CUSTOM_SEPARATE 7
+#  define RL_ZERO 0
+#  define RL_ONE 1
+#  define RL_SRC_COLOR 0x0300
+#  define RL_ONE_MINUS_SRC_COLOR 0x0301
+#  define RL_SRC_ALPHA 0x0302
+#  define RL_ONE_MINUS_SRC_ALPHA 0x0303
+#  define RL_DST_ALPHA 0x0304
+#  define RL_ONE_MINUS_DST_ALPHA 0x0305
+#  define RL_DST_COLOR 0x0306
+#  define RL_ONE_MINUS_DST_COLOR 0x0307
+#  define RL_FUNC_ADD 0x8006
+#  define RL_MIN 0x8007
+#  define RL_MAX 0x8008
+#  define RL_FUNC_SUBTRACT 0x800A
+#  define RL_FUNC_REVERSE_SUBTRACT 0x800B
 #endif
 
 #include <cctype>
@@ -159,6 +177,7 @@ namespace cgss::backend {
 		static inline void window_clear(native_window&) {
 			if (!IsWindowReady()) return;
 			BeginDrawing();
+			apply_default_blend();
 			ClearBackground(::Color{ 0, 0, 0, 255 });
 		}
 		static inline void window_display(native_window&) {
@@ -1068,18 +1087,66 @@ namespace cgss::backend {
 			               ::Color{ s.color.r, s.color.g, s.color.b, s.color.a });
 		}
 
+		// ---- Blending ----
+		// cgss blend state is SFML's 6-field model (separate color / alpha
+		// factors and equations). raylib's preset modes blend the alpha
+		// channel like the color one (SRC_ALPHA, ONE_MINUS_SRC_ALPHA): drawn
+		// into a viewport's render texture, a translucent sprite lowered its
+		// alpha, darkening the viewport when composited. The state is applied
+		// as-is through RL_BLEND_CUSTOM_SEPARATE (rlgl flushes the pending
+		// batch whenever it actually changes).
+		static inline int gl_blend_factor(cgss::BlendFactor f) noexcept {
+			switch (f) {
+				case cgss::BlendFactor::Zero:             return RL_ZERO;
+				case cgss::BlendFactor::One:              return RL_ONE;
+				case cgss::BlendFactor::SrcColor:         return RL_SRC_COLOR;
+				case cgss::BlendFactor::OneMinusSrcColor: return RL_ONE_MINUS_SRC_COLOR;
+				case cgss::BlendFactor::DstColor:         return RL_DST_COLOR;
+				case cgss::BlendFactor::OneMinusDstColor: return RL_ONE_MINUS_DST_COLOR;
+				case cgss::BlendFactor::SrcAlpha:         return RL_SRC_ALPHA;
+				case cgss::BlendFactor::OneMinusSrcAlpha: return RL_ONE_MINUS_SRC_ALPHA;
+				case cgss::BlendFactor::DstAlpha:         return RL_DST_ALPHA;
+				case cgss::BlendFactor::OneMinusDstAlpha: return RL_ONE_MINUS_DST_ALPHA;
+			}
+			return RL_ONE;
+		}
+		static inline int gl_blend_equation(cgss::BlendEquation e) noexcept {
+			switch (e) {
+				case cgss::BlendEquation::Add:             return RL_FUNC_ADD;
+				case cgss::BlendEquation::Subtract:        return RL_FUNC_SUBTRACT;
+				case cgss::BlendEquation::ReverseSubtract: return RL_FUNC_REVERSE_SUBTRACT;
+				case cgss::BlendEquation::Min:             return RL_MIN;
+				case cgss::BlendEquation::Max:             return RL_MAX;
+			}
+			return RL_FUNC_ADD;
+		}
+		static inline void apply_blend(const native_render_states& rs) {
+			rlSetBlendFactorsSeparate(
+				gl_blend_factor(rs.colorSrc), gl_blend_factor(rs.colorDst),
+				gl_blend_factor(rs.alphaSrc), gl_blend_factor(rs.alphaDst),
+				gl_blend_equation(rs.colorEq), gl_blend_equation(rs.alphaEq));
+			rlSetBlendMode(RL_BLEND_CUSTOM_SEPARATE);
+		}
+		// Default state: SFML's BlendAlpha (the defaults of native_render_states).
+		static inline void apply_default_blend() {
+			static const native_render_states defaults{};
+			apply_blend(defaults);
+		}
+
 		// ---- Draw thunks ----
-		// Internal: BeginShaderMode-bracket a single draw call when the
-		// supplied render_states carries a compiled shader. Raylib's shader
-		// mode is global state, so we open and close it locally to avoid
-		// leaking onto subsequent draws (matching SFML's per-draw render
+		// Internal: applies the supplied render_states around a single draw
+		// call — blend state, and the shader when one is compiled. Raylib's
+		// shader / blend modes are global state, so they are set locally and
+		// restored to the defaults afterwards (matching SFML's per-draw render
 		// state semantics).
 		template <class DrawFn>
 		static inline void draw_with_render_states(const native_render_states* rs, DrawFn&& fn) {
 			const bool useShader = rs != nullptr && rs->shader != nullptr && rs->shader->id != 0;
+			if (rs != nullptr) apply_blend(*rs);
 			if (useShader) BeginShaderMode(*rs->shader);
 			fn();
 			if (useShader) EndShaderMode();
+			if (rs != nullptr) apply_default_blend();
 		}
 
 		// Used by cgss::ViewportItem::draw to composite the off-screen
