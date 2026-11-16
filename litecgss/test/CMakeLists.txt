@@ -47,7 +47,7 @@ SET(ROOT_TEST_SUBDIR "${CMAKE_CURRENT_LIST_DIR}/src/projects")
 SET(MOCKS_DIR "${CMAKE_CURRENT_LIST_DIR}/src/mocks")
 # Per-project cmake.conf files reference .cpp via LITECGSS_SRC_DIR and .h
 # via LITECGSS_INCLUDE_DIR to match the public/private split in the engine.
-SET(LITECGSS_SRC_DIR ${LITECGSS_ROOT_DIR}/src/LiteCGSS)
+SET(LITECGSS_SRC_DIR ${LITECGSS_ROOT_DIR}/src)
 SET(LITECGSS_INCLUDE_DIR ${LITECGSS_ROOT_DIR}/include/LiteCGSS)
 
 file(GLOB_RECURSE MOCKS_SOURCES

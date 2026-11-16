@@ -14,7 +14,7 @@
 #include "LiteCGSS/Graphics/Text.h"
 #include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Graphics/Serializers/TextureSerializer.h"
-#include "LiteCGSS/Backend/ActiveBackend.h"
+#include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Backend/BackendCommon.h"
 
 #include "LiteCGSS/Events/EventType.h"

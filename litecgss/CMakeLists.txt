@@ -94,7 +94,7 @@ set(BUILD_SHARED_LIBS ${OLD_BUILD_SHARED_LIBS})
 # LiteCGSS_engine target
 #
 #   include/LiteCGSS/**  -> PUBLIC headers propagated to consumers
-#   src/LiteCGSS/**      -> PRIVATE tree (.cpp files + backend-coupled headers
+#   src/**               -> PRIVATE tree (.cpp files + backend-coupled headers
 #                           such as ActiveBackend.h, SFMLBackend.h, ScrollText.h
 #                           and the Internal/ Sf*Conv.h helpers). Not reachable
 #                           from consumer TUs.
@@ -104,8 +104,8 @@ file(GLOB_RECURSE LITECGSS_PUBLIC_HEADERS CONFIGURE_DEPENDS
 	include/LiteCGSS/*.h
 )
 file(GLOB_RECURSE LITECGSS_PRIVATE_SOURCES CONFIGURE_DEPENDS
-	src/LiteCGSS/*.h
-	src/LiteCGSS/*.cpp
+	src/*.h
+	src/*.cpp
 )
 file(GLOB_RECURSE LITECGSS_VENDORED_SOURCES CONFIGURE_DEPENDS
 	${LITE_CGSS_EXTERNAL}/lodepng/*.cpp
@@ -119,25 +119,25 @@ file(GLOB_RECURSE LITECGSS_VENDORED_SOURCES CONFIGURE_DEPENDS
 # matching backend's folder below. This is the "PERMANENT per-backend"
 # bucket — TUs whose impl is fundamentally different across backends
 # (Text/ScrollText, DisplayWindowSnapshot, ViewportTakeSnapshot).
-list(FILTER LITECGSS_PRIVATE_SOURCES EXCLUDE REGEX "/LiteCGSS/Backend/Specializations/")
+list(FILTER LITECGSS_PRIVATE_SOURCES EXCLUDE REGEX "/src/Backend/Specializations/")
 file(GLOB_RECURSE LITECGSS_BACKEND_IMPL_SOURCES CONFIGURE_DEPENDS
-	src/LiteCGSS/Backend/Specializations/${CGSS_BACKEND}/*.cpp
-	src/LiteCGSS/Backend/Specializations/${CGSS_BACKEND}/*.h
+	src/Backend/Specializations/${CGSS_BACKEND}/*.cpp
+	src/Backend/Specializations/${CGSS_BACKEND}/*.h
 )
 
-# Backend-gated files under src/LiteCGSS/Backend/Internal/ — their impls
+# Backend-gated files under src/Backend/Internal/ — their impls
 # depend on a specific backend's headers (e.g. RaylibEventQueue.cpp
 # includes <raylib.h>) so they must not be compiled under other backends.
 # Prefixed with the backend name for the filter to work.
 if(NOT CGSS_BACKEND STREQUAL "raylib")
-	list(FILTER LITECGSS_PRIVATE_SOURCES EXCLUDE REGEX "/LiteCGSS/Backend/Internal/Raylib")
+	list(FILTER LITECGSS_PRIVATE_SOURCES EXCLUDE REGEX "/src/Backend/Internal/Raylib")
 endif()
 if(NOT CGSS_BACKEND STREQUAL "sfml")
-	list(FILTER LITECGSS_PRIVATE_SOURCES EXCLUDE REGEX "/LiteCGSS/Backend/Internal/SFML")
+	list(FILTER LITECGSS_PRIVATE_SOURCES EXCLUDE REGEX "/src/Backend/Internal/SFML")
 	# ScrollText.{h,cpp} is a vendored copy of sf::Text — inherently SFML-
 	# coupled. Non-sfml backends provide their own ScrollText under
 	# Backend/Specializations/<backend>/ScrollText.{h,cpp}.
-	list(FILTER LITECGSS_PRIVATE_SOURCES EXCLUDE REGEX "/LiteCGSS/Graphics/ScrollText\\.")
+	list(FILTER LITECGSS_PRIVATE_SOURCES EXCLUDE REGEX "/src/Graphics/ScrollText\\.")
 endif()
 
 set(LITECGSS_ALL_SOURCES

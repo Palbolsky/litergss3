@@ -31,7 +31,7 @@
 
 #ifdef CGSS_ENABLE_EXTENSION_SPI
 
-#include "LiteCGSS/Backend/ActiveBackend.h"
+#include "Backend/ActiveBackend.h"
 
 namespace cgss::extension {
 

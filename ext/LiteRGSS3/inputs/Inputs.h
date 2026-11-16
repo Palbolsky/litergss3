@@ -3,7 +3,7 @@
 
 #include "RubyValue.h"
 
-#include "LiteCGSS/Backend/ActiveBackend.h"
+#include "Backend/ActiveBackend.h"
 
 extern VALUE rb_mInputs;
 

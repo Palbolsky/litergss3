@@ -5,7 +5,7 @@
 #include "../graphics/Image.h"
 #include "../rbAdapter.h"
 
-#include "LiteCGSS/Backend/ActiveBackend.h"
+#include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
 #include "LiteCGSS/Events/Event.h"
 #include "LiteCGSS/Image/Image.h"
