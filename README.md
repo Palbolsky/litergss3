@@ -34,8 +34,26 @@ The extension is written to `build/lib/LiteRGSS.so`. To try it: `ruby ./start.rb
 
 ## LiteCGSS ↔ LiteRGSS boundary
 
-LiteRGSS reaches the engine only through the `LiteCGSS::engine` CMake
-target: the public `litecgss/include/` tree (`<LiteCGSS/...>`) plus the
-configuration defines the engine was built with. The engine's private
-`litecgss/src/` tree is not on LiteRGSS' include path, and LiteCGSS never
-sees Ruby.
+Dependencies only go one way: LiteRGSS → LiteCGSS. It is enforced by the
+build, not by convention:
+
+- LiteRGSS links `LiteCGSS::engine` only. That target exposes the public
+  `litecgss/include/` tree (`<LiteCGSS/...>`) and the configuration defines
+  the engine was compiled with. The private `litecgss/src/` tree is not on
+  LiteRGSS' include path, so including a private header fails to compile.
+- LiteCGSS has no Ruby include path and knows nothing about LiteRGSS.
+- `cmake/CheckBoundaries.cmake` runs on every build (`check_boundaries`
+  target; also `rake lint`) and fails it when:
+  - a binding includes a backend header (raylib, SFML, GLFW) or branches on
+    `CGSS_BACKEND_*`: add a backend-neutral API to LiteCGSS instead;
+  - `ext/LiteRGSS3` CMake reaches past `LiteCGSS::engine` (`litecgss/src`,
+    `LiteCGSS::extension_spi`);
+  - LiteCGSS includes Ruby or LiteRGSS headers;
+  - a public LiteCGSS header includes a private one.
+
+Header conventions: `"LiteCGSS/..."` always means public API; private engine
+headers are included without prefix (`"Backend/ActiveBackend.h"`), and only
+from inside `litecgss/`.
+
+`LiteCGSS::extension_spi` is the one sanctioned escape hatch to native backend
+handles (`LiteCGSS/Extension/NativeAccess.h`), for out-of-tree plugins.

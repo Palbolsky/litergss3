@@ -4,6 +4,7 @@
 #   rake compile                 # configure + build the `debug` preset
 #   PRESET=release rake compile  # any preset from CMakePresets.json
 #   rake test                    # C++ + Ruby test suites (CTest)
+#   rake lint                    # module boundary check
 #
 # Generator: CMake honours the CMAKE_GENERATOR environment variable
 # (e.g. CMAKE_GENERATOR="MinGW Makefiles" on Windows).
@@ -44,6 +45,11 @@ end
 desc 'Run the C++ and Ruby test suites through CTest'
 task test: :compile do
   Dir.chdir(ROOT) { sh('ctest', '--preset', preset) }
+end
+
+desc 'Check the LiteCGSS/LiteRGSS module boundaries (also run by every build)'
+task :lint do
+  Dir.chdir(ROOT) { cmake('-P', 'cmake/CheckBoundaries.cmake') }
 end
 
 desc 'Remove every build tree'

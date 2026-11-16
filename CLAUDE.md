@@ -6,4 +6,6 @@ For the architecture / high complexity code related tasks, behave like a Senior 
 
 Challenge the solutions I am proposing (if there is an existing better way, don't challenge everything for the sake of challenge...).
 
-When modifying anything under `external/litecgss2/`, rebuild that submodule explicitly (`cd external/litecgss2 && rake compile -- --enable-debug --enable-raylib`) BEFORE running `rake compile` at the LiteRGSS3 root — the root Rakefile does not propagate changes to the litecgss2 static library transitively, so a litecgss2 source edit will silently be ignored otherwise.
+The repo is a monorepo: `litecgss/` (C++ engine, no Ruby) and `ext/LiteRGSS3/` (Ruby bindings). CMake builds everything (`rake compile` proxies to the `debug` preset); an engine edit rebuilds the extension automatically.
+
+Module boundary (enforced by the build, see README "LiteCGSS ↔ LiteRGSS boundary"): bindings only use LiteCGSS' public API (`<LiteCGSS/...>` from `litecgss/include/`). When a binding needs something the engine does not expose, add a backend-neutral public API to LiteCGSS (header in `include/LiteCGSS/`, implementation in `src/` over `ActiveBackend::Ops`) — never include backend headers, `CGSS_BACKEND_*` branches or `litecgss/src` paths in `ext/`.

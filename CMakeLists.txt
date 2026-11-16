@@ -31,6 +31,16 @@ endif()
 
 enable_testing()
 
+# Module boundaries (cmake/CheckBoundaries.cmake) are part of the build: a
+# violation fails `cmake --build`, not only a lint run.
+option(LITERGSS_CHECK_BOUNDARIES "Fail the build on LiteCGSS/LiteRGSS boundary violations" ON)
+if(LITERGSS_CHECK_BOUNDARIES)
+	add_custom_target(check_boundaries ALL
+		COMMAND ${CMAKE_COMMAND} -P ${PROJECT_SOURCE_DIR}/cmake/CheckBoundaries.cmake
+		COMMENT "Checking LiteCGSS/LiteRGSS module boundaries"
+		VERBATIM)
+endif()
+
 add_subdirectory(litecgss)
 
 if(LITERGSS_BUILD_RUBY_EXT)
