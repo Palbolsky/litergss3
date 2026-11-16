@@ -42,10 +42,18 @@ build, not by convention:
   the engine was compiled with. The private `litecgss/src/` tree is not on
   LiteRGSS' include path, so including a private header fails to compile.
 - LiteCGSS has no Ruby include path and knows nothing about LiteRGSS.
+- The graphics backend (raylib, SFML) is private to the engine: it is linked
+  through the internal `LiteCGSS_backend` target, public headers only
+  forward-declare native types, so no backend header nor symbol reaches a
+  consumer. Switching backends (`CGSS_BACKEND`) never touches consumer code.
 - `cmake/CheckBoundaries.cmake` runs on every build (`check_boundaries`
   target; also `rake lint`) and fails it when:
-  - a binding includes a backend header (raylib, SFML, GLFW) or branches on
-    `CGSS_BACKEND_*`: add a backend-neutral API to LiteCGSS instead;
+  - a binding includes a backend header (raylib, SFML, GLFW, or
+    `LiteCGSS/Backend/*`), branches on `CGSS_BACKEND_*` or names a backend
+    type: add a backend-neutral API to LiteCGSS instead;
+  - LiteCGSS code outside `include/LiteCGSS/Backend/` and `src/Backend/`
+    does any of the above: backend code lives in the backend's `*Backend.h`
+    Ops or in `src/Backend/Specializations/<backend>/`;
   - `ext/LiteRGSS3` CMake reaches past `LiteCGSS::engine` (`litecgss/src`,
     `LiteCGSS::extension_spi`);
   - LiteCGSS includes Ruby or LiteRGSS headers;
