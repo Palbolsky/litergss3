@@ -14,6 +14,8 @@ extern VALUE rb_cViewport;
 // — Sprite/Text/Shape/SpriteMap created with this viewport register into
 // THIS viewport's stack, not the window's, so they get its scissor and
 // transform during cgss::DisplayWindow::draw().
+#include "../rbAdapter.h"
+
 struct ViewportData
 {
     int x      = 0;
@@ -32,6 +34,9 @@ struct ViewportData
     // Not moved by the window's origin (DisplayWindow#game_area=)
     bool screen_space = false;
     bool disposed = false;
+    // The Rect `rect` returns, bound to the viewport (Rect on_change): PSDK
+    // changes it in place (`viewport.rect.height = 61`). Qnil until read.
+    VALUE rRect = Qnil;
 
     // Lazily move-assigned in initialize once the active DisplayWindow is
     // available. Wrapped in unique_ptr because cgss::Viewport is non-copyable
@@ -47,5 +52,9 @@ struct ViewportData
 };
 
 ViewportData* get_viewport(VALUE self);
+
+namespace rb {
+    template <> void Mark<ViewportData>(void *ptr);
+}
 
 #endif

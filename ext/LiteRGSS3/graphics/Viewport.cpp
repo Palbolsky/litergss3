@@ -24,6 +24,15 @@ VALUE rb_cViewport = Qnil;
 // identical z still sort deterministically by creation order.
 static unsigned long g_viewport_counter = 0;
 
+namespace rb {
+    template <>
+    void Mark<ViewportData>(void *ptr)
+    {
+        auto *vp = static_cast<ViewportData *>(ptr);
+        if (vp != nullptr) rb_gc_mark(vp->rRect);
+    }
+}
+
 ViewportData *get_viewport(VALUE self) { return rb::GetPtr<ViewportData>(self); }
 
 static void check_disposed(ViewportData *vp)
@@ -169,13 +178,40 @@ VALUE rb_Viewport_setAngle(VALUE self, VALUE val)
     return val;
 }
 
-// LiteRGSS2 returned a Rect instance, not an Array. Match that.
+// The viewport's rect changed (rect= or its bound Rect): onto the viewport.
+static void viewport_apply_rect(ViewportData *vp)
+{
+    if (vp->viewport) {
+        vp->viewport->setRectangle(cgss::IntRect{ vp->x, vp->y, vp->width, vp->height });
+    }
+}
+
+static void viewport_rect_did_change(VALUE self)
+{
+    auto *vp = get_viewport(self);
+    if (vp == nullptr || vp->disposed || NIL_P(vp->rRect)) return;
+    const auto *r = get_rect_data(vp->rRect);
+    vp->x = r->x; vp->y = r->y; vp->width = r->width; vp->height = r->height;
+    viewport_apply_rect(vp);
+}
+
+// As in LiteRGSS2, a Rect bound to the viewport: changing it in place
+// (`viewport.rect.height = 61`) resizes the viewport.
 VALUE rb_Viewport_getRect(VALUE self)
 {
     check_disposed(get_viewport(self));
     auto *vp = get_viewport(self);
-    VALUE args[4] = { INT2NUM(vp->x), INT2NUM(vp->y), INT2NUM(vp->width), INT2NUM(vp->height) };
-    return rb_class_new_instance(4, args, rb_cRect);
+    if (NIL_P(vp->rRect)) {
+        VALUE args[4] = { INT2NUM(vp->x), INT2NUM(vp->y), INT2NUM(vp->width), INT2NUM(vp->height) };
+        vp->rRect = rb_class_new_instance(4, args, rb_cRect);
+        auto *r = get_rect_data(vp->rRect);
+        r->owner = self;
+        r->on_change = viewport_rect_did_change;
+    } else {
+        auto *r = get_rect_data(vp->rRect);
+        r->x = vp->x; r->y = vp->y; r->width = vp->width; r->height = vp->height;
+    }
+    return vp->rRect;
 }
 
 VALUE rb_Viewport_setRect(VALUE self, VALUE val)
@@ -183,9 +219,11 @@ VALUE rb_Viewport_setRect(VALUE self, VALUE val)
     check_disposed(get_viewport(self));
     auto *vp = get_viewport(self);
     rect_arg_to_xywh(val, vp->x, vp->y, vp->width, vp->height);
-    if (vp->viewport) {
-        vp->viewport->setRectangle(cgss::IntRect{ vp->x, vp->y, vp->width, vp->height });
+    if (!NIL_P(vp->rRect)) {
+        auto *r = get_rect_data(vp->rRect);
+        r->x = vp->x; r->y = vp->y; r->width = vp->width; r->height = vp->height;
     }
+    viewport_apply_rect(vp);
     return val;
 }
 

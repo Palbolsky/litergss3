@@ -400,44 +400,53 @@ VALUE rb_FramedView_set_window_builder(VALUE self, VALUE val)
     return val;
 }
 
-// cursor_rect: PSDK reads/writes a Rect. We bind the cgss IntRect of the
-// FramedView to a Ruby Rect's RectData on first read so subsequent
-// `window.cursor_rect.set(x, y, w, h)` mutations land on the FramedView.
-VALUE rb_FramedView_get_cursor_rect(VALUE self)
+// cursor_rect: a Rect bound to the FramedView, as in LiteRGSS2: PSDK sets it
+// once, then moves it in place (`cursor_rect.y += line_height`), so every
+// change of that Rect reaches the FramedView (Rect on_change hook).
+static void framed_view_cursor_rect_did_change(VALUE self)
 {
     auto *f = get_framed_view(self);
-    if (!NIL_P(f->rCursorRect)) return f->rCursorRect;
-    if (!f->has_view) {
-        VALUE args[4] = { INT2NUM(0), INT2NUM(0), INT2NUM(0), INT2NUM(0) };
+    if (f == nullptr || !f->has_view || NIL_P(f->rCursorRect)) return;
+    const auto *r = get_rect_data(f->rCursorRect);
+    f->view->setCursorRectangle(cgss::IntRect{ r->x, r->y, r->width, r->height });
+}
+
+// The Rect cached on the FramedView (created on first use, bound to it).
+static VALUE ensure_cursor_rect(VALUE self)
+{
+    auto *f = get_framed_view(self);
+    if (NIL_P(f->rCursorRect)) {
+        const auto rect = f->has_view ? f->view->getCursorRectangle() : cgss::IntRect{};
+        VALUE args[4] = { INT2NUM(rect.left), INT2NUM(rect.top),
+                          INT2NUM(rect.width), INT2NUM(rect.height) };
         f->rCursorRect = rb_class_new_instance(4, args, rb_cRect);
-        return f->rCursorRect;
+        auto *r = get_rect_data(f->rCursorRect);
+        r->owner = self;
+        r->on_change = framed_view_cursor_rect_did_change;
     }
-    const auto rect = f->view->getCursorRectangle();
-    VALUE args[4] = { INT2NUM(rect.left), INT2NUM(rect.top),
-                      INT2NUM(rect.width), INT2NUM(rect.height) };
-    f->rCursorRect = rb_class_new_instance(4, args, rb_cRect);
     return f->rCursorRect;
 }
 
+VALUE rb_FramedView_get_cursor_rect(VALUE self)
+{
+    return ensure_cursor_rect(self);
+}
+
+// Copies into the bound Rect: references to it keep following the cursor.
 VALUE rb_FramedView_set_cursor_rect(VALUE self, VALUE val)
 {
-    auto *f = get_framed_view(self);
-    if (!f->has_view) return val;
-    int rx = 0, ry = 0, rw = 0, rh = 0;
+    auto *dst = get_rect_data(ensure_cursor_rect(self));
     if (rb_obj_is_kind_of(val, rb_cRect) == Qtrue) {
-        const auto *r = get_rect_data(val);
-        rx = r->x; ry = r->y; rw = r->width; rh = r->height;
+        const auto *src = get_rect_data(val);
+        dst->x = src->x; dst->y = src->y; dst->width = src->width; dst->height = src->height;
     } else {
         Check_Type(val, T_ARRAY);
-        rx = NUM2INT(rb_ary_entry(val, 0));
-        ry = NUM2INT(rb_ary_entry(val, 1));
-        rw = NUM2INT(rb_ary_entry(val, 2));
-        rh = NUM2INT(rb_ary_entry(val, 3));
+        dst->x = NUM2INT(rb_ary_entry(val, 0));
+        dst->y = NUM2INT(rb_ary_entry(val, 1));
+        dst->width = NUM2INT(rb_ary_entry(val, 2));
+        dst->height = NUM2INT(rb_ary_entry(val, 3));
     }
-    f->view->setCursorRectangle(cgss::IntRect{ rx, ry, rw, rh });
-    // Cache a Ruby Rect so reads are stable.
-    VALUE args[4] = { INT2NUM(rx), INT2NUM(ry), INT2NUM(rw), INT2NUM(rh) };
-    f->rCursorRect = rb_class_new_instance(4, args, rb_cRect);
+    framed_view_cursor_rect_did_change(self);
     return val;
 }
 
