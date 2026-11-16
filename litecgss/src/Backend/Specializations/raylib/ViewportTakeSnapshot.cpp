@@ -42,6 +42,27 @@ std::unique_ptr<cgss::Texture> cgss::ViewportItem::takeSnapshot() const {
 	drawables().drawFast(renderTarget);
 	Ops::render_texture_display(rt);
 
+	// The viewport's render states (its shader: PSDK's map tone) apply to
+	// the snapshot too, as in the SFML implementation: the drawables'
+	// result is drawn once more, through them, into a second texture.
+	const auto* renderStates = getRenderStates() == nullptr ? nullptr : &getRenderStates()->getRenderStates();
+	if (renderStates != nullptr) {
+		::RenderTexture shaded{};
+		if (Ops::render_texture_create(shaded, w, h)) {
+			cgss::RenderTarget shadedTarget{shaded};
+			Ops::render_texture_clear_color(shaded, cgss::Color{ 0, 0, 0, 0 });
+			Ops::render_texture_set_view(shaded, native_of(renderView));
+			cgss::backend::ActiveBackend::native_sprite drawn{};
+			drawn.texture = &rt.texture;
+			drawn.textureRect = cgss::IntRect{ 0, 0, static_cast<int>(w), static_cast<int>(h) };
+			// draw_sprite with render states reads an FBO-backed sprite bottom-up
+			Ops::draw_sprite(native_of(shadedTarget), drawn, native_of(*renderStates));
+			Ops::render_texture_display(shaded);
+			UnloadRenderTexture(rt);
+			rt = shaded;
+		}
+	}
+
 	// Read the FBO pixels back into a CPU image, flip Y, and upload to a
 	// fresh standalone texture. We can't return rt.texture directly — the
 	// RenderTexture owns the GL handle and unloading it would invalidate

@@ -24,6 +24,7 @@
 #include "Backend/Internal/RaylibEventQueue.h"
 #include "Backend/Internal/RaylibFontAtlas.h"
 #include "Backend/Internal/RaylibPlatformQueries.h"
+#include "Backend/Internal/RaylibShaderTextures.h"
 #include "Backend/Internal/RaylibWindowStack.h"
 #include "Backend/Internal/RaylibKeyTranslation.h"
 #include "Backend/Shader/ShaderPreprocessor.h"
@@ -897,7 +898,10 @@ namespace cgss::backend {
 		// raylib's default stage).
 		static inline bool shader_load_program(native_shader& sh, const std::string* vsrc, const std::string* fsrc) {
 			if (!IsWindowReady()) return false;
-			if (sh.id != 0) UnloadShader(sh);
+			if (sh.id != 0) {
+				raylib_detail::forgetShaderTextures(sh.id);
+				UnloadShader(sh);
+			}
 			sh = LoadShaderFromMemory(vsrc ? vsrc->c_str() : nullptr, fsrc ? fsrc->c_str() : nullptr);
 			// raylib falls back to its default shader on a compile/link error.
 			return sh.id != 0 && sh.id != rlGetShaderIdDefault();
@@ -1009,9 +1013,11 @@ namespace cgss::backend {
 			SetShaderValueMatrix(sh, loc, M);
 		}
 
+		// Kept per shader and bound when it draws (Internal/RaylibShaderTextures.h):
+		// SetShaderValueTexture's slots are 4, and emptied by each batch flush.
 		static inline void shader_set_uniform(native_shader& sh, const std::string& name, const native_texture& t) {
 			const int loc = shader_loc(sh, name); if (loc < 0) return;
-			SetShaderValueTexture(sh, loc, t);
+			raylib_detail::setShaderTexture(sh.id, loc, t.id);
 		}
 
 		// CurrentTexture sentinel — the preprocessor renames the `texture`
@@ -1206,7 +1212,10 @@ namespace cgss::backend {
 		static inline void draw_with_render_states(const native_render_states* rs, DrawFn&& fn) {
 			const bool useShader = rs != nullptr && rs->shader != nullptr && rs->shader->id != 0;
 			if (rs != nullptr) apply_blend(*rs);
-			if (useShader) BeginShaderMode(*rs->shader);
+			if (useShader) {
+				BeginShaderMode(*rs->shader);
+				raylib_detail::bindShaderTextures(rs->shader->id);
+			}
 			fn();
 			if (useShader) EndShaderMode();
 			if (rs != nullptr) apply_default_blend();
