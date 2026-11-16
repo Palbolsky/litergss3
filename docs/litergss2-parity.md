@@ -64,6 +64,13 @@ built without physfs does.
 - **SpriteMap batching keeps signed texture rects**: unlike the oracle's
   `abs()`, it doesn't drop flipped tiles.
 
+- **Several DisplayWindows on raylib share its single OS window.** As in
+  LiteRGSS2, each `DisplayWindow` is its own window, usable from its own
+  thread (PSDK's error screen). raylib can open only one OS window: the
+  last window opened takes it over (size, title, drawing, events), and the
+  previous one gets it back when it closes. raylib's single GL context
+  follows the Ruby thread holding the GVL.
+
 ## Fixed along the way
 
 - `DisplayWindow#width` / `#height` became the window's pixel size (scale

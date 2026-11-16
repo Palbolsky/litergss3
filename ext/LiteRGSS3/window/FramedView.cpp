@@ -46,7 +46,7 @@ VALUE rb_FramedView_Initialize(int argc, VALUE *argv, VALUE self)
     rb_scan_args(argc, argv, "01", &parent);
 
     auto *f = get_framed_view(self);
-    auto *window = get_active_display_window();
+    auto *window = display_window_for(parent);
     if (window == nullptr) {
         rb_raise(rb_eRGSSError, "Window.new requires an open DisplayWindow");
     }

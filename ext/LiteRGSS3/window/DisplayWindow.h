@@ -10,13 +10,12 @@ extern VALUE rb_eClosedWindowError;
 
 void Init_DisplayWindow();
 
-extern int base_width;
-extern int base_height;
-extern double window_scale;
-
-// Accessor for the process-global cgss::DisplayWindow. Sprite/Viewport/etc.
-// register into its View (or a child Viewport's View) via cgss::*::create.
-// Returns nullptr if the window isn't open.
+// The window drawables join when given no DisplayWindow: the oldest one
+// open (the game's). nullptr if none is open.
 cgss::DisplayWindow* get_active_display_window();
+
+// The window of `parent` when it is a DisplayWindow (nullptr if closed),
+// get_active_display_window() otherwise (a Viewport / Window parent, nil).
+cgss::DisplayWindow* display_window_for(VALUE parent);
 
 #endif

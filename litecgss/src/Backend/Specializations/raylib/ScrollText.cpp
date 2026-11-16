@@ -128,6 +128,13 @@ void main() {
 		return static_cast<float>(charSize) * kRaylibEmCompensation;
 	}
 
+	// Baseline-to-baseline step between lines, in whole pixels: the text's
+	// line height times its line spacing, as SFML's text steps (raylib's
+	// own step is a fixed 15 px).
+	float lineStepOf(float lineHeight, float spacingFactor) noexcept {
+		return std::round(lineHeight * spacingFactor);
+	}
+
 	// Raylib's DrawTextPro takes a per-character pixel spacing. SFML's
 	// letterSpacing is a multiplier on the space glyph's width. Phase 1
 	// approximates: 0 spacing at factor 1.0, +1 px per unit factor over 1.0.
@@ -139,7 +146,13 @@ void main() {
 }
 
 void cgss::ScrollText::setString(const std::string& utf8) {
-	m_utf8 = utf8;
+	// '\r' is skipped, as SFML's text does: CRLF texts (PSDK's error log)
+	// would show raylib's '?' fallback glyph at every line end.
+	m_utf8.clear();
+	m_utf8.reserve(utf8.size());
+	for (const char c : utf8) {
+		if (c != '\r') m_utf8.push_back(c);
+	}
 }
 
 void cgss::ScrollText::setFont(const ::Font& font) {
@@ -237,7 +250,7 @@ cgss::FloatRect cgss::ScrollText::getLocalBounds() const {
 			minY = std::min(minY, y);
 			if (cp == ' ') x += advance;
 			else if (cp == '\t') x += advance * 4.f;
-			else { y += fs; x = 0.f; }
+			else { y += lineStepOf(m_lineHeight, m_lineSpacingFactor); x = 0.f; }
 			maxX = std::max(maxX, x);
 			maxY = std::max(maxY, y);
 			continue;
@@ -286,6 +299,10 @@ void cgss::ScrollText::draw() const {
 	const char* text    = truncated.c_str();
 	const float fs      = fontSizeF(m_characterSize);
 	const float spacing = spacingFromFactor(m_letterSpacingFactor);
+	const float lineStep = lineStepOf(m_lineHeight, m_lineSpacingFactor);
+	// DrawTextPro steps each '\n' by this raylib global (15 by default,
+	// whatever the font size).
+	::SetTextLineSpacing(static_cast<int>(lineStep));
 
 	const bool drawBold       = (m_style & ScrollText::Bold) != 0;
 	const bool drawItalic     = (m_style & ScrollText::Italic) != 0;
@@ -406,7 +423,7 @@ void cgss::ScrollText::draw() const {
 			const ::Vector2 extent = lineCopy.empty()
 				? ::Vector2{ 0.f, 0.f }
 				: ::MeasureTextEx(*m_font, lineCopy.c_str(), fs, spacing);
-			const float yLineTop = fs * static_cast<float>(lineIndex) - m_oy;
+			const float yLineTop = lineStep * static_cast<float>(lineIndex) - m_oy;
 			if (drawUnderlined && extent.x > 0.f) {
 				::DrawRectangleRec(::Rectangle{ left, yLineTop + fs * 0.95f - thickness * 0.5f,
 				                                extent.x, thickness }, m_fill);

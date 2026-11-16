@@ -18,6 +18,9 @@ namespace cgss::backend::raylib_detail {
 	// GL_MAX_TEXTURE_SIZE as the driver reports it, 0 when it can't be
 	// queried here (maxTextureSize then answers the GL minimum guarantee).
 	unsigned int queriedMaxTextureSize();
+	// Make raylib's GL context current on the calling thread (false: none
+	// current here). False when it can't be done from here (no GLFW).
+	bool makeContextCurrent(bool current);
 
 }
 

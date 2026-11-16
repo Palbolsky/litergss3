@@ -24,6 +24,7 @@
 #include "Backend/Internal/RaylibEventQueue.h"
 #include "Backend/Internal/RaylibFontAtlas.h"
 #include "Backend/Internal/RaylibPlatformQueries.h"
+#include "Backend/Internal/RaylibWindowStack.h"
 #include "Backend/Internal/RaylibKeyTranslation.h"
 #include "Backend/Shader/ShaderPreprocessor.h"
 
@@ -131,10 +132,11 @@ namespace cgss::backend {
 		}
 
 		// ---- Window ops — raylib uses GLOBAL window state ----
-		// raylib's `raylib::Window` placeholder is empty; all methods below
-		// ignore the reference argument and call raylib's free functions
-		// against the single process-global window. `window_is_stateful =
-		// false` on the backend Fwd signals this to any consumer that cares.
+		// raylib has one process-global window. Each `raylib::Window` is a
+		// record stacked on it (Internal/RaylibWindowStack.h): the last one
+		// opened owns the screen. The ops below apply to the OS window only
+		// for the owner; the others keep their size / title in their record
+		// until they own the screen again, and get no draws nor events.
 		//
 		// Close latching: raylib's WindowShouldClose() returns true once the
 		// user clicks the X or presses Esc (with default config). We AND
@@ -153,14 +155,53 @@ namespace cgss::backend {
 		// context). The actual CloseWindow is registered as an atexit handler
 		// in window_create, so it runs after main() returns — by which point
 		// every automatic/static texture has already been unloaded.
+		static inline bool owns_screen(const native_window& w) noexcept {
+			return raylib_detail::screenOwner() == &w;
+		}
+		// The window below gets the screen back: its size and title.
+		static inline void restore_screen(const native_window& w) {
+			if (!IsWindowReady()) return;
+			SetWindowTitle(w.title.c_str());
+			if (!IsWindowState(FLAG_BORDERLESS_WINDOWED_MODE) && !IsWindowFullscreen()) {
+				SetWindowSize(static_cast<int>(w.width), static_cast<int>(w.height));
+			}
+			// A close that ended the window above (its X button) was its own.
+			raylib_detail::resetWindowClosed();
+		}
 		static inline void window_close(native_window& w) {
 			w.last_requested_position.reset();
-			raylib_detail::markWindowClosed();
+			const bool wasOwner = owns_screen(w);
+			const bool wasOpen = w.open;
+			w.open = false;
+			if (!wasOpen) {
+				if (raylib_detail::screenOwner() == nullptr) raylib_detail::markWindowClosed();
+				return;
+			}
+			raylib::Window* const owner = raylib_detail::windowClosed(w);
+			if (owner == nullptr) {
+				raylib_detail::markWindowClosed();
+			} else if (wasOwner) {
+				restore_screen(*owner);
+			}
 		}
-		static inline bool window_is_open(const native_window&) {
-			if (!IsWindowReady()) return false;
+		static inline bool window_is_open(const native_window& w) {
+			if (!IsWindowReady() || !w.open) return false;
+			// A window waiting under another one is still open.
+			if (!owns_screen(w)) return true;
 			if (raylib_detail::isWindowClosed()) return false;
 			return !WindowShouldClose();
+		}
+		// Only the screen's owner draws (see the window ops above).
+		static inline bool window_is_drawable(const native_window& w) noexcept {
+			return owns_screen(w);
+		}
+
+		// ---- GL context ----
+		// One GL context for every window: whoever does GL work must have it
+		// current on its thread (DisplayWindow::AcquireContext).
+		static constexpr bool context_follows_thread = true;
+		static inline void context_make_current(bool current) {
+			raylib_detail::makeContextCurrent(current);
 		}
 		// Raylib's draw-frame protocol is BeginDrawing + ClearBackground
 		// ... user draws ... EndDrawing. Map cgss's clear/display pair onto
@@ -176,14 +217,14 @@ namespace cgss::backend {
 		// a not-yet-created sf::RenderWindow are silent no-ops, so gating
 		// here matches the SFML contract and makes the cgss::DisplayWindow
 		// API backend-uniform.
-		static inline void window_clear(native_window&) {
-			if (!IsWindowReady()) return;
+		static inline void window_clear(native_window& w) {
+			if (!IsWindowReady() || !owns_screen(w)) return;
 			BeginDrawing();
 			apply_default_blend();
 			ClearBackground(::Color{ 0, 0, 0, 255 });
 		}
-		static inline void window_display(native_window&) {
-			if (!IsWindowReady()) return;
+		static inline void window_display(native_window& w) {
+			if (!IsWindowReady() || !owns_screen(w)) return;
 			// Close any scissor region installed by target_set_view during
 			// the frame so the next frame starts from a clean GL state.
 			raylib_detail::endCurrentScissor();
@@ -192,22 +233,26 @@ namespace cgss::backend {
 			// event drain polls raylib's freshly-updated input state.
 			raylib_detail::markFrameBoundary();
 		}
-		static inline void window_set_title(native_window&, const char* title) {
-			if (!IsWindowReady()) return;
-			SetWindowTitle(title);
+		static inline void window_set_title(native_window& win, const char* title) {
+			win.title = title != nullptr ? title : "";
+			if (!IsWindowReady() || !owns_screen(win)) return;
+			SetWindowTitle(win.title.c_str());
 		}
-		static inline void window_set_size(native_window&, unsigned int w, unsigned int h) {
-			if (!IsWindowReady()) return;
+		static inline void window_set_size(native_window& win, unsigned int w, unsigned int h) {
+			win.width = w;
+			win.height = h;
+			if (!IsWindowReady() || !owns_screen(win)) return;
 			SetWindowSize(static_cast<int>(w), static_cast<int>(h));
 		}
-		static inline Size2u window_get_size(const native_window&) noexcept {
+		static inline Size2u window_get_size(const native_window& win) noexcept {
+			if (!owns_screen(win)) return { win.width, win.height };
 			// GetScreenWidth/Height read CORE globals (no glfw call) and
 			// return 0 pre-InitWindow — safe without a gate.
 			return { static_cast<unsigned int>(GetScreenWidth()),
 			         static_cast<unsigned int>(GetScreenHeight()) };
 		}
-		static inline void window_set_mouse_cursor_visible(native_window&, bool visible) {
-			if (!IsWindowReady()) return;
+		static inline void window_set_mouse_cursor_visible(native_window& w, bool visible) {
+			if (!IsWindowReady() || !owns_screen(w)) return;
 			if (visible) ShowCursor(); else HideCursor();
 		}
 		// Vsync under raylib: FLAG_VSYNC_HINT is latched at InitWindow time
@@ -218,14 +263,16 @@ namespace cgss::backend {
 		// raylib doesn't support. Pre-init callers land here if someone
 		// invokes window_set_vsync before window_create; applying the flag is
 		// harmless (window_create will re-set it anyway).
-		static inline void window_set_vsync(native_window&, bool enable) {
+		static inline void window_set_vsync(native_window& w, bool enable) {
 			if (!IsWindowReady()) {
 				if (enable) SetConfigFlags(FLAG_VSYNC_HINT);
 				return;
 			}
+			if (!owns_screen(w)) return;
 			SetTargetFPS(enable ? 60 : 0);
 		}
-		static inline void window_set_framerate_limit(native_window&, unsigned int fps) {
+		static inline void window_set_framerate_limit(native_window& w, unsigned int fps) {
+			if (IsWindowReady() && !owns_screen(w)) return;
 			SetTargetFPS(static_cast<int>(fps));
 		}
 		// Both map to glfwSetWindowPos / glfwGetWindowPos which assert on a
@@ -239,7 +286,7 @@ namespace cgss::backend {
 		// return the pre-move coords. Caching on set + preferring the cache
 		// on get matches SFMLBackend's synchronous observable behavior.
 		static inline void window_set_position(native_window& w, int x, int y) {
-			if (!IsWindowReady()) return;
+			if (!IsWindowReady() || !owns_screen(w)) return;
 			w.last_requested_position = Point2i{ x, y };
 			SetWindowPosition(x, y);
 		}
@@ -275,8 +322,8 @@ namespace cgss::backend {
 		}
 		// Raw-pixel icon setter. Raylib's SetWindowIcon takes a raylib::Image;
 		// build one from the pixel buffer, push, destroy.
-		static inline void window_set_icon(native_window&, unsigned int width, unsigned int height, const std::uint8_t* pixels) {
-			if (!IsWindowReady()) return;
+		static inline void window_set_icon(native_window& w, unsigned int width, unsigned int height, const std::uint8_t* pixels) {
+			if (!IsWindowReady() || !owns_screen(w)) return;
 			::Image img{};
 			// Const-cast is safe: SetWindowIcon copies the pixel data.
 			img.data    = const_cast<std::uint8_t*>(pixels);
@@ -288,8 +335,8 @@ namespace cgss::backend {
 		}
 		// File-path icon setter — each backend owns the decoder so ext/
 		// doesn't need to drag in a format-specific library.
-		static inline void window_set_icon_from_file(native_window&, const char* path) {
-			if (!IsWindowReady()) return;
+		static inline void window_set_icon_from_file(native_window& w, const char* path) {
+			if (!IsWindowReady() || !owns_screen(w)) return;
 			::Image img = LoadImage(path);
 			if (img.data == nullptr) return;
 			SetWindowIcon(img);
@@ -306,12 +353,13 @@ namespace cgss::backend {
 		// Drain one synthesized event from the raylib event queue. See
 		// Backend/Internal/RaylibEventQueue.cpp for the state-diffing logic
 		// that produces these events from raylib's polled-only API.
-		static inline bool window_poll_event(native_window&, native_event& ev) {
-			return raylib_detail::tryPopEvent(ev);
+		// The events are the screen owner's.
+		static inline bool window_poll_event(native_window& w, native_event& ev) {
+			return owns_screen(w) && raylib_detail::tryPopEvent(ev);
 		}
 		// raylib has no blocking-wait primitive; fall back to the poll form.
-		static inline bool window_wait_event(native_window&, native_event& ev) {
-			return raylib_detail::tryPopEvent(ev);
+		static inline bool window_wait_event(native_window& w, native_event& ev) {
+			return owns_screen(w) && raylib_detail::tryPopEvent(ev);
 		}
 
 		// ---- Event translation ops ----
@@ -542,7 +590,13 @@ namespace cgss::backend {
 		//     Fullscreen` changes the display mode, raylib's borderless
 		//     variant is the closer analogue to what modern users expect
 		//     and doesn't glitch on compositing Wayland/X11 sessions.
-		static inline void window_create(native_window&, const WindowCreateOptions& opts, const char* title) {
+		static inline void window_create(native_window& win, const WindowCreateOptions& opts, const char* title) {
+			win.width = opts.width;
+			win.height = opts.height;
+			win.title = title != nullptr ? title : "LiteRGSS";
+			win.open = true;
+			// On top of the stack: owns the screen from now on.
+			raylib_detail::windowOpened(win);
 			if (IsWindowReady()) {
 				if (title != nullptr) SetWindowTitle(title);
 				// Don't resize while fullscreen — raylib ignores SetWindowSize

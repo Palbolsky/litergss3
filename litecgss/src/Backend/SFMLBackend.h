@@ -885,6 +885,12 @@ namespace cgss::backend {
 			s.setScale(sx, sy);
 		}
 
+		// Every sf::RenderWindow is its own OS window with its own GL
+		// context, which SFML activates on the drawing thread by itself.
+		static inline bool window_is_drawable(const native_window&) noexcept { return true; }
+		static constexpr bool context_follows_thread = false;
+		static inline void context_make_current(bool) {}
+
 		// No-states draw overload — falls back to sf::RenderStates::Default.
 		static inline void draw_sprite(native_render_target& target, const native_sprite& sprite) {
 			target.draw(sprite);

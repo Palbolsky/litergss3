@@ -53,9 +53,9 @@ static void rect_arg_to_xywh(VALUE val, int& x, int& y, int& w, int& h)
 
 // --- Methods ---
 
-// LiteRGSS2 viewport ctor was `Viewport.new(window, x, y, w, h)`. PSDK
-// still passes the leading `window` arg; LiteRGSS3 ignores it (the
-// process-global window is used). Accept any combination.
+// LiteRGSS2 viewport ctor was `Viewport.new(window, x, y, w, h)`: the
+// viewport joins that window. Without it (`Viewport.new(x, y, w, h)`), the
+// game's window (get_active_display_window).
 VALUE rb_Viewport_Initialize(int argc, VALUE *argv, VALUE self)
 {
     VALUE a, b, c, d, e;
@@ -80,7 +80,7 @@ VALUE rb_Viewport_Initialize(int argc, VALUE *argv, VALUE self)
         vp->height = RTEST(d) ? NUM2INT(d) : 480;
     }
 
-    auto* window = get_active_display_window();
+    auto* window = display_window_for(NIL_P(e) ? Qnil : a);
     if (window == nullptr) {
         rb_raise(rb_eRGSSError, "Viewport.new requires an open DisplayWindow");
     }

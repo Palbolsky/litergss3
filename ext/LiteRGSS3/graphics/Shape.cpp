@@ -124,7 +124,7 @@ VALUE rb_Shape_Initialize(int argc, VALUE *argv, VALUE self)
         s->rShapeType = ID2SYM(rb_iShapeRectangle);
     }
 
-    auto* window = get_active_display_window();
+    auto* window = display_window_for(viewport);
     if (window == nullptr) {
         rb_raise(rb_eRGSSError, "Shape.new requires an open DisplayWindow");
     }

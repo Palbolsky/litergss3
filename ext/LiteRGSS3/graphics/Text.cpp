@@ -50,7 +50,7 @@ VALUE rb_Text_Initialize(int argc, VALUE *argv, VALUE self)
                  &align, &outlinesize, &colorid, &sizeid);
 
     auto *t = get_text(self);
-    auto* window = get_active_display_window();
+    auto* window = display_window_for(viewport);
     if (window == nullptr) {
         rb_raise(rb_eRGSSError, "Text.new requires an open DisplayWindow");
     }

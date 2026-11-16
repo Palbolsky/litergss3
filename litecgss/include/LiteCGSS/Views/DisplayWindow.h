@@ -51,6 +51,19 @@ namespace cgss {
 		// Fullscreen modes of the primary display, best first.
 		static std::vector<cgss::VideoMode> FullscreenModes();
 
+		/* GL context and threads. Some backends (raylib) have one GL context
+		   for all their windows: it is current on one thread at a time, so a
+		   host driving windows from several threads hands it over: a thread
+		   about to do GL work (draw, create textures...) acquires it, and
+		   releases it before another thread can go on. ContextFollowsThread()
+		   tells whether that's needed; elsewhere (SFML: one context per
+		   window, activated by the backend) both calls do nothing.
+		   AcquireContext blocks while another thread holds it; both are
+		   no-ops when the calling thread already holds / doesn't hold it. */
+		static bool ContextFollowsThread();
+		static void AcquireContext();
+		static void ReleaseContext();
+
 		basic_DisplayWindow(const DisplayWindowSettings& settings);
 
 		basic_DisplayWindow(const basic_DisplayWindow&) = delete;

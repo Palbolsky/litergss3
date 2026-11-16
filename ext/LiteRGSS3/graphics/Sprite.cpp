@@ -69,7 +69,7 @@ VALUE rb_Sprite_Initialize(int argc, VALUE *argv, VALUE self)
     // (FramedView) or the DisplayWindow as parent. PSDK uses Window as
     // parent for in-dialog sprites (e.g. text_stack inside the message
     // box) so sprite coords are local to the box.
-    auto* window = get_active_display_window();
+    auto* window = display_window_for(parent);
     if (window == nullptr) {
         rb_raise(rb_eRGSSError, "Sprite.new requires an open DisplayWindow");
     }

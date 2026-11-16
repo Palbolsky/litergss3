@@ -23,6 +23,8 @@ extern "C" {
 	GLFWmonitor* glfwGetPrimaryMonitor(void) CGSS_GLFW_WEAK;
 	const GLFWvidmode* glfwGetVideoModes(GLFWmonitor* monitor, int* count) CGSS_GLFW_WEAK;
 	void* glfwGetProcAddress(const char* procname) CGSS_GLFW_WEAK;
+	struct GLFWwindow;
+	void glfwMakeContextCurrent(GLFWwindow* window) CGSS_GLFW_WEAK;
 }
 #endif
 
@@ -83,6 +85,17 @@ namespace cgss::backend::raylib_detail {
 	unsigned int maxTextureSize() {
 		const auto size = queriedMaxTextureSize();
 		return size != 0 ? size : kMinimumMaxTextureSize;
+	}
+
+	bool makeContextCurrent(bool current) {
+#if CGSS_HAS_GLFW_QUERIES
+		if (glfwMakeContextCurrent != nullptr && IsWindowReady()) {
+			glfwMakeContextCurrent(current ? static_cast<GLFWwindow*>(GetWindowHandle()) : nullptr);
+			return true;
+		}
+#endif
+		(void)current;
+		return false;
 	}
 
 }

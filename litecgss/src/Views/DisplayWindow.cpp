@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <cassert>
+#include <mutex>
 #include <thread>
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
@@ -298,6 +299,11 @@ void cgss::basic_DisplayWindow<B>::draw() {
 	// pauses in the background) or for a close request. A detach can't
 	// happen during the frame. Back from it, nothing is drawn until the
 	// event pump has rebuilt the GL surface.
+	// A window that doesn't own the screen (a backend with one OS window,
+	// another window on top of it) has nothing to draw.
+	if (!Ops::window_is_drawable(m_gameWindow)) {
+		return;
+	}
 	bool surfaceChanged = false;
 	if (!cgss::android::beginHostedFrame(m_hostSurfaceDetaches, surfaceChanged)) {
 		if (surfaceChanged) m_pumpPending = true;
@@ -531,6 +537,33 @@ unsigned int cgss::basic_DisplayWindow<B>::DesktopHeight() {
 template <class B>
 std::vector<cgss::VideoMode> cgss::basic_DisplayWindow<B>::FullscreenModes() {
 	return B::Ops::fullscreen_modes();
+}
+
+namespace {
+	// Held by the thread whose GL work is in progress (context_follows_thread)
+	std::mutex g_contextMutex;
+	thread_local bool t_holdsContext = false;
+}
+
+template <class B>
+bool cgss::basic_DisplayWindow<B>::ContextFollowsThread() {
+	return B::Ops::context_follows_thread;
+}
+
+template <class B>
+void cgss::basic_DisplayWindow<B>::AcquireContext() {
+	if (!B::Ops::context_follows_thread || t_holdsContext) return;
+	g_contextMutex.lock();
+	t_holdsContext = true;
+	B::Ops::context_make_current(true);
+}
+
+template <class B>
+void cgss::basic_DisplayWindow<B>::ReleaseContext() {
+	if (!B::Ops::context_follows_thread || !t_holdsContext) return;
+	B::Ops::context_make_current(false);
+	t_holdsContext = false;
+	g_contextMutex.unlock();
 }
 
 template class cgss::basic_DisplayWindow<cgss::backend::ActiveBackend>;

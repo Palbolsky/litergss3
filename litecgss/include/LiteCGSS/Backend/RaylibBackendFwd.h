@@ -20,6 +20,7 @@
 #include "LiteCGSS/Graphics/BlendMode.h"
 
 #include <optional>
+#include <string>
 
 // raylib's C structs (global namespace; raylib.h declares them as
 // `typedef struct X { ... } X;`, which is compatible with these).
@@ -46,8 +47,18 @@ namespace cgss::backend {
 		// matches SFMLBackend's observable behavior. Reset to nullopt before
 		// any move so the first read after window creation still reflects the
 		// real OS-assigned position.
+		//
+		// raylib opens a single OS window. Every cgss window is a Window
+		// record stacked on it: the last one opened owns the screen (its
+		// size, title, draws and events), the others wait until it closes
+		// (see Internal/RaylibWindowStack.h). Their own size and title are
+		// kept here meanwhile.
 		struct Window {
 			std::optional<cgss::backend::Point2i> last_requested_position;
+			bool open = false;
+			unsigned int width = 0;
+			unsigned int height = 0;
+			std::string title;
 		};
 		// Stateful sprite mirror of sf::Sprite. raylib's draw model is
 		// immediate-mode (DrawTexturePro takes all draw args as parameters),

@@ -22,46 +22,125 @@
 #include <filesystem>
 #include <memory>
 #include <string>
-#include <unordered_map>
+#include <algorithm>
+#include <vector>
 
+// Each Ruby DisplayWindow owns its cgss::DisplayWindow (the native window
+// plus the View-side DrawableStack that Sprite/Viewport/Text/Shape register
+// into), as in LiteRGSS2: a game can open several (PSDK opens its error
+// screen as a second window, from a thread of its own). Backends with one OS
+// window (raylib) stack them: the last opened owns the screen.
 namespace {
-	// File-static cgss::DisplayWindow. Owns the native window plus the
-	// View-side DrawableStack that Sprite/Viewport/Text/Shape/SpriteMap
-	// register into (via cgss::*::create). cgss::DisplayWindow::draw() runs
-	// the atomic clear → drawables → postProcessing → display sequence.
-	std::unique_ptr<cgss::DisplayWindow> g_window;
+	struct DisplayWindowData {
+		std::unique_ptr<cgss::DisplayWindow> window;
+		// The game's place on a window larger than it (game_area=): 0, the
+		// game is the whole window.
+		long gameWidth = 0;
+		long gameHeight = 0;
+		// A thread calling update while another one is inside it (its frame
+		// drawn without the GVL) returns at once, as in LiteRGSS2.
+		bool insideUpdate = false;
+	};
 
-	// Per-button last-pressed state used to derive press/release edges from
-	// LiteRGSS3's typed events (KeyEvent and MouseButtonEvent share one
-	// Struct class, so the dispatch decides which on_* callback to fire by
-	// diffing against the last polled state).
-	std::unordered_map<int, bool> g_last_keys;
-	std::unordered_map<int, bool> g_last_mouse;
+	// Open windows, oldest first: drawables created without a DisplayWindow
+	// go to the oldest (the game's).
+	std::vector<DisplayWindowData*> g_open_windows;
+
+	void forget_window(DisplayWindowData* d)
+	{
+		g_open_windows.erase(std::remove(g_open_windows.begin(), g_open_windows.end(), d), g_open_windows.end());
+	}
+
+	// Ends the window (its GL resources need the context: the thread holds it).
+	void close_window(DisplayWindowData* d)
+	{
+		if (d->window == nullptr) return;
+		forget_window(d);
+		d->window->stop();
+		d->window.reset();
+	}
+
+	void dw_free(void* ptr)
+	{
+		auto* d = static_cast<DisplayWindowData*>(ptr);
+		close_window(d);
+		delete d;
+	}
+
+	size_t dw_memsize(const void*) { return sizeof(DisplayWindowData); }
+
+	const rb_data_type_t kDisplayWindowType = {
+		"LiteRGSS::DisplayWindow",
+		{ nullptr, dw_free, dw_memsize, nullptr, { nullptr } },
+		nullptr, nullptr, 0
+	};
+
+	VALUE dw_alloc(VALUE klass)
+	{
+		return TypedData_Wrap_Struct(klass, &kDisplayWindowType, new DisplayWindowData{});
+	}
+
+	DisplayWindowData& data_of(VALUE self)
+	{
+		return *static_cast<DisplayWindowData*>(rb_check_typeddata(self, &kDisplayWindowType));
+	}
+
+	cgss::DisplayWindow* window_ptr(VALUE self)
+	{
+		return data_of(self).window.get();
+	}
+
+	cgss::DisplayWindow& window_of(VALUE self)
+	{
+		auto* window = window_ptr(self);
+		if (window == nullptr) {
+			rb_raise(rb_eRGSSError, "Window not opened — call DisplayWindow.new first");
+		}
+		return *window;
+	}
+
+	// Backends with one GL context for all windows (raylib): it follows the
+	// Ruby thread holding the GVL, so a window driven from another thread
+	// (PSDK's error screen) finds it current. Released when a thread lets the
+	// GVL go, acquired when one gets it back; a frame drawn without the GVL
+	// holds it meanwhile (draw_without_gvl).
+	void context_follows_gvl(rb_event_flag_t event, const rb_internal_thread_event_data_t*, void*)
+	{
+		if (event == RUBY_INTERNAL_THREAD_EVENT_RESUMED) {
+			cgss::DisplayWindow::AcquireContext();
+		} else {
+			cgss::DisplayWindow::ReleaseContext();
+		}
+	}
+
+	void install_context_hook()
+	{
+		static bool installed = false;
+		if (installed || !cgss::DisplayWindow::ContextFollowsThread()) return;
+		installed = true;
+		// This thread runs Ruby, so it has the GVL: it takes the context first.
+		cgss::DisplayWindow::AcquireContext();
+		rb_internal_thread_add_event_hook(context_follows_gvl,
+			RUBY_INTERNAL_THREAD_EVENT_RESUMED | RUBY_INTERNAL_THREAD_EVENT_SUSPENDED | RUBY_INTERNAL_THREAD_EVENT_EXITED,
+			nullptr);
+	}
 }
 
 VALUE rb_cDisplayWindow      = Qnil;
 VALUE rb_eClosedWindowError  = Qnil;
 VALUE rb_eStoppedWindowError = Qnil;
 
-// Singleton DisplayWindow Ruby instance — the LiteRGSS2 surface exposes
-// `LiteRGSS::DisplayWindow.desktop_width` / `.desktop_height` as class
-// methods, and several PSDK call sites read state via the class itself.
-static VALUE g_display_window_instance = Qnil;
-
-int base_width  = 640;
-int base_height = 480;
-double window_scale = 1.0;
-
 cgss::DisplayWindow* get_active_display_window()
 {
-	return g_window.get();
+	return g_open_windows.empty() ? nullptr : g_open_windows.front()->window.get();
 }
 
-static void ensureWindow()
+cgss::DisplayWindow* display_window_for(VALUE parent)
 {
-	if (g_window == nullptr) {
-		rb_raise(rb_eRGSSError, "Window not opened — call DisplayWindow.new first");
+	if (RTEST(parent) && rb_obj_is_kind_of(parent, rb_cDisplayWindow) == Qtrue) {
+		return window_ptr(parent);
 	}
+	return get_active_display_window();
 }
 
 // Settings array index helpers — must stay in sync with the Ruby
@@ -126,20 +205,17 @@ static cgss::DisplayWindowSettings build_settings_from_array(VALUE arr)
 	return settings;
 }
 
-static void open_window_with_settings(VALUE arr)
+static void open_window_with_settings(VALUE self, VALUE arr)
 {
 	auto settings = build_settings_from_array(arr);
-	base_width  = static_cast<int>(settings.video.width);
-	base_height = static_cast<int>(settings.video.height);
-	window_scale = settings.video.scale;
-
-	if (g_window == nullptr) {
-		g_window = std::make_unique<cgss::DisplayWindow>(settings);
+	auto& d = data_of(self);
+	if (d.window == nullptr) {
+		install_context_hook();
+		d.window = std::make_unique<cgss::DisplayWindow>(settings);
+		g_open_windows.push_back(&d);
 	} else {
-		g_window->reload(std::move(settings), true);
+		d.window->reload(std::move(settings), true);
 	}
-	g_last_keys.clear();
-	g_last_mouse.clear();
 }
 
 // --- Construction ----------------------------------------------------------
@@ -184,8 +260,7 @@ VALUE rb_DisplayWindow_initialize(int argc, VALUE* argv, VALUE self)
 	rb_ivar_set(self, iv_focus, Qtrue);
 	rb_ivar_set(self, iv_event_callbacks, rb_hash_new());
 
-	open_window_with_settings(arr);
-	g_display_window_instance = self;
+	open_window_with_settings(self, arr);
 	return self;
 }
 
@@ -209,9 +284,8 @@ static VALUE rb_DisplayWindow_open_window(int argc, VALUE* argv, VALUE self)
 	if (!NIL_P(title))  rb_ary_store(arr, SI_TITLE,  title);
 	if (!NIL_P(scale))  rb_ary_store(arr, SI_SCALE,  scale);
 
-	open_window_with_settings(arr);
+	open_window_with_settings(self, arr);
 	rb_ivar_set(self, iv_disposed, Qfalse);
-	g_display_window_instance = self;
 	return self;
 }
 
@@ -231,14 +305,11 @@ static void apply_settings_array(VALUE self, VALUE arr)
 		rb_raise(rb_eTypeError, "Settings must be an array of %d values", SI_COUNT);
 	}
 	rb_ivar_set(self, iv_settings, rb_ary_dup(arr));
-	if (g_window == nullptr) return;
-	auto settings = build_settings_from_array(arr);
-	base_width   = static_cast<int>(settings.video.width);
-	base_height  = static_cast<int>(settings.video.height);
-	window_scale = settings.video.scale;
+	auto* window = window_ptr(self);
+	if (window == nullptr) return;
 	// reload(..., false) defers the reload to the next draw() — exactly the
 	// behaviour we want when settings change mid-loop.
-	g_window->reload(std::move(settings), false);
+	window->reload(build_settings_from_array(arr), false);
 }
 
 VALUE rb_DisplayWindow_setSettings(VALUE self, VALUE arr)
@@ -249,16 +320,16 @@ VALUE rb_DisplayWindow_setSettings(VALUE self, VALUE arr)
 
 // The game's place on a window larger than it (game_area=): the engine moves
 // the game there (setOrigin), width / height answer the game's size and the
-// mouse / touch positions reach the callbacks moved the same way. 0: no game
-// area, the game is the whole window.
+// mouse / touch positions reach the callbacks moved the same way.
 namespace {
-	long g_game_width  = 0;
-	long g_game_height = 0;
-
-	bool hasGameArea() { return g_game_width > 0; }
+	bool hasGameArea(VALUE self) { return data_of(self).gameWidth > 0; }
 
 	// Mouse and touch positions come in the window's pixels.
-	cgss::IntPoint inputOrigin() { return g_window ? g_window->originPixels() : cgss::IntPoint{}; }
+	cgss::IntPoint inputOrigin(VALUE self)
+	{
+		auto* window = window_ptr(self);
+		return window != nullptr ? window->originPixels() : cgss::IntPoint{};
+	}
 }
 
 // The whole window's width, black bars included
@@ -276,31 +347,33 @@ VALUE rb_DisplayWindow_screenHeight(VALUE self)
 // The game's width: the whole window's without a game area
 VALUE rb_DisplayWindow_getWidth(VALUE self)
 {
-	return hasGameArea() ? LONG2NUM(g_game_width) : rb_DisplayWindow_screenWidth(self);
+	return hasGameArea(self) ? LONG2NUM(data_of(self).gameWidth) : rb_DisplayWindow_screenWidth(self);
 }
 
 // The game's height: the whole window's without a game area
 VALUE rb_DisplayWindow_getHeight(VALUE self)
 {
-	return hasGameArea() ? LONG2NUM(g_game_height) : rb_DisplayWindow_screenHeight(self);
+	return hasGameArea(self) ? LONG2NUM(data_of(self).gameHeight) : rb_DisplayWindow_screenHeight(self);
 }
 
 // [x, y, width, height] in window pixels, nil when the game is the whole window
 VALUE rb_DisplayWindow_getGameArea(VALUE self)
 {
-	(void)self;
-	if (!hasGameArea() || !g_window) return Qnil;
-	return rb_ary_new_from_args(4, LONG2NUM(g_window->originX()), LONG2NUM(g_window->originY()),
-		LONG2NUM(g_game_width), LONG2NUM(g_game_height));
+	auto* window = window_ptr(self);
+	if (!hasGameArea(self) || window == nullptr) return Qnil;
+	const auto& d = data_of(self);
+	return rb_ary_new_from_args(4, LONG2NUM(window->originX()), LONG2NUM(window->originY()),
+		LONG2NUM(d.gameWidth), LONG2NUM(d.gameHeight));
 }
 
 // Put the game at its place on a window larger than it (nil: the whole window)
 VALUE rb_DisplayWindow_setGameArea(VALUE self, VALUE area)
 {
-	ensureWindow();
+	auto& win = window_of(self);
+	auto& d = data_of(self);
 	if (NIL_P(area)) {
-		g_game_width = g_game_height = 0;
-		g_window->setOrigin(0, 0);
+		d.gameWidth = d.gameHeight = 0;
+		win.setOrigin(0, 0);
 		return area;
 	}
 	Check_Type(area, T_ARRAY);
@@ -317,9 +390,9 @@ VALUE rb_DisplayWindow_setGameArea(VALUE self, VALUE area)
 		rb_raise(rb_eArgError, "The game area [%ld, %ld, %ld, %ld] is not inside the %ldx%ld window",
 			x, y, width, height, sw, sh);
 	}
-	g_game_width = width;
-	g_game_height = height;
-	g_window->setOrigin(x, y);
+	d.gameWidth = width;
+	d.gameHeight = height;
+	win.setOrigin(x, y);
 	return area;
 }
 
@@ -327,9 +400,8 @@ VALUE rb_DisplayWindow_setGameArea(VALUE self, VALUE area)
 
 VALUE rb_DisplayWindow_scale(VALUE self, VALUE scale)
 {
-	ensureWindow();
-	window_scale = NUM2DBL(scale);
-	g_window->setScale(window_scale);
+	auto& win = window_of(self);
+	win.setScale(NUM2DBL(scale));
 	VALUE arr = rb_ivar_get(self, iv_settings);
 	if (!NIL_P(arr)) rb_ary_store(arr, SI_SCALE, scale);
 	return self;
@@ -337,11 +409,8 @@ VALUE rb_DisplayWindow_scale(VALUE self, VALUE scale)
 
 VALUE rb_DisplayWindow_resizeScreen(VALUE self, VALUE width, VALUE height)
 {
-	ensureWindow();
-	base_width  = NUM2INT(width);
-	base_height = NUM2INT(height);
-	g_window->resizeScreen(static_cast<unsigned int>(base_width),
-	                       static_cast<unsigned int>(base_height));
+	auto& win = window_of(self);
+	win.resizeScreen(NUM2UINT(width), NUM2UINT(height));
 	VALUE arr = rb_ivar_get(self, iv_settings);
 	if (!NIL_P(arr)) {
 		rb_ary_store(arr, SI_WIDTH, width);
@@ -352,8 +421,8 @@ VALUE rb_DisplayWindow_resizeScreen(VALUE self, VALUE width, VALUE height)
 
 VALUE rb_DisplayWindow_setTitle(VALUE self, VALUE title)
 {
-	ensureWindow();
-	g_window->setTitle(window_title(StringValueCStr(title)).c_str());
+	auto& win = window_of(self);
+	win.setTitle(window_title(StringValueCStr(title)).c_str());
 	VALUE arr = rb_ivar_get(self, iv_settings);
 	if (!NIL_P(arr)) rb_ary_store(arr, SI_TITLE, title);
 	return self;
@@ -362,14 +431,14 @@ VALUE rb_DisplayWindow_setTitle(VALUE self, VALUE title)
 VALUE rb_DisplayWindow_setIcon(VALUE self, VALUE arg)
 {
 	(void)self;
-	ensureWindow();
+	auto& win = window_of(self);
 	// LiteRGSS2 accepted either a file path or an Image instance (PSDK's
 	// 0 Dependencies/3 Graphics module Improvements/00001 Window Icon.rb
 	// passes an Image). Branch on the Ruby type.
 	if (rb_obj_is_kind_of(arg, rb_cImage) == Qtrue) {
 		auto *img = get_image(arg);
 		if (!img->valid()) return self;
-		g_window->setIcon(img->image);
+		win.setIcon(img->image);
 		return self;
 	}
 	rb_check_type(arg, T_STRING);
@@ -378,14 +447,14 @@ VALUE rb_DisplayWindow_setIcon(VALUE self, VALUE arg)
 	if (!std::filesystem::exists(p)) return self;
 	auto img = cgss::Image::create(p);
 	if (img.width() == 0 || img.height() == 0) return self;
-	g_window->setIcon(img);
+	win.setIcon(img);
 	return self;
 }
 
 VALUE rb_DisplayWindow_setVsync(VALUE self, VALUE enabled)
 {
-	ensureWindow();
-	g_window->setVsync(RTEST(enabled));
+	auto& win = window_of(self);
+	win.setVsync(RTEST(enabled));
 	VALUE arr = rb_ivar_get(self, iv_settings);
 	if (!NIL_P(arr)) rb_ary_store(arr, SI_VSYNC, RTEST(enabled) ? Qtrue : Qfalse);
 	return self;
@@ -393,8 +462,8 @@ VALUE rb_DisplayWindow_setVsync(VALUE self, VALUE enabled)
 
 VALUE rb_DisplayWindow_setFps(VALUE self, VALUE fps)
 {
-	ensureWindow();
-	g_window->setFrameRate(NUM2UINT(fps));
+	auto& win = window_of(self);
+	win.setFrameRate(NUM2UINT(fps));
 	VALUE arr = rb_ivar_get(self, iv_settings);
 	if (!NIL_P(arr)) rb_ary_store(arr, SI_FRAMERATE, fps);
 	return self;
@@ -403,36 +472,36 @@ VALUE rb_DisplayWindow_setFps(VALUE self, VALUE fps)
 VALUE rb_DisplayWindow_getX(VALUE self)
 {
 	(void)self;
-	ensureWindow();
-	return INT2NUM(g_window->getX());
+	auto& win = window_of(self);
+	return INT2NUM(win.getX());
 }
 
 VALUE rb_DisplayWindow_getY(VALUE self)
 {
 	(void)self;
-	ensureWindow();
-	return INT2NUM(g_window->getY());
+	auto& win = window_of(self);
+	return INT2NUM(win.getY());
 }
 
 VALUE rb_DisplayWindow_move(VALUE self, VALUE x, VALUE y)
 {
 	(void)self;
-	ensureWindow();
-	g_window->move(NUM2INT(x), NUM2INT(y));
+	auto& win = window_of(self);
+	win.move(NUM2INT(x), NUM2INT(y));
 	return self;
 }
 
 VALUE rb_DisplayWindow_setX(VALUE self, VALUE x)
 {
-	ensureWindow();
-	g_window->move(NUM2INT(x), g_window->getY());
+	auto& win = window_of(self);
+	win.move(NUM2INT(x), win.getY());
 	return self;
 }
 
 VALUE rb_DisplayWindow_setY(VALUE self, VALUE y)
 {
-	ensureWindow();
-	g_window->move(g_window->getX(), NUM2INT(y));
+	auto& win = window_of(self);
+	win.move(win.getX(), NUM2INT(y));
 	return self;
 }
 
@@ -440,8 +509,8 @@ VALUE rb_DisplayWindow_setY(VALUE self, VALUE y)
 VALUE rb_DisplayWindow_openGLVersion(VALUE self)
 {
 	(void)self;
-	ensureWindow();
-	const auto settings = g_window->getContextSettings();
+	auto& win = window_of(self);
+	const auto settings = win.getContextSettings();
 	VALUE result = rb_ary_new_capa(2);
 	rb_ary_push(result, UINT2NUM(settings.majorVersion));
 	rb_ary_push(result, UINT2NUM(settings.minorVersion));
@@ -489,50 +558,52 @@ VALUE rb_DisplayWindow_desktopHeight(VALUE self)
 // run meanwhile, and a hosted Android game paused in the background (the
 // frame waits for its surface) doesn't freeze them. No Ruby API in there.
 namespace {
-	// A thread calling update while another one is inside it (its frame
-	// drawn without the GVL) returns at once, as in LiteRGSS2.
-	bool g_inside_update = false;
-
-	void* draw_without_gvl(void*)
+	void* draw_without_gvl(void* window)
 	{
-		g_window->draw();
+		// The GL context left with the GVL (context_follows_gvl): this frame
+		// holds it until done.
+		cgss::DisplayWindow::AcquireContext();
+		static_cast<cgss::DisplayWindow*>(window)->draw();
+		cgss::DisplayWindow::ReleaseContext();
 		return nullptr;
 	}
 
-	void draw_frame()
+	void draw_frame(VALUE self)
 	{
-		rb_thread_call_without_gvl(draw_without_gvl, nullptr, nullptr, nullptr);
+		rb_thread_call_without_gvl(draw_without_gvl, &window_of(self), nullptr, nullptr);
 	}
 
-	VALUE leave_update(VALUE)
+	VALUE leave_update(VALUE self)
 	{
-		g_inside_update = false;
+		data_of(self).insideUpdate = false;
 		return Qnil;
 	}
 
-	// Runs body(self) as the one update in progress.
+	// Runs body(self) as the window's one update in progress.
 	VALUE guarded_update(VALUE (*body)(VALUE), VALUE self)
 	{
-		if (g_inside_update) return Qnil;
-		g_inside_update = true;
-		return rb_ensure(body, self, leave_update, Qnil);
+		auto& d = data_of(self);
+		if (d.insideUpdate) return Qnil;
+		d.insideUpdate = true;
+		return rb_ensure(body, self, leave_update, self);
 	}
 
 	VALUE update_body(VALUE self)
 	{
 		// Like LiteRGSS2: a window closed by anything but its Closed event
 		// (which raises ClosedWindowError) stops the game loop with StoppedError.
-		if (!g_window->isOpen()) {
+		if (!window_of(self).isOpen()) {
 			rb_raise(rb_eStoppedWindowError, "Game Window was closed during DisplayWindow.update by an unknown cause...");
 		}
-		draw_frame();
+		draw_frame(self);
 		if (RTEST(rb_ivar_get(self, iv_polling))) drain_events_internal(self);
-		return g_window != nullptr && g_window->isOpen() ? Qtrue : Qfalse;
+		auto* window = window_ptr(self);
+		return window != nullptr && window->isOpen() ? Qtrue : Qfalse;
 	}
 
 	VALUE update_no_input_body(VALUE self)
 	{
-		draw_frame();
+		draw_frame(self);
 		return self;
 	}
 
@@ -545,7 +616,7 @@ namespace {
 
 VALUE rb_DisplayWindow_update(VALUE self)
 {
-	ensureWindow();
+	auto& win = window_of(self);
 	return guarded_update(update_body, self);
 }
 
@@ -553,7 +624,7 @@ VALUE rb_DisplayWindow_update(VALUE self)
 // PSDK doesn't want callbacks to fire.
 VALUE rb_DisplayWindow_updateNoInput(VALUE self)
 {
-	ensureWindow();
+	auto& win = window_of(self);
 	guarded_update(update_no_input_body, self);
 	return self;
 }
@@ -561,7 +632,7 @@ VALUE rb_DisplayWindow_updateNoInput(VALUE self)
 // LiteRGSS2: drain events without rendering.
 VALUE rb_DisplayWindow_updateOnlyInput(VALUE self)
 {
-	ensureWindow();
+	auto& win = window_of(self);
 	guarded_update(update_only_input_body, self);
 	return self;
 }
@@ -576,12 +647,8 @@ VALUE rb_DisplayWindow_present(VALUE self)
 
 VALUE rb_DisplayWindow_close(VALUE self)
 {
-	if (g_window != nullptr) {
-		g_window->stop();
-		g_window.reset();
-	}
+	close_window(&data_of(self));
 	rb_ivar_set(self, iv_disposed, Qtrue);
-	g_display_window_instance = Qnil;
 	return self;
 }
 
@@ -592,9 +659,9 @@ VALUE rb_DisplayWindow_disposed(VALUE self)
 
 VALUE rb_DisplayWindow_should_close(VALUE self)
 {
-	(void)self;
-	if (g_window == nullptr) return Qtrue;
-	return g_window->isOpen() ? Qfalse : Qtrue;
+	auto* window = window_ptr(self);
+	if (window == nullptr) return Qtrue;
+	return window->isOpen() ? Qfalse : Qtrue;
 }
 
 // --- LiteRGSS2 state knobs -------------------------------------------------
@@ -606,7 +673,7 @@ VALUE rb_DisplayWindow_setBrightness(VALUE self, VALUE val)
 	if (b < 0)   b = 0;
 	if (b > 255) b = 255;
 	rb_ivar_set(self, iv_brightness, INT2NUM(static_cast<int>(b)));
-	if (g_window != nullptr) g_window->setBrightness(static_cast<unsigned char>(b));
+	if (auto* window = window_ptr(self)) window->setBrightness(static_cast<unsigned char>(b));
 	return val;
 }
 
@@ -617,11 +684,11 @@ VALUE rb_DisplayWindow_setShader(VALUE self, VALUE val)
 		rb_raise(rb_eRGSSError, "DisplayWindow shader must be a BlendMode (or subclass).");
 	}
 	rb_ivar_set(self, iv_shader, val);
-	if (g_window != nullptr) {
+	if (auto* window = window_ptr(self)) {
 		if (NIL_P(val)) {
-			g_window->bindRenderStates(nullptr);
+			window->bindRenderStates(nullptr);
 		} else {
-			g_window->bindRenderStates(rb::GetPtr<RenderStatesElement>(val));
+			window->bindRenderStates(rb::GetPtr<RenderStatesElement>(val));
 		}
 	}
 	return val;
@@ -637,18 +704,18 @@ VALUE rb_DisplayWindow_setPolling(VALUE self, VALUE val)
 // reorders the DrawableStack now that drawables register through Phases 2-4.
 VALUE rb_DisplayWindow_sortZ(VALUE self)
 {
-	if (g_window != nullptr) g_window->sortZ();
+	if (auto* window = window_ptr(self)) window->sortZ();
 	return self;
 }
 
 VALUE rb_DisplayWindow_snapToBitmap(VALUE self)
 {
-	(void)self;
-	if (g_window == nullptr) {
+	auto* window = window_ptr(self);
+	if (window == nullptr) {
 		VALUE args[2] = { INT2NUM(1), INT2NUM(1) };
 		return rb_class_new_instance(2, args, rb_cImage);
 	}
-	auto snapshot = g_window->takeSnapshot();
+	auto snapshot = window->takeSnapshot();
 	if (!snapshot) {
 		VALUE arr = rb_ivar_get(self, iv_settings);
 		const long w = NUM2LONG(rb_ary_entry(arr, SI_WIDTH));
@@ -710,7 +777,7 @@ static VALUE drain_events_internal(VALUE self)
 {
 	VALUE cb_hash = rb_ivar_get(self, iv_event_callbacks);
 	cgss::Event ev;
-	while (g_window != nullptr && g_window->popEvent(ev))
+	while (window_ptr(self) != nullptr && window_ptr(self)->popEvent(ev))
 	{
 		using ET = cgss::EventType;
 		switch (ev.type())
@@ -732,7 +799,7 @@ static VALUE drain_events_internal(VALUE self)
 				const bool close = NIL_P(cb)
 					|| rb_proc_call_with_block(cb, 0, nullptr, Qnil) != Qfalse;
 				if (!close) break; // on_closed returned false: the window stays open
-				g_window->stop();
+				window_of(self).stop();
 				rb_ivar_set(self, iv_disposed, Qtrue);
 				rb_raise(rb_eClosedWindowError, "Game Window has been closed by user");
 			}
@@ -779,7 +846,7 @@ static VALUE drain_events_internal(VALUE self)
 			case ET::MouseMoved: {
 				const auto p = ev.asMouseMove();
 				if (!p) break;
-				const auto origin = inputOrigin();
+				const auto origin = inputOrigin(self);
 				VALUE args[2] = { INT2NUM(p->x - origin.x), INT2NUM(p->y - origin.y) };
 				invoke_cb(cb_hash, "on_mouse_moved", 2, args);
 				break;
@@ -793,7 +860,6 @@ static VALUE drain_events_internal(VALUE self)
 			case ET::MouseButtonPressed: {
 				const auto p = ev.asMouseButtonPress();
 				if (!p) break;
-				g_last_mouse[static_cast<int>(p->button)] = true;
 				VALUE args[1] = { INT2NUM(static_cast<int>(p->button)) };
 				invoke_cb(cb_hash, "on_mouse_button_pressed", 1, args);
 				break;
@@ -801,7 +867,6 @@ static VALUE drain_events_internal(VALUE self)
 			case ET::MouseButtonReleased: {
 				const auto p = ev.asMouseButtonRelease();
 				if (!p) break;
-				g_last_mouse[static_cast<int>(p->button)] = false;
 				VALUE args[1] = { INT2NUM(static_cast<int>(p->button)) };
 				invoke_cb(cb_hash, "on_mouse_button_released", 1, args);
 				break;
@@ -821,7 +886,6 @@ static VALUE drain_events_internal(VALUE self)
 				const auto p = ev.asKeyPress();
 				if (!p) break;
 				const int code = static_cast<int>(p->code);
-				g_last_keys[code] = true;
 				// LiteRGSS2 callback signature: (code, scancode, alt, control,
 				// shift, system).
 				VALUE args[6] = {
@@ -836,7 +900,6 @@ static VALUE drain_events_internal(VALUE self)
 				const auto p = ev.asKeyRelease();
 				if (!p) break;
 				const int code = static_cast<int>(p->code);
-				g_last_keys[code] = false;
 				VALUE args[2] = { INT2NUM(code), INT2NUM(static_cast<int>(p->scancode)) };
 				invoke_cb(cb_hash, "on_key_released", 2, args);
 				break;
@@ -888,7 +951,7 @@ static VALUE drain_events_internal(VALUE self)
 			case ET::TouchBegan: {
 				const auto p = ev.asTouch();
 				if (!p) break;
-				const auto origin = inputOrigin();
+				const auto origin = inputOrigin(self);
 				VALUE args[3] = { UINT2NUM(p->finger), INT2NUM(p->x - origin.x), INT2NUM(p->y - origin.y) };
 				invoke_cb(cb_hash, "on_touch_began", 3, args);
 				break;
@@ -896,7 +959,7 @@ static VALUE drain_events_internal(VALUE self)
 			case ET::TouchMoved: {
 				const auto p = ev.asTouch();
 				if (!p) break;
-				const auto origin = inputOrigin();
+				const auto origin = inputOrigin(self);
 				VALUE args[3] = { UINT2NUM(p->finger), INT2NUM(p->x - origin.x), INT2NUM(p->y - origin.y) };
 				invoke_cb(cb_hash, "on_touch_moved", 3, args);
 				break;
@@ -904,7 +967,7 @@ static VALUE drain_events_internal(VALUE self)
 			case ET::TouchEnded: {
 				const auto p = ev.asTouch();
 				if (!p) break;
-				const auto origin = inputOrigin();
+				const auto origin = inputOrigin(self);
 				VALUE args[3] = { UINT2NUM(p->finger), INT2NUM(p->x - origin.x), INT2NUM(p->y - origin.y) };
 				invoke_cb(cb_hash, "on_touch_ended", 3, args);
 				break;
@@ -923,15 +986,14 @@ static VALUE drain_events_internal(VALUE self)
 // callbacks. Used by tests and any caller that wants direct access.
 VALUE rb_DisplayWindow_poll_event(VALUE self)
 {
-	(void)self;
-	ensureWindow();
+	auto& win = window_of(self);
 	const bool has_block = rb_block_given_p();
 	long count = 0;
 	cgss::Event ev;
-	while (g_window != nullptr && g_window->popEvent(ev))
+	while (window_ptr(self) != nullptr && win.popEvent(ev))
 	{
 		++count;
-		if (ev.type() == cgss::EventType::Closed) g_window->stop();
+		if (ev.type() == cgss::EventType::Closed) win.stop();
 		if (has_block) {
 			VALUE rb_ev = build_ruby_event(ev);
 			if (rb_ev != Qnil) rb_yield(rb_ev);
@@ -959,6 +1021,7 @@ static VALUE rb_DisplayWindow_class_desktopHeight(VALUE self)
 void Init_DisplayWindow()
 {
 	rb_cDisplayWindow = rb_define_class_under(rb_mLiteRGSS, "DisplayWindow", rb_cObject);
+	rb_define_alloc_func(rb_cDisplayWindow, dw_alloc);
 
 	// LiteRGSS2's ClosedWindowError, raised when the main loop should
 	// short-circuit out of update because the user closed the window.
