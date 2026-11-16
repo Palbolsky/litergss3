@@ -1,6 +1,6 @@
 # test_gamepad_constants.rb
 require 'minitest/autorun'
-require_relative '../build/lib/LiteRGSS'
+require_relative 'litergss'
 
 class TestGamepadConstants < Minitest::Test
   Gamepad = LiteRGSS::Inputs::Gamepad

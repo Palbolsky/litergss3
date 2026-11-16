@@ -1,7 +1,7 @@
 # test_touch_live.rb
 # On desktop, touch point 0 mirrors the mouse position.
 # On Android, each finger gets its own touch point.
-require_relative '../build/lib/LiteRGSS'
+require_relative 'litergss'
 
 Touch = LiteRGSS::Inputs::Touch
 Mouse = LiteRGSS::Inputs::Mouse

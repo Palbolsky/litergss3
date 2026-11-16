@@ -1,6 +1,6 @@
 # test_viewport.rb
 require 'minitest/autorun'
-require_relative '../build/lib/LiteRGSS'
+require_relative 'litergss'
 
 # A live DisplayWindow is required for Viewport.new — viewports register as
 # child Views of the active window. setup/teardown opens a fresh window per

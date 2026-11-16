@@ -1,6 +1,6 @@
 # test_window.rb
 require 'minitest/autorun'
-require_relative '../build/lib/LiteRGSS'
+require_relative 'litergss'
 
 class TestWindow < Minitest::Test
   

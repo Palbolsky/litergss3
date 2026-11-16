@@ -1,6 +1,6 @@
 # test_fonts.rb
 require 'minitest/autorun'
-require_relative '../build/lib/LiteRGSS'
+require_relative 'litergss'
 
 FONT_PATH = File.expand_path('./assets/Arial.ttf', __dir__)
 Fonts = LiteRGSS::Fonts;

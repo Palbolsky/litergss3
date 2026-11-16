@@ -1,6 +1,6 @@
 # test_viewport_live.rb
 # Interactive - open a window with two viewports, close to exit
-require_relative '../build/lib/LiteRGSS'
+require_relative 'litergss'
 
 puts "=== Test Viewport Live ==="
 

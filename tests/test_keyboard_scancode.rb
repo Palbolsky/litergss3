@@ -1,6 +1,6 @@
 # test_keyboard_scancode.rb
 require 'minitest/autorun'
-require_relative '../build/lib/LiteRGSS'
+require_relative 'litergss'
 
 # Sf::Keyboard::Scancode carries SFML 2.6's physical key values, as in
 # LiteRGSS2: PSDK's key bindings (and saved input.json) store them.

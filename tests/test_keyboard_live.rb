@@ -1,6 +1,6 @@
 # test_keyboard_live.rb
 # Interactive - press keys, close window to exit
-require_relative '../build/lib/LiteRGSS'
+require_relative 'litergss'
 
 Keyboard = LiteRGSS::Inputs::Keyboard
 

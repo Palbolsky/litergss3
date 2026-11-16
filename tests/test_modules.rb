@@ -1,5 +1,5 @@
 # test_modules.rb
-require_relative '../build/lib/LiteRGSS'
+require_relative 'litergss'
 
 puts "=== Test Modules ==="
 

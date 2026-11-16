@@ -44,4 +44,7 @@ foreach(_test IN LISTS _litergss_ruby_tests)
 	add_test(NAME LiteRGSS.${_name}
 		COMMAND ${RUBY_EXECUTABLE} -Itests ${_test}
 		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+	# The extension this build produced (tests/litergss.rb loads it)
+	set_tests_properties(LiteRGSS.${_name} PROPERTIES
+		ENVIRONMENT "LITERGSS_LIB=${LITERGSS_EXT_OUTPUT_DIR}/LiteRGSS")
 endforeach()

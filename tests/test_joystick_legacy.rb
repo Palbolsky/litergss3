@@ -1,6 +1,6 @@
 # test_joystick_legacy.rb
 require 'minitest/autorun'
-require_relative '../build/lib/LiteRGSS'
+require_relative 'litergss'
 
 # Sf::Joystick keeps LiteRGSS2's API and numbering (SFML's raw ids), which
 # PSDK's key bindings and AXIS_MAPPING are written against.

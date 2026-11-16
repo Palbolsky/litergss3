@@ -1,6 +1,6 @@
 # test_sprite_live.rb
 # Interactive - sprite without viewport, close window to exit
-require_relative '../build/lib/LiteRGSS'
+require_relative 'litergss'
 
 puts "=== Test Sprite Live (no viewport) ==="
 

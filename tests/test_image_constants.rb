@@ -1,5 +1,5 @@
 require 'minitest/autorun'
-require_relative '../build/lib/LiteRGSS'
+require_relative 'litergss'
 
 class TestImage < Minitest::Test
   

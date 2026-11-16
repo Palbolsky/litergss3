@@ -1,6 +1,6 @@
 # test_window_live.rb
 # Interactive - close the window to exit
-require_relative '../build/lib/LiteRGSS'
+require_relative 'litergss'
 
 puts "=== Test Window Live ==="
 

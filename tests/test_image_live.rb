@@ -1,6 +1,6 @@
 # test_image_live.rb
 # Interactive - create and manipulate images, close window to exit
-require_relative '../build/lib/LiteRGSS'
+require_relative 'litergss'
 
 puts "=== Test Image Live ==="
 

@@ -1,6 +1,6 @@
 # test_mouse_live.rb
 # Interactive - move mouse, click buttons, scroll wheel, close window to exit
-require_relative '../build/lib/LiteRGSS'
+require_relative 'litergss'
 
 Mouse = LiteRGSS::Inputs::Mouse
 

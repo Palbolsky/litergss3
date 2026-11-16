@@ -1,5 +1,5 @@
 require 'minitest/autorun'
-require_relative '../build/lib/LiteRGSS'
+require_relative 'litergss'
 
 # A live DisplayWindow is required for Sprite.new — sprites register into
 # its DrawableStack at construction time. setup/teardown opens a fresh

@@ -1,6 +1,6 @@
 # test_mouse_constants.rb
 require 'minitest/autorun'
-require_relative '../build/lib/LiteRGSS'
+require_relative 'litergss'
 
 class TestMouseConstants < Minitest::Test
   Mouse = LiteRGSS::Inputs::Mouse

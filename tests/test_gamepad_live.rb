@@ -1,6 +1,6 @@
 # test_gamepad_live.rb
 # Interactive - click buttons, axis movement, close window to exit
-require_relative '../build/lib/LiteRGSS'
+require_relative 'litergss'
 
 Gamepad = LiteRGSS::Inputs::Gamepad
 

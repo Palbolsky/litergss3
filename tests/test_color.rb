@@ -1,6 +1,6 @@
 # test_color.rb
 require 'minitest/autorun'
-require_relative '../build/lib/LiteRGSS'
+require_relative 'litergss'
 
 class TestColor < Minitest::Test
   def test_default_constructor
