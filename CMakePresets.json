@@ -1,0 +1,58 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CGSS_BACKEND": "raylib"
+      }
+    },
+    {
+      "name": "debug",
+      "displayName": "Debug (raylib)",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "LITECGSS_BUILD_TESTS": "ON"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release (raylib)",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CGSS_NO_LOGS": "ON"
+      }
+    },
+    {
+      "name": "debug-sfml",
+      "displayName": "Debug (SFML)",
+      "inherits": "debug",
+      "cacheVariables": { "CGSS_BACKEND": "sfml" }
+    },
+    {
+      "name": "litecgss",
+      "displayName": "LiteCGSS only (no Ruby)",
+      "inherits": "debug",
+      "cacheVariables": {
+        "LITERGSS_BUILD_RUBY_EXT": "OFF",
+        "LITECGSS_BUILD_PLAYGROUND": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "debug", "configurePreset": "debug" },
+    { "name": "release", "configurePreset": "release" },
+    { "name": "debug-sfml", "configurePreset": "debug-sfml" },
+    { "name": "litecgss", "configurePreset": "litecgss" }
+  ],
+  "testPresets": [
+    { "name": "debug", "configurePreset": "debug", "output": { "outputOnFailure": true } },
+    { "name": "debug-sfml", "configurePreset": "debug-sfml", "output": { "outputOnFailure": true } },
+    { "name": "litecgss", "configurePreset": "litecgss", "output": { "outputOnFailure": true } }
+  ]
+}

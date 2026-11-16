@@ -76,13 +76,33 @@ elseif(CGSS_BACKEND STREQUAL "raylib")
 	# the API contract; the library itself must be installed system-wide.
 	# Note: raylib's 5.0 git tag still reports `PROJECT_VERSION 4.5.0`
 	# (upstream bug), so no version is enforced here.
+	#
+	# Lookup order: an installed CMake package (raylib_DIR / system install),
+	# then a prebuilt tree at RAYLIB_ROOT ({include,lib}/ — e.g. the official
+	# raylib-x.y_win32_mingw-w64 zip, which ships no CMake package config).
+	set(RAYLIB_ROOT "" CACHE PATH "Prebuilt raylib tree (include/ + lib/) used when no CMake package is found")
 	find_package(raylib QUIET)
+	if(NOT raylib_FOUND AND RAYLIB_ROOT)
+		find_library(RAYLIB_LIBRARY NAMES raylib PATHS ${RAYLIB_ROOT}/lib NO_DEFAULT_PATH)
+		if(RAYLIB_LIBRARY AND EXISTS ${RAYLIB_ROOT}/include/raylib.h)
+			add_library(raylib UNKNOWN IMPORTED)
+			set_target_properties(raylib PROPERTIES
+				IMPORTED_LOCATION ${RAYLIB_LIBRARY}
+				INTERFACE_INCLUDE_DIRECTORIES ${RAYLIB_ROOT}/include)
+			if(WIN32)
+				set_property(TARGET raylib PROPERTY INTERFACE_LINK_LIBRARIES opengl32 gdi32 winmm)
+			endif()
+			set(raylib_FOUND TRUE)
+			message(STATUS "Using prebuilt raylib from ${RAYLIB_ROOT}")
+		endif()
+	endif()
 	if(NOT raylib_FOUND)
 		message(FATAL_ERROR
-			"raylib was not found. Install it system-wide:\n"
+			"raylib was not found. Either install it system-wide:\n"
 			"  git clone https://github.com/raysan5/raylib\n"
 			"  cd raylib && cmake -B build -DBUILD_SHARED_LIBS=ON && sudo cmake --install build\n"
-			"or point CMake at an existing install with -Draylib_DIR=/path/to/lib/cmake/raylib")
+			"or point CMake at an existing install with -Draylib_DIR=/path/to/lib/cmake/raylib,\n"
+			"or at a prebuilt tree (include/ + lib/) with -DRAYLIB_ROOT=/path/to/raylib")
 	endif()
 endif()
 
