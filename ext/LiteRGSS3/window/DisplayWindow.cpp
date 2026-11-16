@@ -701,11 +701,8 @@ static VALUE drain_events_internal(VALUE self)
 			case ET::Resized: {
 				const auto p = ev.asResize();
 				if (!p) break;
-				VALUE arr = rb_ivar_get(self, iv_settings);
-				if (!NIL_P(arr)) {
-					rb_ary_store(arr, SI_WIDTH,  UINT2NUM(p->width));
-					rb_ary_store(arr, SI_HEIGHT, UINT2NUM(p->height));
-				}
+				// The window's pixel size (scale included): the settings keep the
+				// game's size, as in LiteRGSS2, which only forwards it.
 				VALUE args[2] = { UINT2NUM(p->width), UINT2NUM(p->height) };
 				invoke_cb(cb_hash, "on_resized", 2, args);
 				break;
