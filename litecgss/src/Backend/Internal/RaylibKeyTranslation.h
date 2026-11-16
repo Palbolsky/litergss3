@@ -7,6 +7,7 @@
 // helpers bridge the two. Used by RaylibBackend::Ops and the event queue.
 
 #include "LiteCGSS/Events/KeyCode.h"
+#include "LiteCGSS/Events/Scancode.h"
 
 namespace cgss::backend::raylib_detail {
 
@@ -19,6 +20,11 @@ namespace cgss::backend::raylib_detail {
 	// cgss::KeyCode::Unknown for unrecognized values (including raylib's
 	// Android-specific keys).
 	cgss::KeyCode fromRaylibKey(int raylibKey) noexcept;
+
+	// raylib's KEY_* are GLFW key tokens: physical positions named after the
+	// US layout — scancodes, in cgss terms. KEY_NULL / Unknown when unmapped.
+	cgss::Scancode scancodeFromRaylibKey(int raylibKey) noexcept;
+	int raylibKeyFromScancode(cgss::Scancode scancode) noexcept;
 
 }
 

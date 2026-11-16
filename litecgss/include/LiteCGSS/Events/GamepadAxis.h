@@ -14,11 +14,16 @@ namespace cgss {
 		RightY       = 3,
 		LeftTrigger  = 4, // analog [0.0, 1.0]
 		RightTrigger = 5, // analog [0.0, 1.0]
+		// D-pad as axes, in {-1, 0, 1}: right / up are positive. Backends
+		// reporting the D-pad as buttons synthesize these from them.
+		DpadX        = 6,
+		DpadY        = 7,
 	};
 
 	#define CGSS_GAMEPAD_AXIS_LIST(X) \
 		X(LeftX) X(LeftY) X(RightX) X(RightY) \
-		X(LeftTrigger) X(RightTrigger)
+		X(LeftTrigger) X(RightTrigger) \
+		X(DpadX) X(DpadY)
 
 }
 

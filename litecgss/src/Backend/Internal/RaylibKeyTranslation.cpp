@@ -181,4 +181,133 @@ namespace cgss::backend::raylib_detail {
 		}
 	}
 
+
+	namespace {
+		struct ScancodePair { int raylibKey; cgss::Scancode scancode; };
+		// One table for both directions.
+		constexpr ScancodePair kScancodes[] = {
+			{ KEY_A, cgss::Scancode::A },
+			{ KEY_B, cgss::Scancode::B },
+			{ KEY_C, cgss::Scancode::C },
+			{ KEY_D, cgss::Scancode::D },
+			{ KEY_E, cgss::Scancode::E },
+			{ KEY_F, cgss::Scancode::F },
+			{ KEY_G, cgss::Scancode::G },
+			{ KEY_H, cgss::Scancode::H },
+			{ KEY_I, cgss::Scancode::I },
+			{ KEY_J, cgss::Scancode::J },
+			{ KEY_K, cgss::Scancode::K },
+			{ KEY_L, cgss::Scancode::L },
+			{ KEY_M, cgss::Scancode::M },
+			{ KEY_N, cgss::Scancode::N },
+			{ KEY_O, cgss::Scancode::O },
+			{ KEY_P, cgss::Scancode::P },
+			{ KEY_Q, cgss::Scancode::Q },
+			{ KEY_R, cgss::Scancode::R },
+			{ KEY_S, cgss::Scancode::S },
+			{ KEY_T, cgss::Scancode::T },
+			{ KEY_U, cgss::Scancode::U },
+			{ KEY_V, cgss::Scancode::V },
+			{ KEY_W, cgss::Scancode::W },
+			{ KEY_X, cgss::Scancode::X },
+			{ KEY_Y, cgss::Scancode::Y },
+			{ KEY_Z, cgss::Scancode::Z },
+			{ KEY_ZERO, cgss::Scancode::Num0 },
+			{ KEY_ONE, cgss::Scancode::Num1 },
+			{ KEY_TWO, cgss::Scancode::Num2 },
+			{ KEY_THREE, cgss::Scancode::Num3 },
+			{ KEY_FOUR, cgss::Scancode::Num4 },
+			{ KEY_FIVE, cgss::Scancode::Num5 },
+			{ KEY_SIX, cgss::Scancode::Num6 },
+			{ KEY_SEVEN, cgss::Scancode::Num7 },
+			{ KEY_EIGHT, cgss::Scancode::Num8 },
+			{ KEY_NINE, cgss::Scancode::Num9 },
+			{ KEY_ENTER, cgss::Scancode::Enter },
+			{ KEY_ESCAPE, cgss::Scancode::Escape },
+			{ KEY_BACKSPACE, cgss::Scancode::Backspace },
+			{ KEY_TAB, cgss::Scancode::Tab },
+			{ KEY_SPACE, cgss::Scancode::Space },
+			{ KEY_MINUS, cgss::Scancode::Hyphen },
+			{ KEY_EQUAL, cgss::Scancode::Equal },
+			{ KEY_LEFT_BRACKET, cgss::Scancode::LBracket },
+			{ KEY_RIGHT_BRACKET, cgss::Scancode::RBracket },
+			{ KEY_BACKSLASH, cgss::Scancode::Backslash },
+			{ KEY_SEMICOLON, cgss::Scancode::Semicolon },
+			{ KEY_APOSTROPHE, cgss::Scancode::Apostrophe },
+			{ KEY_GRAVE, cgss::Scancode::Grave },
+			{ KEY_COMMA, cgss::Scancode::Comma },
+			{ KEY_PERIOD, cgss::Scancode::Period },
+			{ KEY_SLASH, cgss::Scancode::Slash },
+			{ KEY_F1, cgss::Scancode::F1 },
+			{ KEY_F2, cgss::Scancode::F2 },
+			{ KEY_F3, cgss::Scancode::F3 },
+			{ KEY_F4, cgss::Scancode::F4 },
+			{ KEY_F5, cgss::Scancode::F5 },
+			{ KEY_F6, cgss::Scancode::F6 },
+			{ KEY_F7, cgss::Scancode::F7 },
+			{ KEY_F8, cgss::Scancode::F8 },
+			{ KEY_F9, cgss::Scancode::F9 },
+			{ KEY_F10, cgss::Scancode::F10 },
+			{ KEY_F11, cgss::Scancode::F11 },
+			{ KEY_F12, cgss::Scancode::F12 },
+			{ KEY_CAPS_LOCK, cgss::Scancode::CapsLock },
+			{ KEY_PRINT_SCREEN, cgss::Scancode::PrintScreen },
+			{ KEY_SCROLL_LOCK, cgss::Scancode::ScrollLock },
+			{ KEY_PAUSE, cgss::Scancode::Pause },
+			{ KEY_INSERT, cgss::Scancode::Insert },
+			{ KEY_HOME, cgss::Scancode::Home },
+			{ KEY_PAGE_UP, cgss::Scancode::PageUp },
+			{ KEY_DELETE, cgss::Scancode::Delete },
+			{ KEY_END, cgss::Scancode::End },
+			{ KEY_PAGE_DOWN, cgss::Scancode::PageDown },
+			{ KEY_RIGHT, cgss::Scancode::Right },
+			{ KEY_LEFT, cgss::Scancode::Left },
+			{ KEY_DOWN, cgss::Scancode::Down },
+			{ KEY_UP, cgss::Scancode::Up },
+			{ KEY_NUM_LOCK, cgss::Scancode::NumLock },
+			{ KEY_KP_DIVIDE, cgss::Scancode::NumpadDivide },
+			{ KEY_KP_MULTIPLY, cgss::Scancode::NumpadMultiply },
+			{ KEY_KP_SUBTRACT, cgss::Scancode::NumpadMinus },
+			{ KEY_KP_ADD, cgss::Scancode::NumpadPlus },
+			{ KEY_KP_EQUAL, cgss::Scancode::NumpadEqual },
+			{ KEY_KP_ENTER, cgss::Scancode::NumpadEnter },
+			{ KEY_KP_DECIMAL, cgss::Scancode::NumpadDecimal },
+			{ KEY_KP_0, cgss::Scancode::Numpad0 },
+			{ KEY_KP_1, cgss::Scancode::Numpad1 },
+			{ KEY_KP_2, cgss::Scancode::Numpad2 },
+			{ KEY_KP_3, cgss::Scancode::Numpad3 },
+			{ KEY_KP_4, cgss::Scancode::Numpad4 },
+			{ KEY_KP_5, cgss::Scancode::Numpad5 },
+			{ KEY_KP_6, cgss::Scancode::Numpad6 },
+			{ KEY_KP_7, cgss::Scancode::Numpad7 },
+			{ KEY_KP_8, cgss::Scancode::Numpad8 },
+			{ KEY_KP_9, cgss::Scancode::Numpad9 },
+			{ KEY_KB_MENU, cgss::Scancode::Menu },
+			{ KEY_LEFT_CONTROL, cgss::Scancode::LControl },
+			{ KEY_LEFT_SHIFT, cgss::Scancode::LShift },
+			{ KEY_LEFT_ALT, cgss::Scancode::LAlt },
+			{ KEY_LEFT_SUPER, cgss::Scancode::LSystem },
+			{ KEY_RIGHT_CONTROL, cgss::Scancode::RControl },
+			{ KEY_RIGHT_SHIFT, cgss::Scancode::RShift },
+			{ KEY_RIGHT_ALT, cgss::Scancode::RAlt },
+			{ KEY_RIGHT_SUPER, cgss::Scancode::RSystem },
+			{ KEY_BACK, cgss::Scancode::Back },
+			{ KEY_VOLUME_UP, cgss::Scancode::VolumeUp },
+			{ KEY_VOLUME_DOWN, cgss::Scancode::VolumeDown },
+		};
+	}
+
+	cgss::Scancode scancodeFromRaylibKey(int raylibKey) noexcept {
+		for (const auto& p : kScancodes) {
+			if (p.raylibKey == raylibKey) return p.scancode;
+		}
+		return cgss::Scancode::Unknown;
+	}
+
+	int raylibKeyFromScancode(cgss::Scancode scancode) noexcept {
+		for (const auto& p : kScancodes) {
+			if (p.scancode == scancode) return p.raylibKey;
+		}
+		return KEY_NULL;
+	}
 }

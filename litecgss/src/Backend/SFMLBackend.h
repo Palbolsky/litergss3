@@ -205,14 +205,16 @@ namespace cgss::backend {
 			if (e.type != sf::Event::KeyPressed) return std::nullopt;
 			return cgss::KeyEvent{
 				static_cast<cgss::KeyCode>(e.key.code),
-				e.key.alt, e.key.control, e.key.shift, e.key.system
+				e.key.alt, e.key.control, e.key.shift, e.key.system,
+				static_cast<cgss::Scancode>(e.key.scancode)
 			};
 		}
 		static inline std::optional<cgss::KeyEvent> event_as_key_release(const native_event& e) {
 			if (e.type != sf::Event::KeyReleased) return std::nullopt;
 			return cgss::KeyEvent{
 				static_cast<cgss::KeyCode>(e.key.code),
-				e.key.alt, e.key.control, e.key.shift, e.key.system
+				e.key.alt, e.key.control, e.key.shift, e.key.system,
+				static_cast<cgss::Scancode>(e.key.scancode)
 			};
 		}
 		static inline std::optional<cgss::TextEvent> event_as_text_entered(const native_event& e) {
@@ -317,7 +319,23 @@ namespace cgss::backend {
 			const auto i = static_cast<int>(code);
 			if (i < 0 || i >= static_cast<int>(sf::Keyboard::KeyCount)) return false;
 			return sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(i));
+		}		// cgss::Scancode mirrors sf::Keyboard::Scancode (SFML 2.6) 1:1.
+		static inline bool keyboard_is_scancode_pressed(cgss::Scancode scancode) {
+			const int i = static_cast<int>(scancode);
+			if (i < 0 || i >= static_cast<int>(sf::Keyboard::Scan::ScancodeCount)) return false;
+			return sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Scancode>(i));
 		}
+		static inline cgss::KeyCode keyboard_localize(cgss::Scancode scancode) {
+			const int i = static_cast<int>(scancode);
+			if (i < 0 || i >= static_cast<int>(sf::Keyboard::Scan::ScancodeCount)) return cgss::KeyCode::Unknown;
+			return static_cast<cgss::KeyCode>(sf::Keyboard::localize(static_cast<sf::Keyboard::Scancode>(i)));
+		}
+		static inline cgss::Scancode keyboard_delocalize(cgss::KeyCode key) {
+			const int i = static_cast<int>(key);
+			if (i < 0 || i >= static_cast<int>(sf::Keyboard::KeyCount)) return cgss::Scancode::Unknown;
+			return static_cast<cgss::Scancode>(sf::Keyboard::delocalize(static_cast<sf::Keyboard::Key>(i)));
+		}
+
 
 		// Mouse
 		static inline bool mouse_is_button_pressed(cgss::MouseButton btn) {
@@ -473,6 +491,8 @@ namespace cgss::backend {
 				case cgss::GamepadAxis::RightY:       return sf::Joystick::V;
 				case cgss::GamepadAxis::LeftTrigger:  return sf::Joystick::Z;
 				case cgss::GamepadAxis::RightTrigger: return sf::Joystick::R;
+				case cgss::GamepadAxis::DpadX:        return sf::Joystick::PovX;
+				case cgss::GamepadAxis::DpadY:        return sf::Joystick::PovY;
 			}
 			return sf::Joystick::X;
 		}
@@ -484,8 +504,8 @@ namespace cgss::backend {
 				case sf::Joystick::V: return cgss::GamepadAxis::RightY;
 				case sf::Joystick::Z: return cgss::GamepadAxis::LeftTrigger;
 				case sf::Joystick::R: return cgss::GamepadAxis::RightTrigger;
-				case sf::Joystick::PovX: return cgss::GamepadAxis::LeftX;
-				case sf::Joystick::PovY: return cgss::GamepadAxis::LeftY;
+				case sf::Joystick::PovX: return cgss::GamepadAxis::DpadX;
+				case sf::Joystick::PovY: return cgss::GamepadAxis::DpadY;
 			}
 			return cgss::GamepadAxis::LeftX;
 		}

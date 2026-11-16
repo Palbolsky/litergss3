@@ -99,7 +99,7 @@ namespace cgss::backend::raylib_detail {
 			// Key presses: drain GetKeyPressed queue (returns 0 when empty).
 			while (int k = GetKeyPressed()) {
 				auto ev = makeEvent(cgss::EventType::KeyPressed);
-				ev.key = cgss::KeyEvent{ fromRaylibKey(k), alt, control, shift, sys };
+				ev.key = cgss::KeyEvent{ fromRaylibKey(k), alt, control, shift, sys, scancodeFromRaylibKey(k) };
 				pushEvent(ev);
 				if (k >= 0 && static_cast<unsigned int>(k) < kMaxRaylibKey) {
 					g_prev.keyDown[k] = true;
@@ -112,7 +112,7 @@ namespace cgss::backend::raylib_detail {
 			for (unsigned int k = 0; k < kMaxRaylibKey; ++k) {
 				if (g_prev.keyDown[k] && !IsKeyDown(static_cast<int>(k))) {
 					auto ev = makeEvent(cgss::EventType::KeyReleased);
-					ev.key = cgss::KeyEvent{ fromRaylibKey(static_cast<int>(k)), alt, control, shift, sys };
+					ev.key = cgss::KeyEvent{ fromRaylibKey(static_cast<int>(k)), alt, control, shift, sys, scancodeFromRaylibKey(static_cast<int>(k)) };
 					pushEvent(ev);
 					g_prev.keyDown[k] = false;
 				}

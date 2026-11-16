@@ -1,6 +1,8 @@
 #include "DisplayWindow.h"
 #include "LiteRGSS.h"
 #include "../events/Events.h"
+#include "../inputs/SfJoystick.h"
+#include "../inputs/SfMouse.h"
 #include "../graphics/BlendMode.h"
 #include "../graphics/Image.h"
 #include "../rbAdapter.h"
@@ -674,14 +676,11 @@ static VALUE drain_events_internal(VALUE self)
 			case ET::MouseWheelScrolled: {
 				const auto p = ev.asMouseWheel();
 				if (!p) break;
-				// LiteRGSS2: (wheel_id, delta) where wheel_id is the mouse
-				// constant (Vertical/HorizontalWheel). Read from
-				// LiteRGSS::Inputs::Mouse to stay in sync with PSDK's lookup.
-				VALUE rb_mInputs_local = rb_const_get(rb_mLiteRGSS, rb_intern("Inputs"));
-				VALUE rb_mMouse = rb_const_get(rb_mInputs_local, rb_intern("Mouse"));
-				VALUE wheel_const = rb_const_get(rb_mMouse,
-					rb_intern(p->horizontal ? "HorizontalWheel" : "VerticalWheel"));
-				VALUE args[2] = { wheel_const, DBL2NUM(static_cast<double>(p->delta)) };
+				// LiteRGSS2: (wheel id, delta), the id being Sf::Mouse's.
+				VALUE args[2] = {
+					INT2NUM(p->horizontal ? sf_mouse::kHorizontalWheel : sf_mouse::kVerticalWheel),
+					DBL2NUM(static_cast<double>(p->delta)),
+				};
 				invoke_cb(cb_hash, "on_mouse_wheel_scrolled", 2, args);
 				break;
 			}
@@ -690,13 +689,14 @@ static VALUE drain_events_internal(VALUE self)
 				if (!p) break;
 				const int code = static_cast<int>(p->code);
 				g_last_keys[code] = true;
-				// LiteRGSS2 callback signature: (code, scan, alt). LiteRGSS3
-				// only carries one keycode — pass it as both.
-				VALUE args[3] = {
-					INT2NUM(code), INT2NUM(code),
-					p->alt ? Qtrue : Qfalse,
+				// LiteRGSS2 callback signature: (code, scancode, alt, control,
+				// shift, system).
+				VALUE args[6] = {
+					INT2NUM(code), INT2NUM(static_cast<int>(p->scancode)),
+					p->alt ? Qtrue : Qfalse, p->control ? Qtrue : Qfalse,
+					p->shift ? Qtrue : Qfalse, p->system ? Qtrue : Qfalse,
 				};
-				invoke_cb(cb_hash, "on_key_pressed", 3, args);
+				invoke_cb(cb_hash, "on_key_pressed", 6, args);
 				break;
 			}
 			case ET::KeyReleased: {
@@ -704,32 +704,36 @@ static VALUE drain_events_internal(VALUE self)
 				if (!p) break;
 				const int code = static_cast<int>(p->code);
 				g_last_keys[code] = false;
-				VALUE args[2] = { INT2NUM(code), INT2NUM(code) };
+				VALUE args[2] = { INT2NUM(code), INT2NUM(static_cast<int>(p->scancode)) };
 				invoke_cb(cb_hash, "on_key_released", 2, args);
 				break;
 			}
 			case ET::JoystickButtonPressed: {
 				const auto p = ev.asGamepadButtonPress();
 				if (!p) break;
-				VALUE args[2] = { UINT2NUM(p->id), INT2NUM(static_cast<int>(p->button)) };
+				// LiteRGSS2 numbering (Sf::Joystick), see inputs/SfJoystick.h.
+				const int index = legacy_joystick::buttonIndex(p->button);
+				if (index < 0) break;
+				VALUE args[2] = { UINT2NUM(p->id), INT2NUM(index) };
 				invoke_cb(cb_hash, "on_joystick_button_pressed", 2, args);
 				break;
 			}
 			case ET::JoystickButtonReleased: {
 				const auto p = ev.asGamepadButtonRelease();
 				if (!p) break;
-				VALUE args[2] = { UINT2NUM(p->id), INT2NUM(static_cast<int>(p->button)) };
+				const int index = legacy_joystick::buttonIndex(p->button);
+				if (index < 0) break;
+				VALUE args[2] = { UINT2NUM(p->id), INT2NUM(index) };
 				invoke_cb(cb_hash, "on_joystick_button_released", 2, args);
 				break;
 			}
 			case ET::JoystickMoved: {
 				const auto p = ev.asGamepadMove();
 				if (!p) break;
-				// LiteRGSS2 sent positions as integers in the [-100, 100] range.
-				const long pos = static_cast<long>(p->position * 100.0f);
+				// LiteRGSS2: (id, Sf::Joystick axis id, Float in [-100, 100]).
 				VALUE args[3] = {
-					UINT2NUM(p->id), INT2NUM(static_cast<int>(p->axis)),
-					LONG2NUM(pos),
+					UINT2NUM(p->id), LONG2NUM(legacy_joystick::axisId(p->axis)),
+					DBL2NUM(legacy_joystick::position(p->position)),
 				};
 				invoke_cb(cb_hash, "on_joystick_moved", 3, args);
 				break;

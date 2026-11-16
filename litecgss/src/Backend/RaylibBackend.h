@@ -391,7 +391,21 @@ namespace cgss::backend {
 			const int k = raylib_detail::toRaylibKey(code);
 			if (k == KEY_NULL) return false;
 			return IsKeyDown(k);
+		}		// raylib keys are physical positions (scancodes); the layout is
+		// assumed to be US for the layout conversions.
+		static inline bool keyboard_is_scancode_pressed(cgss::Scancode scancode) {
+			const int k = raylib_detail::raylibKeyFromScancode(scancode);
+			return k != KEY_NULL && IsKeyDown(k);
 		}
+		static inline cgss::KeyCode keyboard_localize(cgss::Scancode scancode) noexcept {
+			const int k = raylib_detail::raylibKeyFromScancode(scancode);
+			return k == KEY_NULL ? cgss::KeyCode::Unknown : raylib_detail::fromRaylibKey(k);
+		}
+		static inline cgss::Scancode keyboard_delocalize(cgss::KeyCode key) noexcept {
+			const int k = raylib_detail::toRaylibKey(key);
+			return k == KEY_NULL ? cgss::Scancode::Unknown : raylib_detail::scancodeFromRaylibKey(k);
+		}
+
 
 		static inline bool mouse_is_button_pressed(cgss::MouseButton btn) {
 			const int i = static_cast<int>(btn);
@@ -432,7 +446,17 @@ namespace cgss::backend {
 		}
 		// cgss::GamepadAxis numeric layout matches raylib GAMEPAD_AXIS_* 1:1.
 		static inline float gamepad_axis_position(unsigned int id, cgss::GamepadAxis axis) {
-			return GetGamepadAxisMovement(static_cast<int>(id), static_cast<int>(axis));
+			const int pad = static_cast<int>(id);
+			// raylib reports the D-pad as buttons: synthesize its axes.
+			if (axis == cgss::GamepadAxis::DpadX) {
+				return (IsGamepadButtonDown(pad, GAMEPAD_BUTTON_LEFT_FACE_RIGHT) ? 1.f : 0.f)
+				     - (IsGamepadButtonDown(pad, GAMEPAD_BUTTON_LEFT_FACE_LEFT) ? 1.f : 0.f);
+			}
+			if (axis == cgss::GamepadAxis::DpadY) {
+				return (IsGamepadButtonDown(pad, GAMEPAD_BUTTON_LEFT_FACE_UP) ? 1.f : 0.f)
+				     - (IsGamepadButtonDown(pad, GAMEPAD_BUTTON_LEFT_FACE_DOWN) ? 1.f : 0.f);
+			}
+			return GetGamepadAxisMovement(pad, static_cast<int>(axis));
 		}
 		static inline unsigned int gamepad_axis_count(unsigned int id) {
 			const int n = GetGamepadAxisCount(static_cast<int>(id));

@@ -6,10 +6,17 @@
 // backend header into the consumer.
 
 #include "LiteCGSS/Events/KeyCode.h"
+#include "LiteCGSS/Events/Scancode.h"
 
 namespace cgss::keyboard {
 
 	bool isKeyPressed(KeyCode key);
+	bool isScancodePressed(Scancode scancode);
+
+	// Layout conversions: the key a physical key produces with the current
+	// keyboard layout, and back. Unknown when there is none.
+	KeyCode localize(Scancode scancode);
+	Scancode delocalize(KeyCode key);
 
 }
 

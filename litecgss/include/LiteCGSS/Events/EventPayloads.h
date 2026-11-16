@@ -10,6 +10,7 @@
 #include <cstdint>
 
 #include "LiteCGSS/Events/KeyCode.h"
+#include "LiteCGSS/Events/Scancode.h"
 #include "LiteCGSS/Events/MouseButton.h"
 #include "LiteCGSS/Events/GamepadButton.h"
 #include "LiteCGSS/Events/GamepadAxis.h"
@@ -19,11 +20,12 @@
 namespace cgss {
 
 	struct KeyEvent {
-		KeyCode code    = KeyCode::Unknown;
-		bool    alt     = false;
-		bool    control = false;
-		bool    shift   = false;
-		bool    system  = false;
+		KeyCode  code     = KeyCode::Unknown;
+		bool     alt      = false;
+		bool     control  = false;
+		bool     shift    = false;
+		bool     system   = false;
+		Scancode scancode = Scancode::Unknown; // physical key (appended)
 	};
 
 	struct TextEvent {

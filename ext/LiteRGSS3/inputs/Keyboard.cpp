@@ -26,6 +26,10 @@ static void DefineKeyboardConstants(VALUE rb_mKeyboard)
 	rb_define_const(rb_mKeyboard, #AliasName, INT2NUM(static_cast<int>(cgss::KeyCode::Canonical)));
 	CGSS_KEYCODE_LEGACY_ALIAS_LIST(X)
 #undef X
+
+	// SFML 2.6 names LiteRGSS2 exposed for these keys.
+	rb_define_const(rb_mKeyboard, "Quote", INT2NUM(static_cast<int>(cgss::KeyCode::Apostrophe)));
+	rb_define_const(rb_mKeyboard, "Tilde", INT2NUM(static_cast<int>(cgss::KeyCode::Grave)));
 }
 
 void Init_Keyboard()

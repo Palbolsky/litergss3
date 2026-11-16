@@ -20,33 +20,13 @@
 // downstream scripts have been ported to `LiteRGSS::Inputs::*`.
 
 #include "Inputs.h"
+#include "SfJoystick.h"
+#include "SfMouse.h"
 
 #include "LiteCGSS/Events/GamepadAxis.h"
+#include "LiteCGSS/Events/Scancode.h"
+#include "LiteCGSS/Inputs/Keyboard.h"
 #include "LiteCGSS/Inputs/Gamepad.h"
-
-// Helper: define a constant on `mod` only if not already present. PSDK
-// reads `Sf::Mouse::LEFT`; LiteRGSS3 already defines `Sf::Mouse::Left` —
-// adding `LEFT` would be a clobber if anyone defined it elsewhere.
-static void define_const_if_absent(VALUE mod, const char* name, VALUE value)
-{
-	if (rb_const_defined_at(mod, rb_intern(name))) return;
-	rb_const_set(mod, rb_intern(name), value);
-}
-
-// Sf::Joystick.axis_position(id, axis) — LiteRGSS2 returned axis position
-// as an integer in roughly the [-100, 100] range; LiteRGSS3's
-// Gamepad.axis_position returns a float in [-1, 1]. PSDK's Input layer
-// reads integer positions, so scale before exposing.
-static VALUE rb_SfJoystick_axis_position(VALUE self, VALUE id, VALUE axis)
-{
-	(void)self;
-	if (!cgss::gamepad::isConnected(NUM2UINT(id))) return INT2NUM(0);
-	const float position = cgss::gamepad::axisPosition(
-		NUM2UINT(id),
-		static_cast<cgss::GamepadAxis>(NUM2INT(axis))
-	);
-	return LONG2NUM(static_cast<long>(position * 100.0f));
-}
 
 // Sf::Keyboard.virtual_keyboard= — present on mobile builds of LiteRGSS2.
 // Desktop is a no-op. PSDK calls this unconditionally when its in-game
@@ -57,14 +37,18 @@ static VALUE rb_SfKeyboard_set_virtual_keyboard(VALUE self, VALUE flag)
 	return Qnil;
 }
 
-// Sf::Keyboard.localize / delocalize — LiteRGSS2 mapped Scancodes to
-// keyboard-layout-aware key codes. LiteRGSS3 doesn't have that distinction
-// today (the canonical KeyCode enum is the layout-aware code), so these
-// pass through.
-static VALUE rb_SfKeyboard_localize(VALUE self, VALUE code)
+// Sf::Keyboard.localize(scancode) -> key code with the current keyboard
+// layout; delocalize(key) -> scancode. Unknown is -1, like LiteRGSS2.
+static VALUE rb_SfKeyboard_localize(VALUE self, VALUE scancode)
 {
 	(void)self;
-	return code;
+	return INT2NUM(static_cast<int>(cgss::keyboard::localize(static_cast<cgss::Scancode>(NUM2INT(scancode)))));
+}
+
+static VALUE rb_SfKeyboard_delocalize(VALUE self, VALUE key)
+{
+	(void)self;
+	return INT2NUM(static_cast<int>(cgss::keyboard::delocalize(static_cast<cgss::KeyCode>(NUM2INT(key)))));
 }
 
 void Init_SfCompatAlias()
@@ -75,12 +59,11 @@ void Init_SfCompatAlias()
 	// present under backends with has_input_touch=true (see Touch.cpp),
 	// so skip the alias when the source module doesn't exist.
 	VALUE rb_mSfKeyboard = rb_const_get(rb_mInputs, rb_intern("Keyboard"));
-	VALUE rb_mSfMouse    = rb_const_get(rb_mInputs, rb_intern("Mouse"));
-	VALUE rb_mSfJoystick = rb_const_get(rb_mInputs, rb_intern("Gamepad"));
-
 	rb_const_set(rb_mSf, rb_intern("Keyboard"), rb_mSfKeyboard);
-	rb_const_set(rb_mSf, rb_intern("Mouse"),    rb_mSfMouse);
-	rb_const_set(rb_mSf, rb_intern("Joystick"), rb_mSfJoystick);
+	// Sf::Mouse is its own module: LiteRGSS2's wheel ids.
+	Init_SfMouse();
+	// Sf::Joystick is its own module: LiteRGSS2's API and numbering.
+	Init_SfJoystick();
 
 	if (rb_const_defined(rb_mInputs, rb_intern("Touch"))) {
 		rb_const_set(rb_mSf, rb_intern("Touch"),
@@ -89,36 +72,21 @@ void Init_SfCompatAlias()
 	rb_const_set(rb_mSf, rb_intern("Sensor"),
 	             rb_const_get(rb_mInputs, rb_intern("Sensor")));
 
-	// LiteRGSS2 compat: Scancode was a separate sub-module of Keyboard, but
-	// in LiteRGSS3 the scancode constants live directly on Keyboard. Alias
-	// `Scancode` back to `Keyboard` itself so `Sf::Keyboard::Scancode::C`
-	// resolves to the same integer as `Sf::Keyboard::C`.
-	define_const_if_absent(rb_mSfKeyboard, "Scancode", rb_mSfKeyboard);
+	// Sf::Keyboard::Scancode: the physical key positions, with SFML 2.6's
+	// values like LiteRGSS2 (key bindings, e.g. PSDK's input.json, store
+	// them). Key callbacks receive them as their second argument.
+	VALUE rb_mScancode = rb_define_module_under(rb_mSfKeyboard, "Scancode");
+#define X(Name) \
+	rb_define_const(rb_mScancode, #Name, INT2NUM(static_cast<int>(cgss::Scancode::Name)));
+	CGSS_SCANCODE_LIST(X)
+#undef X
 
-	// LiteRGSS2 mouse button names were uppercase. LiteRGSS3 uses
-	// PascalCase (Left/Right/Middle). Provide both forms.
-	define_const_if_absent(rb_mSfMouse, "LEFT",
-	                       rb_const_get(rb_mSfMouse, rb_intern("Left")));
-	define_const_if_absent(rb_mSfMouse, "RIGHT",
-	                       rb_const_get(rb_mSfMouse, rb_intern("Right")));
-	define_const_if_absent(rb_mSfMouse, "MIDDLE",
-	                       rb_const_get(rb_mSfMouse, rb_intern("Middle")));
 
-	// LiteRGSS2 axis identifiers. PSDK reads these as raw integers
-	// (Sf::Joystick::Z is the trigger axis on Xbox-layout pads).
-	define_const_if_absent(rb_mSfJoystick, "X",     INT2NUM(0));
-	define_const_if_absent(rb_mSfJoystick, "Y",     INT2NUM(1));
-	define_const_if_absent(rb_mSfJoystick, "Z",     INT2NUM(2));
-	define_const_if_absent(rb_mSfJoystick, "POV_X", INT2NUM(6));
-	define_const_if_absent(rb_mSfJoystick, "POV_Y", INT2NUM(7));
-
-	// LiteRGSS2-shaped helpers PSDK calls on Sf::Joystick / Sf::Keyboard.
-	rb_define_module_function(rb_mSfJoystick, "axis_position",
-	                          _rbf rb_SfJoystick_axis_position, 2);
+	// LiteRGSS2-shaped helpers PSDK calls on Sf::Keyboard.
 	rb_define_module_function(rb_mSfKeyboard, "virtual_keyboard=",
 	                          _rbf rb_SfKeyboard_set_virtual_keyboard, 1);
 	rb_define_module_function(rb_mSfKeyboard, "localize",
 	                          _rbf rb_SfKeyboard_localize, 1);
 	rb_define_module_function(rb_mSfKeyboard, "delocalize",
-	                          _rbf rb_SfKeyboard_localize, 1);
+	                          _rbf rb_SfKeyboard_delocalize, 1);
 }
