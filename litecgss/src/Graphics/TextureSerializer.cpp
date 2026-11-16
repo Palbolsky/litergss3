@@ -9,18 +9,24 @@
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Assets.h"
 #include "LiteCGSS/Graphics/Serializers/TextureSerializer.h"
+#include "Graphics/Serializers/TextureUploadDiagnostic.h"
 
 namespace cgss {
 
 	using ActiveBackend = cgss::backend::ActiveBackend;
 	using Ops = ActiveBackend::Ops;
 
+	namespace {
+		bool uploadImage(ActiveBackend::native_texture& texture, const ActiveBackend::native_image& image) {
+			return detail::uploadImage<Ops>(texture, image);
+		}
+	}
+
 	template <>
 	bool basic_TextureMemorySerializeMethod<ActiveBackend>::load(ActiveBackend::native_texture& texture, const MemorySerializerData& rawData, ActiveBackend::native_image& image) {
 		Ops::texture_destroy(texture);
 		if (!Ops::png_decode_memory(image, rawData.first, rawData.second)) return false;
-		Ops::texture_create_from_image(texture, image);
-		return true;
+		return uploadImage(texture, image);
 	}
 
 	template <>
@@ -36,8 +42,7 @@ namespace cgss {
 	bool basic_TextureEmptySerializeMethod<ActiveBackend>::load(ActiveBackend::native_texture& texture, unsigned int width, unsigned int height, ActiveBackend::native_image& image) {
 		Ops::texture_destroy(texture);
 		if (!Ops::image_create_blank_rgba(image, width, height)) return false;
-		Ops::texture_create_from_image(texture, image);
-		return true;
+		return uploadImage(texture, image);
 	}
 
 #ifdef LITECGSS_USE_PHYSFS
@@ -57,8 +62,7 @@ namespace cgss {
 			}
 		}
 		if (!ok) return false;
-		Ops::texture_create_from_image(texture, image);
-		return true;
+		return uploadImage(texture, image);
 	}
 
 	template <>
@@ -84,8 +88,7 @@ namespace cgss {
 	bool basic_TextureFilesystemSerializeMethod<ActiveBackend>::load(ActiveBackend::native_texture& texture, const std::string& filename, ActiveBackend::native_image& image) {
 		Ops::texture_destroy(texture);
 		if (!Ops::png_decode_file(image, filename.c_str())) return false;
-		Ops::texture_create_from_image(texture, image);
-		return true;
+		return uploadImage(texture, image);
 	}
 
 	template <>

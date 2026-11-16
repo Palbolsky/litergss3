@@ -15,6 +15,9 @@ namespace cgss::backend::raylib_detail {
 
 	std::vector<cgss::VideoMode> fullscreenModes();
 	unsigned int maxTextureSize();
+	// GL_MAX_TEXTURE_SIZE as the driver reports it, 0 when it can't be
+	// queried here (maxTextureSize then answers the GL minimum guarantee).
+	unsigned int queriedMaxTextureSize();
 
 }
 

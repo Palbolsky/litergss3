@@ -1,4 +1,5 @@
 #include "LiteCGSS/Graphics/Texture.h"
+#include "Graphics/Serializers/TextureUploadDiagnostic.h"
 
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Rectangle.h"
@@ -114,7 +115,7 @@ cgss::basic_Texture<B> cgss::basic_Texture<B>::create(const basic_Image<B>& imag
 	// texture_create_from_image allocates GPU storage sized to the image
 	// + uploads pixels.
 	// basic_Texture friends basic_Image so image.m_image is reachable.
-	B::Ops::texture_create_from_image(*result.m_texture, *image.m_image);
+	cgss::detail::uploadImage<typename B::Ops>(*result.m_texture, *image.m_image);
 	// Cache the CPU side too so later `update()` (no-arg) can refresh.
 	B::Ops::copy_image(*result.m_image, *image.m_image);
 	result.m_loaded = true;

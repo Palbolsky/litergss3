@@ -1453,9 +1453,21 @@ namespace cgss::backend {
 		// Create a GPU-backed texture from a CPU-side image. Releases any
 		// existing GPU backing first. Used by ext/Sprite to move bitmap
 		// data onto the GPU for drawing.
-		static inline void texture_create_from_image(native_texture& t, const native_image& i) {
+		// false when the GPU refuses the texture (larger than its maximum size)
+		// Refuses an image beyond GL_MAX_TEXTURE_SIZE like SFML does: drivers
+		// differ on what they do with it (error, garbage, or accepting it).
+		static inline bool texture_create_from_image(native_texture& t, const native_image& i) {
 			if (t.id != 0) UnloadTexture(t);
+			t = native_texture{};
+			// Only against the driver's own limit: the fallback guess would
+			// refuse textures the GPU takes.
+			const auto maxSize = static_cast<int>(raylib_detail::queriedMaxTextureSize());
+			if (maxSize > 0 && (i.width > maxSize || i.height > maxSize)) {
+				TraceLog(LOG_WARNING, "TEXTURE: %dx%d exceeds the GPU maximum %dx%d", i.width, i.height, maxSize, maxSize);
+				return false;
+			}
 			t = LoadTextureFromImage(i);
+			return t.id != 0;
 		}
 
 		// Deep-release a texture's GPU backing. Safe on zero-initialized

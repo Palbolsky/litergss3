@@ -62,18 +62,27 @@ namespace cgss::backend::raylib_detail {
 		return modes;
 	}
 
-	unsigned int maxTextureSize() {
+	unsigned int queriedMaxTextureSize() {
 #if CGSS_HAS_GLFW_QUERIES
-		if (glfwGetProcAddress != nullptr && IsWindowReady()) {
+		// One GL context per process: the first successful query holds.
+		static unsigned int cached = 0;
+		if (cached == 0 && glfwGetProcAddress != nullptr && IsWindowReady()) {
 			using GetIntegerv = void (*)(unsigned int, int*);
 			if (auto fn = reinterpret_cast<GetIntegerv>(glfwGetProcAddress("glGetIntegerv"))) {
 				int size = 0;
 				fn(kGlMaxTextureSize, &size);
-				if (size > 0) return static_cast<unsigned int>(size);
+				if (size > 0) cached = static_cast<unsigned int>(size);
 			}
 		}
+		return cached;
+#else
+		return 0;
 #endif
-		return kMinimumMaxTextureSize;
+	}
+
+	unsigned int maxTextureSize() {
+		const auto size = queriedMaxTextureSize();
+		return size != 0 ? size : kMinimumMaxTextureSize;
 	}
 
 }

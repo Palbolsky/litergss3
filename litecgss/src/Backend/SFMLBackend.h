@@ -1035,8 +1035,9 @@ namespace cgss::backend {
 		// Create a GPU-backed texture from a CPU-side image (SFML's
 		// loadFromImage allocates GPU storage + uploads). Used by
 		// ext/Sprite to move bitmap data onto the GPU.
-		static inline void texture_create_from_image(native_texture& t, const native_image& i) {
-			t.loadFromImage(i);
+		// false when the GPU refuses the texture (larger than its maximum size)
+		static inline bool texture_create_from_image(native_texture& t, const native_image& i) {
+			return t.loadFromImage(i);
 		}
 
 		// Release a texture's backing. sf::Texture's own destructor frees
