@@ -237,13 +237,13 @@ class TestSprite < Minitest::Test
   
   def test_src_rect_default
     s = LiteRGSS::Sprite.new
-    assert_equal [0, 0, 0, 0], s.src_rect
+    assert_equal LiteRGSS::Rect.new(0, 0, 0, 0), s.src_rect
   end
   
   def test_src_rect_set
     s = LiteRGSS::Sprite.new
     s.src_rect = [10, 20, 100, 200]
-    assert_equal [10, 20, 100, 200], s.src_rect
+    assert_equal LiteRGSS::Rect.new(10, 20, 100, 200), s.src_rect
   end
   
   def test_src_rect_requires_array

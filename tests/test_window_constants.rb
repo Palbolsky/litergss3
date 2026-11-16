@@ -44,9 +44,10 @@ class TestWindow < Minitest::Test
   
   # --- set_icon ---
   
+  # LiteRGSS2 ignores an icon it can't use rather than raising
   def test_set_icon_missing_file
     @window.open_window
-    assert_raises(RuntimeError) { @window.set_icon("nonexistent.png") }
+    assert_same @window, @window.set_icon("nonexistent.png")
   end
   
   def test_set_icon_existing_file
@@ -100,18 +101,21 @@ class TestWindow < Minitest::Test
   
   # --- move / x / y ---
   
-  def test_move
+  # Under Wayland (XWayland included) the compositor places windows itself,
+  # whenever it likes: an application can't move them.
+  def assert_moves_to(x, y)
+    skip 'Wayland compositors place windows themselves' if ENV['WAYLAND_DISPLAY'].to_s != ''
     @window.open_window
-    @window.move(100, 100)
-    assert_equal 100, @window.x
-    assert_equal 100, @window.y
+    @window.move(x, y)
+    assert_equal [x, y], [@window.x, @window.y]
+  end
+
+  def test_move
+    assert_moves_to(100, 100)
   end
   
   def test_move_origin
-    @window.open_window
-    @window.move(0, 0)
-    assert_equal 0, @window.x
-    assert_equal 0, @window.y
+    assert_moves_to(0, 0)
   end
   
   # --- desktop_width / desktop_height ---

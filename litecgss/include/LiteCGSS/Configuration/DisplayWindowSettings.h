@@ -32,6 +32,9 @@ namespace cgss {
 
 	struct DisplayWindowSettings {
 		bool headless = false;
+		/* A real window (and GL context) that is never shown: tests, offscreen
+		   tools. Still needs a display server. Applied when the window is created. */
+		bool hidden = false;
 		DisplayWindowVideoSettings video {};
 		DisplayWindowContextSettings context {};
 		bool smoothScreen = false;

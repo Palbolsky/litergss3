@@ -100,6 +100,3 @@ built without physfs does.
 - `LiteRGSS::Bitmap` is the same class as `Image`; LiteRGSS2 has two
   classes. Every method LiteRGSS2 defines exists, but `Bitmap` /
   `Image` identity checks (`is_a?`, `==` on classes) differ.
-- `test_sprite_constants`, `test_viewport_constants` and
-  `test_window_constants` fail: they compare a `Rect` with an `Array`.
-  The tests are wrong, not the bindings.

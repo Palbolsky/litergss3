@@ -24,12 +24,12 @@ class TestViewport < Minitest::Test
   
   def test_initialize_with_rect
     vp = LiteRGSS::Viewport.new(10, 20, 320, 240)
-    assert_equal [10, 20, 320, 240], vp.rect
+    assert_equal LiteRGSS::Rect.new(10, 20, 320, 240), vp.rect
   end
   
   def test_initialize_partial
     vp = LiteRGSS::Viewport.new(0, 0)
-    assert_equal [0, 0, 640, 480], vp.rect
+    assert_equal LiteRGSS::Rect.new(0, 0, 640, 480), vp.rect
   end
   
   # --- dispose ---
@@ -169,13 +169,13 @@ class TestViewport < Minitest::Test
   
   def test_rect_default
     vp = LiteRGSS::Viewport.new
-    assert_equal [0, 0, 640, 480], vp.rect
+    assert_equal LiteRGSS::Rect.new(0, 0, 640, 480), vp.rect
   end
   
   def test_rect_set
     vp = LiteRGSS::Viewport.new
     vp.rect = [10, 20, 100, 200]
-    assert_equal [10, 20, 100, 200], vp.rect
+    assert_equal LiteRGSS::Rect.new(10, 20, 100, 200), vp.rect
   end
   
   def test_rect_set_requires_array

@@ -560,6 +560,10 @@ namespace cgss::backend {
 					if (exclusiveNow) ToggleFullscreen();
 					ToggleBorderlessWindowed();
 				}
+				if (opts.hidden != IsWindowState(FLAG_WINDOW_HIDDEN)) {
+					if (opts.hidden) SetWindowState(FLAG_WINDOW_HIDDEN);
+					else ClearWindowState(FLAG_WINDOW_HIDDEN);
+				}
 				// Reload path: a prior window_close() latched g_windowClosed.
 				// Clear it so `window_is_open` can see the reused window again.
 				raylib_detail::resetWindowClosed();
@@ -571,6 +575,7 @@ namespace cgss::backend {
 			// time and cannot be toggled afterwards; this is the only place
 			// real hardware vsync can be enabled under raylib.
 			if (opts.vsync) SetConfigFlags(FLAG_VSYNC_HINT);
+			if (opts.hidden) SetConfigFlags(FLAG_WINDOW_HIDDEN);
 			InitWindow(static_cast<int>(opts.width),
 			           static_cast<int>(opts.height),
 			           title != nullptr ? title : "LiteRGSS");

@@ -556,6 +556,7 @@ namespace cgss::backend {
 				title,
 				style,
 				sfCtx);
+			if (opts.hidden) w.setVisible(false);
 		}
 		// Returns a render-target reference that draws to the window. Under
 		// SFML this is just an upcast (sf::RenderWindow IS-A sf::RenderTarget).

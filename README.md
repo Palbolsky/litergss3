@@ -27,6 +27,10 @@ wrapper over it.
     rake test                     # LiteCGSS (C++) + LiteRGSS (Ruby) tests, through CTest
     rake clean
 
+The tests open no window on the desktop: CTest runs the Ruby suite with
+`LITERGSS_HIDDEN_WINDOW=1`, whose windows (and GL contexts) are real but never
+shown. A display server is still needed (`xvfb-run rake test` without one).
+
 The `debug-sfml` preset needs SFML **2.6** (SFML 3 is not supported), e.g. a
 build of the SFML-opengl-es2 fork: point CMake at it with
 `cmake --preset debug-sfml -DSFML_DIR=<sfml-install>/lib/cmake/SFML`.

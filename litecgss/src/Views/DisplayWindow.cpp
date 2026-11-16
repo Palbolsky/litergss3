@@ -151,6 +151,7 @@ void cgss::basic_DisplayWindow<B>::applyReload(DisplayWindowSettings settings, b
 					static_cast<unsigned int>(m_settings.video.bitsPerPixel),
 					m_settings.fullscreen,
 					m_settings.vSync,
+					m_settings.hidden,
 					&m_settings.context,
 				};
 				// The old window goes first: a close requested while the new

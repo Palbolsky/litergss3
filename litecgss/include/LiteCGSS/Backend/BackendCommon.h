@@ -64,6 +64,7 @@ namespace cgss::backend {
 		unsigned int bitsPerPixel = 32u;
 		bool         fullscreen   = false;
 		bool         vsync        = false;
+		bool         hidden       = false;
 		const cgss::DisplayWindowContextSettings* context = nullptr;
 	};
 

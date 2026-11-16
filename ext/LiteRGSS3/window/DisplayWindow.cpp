@@ -2,6 +2,9 @@
 
 #include <ruby/thread.h>
 
+#include <cstdlib>
+#include <cstring>
+
 #include "LiteRGSS.h"
 #include "../events/Events.h"
 #include "../inputs/SfJoystick.h"
@@ -107,6 +110,10 @@ static cgss::DisplayWindowSettings build_settings_from_array(VALUE arr)
 	settings.vSync        = RTEST(vsync);
 	settings.fullscreen   = RTEST(fullscreen);
 	settings.visibleMouse = RTEST(visible_mouse);
+	// Never shown (still a real window and GL context): the test suite sets
+	// it, so running the tests doesn't open windows on the desktop.
+	const char* hidden = std::getenv("LITERGSS_HIDDEN_WINDOW");
+	settings.hidden = hidden != nullptr && *hidden != '\0' && std::strcmp(hidden, "0") != 0;
 	return settings;
 }
 
