@@ -388,20 +388,21 @@ VALUE rb_Sprite_setRect(VALUE self, VALUE val)
 
 // LiteRGSS2 sprites had width/height that proxied to the bound bitmap.
 // PSDK's Plane class and a few mouse-hover helpers rely on this.
+// Like LiteRGSS2, the size of the displayed part (src_rect), not of the
+// bitmap: a SpriteSheet cell, a cropped sprite... (PSDK centers sprites
+// with `set_origin(width / 2, height)`).
 VALUE rb_Sprite_getWidth(VALUE self)
 {
     auto *s = get_sprite(self);
     if (s->disposed) return INT2NUM(0);
-    if (NIL_P(s->rBitmap)) return INT2NUM(0);
-    return rb_funcall(s->rBitmap, rb_intern("width"), 0);
+    return INT2NUM(s->src_width);
 }
 
 VALUE rb_Sprite_getHeight(VALUE self)
 {
     auto *s = get_sprite(self);
     if (s->disposed) return INT2NUM(0);
-    if (NIL_P(s->rBitmap)) return INT2NUM(0);
-    return rb_funcall(s->rBitmap, rb_intern("height"), 0);
+    return INT2NUM(s->src_height);
 }
 
 VALUE rb_Sprite_setPosition(VALUE self, VALUE x, VALUE y)
