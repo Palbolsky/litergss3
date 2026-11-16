@@ -1,4 +1,8 @@
 #include <chrono>
+#ifdef LITECGSS_USE_TRACY
+#include <tracy/Tracy.hpp>
+#include <client/TracyProfiler.hpp>
+#endif
 #include <cstring>
 #include <iostream>
 
@@ -407,8 +411,15 @@ static void ViewTest() {
 int main(int argc, char* argv[]) {
 	(void)argc;
 	(void)argv;
+#ifdef LITECGSS_USE_TRACY
+	// TRACY_MANUAL_LIFETIME: the host starts the profiler before LiteCGSS runs.
+	tracy::StartupProfiler();
+#endif
 	//MemTest();
 	ViewTest();
+#ifdef LITECGSS_USE_TRACY
+	tracy::ShutdownProfiler();
+#endif
 
 	return 0;
 }

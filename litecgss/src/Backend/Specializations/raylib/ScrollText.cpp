@@ -1,4 +1,5 @@
 #include "Backend/Specializations/raylib/ScrollText.h"
+#include "Common/Profiling.h"
 
 #include <rlgl.h>
 
@@ -270,6 +271,7 @@ std::uint32_t cgss::ScrollText::getTextWidth(const std::string& utf8) const {
 }
 
 void cgss::ScrollText::draw() const {
+	CGSS_PROFILE_ZONE("cgss::ScrollText::draw");
 	if (!m_font || m_font->texture.id == 0 || m_utf8.empty() || m_numCharsToDraw == 0) {
 		return;
 	}

@@ -1,4 +1,5 @@
 #include "LiteCGSS/Views/DisplayWindow.h"
+#include "Common/Profiling.h"
 
 #include <cmath>
 #include <cassert>
@@ -260,6 +261,7 @@ void cgss::basic_DisplayWindow<B>::setActive(bool active) {
 
 template <class B>
 void cgss::basic_DisplayWindow<B>::draw() {
+	CGSS_PROFILE_ZONE("cgss::DisplayWindow::draw");
 	using Ops = typename B::Ops;
 	applyPendingReload();
 	Ops::window_clear(m_gameWindow);

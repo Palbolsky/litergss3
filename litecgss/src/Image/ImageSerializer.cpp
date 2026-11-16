@@ -4,6 +4,7 @@
 // in its *Backend.h. The PhysFS path stays here (asset layer is shared).
 
 #include <iostream>
+#include "Common/Profiling.h"
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/VFS.h"
 #include "LiteCGSS/Image/Serializers/ImageSerializer.h"
@@ -15,22 +16,26 @@ namespace cgss {
 
 	template <>
 	bool basic_ImageMemorySerializeMethod<ActiveBackend>::load(ActiveBackend::native_image& image, const MemorySerializerData& rawData) {
+	CGSS_PROFILE_ZONE("cgss::ImageMemorySerializeMethod::load");
 		return Ops::png_decode_memory(image, rawData.first, rawData.second);
 	}
 
 	template <>
 	MemorySerializerData basic_ImageMemorySerializeMethod<ActiveBackend>::save(const ActiveBackend::native_image& image) {
+	CGSS_PROFILE_ZONE("cgss::ImageMemorySerializeMethod::save");
 		return Ops::png_encode_memory(image);
 	}
 
 	template <>
 	bool basic_ImageEmptySerializeMethod<ActiveBackend>::load(ActiveBackend::native_image& image, unsigned int width, unsigned int height) {
+	CGSS_PROFILE_ZONE("cgss::ImageEmptySerializeMethod::load");
 		return Ops::image_create_blank_rgba(image, width, height);
 	}
 
 #ifdef LITECGSS_USE_PHYSFS
 	template <>
 	bool basic_ImageAssetSerializeMethod<ActiveBackend>::load(ActiveBackend::native_image& image, const std::string& filename) {
+	CGSS_PROFILE_ZONE("cgss::ImageAssetSerializeMethod::load");
 		if (!cgss::vfs::exists(filename)) {
 			return Ops::png_decode_file(image, filename.c_str());
 		}
@@ -45,17 +50,20 @@ namespace cgss {
 
 	template <>
 	unsigned int basic_ImageAssetSerializeMethod<ActiveBackend>::save(const ActiveBackend::native_image& image, const std::string& filename) {
+	CGSS_PROFILE_ZONE("cgss::ImageAssetSerializeMethod::save");
 		// Saves go to the real filesystem, not into the mounted archives.
 		return Ops::png_encode_file(image, filename.c_str());
 	}
 #else
 	template <>
 	bool basic_ImageFilesystemSerializeMethod<ActiveBackend>::load(ActiveBackend::native_image& image, const std::string& filename) {
+	CGSS_PROFILE_ZONE("cgss::ImageFilesystemSerializeMethod::load");
 		return Ops::png_decode_file(image, filename.c_str());
 	}
 
 	template <>
 	unsigned int basic_ImageFilesystemSerializeMethod<ActiveBackend>::save(const ActiveBackend::native_image& image, const std::string& filename) {
+	CGSS_PROFILE_ZONE("cgss::ImageFilesystemSerializeMethod::save");
 		return Ops::png_encode_file(image, filename.c_str());
 	}
 #endif

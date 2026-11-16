@@ -4,6 +4,7 @@
 // `B::Ops::set_sprite_*` / `sprite_set_*` / `draw_sprite` for backend
 // portability.
 #include "LiteCGSS/Graphics/SpriteMap.h"
+#include "Common/Profiling.h"
 
 #include <algorithm>
 
@@ -33,6 +34,7 @@ void cgss::SpriteMapItem::draw(cgss::RenderTarget& target) const {
 }
 
 void cgss::SpriteMapItem::drawFast(cgss::RenderTarget& target) const {
+	CGSS_PROFILE_ZONE("cgss::SpriteMapItem::drawFast");
 	LOG_INFO << "Drawing " << m_sprites.size() << " sprites in " << m_textureGroups.size() << " texture groups";
 	// One batch per texture (tileset): tiles don't overlap, so the order
 	// between groups doesn't show.
@@ -87,6 +89,7 @@ void cgss::SpriteMap::defineMap(unsigned long tileWidth, unsigned long tileCount
 }
 
 void cgss::SpriteMap::setTile(std::size_t index, const cgss::IntRect& tile, cgss::Texture& texture) {
+	CGSS_PROFILE_ZONE("cgss::SpriteMap::setTile");
 	if (index >= m_proxy->m_sprites.size()) {
 		return;
 	}

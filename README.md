@@ -23,13 +23,25 @@ wrapper over it.
 ## Compilation
 
     rake compile                  # = cmake --preset debug && cmake --build --preset debug
-    PRESET=release rake compile   # any preset: debug, release, debug-sfml, litecgss
+    PRESET=release rake compile   # any preset: debug, release, debug-sfml, debug-physfs, debug-tracy, litecgss
     rake test                     # LiteCGSS (C++) + LiteRGSS (Ruby) tests, through CTest
     rake clean
 
 The `debug-sfml` preset needs SFML **2.6** (SFML 3 is not supported), e.g. a
 build of the SFML-opengl-es2 fork: point CMake at it with
 `cmake --preset debug-sfml -DSFML_DIR=<sfml-install>/lib/cmake/SFML`.
+
+Optional engine features (CMake options, off by default):
+
+- `LITECGSS_USE_PHYSFS` (`debug-physfs` preset): assets load through
+  PhysicsFS (`cgss::vfs`: mounted archives first, then the filesystem), and
+  `LiteRGSS.vfs_lock=` shares PhysFS' lock with the physfs gem.
+- `LITECGSS_USE_TRACY` (`debug-tracy` preset): instruments LiteCGSS for the
+  [Tracy](https://github.com/wolfpld/tracy) profiler, v0.13.1. The
+  extension is then `LiteRGSS_tracy`, next to the shared `TracyClient`
+  every instrumented library of the process must share; the host must
+  start the profiler before loading it (e.g. with tracy_ruby). Such a build
+  skips the Ruby test suite for that reason.
 
 Pick a generator with the `CMAKE_GENERATOR` environment variable
 (e.g. `MinGW Makefiles` on Windows).

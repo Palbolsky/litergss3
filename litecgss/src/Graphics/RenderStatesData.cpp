@@ -1,4 +1,5 @@
 #include <iostream>
+#include "Common/Profiling.h"
 
 #include "LiteCGSS/Graphics/RenderStatesData.h"
 #include "Backend/ActiveBackend.h"
@@ -173,6 +174,7 @@ cgss::BlendEquation cgss::basic_RenderStatesData<B>::getBlendAlphaEquation() con
 
 template <class B>
 bool cgss::basic_RenderStatesData<B>::loadShaderFromMemory(const std::string& shader, cgss::ShaderType type) {
+	CGSS_PROFILE_ZONE("cgss::RenderStatesData::loadShaderFromMemory");
 	if (!isAvailable()) {
 		warnIfShadersNotAvailable();
 		return false;
@@ -204,6 +206,7 @@ bool cgss::basic_RenderStatesData<B>::loadShaderFromMemory(const std::string& sh
 
 template <class B>
 bool cgss::basic_RenderStatesData<B>::loadShaderFromMemory(const std::string& vertexShader, const std::string& fragmentShader) {
+	CGSS_PROFILE_ZONE("cgss::RenderStatesData::loadShaderFromMemory");
 	if (!isAvailable()) {
 		warnIfShadersNotAvailable();
 		return false;
@@ -226,6 +229,7 @@ bool cgss::basic_RenderStatesData<B>::loadShaderFromMemory(const std::string& ve
 
 template <class B>
 bool cgss::basic_RenderStatesData<B>::loadShaderFromMemory(const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader) {
+	CGSS_PROFILE_ZONE("cgss::RenderStatesData::loadShaderFromMemory");
 	if (B::Ops::shader_is_geometry_available() && isAvailable()) {
 		if (m_shader == nullptr) {
 			m_shader = std::make_unique<typename B::native_shader>();

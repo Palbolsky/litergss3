@@ -1,4 +1,5 @@
 #include <iostream>
+#include "Common/Profiling.h"
 #include <memory>
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/VFS.h"
@@ -8,6 +9,7 @@
 static std::vector<std::unique_ptr<std::vector<char>>> gFonts;
 
 bool cgss::FontLoaderMethod::load(cgss::Font& font, const std::string& filename) {
+	CGSS_PROFILE_ZONE("cgss::FontLoaderMethod::load");
 	using Ops = cgss::backend::ActiveBackend::Ops;
 	auto& raw = cgss::backend::native_of(font);
 #ifdef LITECGSS_USE_PHYSFS

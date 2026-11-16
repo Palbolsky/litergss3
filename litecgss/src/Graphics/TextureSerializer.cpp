@@ -6,6 +6,7 @@
 // and the matching memory lifecycle.
 
 #include <iostream>
+#include "Common/Profiling.h"
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/VFS.h"
 #include "LiteCGSS/Graphics/Serializers/TextureSerializer.h"
@@ -24,6 +25,7 @@ namespace cgss {
 
 	template <>
 	bool basic_TextureMemorySerializeMethod<ActiveBackend>::load(ActiveBackend::native_texture& texture, const MemorySerializerData& rawData, ActiveBackend::native_image& image) {
+	CGSS_PROFILE_ZONE("cgss::TextureMemorySerializeMethod::load");
 		Ops::texture_destroy(texture);
 		if (!Ops::png_decode_memory(image, rawData.first, rawData.second)) return false;
 		return uploadImage(texture, image);
@@ -31,6 +33,7 @@ namespace cgss {
 
 	template <>
 	MemorySerializerData basic_TextureMemorySerializeMethod<ActiveBackend>::save(const ActiveBackend::native_texture& texture) {
+	CGSS_PROFILE_ZONE("cgss::TextureMemorySerializeMethod::save");
 		ActiveBackend::native_image image{};
 		if (!Ops::texture_read_to_image(texture, image)) return { nullptr, 0u };
 		auto out = Ops::png_encode_memory(image);
@@ -40,6 +43,7 @@ namespace cgss {
 
 	template <>
 	bool basic_TextureEmptySerializeMethod<ActiveBackend>::load(ActiveBackend::native_texture& texture, unsigned int width, unsigned int height, ActiveBackend::native_image& image) {
+	CGSS_PROFILE_ZONE("cgss::TextureEmptySerializeMethod::load");
 		Ops::texture_destroy(texture);
 		if (!Ops::image_create_blank_rgba(image, width, height)) return false;
 		return uploadImage(texture, image);
@@ -48,6 +52,7 @@ namespace cgss {
 #ifdef LITECGSS_USE_PHYSFS
 	template <>
 	bool basic_TextureAssetSerializeMethod<ActiveBackend>::load(ActiveBackend::native_texture& texture, const std::string& filename, ActiveBackend::native_image& image) {
+	CGSS_PROFILE_ZONE("cgss::TextureAssetSerializeMethod::load");
 		Ops::texture_destroy(texture);
 		bool ok = false;
 		if (!cgss::vfs::exists(filename)) {
@@ -67,6 +72,7 @@ namespace cgss {
 
 	template <>
 	unsigned int basic_TextureAssetSerializeMethod<ActiveBackend>::save(const ActiveBackend::native_texture& texture, const std::string& filename) {
+	CGSS_PROFILE_ZONE("cgss::TextureAssetSerializeMethod::save");
 		// Saves go to the real filesystem, not into the mounted archives
 		// (as LiteCGSS2 does): a game writes its files through its own IO.
 		ActiveBackend::native_image image{};
@@ -78,6 +84,7 @@ namespace cgss {
 #else
 	template <>
 	bool basic_TextureFilesystemSerializeMethod<ActiveBackend>::load(ActiveBackend::native_texture& texture, const std::string& filename, ActiveBackend::native_image& image) {
+	CGSS_PROFILE_ZONE("cgss::TextureFilesystemSerializeMethod::load");
 		Ops::texture_destroy(texture);
 		if (!Ops::png_decode_file(image, filename.c_str())) return false;
 		return uploadImage(texture, image);
@@ -85,6 +92,7 @@ namespace cgss {
 
 	template <>
 	unsigned int basic_TextureFilesystemSerializeMethod<ActiveBackend>::save(const ActiveBackend::native_texture& texture, const std::string& filename) {
+	CGSS_PROFILE_ZONE("cgss::TextureFilesystemSerializeMethod::save");
 		ActiveBackend::native_image image{};
 		if (!Ops::texture_read_to_image(texture, image)) return 1u;
 		const unsigned int rc = Ops::png_encode_file(image, filename.c_str());

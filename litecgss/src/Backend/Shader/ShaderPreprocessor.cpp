@@ -1,4 +1,5 @@
 #include "ShaderPreprocessor.h"
+#include "Common/Profiling.h"
 
 #include "preprocessor/glsl_330.h"
 #include "preprocessor/glsl_es.h"
@@ -233,10 +234,12 @@ std::string processFragmentModern(const std::string& source, Target target) {
 namespace cgss {
 
 std::string ShaderPreprocessor::process(const std::string& source, Stage stage) {
+	CGSS_PROFILE_ZONE("cgss::ShaderPreprocessor::process");
 	return process(source, stage, Options{});
 }
 
 std::string ShaderPreprocessor::process(const std::string& source, Stage stage, const Options& opts) {
+	CGSS_PROFILE_ZONE("cgss::ShaderPreprocessor::process");
 	return processDetailed(source, stage, opts).source;
 }
 

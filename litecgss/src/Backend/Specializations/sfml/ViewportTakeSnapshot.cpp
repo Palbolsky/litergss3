@@ -6,6 +6,7 @@
 // model entirely. Selected by CMake when CGSS_BACKEND=sfml.
 
 #include <SFML/Graphics/Color.hpp>
+#include "Common/Profiling.h"
 #include <SFML/Graphics/RenderTexture.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Texture.hpp>
@@ -16,6 +17,7 @@
 #include "LiteCGSS/Views/Viewport.h"
 
 std::unique_ptr<cgss::Texture> cgss::ViewportItem::takeSnapshot() const {
+	CGSS_PROFILE_ZONE("cgss::ViewportItem::takeSnapshot");
 	using Ops = cgss::backend::ActiveBackend::Ops;
 	using cgss::backend::native_of;
 

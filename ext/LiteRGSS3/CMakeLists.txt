@@ -22,6 +22,25 @@ set_target_properties(LiteRGSS PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY ${LITERGSS_EXT_OUTPUT_DIR}
 )
 
+# A Tracy build needs the host to start the profiler before any LiteRGSS
+# call, so it is a different extension (LiteRGSS_tracy, as in LiteRGSS2),
+# loaded with the shared TracyClient written next to it.
+if(LITECGSS_USE_TRACY)
+	set(LITERGSS_EXT_NAME LiteRGSS_tracy)
+	set_target_properties(TracyClient PROPERTIES
+		LIBRARY_OUTPUT_DIRECTORY ${LITERGSS_EXT_OUTPUT_DIR}
+		RUNTIME_OUTPUT_DIRECTORY ${LITERGSS_EXT_OUTPUT_DIR})
+	if(APPLE)
+		set_target_properties(LiteRGSS PROPERTIES BUILD_RPATH "@loader_path" INSTALL_RPATH "@loader_path")
+	elseif(UNIX)
+		set_target_properties(LiteRGSS PROPERTIES BUILD_RPATH "$ORIGIN" INSTALL_RPATH "$ORIGIN")
+	endif()
+else()
+	set(LITERGSS_EXT_NAME LiteRGSS)
+endif()
+set_target_properties(LiteRGSS PROPERTIES OUTPUT_NAME ${LITERGSS_EXT_NAME})
+target_compile_definitions(LiteRGSS PRIVATE LITERGSS_INIT_FUNCTION=Init_${LITERGSS_EXT_NAME})
+
 # Bindings include their own headers by bare name ("Color.h") from any
 # subfolder: every subfolder is an include root.
 file(GLOB _litergss_children LIST_DIRECTORIES true ${CMAKE_CURRENT_SOURCE_DIR}/*)
@@ -37,7 +56,12 @@ target_link_libraries(LiteRGSS PRIVATE LiteCGSS::engine)
 
 # Ruby test suite (non-interactive files only: *_live.rb open a real window
 # and wait for user input). One CTest entry per file.
+# Not in a Tracy build: its extension needs a host starting the profiler
+# first (tracy_ruby), which the suite has no way to do.
 file(GLOB _litergss_ruby_tests ${PROJECT_SOURCE_DIR}/tests/test_*.rb)
+if(LITECGSS_USE_TRACY)
+	set(_litergss_ruby_tests "")
+endif()
 list(FILTER _litergss_ruby_tests EXCLUDE REGEX "_live\\.rb$")
 foreach(_test IN LISTS _litergss_ruby_tests)
 	get_filename_component(_name ${_test} NAME_WE)

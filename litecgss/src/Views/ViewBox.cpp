@@ -1,4 +1,5 @@
 #include <cmath>
+#include "Common/Profiling.h"
 #include "LiteCGSS/Views/ViewBox.h"
 #include "Views/LoggerViews.h"
 #include "Backend/ActiveBackend.h"
@@ -24,6 +25,7 @@ cgss::ViewBox::ViewBox(MainEventDispatcher& ed, const DisplayWindowSettings& win
 }
 
 void cgss::ViewBox::moveOrigin(long ox, long oy) {
+	CGSS_PROFILE_ZONE("cgss::ViewBox::moveOrigin");
 	m_ox = ox;
 	m_oy = oy;
 
@@ -46,6 +48,7 @@ void cgss::ViewBox::updateCenter() {
 }
 
 void cgss::ViewBox::resize(long width, long height) {
+	CGSS_PROFILE_ZONE("cgss::ViewBox::resize");
 	/* Adjustment for text */
 	if (width & 1) {
 		width++;
@@ -88,6 +91,7 @@ void cgss::ViewBox::onRenderTarget(cgss::RenderTarget& renderTarget, bool copy) 
 }
 
 void cgss::ViewBox::moveViewport(float x, float y) {
+	CGSS_PROFILE_ZONE("cgss::ViewBox::moveViewport");
 	const auto sw = static_cast<float>(m_screenWidth);
 	const auto sh = static_cast<float>(m_screenHeight);
 	m_x = x;

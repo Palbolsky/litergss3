@@ -1,4 +1,5 @@
 #include "LiteCGSS/Views/Stack/DrawableStack.h"
+#include "Common/Profiling.h"
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Graphics/Text.h"
 #include "LiteCGSS/Graphics/Sprite.h"
@@ -17,6 +18,7 @@ SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::DrawableStack)
 static ska::PeriodicTracer<cgss::LoggerStack, ska::LogLevel::Debug> DrawableStackTracer = { cgss::GetLoggerStack() };
 
 void cgss::DrawableStack::draw(cgss::Camera& defview, cgss::RenderTarget& target) const  {
+	CGSS_PROFILE_ZONE("cgss::DrawableStack::draw");
 	using Ops = cgss::backend::ActiveBackend::Ops;
 	DrawableStackTracer.SKA_LOG_PERIODIC_TRACE(LOG_FREQUENCY);
 	// Apply the default view once. View-mutating items (ViewportItem,
@@ -29,6 +31,7 @@ void cgss::DrawableStack::draw(cgss::Camera& defview, cgss::RenderTarget& target
 }
 
 void cgss::DrawableStack::drawFast(cgss::RenderTarget& target) const {
+	CGSS_PROFILE_ZONE("cgss::DrawableStack::drawFast");
 	DrawableStackTracer.SKA_LOG_PERIODIC_TRACE(LOG_FREQUENCY);
 	for (auto& element: *this) {
 		element->tryDrawFast(target);

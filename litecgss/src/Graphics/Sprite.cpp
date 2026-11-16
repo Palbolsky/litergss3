@@ -1,4 +1,5 @@
 #include "LiteCGSS/Graphics/Sprite.h"
+#include "Common/Profiling.h"
 
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
@@ -25,6 +26,7 @@ void cgss::basic_SpriteItem<B>::updateFromValue(const RenderStatesData*) {}
 
 template <class B>
 void cgss::basic_SpriteItem<B>::drawFast(cgss::RenderTarget& target) const {
+	CGSS_PROFILE_ZONE("cgss::SpriteItem::drawFast");
 	using cgss::backend::native_of;
 	const auto* base = ShaderRenderable::getValue() == nullptr
 		? nullptr

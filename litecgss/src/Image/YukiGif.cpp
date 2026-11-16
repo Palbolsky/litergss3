@@ -1,5 +1,6 @@
 /* Include cstddef first, otherwise libnsgif.hpp won't "compile" */
 #include <cstddef>
+#include "Common/Profiling.h"
 #include <libnsgif.hpp>
 #include "LiteCGSS/Image/YukiGif.h"
 #include "Backend/ActiveBackend.h"
@@ -57,6 +58,7 @@ cgss::YukiGif::~YukiGif() {
 }
 
 void cgss::YukiGif::drawOn(cgss::Texture& texture) const {
+	CGSS_PROFILE_ZONE("cgss::YukiGif::drawOn");
 	cgss::backend::ActiveBackend::Ops::texture_update_pixels(
 		cgss::backend::native_of(texture),
 		reinterpret_cast<const std::uint8_t*>(m_gif->frame_image),
@@ -64,6 +66,7 @@ void cgss::YukiGif::drawOn(cgss::Texture& texture) const {
 }
 
 bool cgss::YukiGif::update(cgss::Texture& texture) {
+	CGSS_PROFILE_ZONE("cgss::YukiGif::update");
 	if (((m_gif->frames[m_frame].frame_delay * 10) <= m_counter) ||
 		(m_frame == 0 && m_counter == 0)) {
 		if (m_frame != 0 || m_counter != 0) {

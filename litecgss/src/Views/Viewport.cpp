@@ -1,4 +1,5 @@
 #include <cmath>
+#include "Common/Profiling.h"
 #include "LiteCGSS/Views/Viewport.h"
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Rectangle.h"
@@ -32,6 +33,7 @@ cgss::RenderStatesData* cgss::ViewportItem::getRenderStates() {
 }
 
 void cgss::ViewportItem::draw(cgss::RenderTarget& target) const {
+	CGSS_PROFILE_ZONE("cgss::ViewportItem::draw");
 	using Ops = cgss::backend::ActiveBackend::Ops;
 	using cgss::backend::native_of;
 

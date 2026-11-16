@@ -44,6 +44,15 @@
       }
     },
     {
+      "name": "debug-tracy",
+      "displayName": "Debug (raylib, Tracy instrumentation)",
+      "inherits": "debug",
+      "cacheVariables": {
+        "LITECGSS_USE_TRACY": "ON",
+        "LITERGSS_EXT_OUTPUT_DIR": "${sourceDir}/build/${presetName}/lib"
+      }
+    },
+    {
       "name": "litecgss",
       "displayName": "LiteCGSS only (no Ruby)",
       "inherits": "debug",
@@ -58,6 +67,7 @@
     { "name": "release", "configurePreset": "release" },
     { "name": "debug-sfml", "configurePreset": "debug-sfml" },
     { "name": "debug-physfs", "configurePreset": "debug-physfs" },
+    { "name": "debug-tracy", "configurePreset": "debug-tracy" },
     { "name": "litecgss", "configurePreset": "litecgss" }
   ],
   "testPresets": [

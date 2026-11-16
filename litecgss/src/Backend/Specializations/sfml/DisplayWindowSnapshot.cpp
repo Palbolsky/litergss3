@@ -10,6 +10,7 @@
 // uses LoadImageFromScreen, which is a totally different model).
 
 #include <SFML/Graphics/RenderWindow.hpp>
+#include "Common/Profiling.h"
 #include <SFML/Graphics/RenderTexture.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Texture.hpp>
@@ -135,6 +136,7 @@ void cgss::DisplayWindowSnapshot::transition(long time, Texture* texture) {
 
 template <class W>
 std::unique_ptr<cgss::Texture> cgss::DisplayWindowSnapshot::takeSnapshot(const W& window) const {
+	CGSS_PROFILE_ZONE("cgss::DisplayWindowSnapshot::takeSnapshot");
 	sf::Texture raw;
 	takeSnapshotOn(window, raw);
 	return std::make_unique<cgss::Texture>(cgss::Texture::create_from_native(std::move(raw)));
@@ -149,6 +151,7 @@ void cgss::DisplayWindowSnapshot::stop() {
 
 template <class W>
 void cgss::DisplayWindowSnapshot::draw(W& window) {
+	CGSS_PROFILE_ZONE("cgss::DisplayWindowSnapshot::draw");
 	// Display transition sprite
 	if (m_freezeSprite != nullptr) {
 		if (m_rgssTransition) {

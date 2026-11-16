@@ -1,4 +1,5 @@
 #include "LiteCGSS/Image/Image.h"
+#include "Common/Profiling.h"
 
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Rectangle.h"
@@ -31,6 +32,7 @@ cgss::basic_Image<B>::basic_Image(basic_Image&& image) noexcept = default;
 
 template <class B>
 cgss::basic_Image<B>& cgss::basic_Image<B>::operator=(const basic_Image& image) {
+	CGSS_PROFILE_ZONE("cgss::Image::operator=");
 	const auto sz = B::Ops::get_image_size(*image.m_image);
 	B::Ops::image_create_with_pixels(*m_image, sz.x, sz.y, B::Ops::get_image_pixels_ptr(*image.m_image));
 	return *this;
@@ -41,6 +43,7 @@ cgss::basic_Image<B>& cgss::basic_Image<B>::operator=(basic_Image&& image) noexc
 
 template <class B>
 cgss::basic_Image<B> cgss::basic_Image<B>::create(const std::string& filename) {
+	CGSS_PROFILE_ZONE("cgss::Image::create");
 	auto image = basic_Image{};
 	basic_ImageFileSerializeMethod<B>::load(*image.m_image, filename);
 	return image;
@@ -48,6 +51,7 @@ cgss::basic_Image<B> cgss::basic_Image<B>::create(const std::string& filename) {
 
 template <class B>
 cgss::basic_Image<B> cgss::basic_Image<B>::create(const char* rawMemory, std::size_t rawMemorySize) {
+	CGSS_PROFILE_ZONE("cgss::Image::create");
 	auto image = basic_Image{};
 	const MemorySerializerData data {
 		reinterpret_cast<unsigned char*>(const_cast<char*>(rawMemory)), rawMemorySize };
@@ -57,6 +61,7 @@ cgss::basic_Image<B> cgss::basic_Image<B>::create(const char* rawMemory, std::si
 
 template <class B>
 cgss::basic_Image<B> cgss::basic_Image<B>::create(unsigned int width, unsigned int height) {
+	CGSS_PROFILE_ZONE("cgss::Image::create");
 	auto image = basic_Image{};
 	basic_ImageEmptySerializeMethod<B>::load(*image.m_image, width, height);
 	return image;
@@ -64,6 +69,7 @@ cgss::basic_Image<B> cgss::basic_Image<B>::create(unsigned int width, unsigned i
 
 template <class B>
 bool cgss::basic_Image<B>::load(const ImageLoader& loader) {
+	CGSS_PROFILE_ZONE("cgss::Image::load");
 	return loader.load(*m_image);
 }
 
@@ -85,11 +91,13 @@ cgss::IntRect cgss::basic_Image<B>::box() const {
 
 template <class B>
 void cgss::basic_Image<B>::blit(const basic_Image& source, unsigned int x, unsigned int y, const Rectangle& rect, bool applyAlpha) {
+	CGSS_PROFILE_ZONE("cgss::Image::blit");
 	B::Ops::image_blit(*m_image, x, y, *source.m_image, rect.getValue(), applyAlpha);
 }
 
 template <class B>
 void cgss::basic_Image<B>::blit(const basic_Image& source, unsigned int x, unsigned int y, const cgss::IntRect& rect, bool applyAlpha) {
+	CGSS_PROFILE_ZONE("cgss::Image::blit");
 	B::Ops::image_blit(*m_image, x, y, *source.m_image, rect, applyAlpha);
 }
 
@@ -130,6 +138,7 @@ bool cgss::basic_Image<B>::setPixel(unsigned int x, unsigned int y, const cgss::
 
 template <class B>
 void cgss::basic_Image<B>::stretchBlit(const basic_Image& imageSource, const cgss::IntRect& destinationRect, const cgss::IntRect& sourceRect, bool mixedAlpha) {
+	CGSS_PROFILE_ZONE("cgss::Image::stretchBlit");
 	// Delegate to the Rectangle overload by constructing BondElement
 	// wrappers — the per-pixel loop below is identical in either form.
 	cgss::Rectangle dr; dr.setValue(destinationRect);
@@ -139,6 +148,7 @@ void cgss::basic_Image<B>::stretchBlit(const basic_Image& imageSource, const cgs
 
 template <class B>
 void cgss::basic_Image<B>::stretchBlit(const basic_Image& imageSource, const Rectangle& destinationRect, const Rectangle& sourceRect, bool mixedAlpha) {
+	CGSS_PROFILE_ZONE("cgss::Image::stretchBlit");
 	const auto& dest = destinationRect.getValue();
 	const auto& src = sourceRect.getValue();
 

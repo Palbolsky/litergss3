@@ -5,6 +5,7 @@
 // std::string for UTF-8 input) so this file never forks on the backend.
 
 #include <cmath>
+#include "Common/Profiling.h"
 #include "Backend/ActiveBackend.h"
 #include "Graphics/LoggerDrawables.h"
 #include "LiteCGSS/Graphics/Text.h"
@@ -26,6 +27,7 @@ void cgss::TextItem::draw(cgss::RenderTarget& target) const {
 }
 
 void cgss::TextItem::drawFast(cgss::RenderTarget& target) const {
+	CGSS_PROFILE_ZONE("cgss::TextItem::drawFast");
 	cgss::backend::ActiveBackend::Ops::draw_text(cgss::backend::native_of(target), *m_text);
 }
 
@@ -129,6 +131,7 @@ bool cgss::Text::getSmooth() const {
 }
 
 void cgss::TextItem::updateAlign() {
+	CGSS_PROFILE_ZONE("cgss::TextItem::updateAlign");
 	const auto bounds = m_text->getLocalBounds();
 	float boxLeft  = m_wantedX;
 	float boxTop   = m_wantedY;

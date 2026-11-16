@@ -15,13 +15,18 @@ VALUE rb_mLiteRGSS = Qnil;
 VALUE rb_mConfig = Qnil;
 VALUE rb_eRGSSError = Qnil;
 
+#ifndef LITERGSS_INIT_FUNCTION
+#error "LITERGSS_INIT_FUNCTION must name the extension's entry point (Init_<file basename>)"
+#endif
+
 extern "C"
 {
   // Ruby entry point. Name must match the compiled shared-library basename
-  // (ext_name="LiteRGSS" → LiteRGSS.so → Init_LiteRGSS). The internal Ruby
+  // (LiteRGSS.so → Init_LiteRGSS, LiteRGSS_tracy.so → Init_LiteRGSS_tracy;
+  // set by CMake as LITERGSS_INIT_FUNCTION). The internal Ruby
   // module is still named `LiteRGSS3` — `LiteRGSS` is aliased to it for
   // compat with callers that use the library's short name.
-  void Init_LiteRGSS()
+  void LITERGSS_INIT_FUNCTION()
   {
     rb_mLiteRGSS = rb_define_module("LiteRGSS3");
 

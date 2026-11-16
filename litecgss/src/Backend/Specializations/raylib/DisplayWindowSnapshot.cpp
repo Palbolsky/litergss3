@@ -9,10 +9,12 @@
 // of snapshot usage (saved-game thumbnails, scene transition fades).
 
 #include <raylib.h>
+#include "Common/Profiling.h"
 #include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Views/DisplayWindowSnapshot.h"
 
 std::unique_ptr<cgss::Texture> cgss::detail::backendCaptureScreen() {
+	CGSS_PROFILE_ZONE("cgss::DisplayWindowSnapshot::takeSnapshot");
 	if (!IsWindowReady()) return nullptr;
 	::Image cpuImage = LoadImageFromScreen();
 	if (cpuImage.data == nullptr) return nullptr;

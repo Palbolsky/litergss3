@@ -39,6 +39,9 @@ option(CGSS_NO_LOGS "Compile out LiteCGSS logging" OFF)
 # shaders the preprocessor rewrites to GLSL ES 1.00 on SFML ES's attributes.
 option(LITECGSS_USE_FIXED_PIPELINE "SFML backend: desktop GL feeding the fixed-pipeline GLSL built-ins" ON)
 option(LITECGSS_USE_PHYSFS "Load assets through PhysicsFS" OFF)
+# Instruments the engine with Tracy zones. The embedder must then start
+# Tracy's client before LiteCGSS runs (tracy::StartupProfiler()).
+option(LITECGSS_USE_TRACY "Instrument LiteCGSS for the Tracy profiler" OFF)
 option(LITECGSS_BUILD_TESTS "Build the LiteCGSS unit tests" ${PROJECT_IS_TOP_LEVEL})
 option(LITECGSS_BUILD_PLAYGROUND "Build the LiteCGSS playground executable" ${PROJECT_IS_TOP_LEVEL})
 
@@ -66,8 +69,14 @@ target_compile_definitions(LiteCGSS_config INTERFACE
 	$<$<BOOL:${CGSS_NO_LOGS}>:CGSS_NO_LOGS>
 	$<$<BOOL:${CGSS_WINDOW_PRESERVATION}>:CGSS_WINDOW_PRESERVATION>
 	$<$<BOOL:${LITECGSS_USE_PHYSFS}>:LITECGSS_USE_PHYSFS>
+	$<$<BOOL:${LITECGSS_USE_TRACY}>:LITECGSS_USE_TRACY>
 )
 target_compile_features(LiteCGSS_config INTERFACE cxx_std_17)
+if(LITECGSS_USE_TRACY)
+	# With the define that turns the zones on: whatever compiles LiteCGSS
+	# sources (the engine, the unit tests) gets Tracy's headers and client.
+	target_link_libraries(LiteCGSS_config INTERFACE TracyClient)
+endif()
 
 # ---------------------------------------------------------------------------
 # Backend dependencies
@@ -128,6 +137,24 @@ add_subdirectory(external/skalog)
 # skalog does not declare its own usage requirements; Common/Logger.h (public)
 # includes <Logging/...>, so its include dir is part of our public interface.
 target_include_directories(skalog PUBLIC ${LITE_CGSS_EXTERNAL}/skalog/src/src)
+
+if(LITECGSS_USE_TRACY)
+	# Configured as LiteCGSS2 does: every instrumented library of a process
+	# (tracy_ruby...) must share this exact Tracy setup and the one shared
+	# TracyClient.
+	set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+	set(TRACY_ENABLE ON)
+	set(TRACY_ON_DEMAND ON)
+	set(TRACY_DELAYED_INIT ON)
+	set(TRACY_MANUAL_LIFETIME ON)
+	set(TRACY_STATIC OFF)
+	include(FetchContent)
+	FetchContent_Declare(tracy
+		GIT_REPOSITORY https://github.com/wolfpld/tracy.git
+		GIT_TAG v0.13.1
+		GIT_SHALLOW TRUE)
+	FetchContent_MakeAvailable(tracy)
+endif()
 
 if(LITECGSS_USE_PHYSFS)
 	set(PHYSFS_BUILD_TEST OFF CACHE INTERNAL "")

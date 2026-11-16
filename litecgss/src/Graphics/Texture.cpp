@@ -1,4 +1,5 @@
 #include "LiteCGSS/Graphics/Texture.h"
+#include "Common/Profiling.h"
 #include "Graphics/Serializers/TextureUploadDiagnostic.h"
 
 #include "Backend/ActiveBackend.h"
@@ -71,6 +72,7 @@ cgss::basic_Texture<B>::~basic_Texture() = default;
 
 template <class B>
 cgss::basic_Texture<B> cgss::basic_Texture<B>::create(const DisplayWindow& window, const std::string& filename) {
+	CGSS_PROFILE_ZONE("cgss::Texture::create");
 	auto result = basic_Texture{};
 	B::Ops::set_smooth(*result.m_texture, window.smoothScreen());
 	TextureFileSerializeMethod::load(*result.m_texture, filename, *result.m_image);
@@ -79,6 +81,7 @@ cgss::basic_Texture<B> cgss::basic_Texture<B>::create(const DisplayWindow& windo
 
 template <class B>
 cgss::basic_Texture<B> cgss::basic_Texture<B>::create(const std::string& filename) {
+	CGSS_PROFILE_ZONE("cgss::Texture::create");
 	auto result = basic_Texture{};
 	TextureFileSerializeMethod::load(*result.m_texture, filename, *result.m_image);
 	return result;
@@ -111,6 +114,7 @@ cgss::basic_Image<B> cgss::basic_Texture<B>::copyToImage() const {
 
 template <class B>
 cgss::basic_Texture<B> cgss::basic_Texture<B>::create(const basic_Image<B>& image) {
+	CGSS_PROFILE_ZONE("cgss::Texture::create");
 	auto result = basic_Texture{};
 	// texture_create_from_image allocates GPU storage sized to the image
 	// + uploads pixels.
@@ -129,6 +133,7 @@ void cgss::basic_Texture<B>::setSmooth(bool smooth) {
 
 template <class B>
 bool cgss::basic_Texture<B>::load(const TextureLoader& loader) {
+	CGSS_PROFILE_ZONE("cgss::Texture::load");
 	m_loaded = loader.load(*m_texture, *m_image);
 	return m_loaded;
 }
@@ -154,6 +159,7 @@ void cgss::basic_Texture<B>::update(const basic_Image<B>& image) {
 
 template <class B>
 void cgss::basic_Texture<B>::blit(unsigned long x, unsigned long y, const basic_Texture& srcTexture, const Rectangle& rect) {
+	CGSS_PROFILE_ZONE("cgss::Texture::blit");
 	if (hasImage()) {
 		B::Ops::image_blit(*m_image, x, y, *srcTexture.m_image, rect.getValue());
 	}
@@ -181,6 +187,7 @@ void cgss::basic_Texture<B>::clearRect(long x, long y, unsigned int width, unsig
 
 template <class B>
 unsigned int cgss::basic_Texture<B>::write(TextureSaver& saver) const {
+	CGSS_PROFILE_ZONE("cgss::Texture::write");
 	return saver.save(*m_texture);
 }
 
@@ -201,6 +208,7 @@ typename cgss::basic_Texture<B>::Size cgss::basic_Texture<B>::getSize() const {
 
 template <class B>
 bool cgss::basic_Texture<B>::create(int sw, int sh) {
+	CGSS_PROFILE_ZONE("cgss::Texture::create");
 	return B::Ops::create_texture(*m_texture, static_cast<unsigned int>(sw), static_cast<unsigned int>(sh));
 }
 

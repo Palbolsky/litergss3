@@ -6,6 +6,7 @@
 // message windows on screen), so we trade vertex batching for a single
 // shared, backend-neutral `.cpp`; geometry is rebuilt on every drawFast.
 #include <algorithm>
+#include "Common/Profiling.h"
 #include <cstdint>
 #include "Views/LoggerViews.h"
 #include "LiteCGSS/Views/FramedView.h"
@@ -134,6 +135,7 @@ void cgss::FramedViewItem::draw(cgss::RenderTarget& target) const {
 //   3. Cursor (inner view — cursor coords are local to the dialog)
 //   4. Pause (current/parent view — uses absolute screen coords)
 void cgss::FramedViewItem::drawFast(cgss::RenderTarget& target) const {
+	CGSS_PROFILE_ZONE("cgss::FramedViewItem::drawFast");
 	const auto originalView = Ops::target_get_view(native_of(target));
 
 	// 1) Skin pass.
@@ -277,6 +279,7 @@ void cgss::FramedViewItem::drawFast(cgss::RenderTarget& target) const {
 // don't render outside the parent. Pure math + Ops::view_*; no backend
 // native types involved.
 void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, cgss::Camera& targetView) const {
+	CGSS_PROFILE_ZONE("cgss::FramedViewItem::drawCalculateView");
 	const cgss::IntRect parentViewport = parent.getViewportBox();
 	const float zoom = parent.getZoom();
 
@@ -358,15 +361,18 @@ void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, cgss::Camera&
 }
 
 void cgss::FramedViewItem::update() {
+	CGSS_PROFILE_ZONE("cgss::FramedViewItem::update");
 	m_counter = (m_counter + 1) % 128;
 }
 
 void cgss::FramedViewItem::updateVertices() {
+	CGSS_PROFILE_ZONE("cgss::FramedViewItem::updateVertices");
 	if (m_locked || m_wantedWidth <= 0 || m_wantedHeight <= 0) return;
 	updateContents();
 }
 
 void cgss::FramedViewItem::updateView() {
+	CGSS_PROFILE_ZONE("cgss::FramedViewItem::updateView");
 	const long offset_x  = m_windowBuilder[4];
 	const long offset_y  = m_windowBuilder[5];
 	const long offset_x2 = m_windowBuilderExtended ? m_windowBuilder[6] : offset_x;

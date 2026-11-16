@@ -9,12 +9,14 @@
 // otherwise the snapshot would render upside down when bound to a Sprite.
 
 #include <raylib.h>
+#include "Common/Profiling.h"
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Graphics/RenderStates.h"
 #include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Views/Viewport.h"
 
 std::unique_ptr<cgss::Texture> cgss::ViewportItem::takeSnapshot() const {
+	CGSS_PROFILE_ZONE("cgss::ViewportItem::takeSnapshot");
 	using Ops = cgss::backend::ActiveBackend::Ops;
 	using cgss::backend::native_of;
 

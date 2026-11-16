@@ -29,6 +29,7 @@ freely, subject to the following restrictions:
 */
 
 #include "Backend/Specializations/sfml/ScrollText.h"
+#include "Common/Profiling.h"
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <cmath>
@@ -255,6 +256,7 @@ cgss::FloatRect cgss::ScrollText::getGlobalBounds() const {
 }
 
 void cgss::ScrollText::draw(sf::RenderTarget& target, sf::RenderStates states) const {
+	CGSS_PROFILE_ZONE("cgss::ScrollText::draw");
 	if (m_font) {
 		ensureGeometryUpdate();
 
@@ -371,6 +373,7 @@ std::uint32_t cgss::ScrollText::getTextWidth(const std::string& utf8) const {
 }
 
 void cgss::ScrollText::ensureGeometryUpdate() const {
+	CGSS_PROFILE_ZONE("cgss::ScrollText::ensureGeometryUpdate");
 	if (!m_font) return;
 
 	// Do nothing, if geometry has not changed and the font texture has not changed

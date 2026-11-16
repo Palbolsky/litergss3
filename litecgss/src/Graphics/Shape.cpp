@@ -1,4 +1,5 @@
 #include "LiteCGSS/Graphics/Shape.h"
+#include "Common/Profiling.h"
 
 #include <cassert>
 
@@ -17,6 +18,7 @@ cgss::basic_ShapeItem<B>::~basic_ShapeItem() = default;
 
 template <class B>
 void cgss::basic_ShapeItem<B>::draw(cgss::RenderTarget& target) const {
+	CGSS_PROFILE_ZONE("cgss::ShapeItem::draw");
 	using cgss::backend::native_of;
 	const auto& base = native_of(m_renderStates);
 	const auto version = m_transformable->transformVersion();
@@ -32,6 +34,7 @@ void cgss::basic_ShapeItem<B>::draw(cgss::RenderTarget& target) const {
 
 template <class B>
 void cgss::basic_ShapeItem<B>::drawFast(cgss::RenderTarget& target) const {
+	CGSS_PROFILE_ZONE("cgss::ShapeItem::drawFast");
 	using cgss::backend::native_of;
 	const auto version = m_transformable->transformVersion();
 	if (!m_cachedTransform) {
@@ -56,6 +59,7 @@ void cgss::basic_Shape<B>::setRenderState(cgss::DrawState states) {
 
 template <class B>
 void cgss::basic_Shape<B>::setTexture(basic_Texture<B>* texture, bool resetRect) {
+	CGSS_PROFILE_ZONE("cgss::Shape::setTexture");
 	this->m_proxy->m_linkedTexture = texture != nullptr ? B::Ops::texture_share(*texture) : nullptr;
 	if (resetRect && this->m_proxy->m_linkedTexture != nullptr) {
 		const auto sz = B::Ops::get_texture_size(*this->m_proxy->m_linkedTexture);
