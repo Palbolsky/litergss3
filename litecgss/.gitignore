@@ -35,7 +35,6 @@ generated/
 
 #External
 external/sfml
-external/skalog
 external/gtest
 external/sfml_src.zip
 _deps
