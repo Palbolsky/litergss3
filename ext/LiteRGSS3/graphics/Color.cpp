@@ -1,6 +1,3 @@
-// Color.cpp does NOT use any raylib symbol; the legacy RaylibWrapper
-// include was transitive noise — dropped. Normalize helper lives at the
-// new path under LiteCGSS/ (no legacy "2" suffix).
 #include "LiteRGSS.h"
 #include "RubyValue.h"
 #include "../rbAdapter.h"

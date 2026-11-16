@@ -179,10 +179,6 @@ if(NOT CGSS_BACKEND STREQUAL "raylib")
 endif()
 if(NOT CGSS_BACKEND STREQUAL "sfml")
 	list(FILTER LITECGSS_PRIVATE_SOURCES EXCLUDE REGEX "/src/Backend/Internal/SFML")
-	# ScrollText.{h,cpp} is a vendored copy of sf::Text — inherently SFML-
-	# coupled. Non-sfml backends provide their own ScrollText under
-	# Backend/Specializations/<backend>/ScrollText.{h,cpp}.
-	list(FILTER LITECGSS_PRIVATE_SOURCES EXCLUDE REGEX "/src/Graphics/ScrollText\\.")
 endif()
 
 set(LITECGSS_ALL_SOURCES
@@ -197,18 +193,29 @@ generate_source_groups("${LITECGSS_ALL_SOURCES}" "${LITECGSS_ROOT_DIR}")
 add_library(LiteCGSS_engine ${LITECGSS_ALL_SOURCES})
 add_library(LiteCGSS::engine ALIAS LiteCGSS_engine)
 
-target_link_libraries(LiteCGSS_engine PUBLIC LiteCGSS::config skalog)
+# LiteCGSS_backend — the graphics backend library and its headers. Internal
+# (no LiteCGSS:: alias): linked PRIVATE by the engine, so consumers get the
+# backend at link time only — never its include paths. Public headers only
+# forward-declare native types (Backend/<Backend>BackendFwd.h).
+add_library(LiteCGSS_backend INTERFACE)
 if(CGSS_BACKEND STREQUAL "sfml")
-	target_link_libraries(LiteCGSS_engine PUBLIC sfml-graphics sfml-window sfml-system)
+	target_link_libraries(LiteCGSS_backend INTERFACE sfml-graphics sfml-window sfml-system)
 elseif(CGSS_BACKEND STREQUAL "raylib")
-	target_link_libraries(LiteCGSS_engine PUBLIC raylib)
+	target_link_libraries(LiteCGSS_backend INTERFACE raylib)
+	# Vendored raylib 5.0 header: sets the API contract (see find_package above).
+	target_include_directories(LiteCGSS_backend INTERFACE ${LITE_CGSS_EXTERNAL}/raylib)
 	if(WIN32)
 		# Safety net: raylib's Windows build needs winmm (timeBeginPeriod).
 		# Normally propagated transitively by find_package(raylib), but some
 		# MinGW installs ship libraylib.a without the interface link libs.
-		target_link_libraries(LiteCGSS_engine PUBLIC winmm)
+		target_link_libraries(LiteCGSS_backend INTERFACE winmm)
 	endif()
 endif()
+
+target_link_libraries(LiteCGSS_engine
+	PUBLIC  LiteCGSS::config skalog
+	PRIVATE LiteCGSS_backend
+)
 if(LITECGSS_USE_PHYSFS)
 	target_link_libraries(LiteCGSS_engine PUBLIC physfs-static)
 endif()
@@ -219,12 +226,6 @@ target_include_directories(LiteCGSS_engine
 	PRIVATE ${LITE_CGSS_EXTERNAL}/lodepng
 	PRIVATE ${LITE_CGSS_EXTERNAL}/libnsgif
 )
-if(CGSS_BACKEND STREQUAL "raylib")
-	# Public on purpose: Backend/RaylibBackendFwd.h (public) includes
-	# <raylib.h> because raylib's nested POD types cannot be forward-declared.
-	target_include_directories(LiteCGSS_engine PUBLIC ${LITE_CGSS_EXTERNAL}/raylib)
-endif()
-
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 	target_compile_options(LiteCGSS_engine PRIVATE -Wall -Wextra -pedantic)
 endif()
@@ -241,7 +242,7 @@ endif()
 # ---------------------------------------------------------------------------
 add_library(LiteCGSS_extension_spi INTERFACE)
 add_library(LiteCGSS::extension_spi ALIAS LiteCGSS_extension_spi)
-target_link_libraries(LiteCGSS_extension_spi INTERFACE LiteCGSS::engine)
+target_link_libraries(LiteCGSS_extension_spi INTERFACE LiteCGSS::engine LiteCGSS_backend)
 target_include_directories(LiteCGSS_extension_spi INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_definitions(LiteCGSS_extension_spi INTERFACE CGSS_ENABLE_EXTENSION_SPI)
 

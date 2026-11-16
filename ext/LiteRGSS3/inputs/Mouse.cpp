@@ -29,7 +29,7 @@ VALUE rb_Mouse_setPosition(VALUE self, VALUE x, VALUE y)
 VALUE rb_Mouse_wheelMove(VALUE self)
 {
 	(void)self;
-	// Backends that only report the wheel through events (SFML) return 0.0:
+	// Backends that only report the wheel through events return 0.0:
 	// PSDK scripts that want the wheel there must poll events.
 	return DBL2NUM(cgss::mouse::wheelDelta());
 }
@@ -44,9 +44,8 @@ void Init_Mouse()
 	rb_define_const(rb_mMouse, #Name, INT2NUM(static_cast<int>(cgss::MouseButton::Name)));
 	CGSS_MOUSEBUTTON_LIST(X)
 #undef X
-	// XButton3 was present in the previous (raylib-direct) binding but has
-	// no cgss::MouseButton equivalent (it mapped to raylib MOUSE_BUTTON_FORWARD=5).
-	// Emit it as the raw backend value for backwards compat.
+	// XButton3 was present in a previous binding but has no cgss::MouseButton
+	// equivalent. Kept with its historical value (5) for backwards compat.
 	rb_define_const(rb_mMouse, "XButton3", INT2NUM(5));
 
 	rb_define_module_function(rb_mMouse, "press?",        _rbf rb_Mouse_press,       1);

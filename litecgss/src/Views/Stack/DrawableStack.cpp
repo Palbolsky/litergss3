@@ -1,5 +1,3 @@
-#include <SFML/Graphics/RenderTarget.hpp>
-#include <SFML/Graphics/View.hpp>
 #include "LiteCGSS/Views/Stack/DrawableStack.h"
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Graphics/Text.h"

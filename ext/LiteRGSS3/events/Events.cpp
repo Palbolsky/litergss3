@@ -41,8 +41,8 @@ void Init_Events()
 		"id", "connected", NULL);
 	rb_cTouchEvent = rb_struct_define_under(rb_mLiteRGSS, "TouchEvent",
 		"finger", "x", "y", "phase", NULL);
-	// CloseEvent / FocusEvent carry no payload on SFML's Closed/LostFocus/
-	// GainedFocus events beyond a bool — minimum viable Struct with one
+	// CloseEvent / FocusEvent carry no payload beyond a bool (Closed /
+	// LostFocus / GainedFocus) — minimum viable Struct with one
 	// field (FocusEvent) and zero fields (CloseEvent, still a Struct for
 	// `case ev when LiteRGSS::CloseEvent` dispatch).
 	rb_cCloseEvent = rb_struct_define_under(rb_mLiteRGSS, "CloseEvent", NULL);
@@ -144,8 +144,8 @@ VALUE build_ruby_event(const cgss::Event& ev)
 		case cgss::EventType::MouseEntered:
 		case cgss::EventType::MouseLeft:
 		case cgss::EventType::SensorChanged:
-			// Not exposed to Ruby yet. Producer-side (SFML or raylib) may
-			// or may not emit these; silently skip.
+			// Not exposed to Ruby yet. The active backend may or may not
+			// emit these; silently skip.
 			return Qnil;
 	}
 	return Qnil;

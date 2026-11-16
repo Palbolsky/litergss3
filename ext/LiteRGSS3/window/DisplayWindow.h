@@ -3,7 +3,6 @@
 
 #include "RubyValue.h"
 
-#include "LiteCGSS/Backend/ActiveBackendFwd.h"
 #include "LiteCGSS/Views/DisplayWindowFwd.h"
 
 extern VALUE rb_cDisplayWindow;

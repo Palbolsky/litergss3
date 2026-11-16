@@ -1,6 +1,6 @@
 // Sensor input module — `LiteRGSS::Inputs::Sensor` + `Sf::Sensor` alias.
 //
-// Backends without sensor support (raylib 5.x) report every sensor as
+// Backends without sensor support report every sensor as
 // unavailable and read [0, 0, 0].
 
 #include "Sensor.h"

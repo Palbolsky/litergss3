@@ -1,9 +1,6 @@
 #include "LiteCGSS/Graphics/Texture.h"
 
-#include <type_traits>
-
 #include "Backend/ActiveBackend.h"
-#include "LiteCGSS/Backend/SFMLBackendFwd.h"
 #include "LiteCGSS/Common/Rectangle.h"
 #include "LiteCGSS/Graphics/Serializers/TextureSerializer.h"
 #include "LiteCGSS/Image/Image.h"
@@ -15,9 +12,7 @@
 
 namespace {
 	// Custom shared_ptr deleter — routes through Ops::texture_destroy so
-	// raylib's GPU backing (unique_id) is released. SFML's Ops::texture_destroy
-	// is a no-op (sf::Texture's own dtor frees GPU), so the cost there is
-	// just a virtual-call-free lambda.
+	// backends that own GPU memory explicitly release it.
 	template <class B>
 	inline std::shared_ptr<typename B::native_texture> makeNativeTextureShared() {
 		return std::shared_ptr<typename B::native_texture>(
@@ -77,20 +72,14 @@ template <class B>
 cgss::basic_Texture<B> cgss::basic_Texture<B>::create(const DisplayWindow& window, const std::string& filename) {
 	auto result = basic_Texture{};
 	B::Ops::set_smooth(*result.m_texture, window.smoothScreen());
-	// SerializeMethod is SFML-typed; templating it (PR K's deferred half) is
-	// out of scope here, so the file-load path is gated on the SFML backend.
-	if constexpr (std::is_same_v<B, cgss::backend::SFMLBackend>) {
-		TextureFileSerializeMethod::load(*result.m_texture, filename, *result.m_image);
-	}
+	TextureFileSerializeMethod::load(*result.m_texture, filename, *result.m_image);
 	return result;
 }
 
 template <class B>
 cgss::basic_Texture<B> cgss::basic_Texture<B>::create(const std::string& filename) {
 	auto result = basic_Texture{};
-	if constexpr (std::is_same_v<B, cgss::backend::SFMLBackend>) {
-		TextureFileSerializeMethod::load(*result.m_texture, filename, *result.m_image);
-	}
+	TextureFileSerializeMethod::load(*result.m_texture, filename, *result.m_image);
 	return result;
 }
 

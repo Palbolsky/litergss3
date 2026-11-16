@@ -179,12 +179,11 @@ VALUE rb_Shader_isAvailable(VALUE self) { (void)self; return RenderStatesElement
 VALUE rb_Shader_setAvailable(VALUE self, VALUE val) { (void)self; RenderStatesElement::enableShaders(RTEST(val)); return val; }
 VALUE rb_Shader_isGeometryAvailable(VALUE self) { (void)self; return RenderStatesElement::areGeometryShadersEnabled() ? Qtrue : Qfalse; }
 
-// True when the active GL context accepts the SFML legacy fixed-pipeline
-// GLSL contract (gl_FragColor / gl_TexCoord[0] / texture2D / gl_Color).
+// True when the active GL context accepts the legacy fixed-pipeline GLSL
+// contract (gl_FragColor / gl_TexCoord[0] / texture2D / gl_Color).
 // PSDK uses this to drive PSDK_SHADER_FIXED_PIPELINE — set it from
 // Shader.fixed_pipeline? at game-load time so the right shader source
-// variant gets emitted for the underlying backend (SFML always true;
-// raylib true iff built with GRAPHICS_API_OPENGL_21 or _11).
+// variant gets emitted for the active backend.
 VALUE rb_Shader_supportsFixedPipeline(VALUE self) {
     (void)self;
     return RenderStatesElement::supportsFixedPipeline() ? Qtrue : Qfalse;

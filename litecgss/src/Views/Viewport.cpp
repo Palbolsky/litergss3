@@ -1,9 +1,4 @@
 #include <cmath>
-#include <SFML/Graphics/RenderTarget.hpp>
-#include <SFML/Graphics/RenderTexture.hpp>
-#include <SFML/Graphics/Sprite.hpp>
-#include <SFML/Graphics/View.hpp>
-#include <SFML/Graphics/Color.hpp>
 #include "LiteCGSS/Views/Viewport.h"
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Rectangle.h"

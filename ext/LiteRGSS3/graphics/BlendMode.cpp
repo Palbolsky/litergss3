@@ -1,7 +1,7 @@
 // Ruby BlendMode binding. Routes blend factor / equation changes through
 // cgss::RenderStates::data() — fully backend-agnostic. Constants mirror
-// cgss::BlendFactor / cgss::BlendEquation enum values, which themselves
-// match sf::BlendMode::* numerically (see Graphics/BlendMode.h header).
+// cgss::BlendFactor / cgss::BlendEquation enum values (see
+// LiteCGSS/Graphics/BlendMode.h).
 
 #include "LiteRGSS.h"
 #include "RubyValue.h"

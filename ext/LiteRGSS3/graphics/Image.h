@@ -11,10 +11,7 @@ void Init_Image();
 extern VALUE rb_cImage;
 
 // Ruby wrapper around cgss::Image. Backend-agnostic: loads/saves/edits
-// route through cgss::Image + backend Ops, so the same file compiles
-// under CGSS_BACKEND=sfml and raylib (provided the raylib-side
-// ImageSerializer specializations are present, which they now are —
-// see Backend/Specializations/raylib/ImageSerializer.cpp).
+// route through the cgss::Image public API.
 //
 // `cachedTexture` is the lazily-uploaded GPU mirror of `image`. Sprite,
 // SpriteMap, etc. share this single texture instead of each binding

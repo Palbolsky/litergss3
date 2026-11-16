@@ -28,7 +28,7 @@ VALUE rb_Touch_getId(VALUE self, VALUE index)
 void Init_Touch()
 {
 	// Only register the LiteRGSS::Inputs::Touch module under backends that
-	// support touch polling. Referencing it under SFML (no touch support)
+	// support touch polling. Referencing it under other backends
 	// gives a clean NameError in Ruby rather than a silently-broken API.
 	if (cgss::touch::isSupported()) {
 		VALUE rb_mTouch = rb_define_module_under(rb_mInputs, "Touch");

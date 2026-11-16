@@ -23,14 +23,13 @@ ID rb_Fonts_ivSColor = Qnil;
 
 std::vector<unsigned int> rb_Fonts_Size_Tbl;
 // cgss::Font is non-copy-assignable in practice (the copy-ctor does a
-// deep copy of the native font, which is expensive for SFML's font-face
-// data and non-trivial for raylib's GPU atlas). Store as unique_ptr so
+// deep copy of the native font, which is expensive). Store as unique_ptr so
 // vector re-sizing moves pointers rather than copying Fonts.
 static std::vector<std::unique_ptr<cgss::Font>> g_fontTable;
 // Original .ttf path per font_id. Retained so set_default_size can rebuild
-// the raylib GPU atlas at the exact requested pixel size — pixel fonts
-// (PSDK's PowerGreenSmall etc.) need this to render 1:1 instead of being
-// downscaled from raylib's default LoadFont base size of 32.
+// the GPU atlas at the exact requested pixel size — pixel fonts (PSDK's
+// PowerGreenSmall etc.) need this to render 1:1 instead of being
+// downscaled from the backend's default atlas size.
 static std::vector<std::string> g_fontPaths;
 
 VALUE rb_Fonts_clear_all(VALUE self)
@@ -38,8 +37,7 @@ VALUE rb_Fonts_clear_all(VALUE self)
     rb_Fonts_Size_Tbl.clear();
     rb_Fonts_Size_Tbl.shrink_to_fit();
     // Dropping the unique_ptrs triggers each cgss::Font's dtor, which
-    // routes through Ops::font_destroy to release the GPU atlas / SFML
-    // font-face backing.
+    // releases the native font backing.
     g_fontTable.clear();
     g_fontTable.shrink_to_fit();
     g_fontPaths.clear();
@@ -49,7 +47,7 @@ VALUE rb_Fonts_clear_all(VALUE self)
 
 // Internal helper: (re)build the GPU atlas for a font slot. If a default
 // size is registered for the slot, build at that pixel size — otherwise
-// fall back to the backend default (raylib LoadFont @ 32, SFML on-demand).
+// fall back to the backend default.
 static void rb_Fonts_rebuild_atlas(unsigned long position)
 {
     if (position >= g_fontTable.size() || !g_fontTable[position]) return;
@@ -96,8 +94,8 @@ VALUE rb_Fonts_set_default_size(VALUE self, VALUE id, VALUE size)
         rb_Fonts_Size_Tbl.push_back(16);
     }
     rb_Fonts_Size_Tbl[position] = static_cast<unsigned int>(rb_num2long(size));
-    // Rebuild the atlas at the new size — without this, raylib's atlas
-    // stays at LoadFont's default base size and tiny PSDK fonts (size ~11)
+    // Rebuild the atlas at the new size — without this, a backend atlas
+    // stays at its default base size and tiny PSDK fonts (size ~11)
     // come out as a downscaled mess.
     rb_Fonts_rebuild_atlas(position);
     return self;

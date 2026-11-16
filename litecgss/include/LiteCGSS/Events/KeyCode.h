@@ -168,11 +168,10 @@ namespace cgss {
 		X(NumpadDecimal) X(NumpadDivide) X(NumpadMultiply) \
 		X(NumpadSubtract) X(NumpadAdd) X(NumpadEnter) X(NumpadEqual)
 
-	// Back-compat alias list — names the current ext/LiteRGSS/inputs/
-	// Ruby layer already uses (raylib-derived). Emitted as Ruby-only
-	// extra constants so existing scripts continue to resolve. No effect
-	// on the C++ enum. Each entry: X(AliasName, CanonicalEnumMember).
-	#define CGSS_KEYCODE_RAYLIB_ALIAS_LIST(X) \
+	// Back-compat alias list — legacy key names that bindings may expose as
+	// extra constants so existing scripts continue to resolve. No effect on
+	// the C++ enum. Each entry: X(AliasName, CanonicalEnumMember).
+	#define CGSS_KEYCODE_LEGACY_ALIAS_LIST(X) \
 		X(Zero,         Num0) \
 		X(One,          Num1) \
 		X(Two,          Num2) \

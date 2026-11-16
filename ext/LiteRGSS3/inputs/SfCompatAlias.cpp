@@ -14,9 +14,9 @@
 // keeps the canonical LiteRGSS::Inputs::* surface clean while still
 // matching the LiteRGSS2 contract for downstream scripts.
 //
-// This is a deprecation shim. The aliases mirror SFML 2.6 naming
-// (`Sf::Joystick` points at `LiteRGSS::Inputs::Gamepad` because SFML called
-// gamepads joysticks). Future major versions should remove this file once
+// This is a deprecation shim. The aliases mirror the LiteRGSS2 Ruby naming
+// (`Sf::Joystick` points at `LiteRGSS::Inputs::Gamepad` because LiteRGSS2
+// called gamepads joysticks). Future major versions should remove this file once
 // downstream scripts have been ported to `LiteRGSS::Inputs::*`.
 
 #include "Inputs.h"
@@ -96,7 +96,7 @@ void Init_SfCompatAlias()
 	define_const_if_absent(rb_mSfKeyboard, "Scancode", rb_mSfKeyboard);
 
 	// LiteRGSS2 mouse button names were uppercase. LiteRGSS3 uses
-	// SFML-style PascalCase (Left/Right/Middle). Provide both forms.
+	// PascalCase (Left/Right/Middle). Provide both forms.
 	define_const_if_absent(rb_mSfMouse, "LEFT",
 	                       rb_const_get(rb_mSfMouse, rb_intern("Left")));
 	define_const_if_absent(rb_mSfMouse, "RIGHT",
@@ -104,8 +104,8 @@ void Init_SfCompatAlias()
 	define_const_if_absent(rb_mSfMouse, "MIDDLE",
 	                       rb_const_get(rb_mSfMouse, rb_intern("Middle")));
 
-	// LiteRGSS2 / SFML axis identifiers. PSDK reads these as raw integers
-	// (Sf::Joystick::Z is the trigger axis on Xbox-layout pads in SFML).
+	// LiteRGSS2 axis identifiers. PSDK reads these as raw integers
+	// (Sf::Joystick::Z is the trigger axis on Xbox-layout pads).
 	define_const_if_absent(rb_mSfJoystick, "X",     INT2NUM(0));
 	define_const_if_absent(rb_mSfJoystick, "Y",     INT2NUM(1));
 	define_const_if_absent(rb_mSfJoystick, "Z",     INT2NUM(2));

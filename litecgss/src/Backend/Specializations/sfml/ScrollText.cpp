@@ -28,7 +28,7 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "Graphics/ScrollText.h"
+#include "Backend/Specializations/sfml/ScrollText.h"
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <cmath>

@@ -2,11 +2,10 @@
 #define CGSS_BACKEND_RAYLIB_BACKEND_FWD_H
 
 // Slim descriptor for the Raylib backend: native typedefs + capability tags +
-// fwd-decl of the nested Ops struct. raylib's types are PODs that nest inside
-// each other (Font has Texture inside, Camera2D has Vector2 inside) — clean
-// forward-declaration would require duplicating the C struct layouts, so this
-// header includes raylib.h directly. Consumer TUs that include cgss public
-// headers under CGSS_BACKEND=raylib will absorb the raylib.h symbol set.
+// fwd-decl of the nested Ops struct. Like SFMLBackendFwd.h, it only
+// forward-declares the native types: public headers hold them through
+// pointers / smart pointers, never by value, so <raylib.h> stays in the
+// private backend (src/Backend/RaylibBackend.h) and never reaches consumers.
 //
 // Some cgss concepts have no native raylib equivalent (Window, Sprite, Event,
 // RenderStates — raylib uses global state or per-frame polling). The
@@ -22,7 +21,14 @@
 
 #include <optional>
 
-#include <raylib.h>
+// raylib's C structs (global namespace; raylib.h declares them as
+// `typedef struct X { ... } X;`, which is compatible with these).
+struct Texture;
+struct Image;
+struct Font;
+struct Shader;
+struct RenderTexture;
+struct Mesh;
 
 namespace cgss::backend {
 

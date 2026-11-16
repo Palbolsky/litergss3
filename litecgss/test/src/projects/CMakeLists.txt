@@ -18,7 +18,7 @@ FOREACH(subdir ${SUBDIRS})
 		string(REGEX REPLACE "[^;]*CMakeFiles/[^;]+;?" "" SOURCES "${SOURCES}")
 		add_executable(LiteCGSS_${subdir}_test ${SOURCES} ${SUBDIR_SOURCES} ${MOCKS_SOURCES})
 
-		set(TARGET_LIBS LiteCGSS::config sfml-graphics sfml-window sfml-system ${SUBDIR_LIBS} gmock_main)
+		set(TARGET_LIBS LiteCGSS::config LiteCGSS_backend ${SUBDIR_LIBS} gmock_main)
 		if (LITECGSS_USE_PHYSFS)
 			set(TARGET_LIBS ${TARGET_LIBS} physfs-static)
 		endif()

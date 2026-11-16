@@ -27,8 +27,8 @@ puts "VertWheel   = #{Mouse::VerticalWheel}"
 puts "HorizWheel  = #{Mouse::HorizontalWheel}"
 
 # Keyboard constants don't require an open window either.
-# Canonical names come from cgss::KeyCode (SFML 2.6 layout);
-# Zero..Nine are raylib-style aliases for Num0..Num9.
+# Canonical names come from cgss::KeyCode;
+# Zero..Nine are legacy aliases for Num0..Num9.
 puts "\n[Keyboard Constants]"
 puts "A        = #{Keyboard::A}"
 puts "Escape   = #{Keyboard::Escape}"
@@ -77,7 +77,7 @@ KEYBOARD_KEYS = {
   "Q" => Keyboard::Q, "R" => Keyboard::R, "S" => Keyboard::S, "T" => Keyboard::T,
   "U" => Keyboard::U, "V" => Keyboard::V, "W" => Keyboard::W, "X" => Keyboard::X,
   "Y" => Keyboard::Y, "Z" => Keyboard::Z,
-  # Numbers (Zero..Nine are raylib-style aliases for Num0..Num9)
+  # Numbers (Zero..Nine are legacy aliases for Num0..Num9)
   "Zero"  => Keyboard::Zero,  "One"   => Keyboard::One,   "Two"   => Keyboard::Two,
   "Three" => Keyboard::Three, "Four"  => Keyboard::Four,  "Five"  => Keyboard::Five,
   "Six"   => Keyboard::Six,   "Seven" => Keyboard::Seven, "Eight" => Keyboard::Eight,
@@ -112,7 +112,7 @@ KEYBOARD_KEYS = {
   "F4"  => Keyboard::F4,  "F5"  => Keyboard::F5,  "F6"  => Keyboard::F6,
   "F7"  => Keyboard::F7,  "F8"  => Keyboard::F8,  "F9"  => Keyboard::F9,
   "F10" => Keyboard::F10, "F11" => Keyboard::F11, "F12" => Keyboard::F12,
-  # Numpad (NumpadMinus/NumpadPlus are raylib-style aliases)
+  # Numpad (NumpadMinus/NumpadPlus are legacy aliases)
   "Numpad0"        => Keyboard::Numpad0,
   "Numpad1"        => Keyboard::Numpad1,
   "Numpad2"        => Keyboard::Numpad2,

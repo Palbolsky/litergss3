@@ -30,6 +30,9 @@
 // When absent, forward-declare the four functions we use so the header
 // stays compilable in stripped-down environments (CI image build-tests,
 // etc.). A real build links against libraylib and resolves the symbols.
+// raylib.h must precede rlgl.h: it defines RL_MATRIX_TYPE so rlgl.h does not
+// redefine Matrix.
+#include <raylib.h>
 #if __has_include(<rlgl.h>)
 #  include <rlgl.h>
 #else

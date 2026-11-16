@@ -12,19 +12,19 @@ VALUE rb_Keyboard_press(VALUE self, VALUE key)
 
 static void DefineKeyboardConstants(VALUE rb_mKeyboard)
 {
-	// Canonical cgss::KeyCode names (SFML 2.6 layout) — single source of
+	// Canonical cgss::KeyCode names — single source of
 	// truth for values. See litecgss/include/LiteCGSS/Events/KeyCode.h.
 #define X(Name) \
 	rb_define_const(rb_mKeyboard, #Name, INT2NUM(static_cast<int>(cgss::KeyCode::Name)));
 	CGSS_KEYCODE_LIST(X)
 #undef X
 
-	// Raylib-style alias names (Zero, One, Minus, LSuper, ...) retained so
+	// Legacy alias names (Zero, One, Minus, LSuper, ...) retained so
 	// existing PSDK scripts continue to resolve. Maps to the canonical enum
 	// value, no duplicate constants.
 #define X(AliasName, Canonical) \
 	rb_define_const(rb_mKeyboard, #AliasName, INT2NUM(static_cast<int>(cgss::KeyCode::Canonical)));
-	CGSS_KEYCODE_RAYLIB_ALIAS_LIST(X)
+	CGSS_KEYCODE_LEGACY_ALIAS_LIST(X)
 #undef X
 }
 

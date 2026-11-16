@@ -65,7 +65,7 @@
 #include "LiteCGSS/Graphics/ShapeGeometry.h"
 #include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Graphics/Transformable.h"
-#include "Graphics/ScrollText.h"
+#include "Backend/Specializations/sfml/ScrollText.h"
 
 namespace cgss::backend {
 

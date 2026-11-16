@@ -7,7 +7,7 @@
 
 namespace cgss::touch {
 
-	// False when the active backend has no touch polling (e.g. SFML): every
+	// False when the active backend has no touch polling: every
 	// query below then reports no touch point.
 	bool isSupported() noexcept;
 

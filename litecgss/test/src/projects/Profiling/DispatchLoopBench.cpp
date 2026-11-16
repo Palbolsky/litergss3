@@ -15,12 +15,7 @@
 #include <iostream>
 #include <vector>
 
-#if defined(CGSS_BACKEND_SFML)
-#  include <SFML/Graphics/RenderTexture.hpp>
-#elif defined(CGSS_BACKEND_RAYLIB)
-#  include <raylib.h>
-#endif
-
+#include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Graphics/Camera.h"
 #include "LiteCGSS/Graphics/GraphicsStackItem.h"
 #include "LiteCGSS/Graphics/RenderTarget.h"
@@ -89,13 +84,8 @@ BenchResult runBench(std::size_t stackSize, std::size_t iterations) {
     // use: no GL context is required because the mock draw()/drawFast()
     // bodies never touch the target. DrawableStack::draw() does call
     // Ops::target_set_view(), which on both backends is a cheap assignment
-    // (SFML 2: sf::RenderTarget member; raylib: a thread-local stash) —
-    // still safe without a GL context.
-#if defined(CGSS_BACKEND_SFML)
-    sf::RenderTexture dummy;
-#elif defined(CGSS_BACKEND_RAYLIB)
-    ::RenderTexture dummy{};
-#endif
+    // — still safe without a GL context.
+    cgss::backend::ActiveBackend::native_render_texture dummy{};
     cgss::RenderTarget target{dummy};
     cgss::Camera camera;
 

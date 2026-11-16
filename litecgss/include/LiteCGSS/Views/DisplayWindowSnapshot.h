@@ -6,29 +6,21 @@
 #include "LiteCGSS/Graphics/RenderStates.h"
 #include "LiteCGSS/Views/DisplayWindowFwd.h"
 
-namespace sf {
-	class Sprite;
-	class Texture;
-}
-
 namespace cgss {
 
 	namespace detail {
 		// Backend hook for capturing the current screen into a fresh
 		// cgss::Texture. Body is defined in the per-backend
-		// DisplayWindowSnapshot.cpp — raylib uses LoadImageFromScreen +
-		// LoadTextureFromImage; SFML's StubDisplayWindowSnapshot is unused
-		// (real DisplayWindowSnapshot owns its own snapshot path) but a
-		// stub body is still provided to keep the symbol resolvable.
+		// Backend/Specializations/<backend>/DisplayWindowSnapshot.cpp.
 		std::unique_ptr<cgss::Texture> backendCaptureScreen();
 	}
 
-	// Backends without a full snapshot/transition path (currently raylib)
+	// Backends without a full snapshot/transition path (has_snapshot == false)
 	// route through this stub — `freeze`/`transition`/`draw` are no-ops,
 	// `takeSnapshot` delegates to backendCaptureScreen so basic
 	// "capture the current frame" calls (PSDK's `Graphics.snap_to_bitmap`)
-	// still produce a usable bitmap. SFML uses the real DisplayWindowSnapshot
-	// instead and never instantiates this stub.
+	// still produce a usable bitmap. Backends with has_snapshot == true use
+	// DisplayWindowSnapshot below, implemented in their Specializations folder.
 	template <class DisplayWindowT>
 	class StubDisplayWindowSnapshot {
 	public:
@@ -60,13 +52,13 @@ namespace cgss {
 		template <class W> void draw(W& window);
 		void init();
 	private:
-		template <class W> void takeSnapshotOn(const W& window, sf::Texture& text) const;
+		template <class W> void takeSnapshotOn(const W& window, backend::ActiveBackend::native_texture& text) const;
 		void transitionBasic(long time);
 		void transitionRGSS(long time, const Texture& bitmap);
 
 		DisplayWindow& m_window;
 		std::unique_ptr<Texture> m_freezeTexture;
-		std::unique_ptr<sf::Sprite> m_freezeSprite;
+		std::unique_ptr<backend::ActiveBackend::native_sprite> m_freezeSprite;
 		RenderStates m_freezeShader;
 
 		bool m_rgssTransition = false;

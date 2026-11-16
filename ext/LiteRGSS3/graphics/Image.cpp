@@ -1,5 +1,5 @@
 // Backend-agnostic Ruby Image binding. Routes all operations through
-// cgss::Image + backend Ops — no raylib:: or sf:: symbols reach this TU.
+// the cgss::Image public API.
 // File I/O uses the ImageFileSerializer family; PNG-bytes export uses
 // ImageMemorySerializer.
 

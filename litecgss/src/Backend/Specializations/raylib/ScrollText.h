@@ -2,7 +2,7 @@
 #define CGSS_BACKEND_RAYLIB_SCROLL_TEXT_H
 
 // Raylib-native cgss::ScrollText — parallel implementation to the SFML
-// version in src/Graphics/ScrollText.{h,cpp}. Selected by CMake
+// version in src/Backend/Specializations/sfml/ScrollText.{h,cpp}. Selected by CMake
 // when CGSS_BACKEND=raylib (Backend/Specializations/raylib/ is globbed
 // only for that backend; the SFML ScrollText is filtered out of the
 // engine's private-sources list under non-sfml backends).
@@ -45,7 +45,7 @@ namespace cgss {
 	class ScrollText {
 	public:
 		// Style bit values — kept in lockstep with the SFML ScrollText
-		// enum (src/Graphics/ScrollText.h) so consumers can pass
+		// enum (src/Backend/Specializations/sfml/ScrollText.h) so consumers can pass
 		// the same uint32 mask regardless of backend.
 		enum Style : std::uint32_t {
 			Regular       = 0,

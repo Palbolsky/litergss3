@@ -15,7 +15,7 @@ namespace cgss::mouse {
 	void setPosition(int x, int y);
 
 	// Wheel movement since the last frame. Backends that only report the
-	// wheel through events (hasWheelStateQuery() == false, e.g. SFML)
+	// wheel through events (hasWheelStateQuery() == false)
 	// always return 0: poll MouseWheel events instead.
 	float wheelDelta();
 	bool hasWheelStateQuery() noexcept;

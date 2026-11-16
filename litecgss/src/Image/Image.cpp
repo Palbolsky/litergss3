@@ -1,9 +1,6 @@
 #include "LiteCGSS/Image/Image.h"
 
-#include <type_traits>
-
 #include "Backend/ActiveBackend.h"
-#include "LiteCGSS/Backend/SFMLBackendFwd.h"
 #include "LiteCGSS/Common/Rectangle.h"
 #include "LiteCGSS/Image/Serializers/ImageSerializer.h"
 

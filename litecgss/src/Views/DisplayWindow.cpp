@@ -3,19 +3,11 @@
 #include <cmath>
 #include <cassert>
 #include <thread>
-#include <SFML/Graphics/RenderWindow.hpp>
-#include <SFML/Graphics/RenderTexture.hpp>
-#include <SFML/Graphics/Sprite.hpp>
-#include <SFML/Window/Event.hpp>
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
 #include "Views/LoggerViews.h"
 
-// All bodies below are SFML-coupled: they call sf::RenderWindow / RenderTexture
-// / Sprite methods directly via members typed `B::native_*`. Under SFMLBackend
-// (the only backend instantiated in this build), `B::native_window` resolves
-// to `sf::RenderWindow`, etc. — so the calls type-check. Other backends need
-// a full specialization of `basic_DisplayWindow<Backend>` in their own .cpp.
+// Backend-neutral: every native interaction goes through B::Ops.
 
 SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::DisplayWindow)
 
@@ -24,8 +16,8 @@ SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::DisplayWindow)
 #define LOG_WARN SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Warn, cgss::DisplayWindow)
 
 #ifdef CGSS_WINDOW_PRESERVATION
-static sf::RenderWindow& sharedGameWindow() {
-	static sf::RenderWindow instance;
+static cgss::backend::ActiveBackend::native_window& sharedGameWindow() {
+	static cgss::backend::ActiveBackend::native_window instance;
 	return instance;
 }
 #endif

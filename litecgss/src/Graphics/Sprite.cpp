@@ -1,7 +1,5 @@
 #include "LiteCGSS/Graphics/Sprite.h"
 
-#include <SFML/Graphics/Sprite.hpp>
-
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Meta/metadata.h"
 #include "LiteCGSS/Common/Rectangle.h"

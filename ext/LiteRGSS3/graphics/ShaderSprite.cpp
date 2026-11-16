@@ -24,8 +24,7 @@ static VALUE rb_ShaderSprite_setShader(VALUE self, VALUE shader)
     rb_iv_set(self, "@shader", shader);
 
     // Wire the shader through to the cgss::Sprite so its draw path picks
-    // up the bound RenderStates (BeginShaderMode/EndShaderMode under
-    // raylib, equivalent under SFML). The @shader ivar above pins the
+    // up the bound RenderStates. The @shader ivar above pins the
     // Ruby wrapper so its underlying cgss::RenderStates outlives the
     // binding for GC purposes.
     auto *s = rb::GetPtr<SpriteData>(self);

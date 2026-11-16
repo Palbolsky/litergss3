@@ -12,10 +12,9 @@
 namespace cgss {
 	class Text;
 	class View;
-	// ScrollText is SFML-coupled on purpose and lives in the PRIVATE tree
-	// (src/Graphics/ScrollText.h). TextItem owns it via unique_ptr
-	// so this public header only needs a forward declaration — consumers
-	// never pull <SFML/...> through Text.h.
+	// ScrollText is backend-specific and lives in the PRIVATE tree
+	// (src/Backend/Specializations/<backend>/ScrollText.h). TextItem owns it
+	// via unique_ptr so this public header only needs a forward declaration.
 	class ScrollText;
 	class TextItem : public GraphicsStackItem {
 		friend class Text;

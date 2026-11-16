@@ -65,10 +65,8 @@ VALUE rb_Gamepad_name(VALUE self, VALUE id)
 	return rb_utf8_str_new_cstr(cgss::gamepad::name(NUM2UINT(id)));
 }
 
-// Vibration: no-op on both backends today (raylib 5.0 vendored doesn't ship
-// SetGamepadVibration; SFML 2.6 has no rumble API). Preserved in the Ruby
-// API so PSDK scripts that call it keep working; bodies light up when
-// either backend grows the capability.
+// Vibration: no-op on backends without rumble support. Preserved in the Ruby
+// API so PSDK scripts that call it keep working.
 VALUE rb_Gamepad_set_vibration(VALUE self, VALUE id, VALUE leftMotor, VALUE rightMotor, VALUE duration)
 {
 	cgss::gamepad::setVibration(
@@ -82,7 +80,7 @@ VALUE rb_Gamepad_set_vibration(VALUE self, VALUE id, VALUE leftMotor, VALUE righ
 
 static void DefineGamepadConstants(VALUE rb_mGamepad)
 {
-	// Button constants — mapping from raylib-style BUTTON_* names (which
+	// Button constants — mapping from the legacy BUTTON_* names (which
 	// existing PSDK code uses) to cgss::GamepadButton enum values.
 	rb_define_const(rb_mGamepad, "BUTTON_UNKNOWN",          INT2NUM(static_cast<int>(cgss::GamepadButton::Unknown)));
 	rb_define_const(rb_mGamepad, "BUTTON_LEFT_FACE_UP",     INT2NUM(static_cast<int>(cgss::GamepadButton::LeftFaceUp)));
