@@ -233,6 +233,18 @@ if(NOT BUILD_SHARED_LIBS)
 	set_property(TARGET LiteCGSS_engine PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
 
+# ---------------------------------------------------------------------------
+# LiteCGSS::extension_spi — opt-in escape hatch to the native backend handles
+# (LiteCGSS/Extension/NativeAccess.h: video decoders, capture plugins...).
+# Linking it is the explicit, reviewable act of coupling a module to the
+# active backend: it exposes the private src/ tree and enables the SPI.
+# ---------------------------------------------------------------------------
+add_library(LiteCGSS_extension_spi INTERFACE)
+add_library(LiteCGSS::extension_spi ALIAS LiteCGSS_extension_spi)
+target_link_libraries(LiteCGSS_extension_spi INTERFACE LiteCGSS::engine)
+target_include_directories(LiteCGSS_extension_spi INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_definitions(LiteCGSS_extension_spi INTERFACE CGSS_ENABLE_EXTENSION_SPI)
+
 if(LITECGSS_BUILD_TESTS)
 	enable_testing()
 	add_subdirectory(test)

@@ -1,10 +1,9 @@
 #ifndef CGSS_SENSOR_TYPE_H
 #define CGSS_SENSOR_TYPE_H
 
-// Placeholder sensor enum. Numeric values match SFML 2.6 sf::Sensor::Type.
-// Neither the current SFML nor raylib backends implement sensor ops —
-// this header reserves the public layout for future backends (libretro,
-// mobile) without needing an ABI break later.
+// Device sensor enum. Numeric values match SFML 2.6 sf::Sensor::Type, so the
+// SFML backend casts directly. Polled through Inputs/Sensor.h; backends
+// without sensors (raylib) report them unavailable.
 
 namespace cgss {
 

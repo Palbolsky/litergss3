@@ -35,11 +35,6 @@ target_include_directories(LiteRGSS PRIVATE ${_litergss_include_dirs})
 
 target_link_libraries(LiteRGSS PRIVATE LiteCGSS::engine)
 
-# TEMPORARY: a few bindings still reach the engine's private backend layer
-# (Backend/ActiveBackend.h). Removed once LiteCGSS exposes the public APIs
-# they need.
-target_include_directories(LiteRGSS PRIVATE ${LiteCGSS_SOURCE_DIR}/src)
-
 # Ruby test suite (non-interactive files only: *_live.rb open a real window
 # and wait for user input). One CTest entry per file.
 file(GLOB _litergss_ruby_tests ${PROJECT_SOURCE_DIR}/tests/test_*.rb)

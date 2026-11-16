@@ -1,70 +1,51 @@
 // Sensor input module — `LiteRGSS::Inputs::Sensor` + `Sf::Sensor` alias.
 //
-// Limitation: cgss::backend::ActiveBackend::Ops exposes no sensor_* — only
-// the cgss::SensorType enum and a sensor event payload exist. Routes
-// through direct backend calls behind CGSS_BACKEND_* guards. raylib has no
-// device-sensor API in 5.x, so reads return [0,0,0] and is_available?
-// returns false there. TODO: collapse onto Ops::sensor_* once LiteCGSS2
-// exposes them.
+// Backends without sensor support (raylib 5.x) report every sensor as
+// unavailable and read [0, 0, 0].
 
 #include "Sensor.h"
 #include "Inputs.h"
 #include "LiteRGSS.h"
 #include <LiteCGSS/Events/SensorType.h>
-
-#if defined(CGSS_BACKEND_SFML)
-    #include <SFML/Window/Sensor.hpp>
-#endif
+#include <LiteCGSS/Inputs/Sensor.h>
 
 VALUE rb_mSensor = Qnil;
+
+// Ruby integer -> cgss::SensorType, false when out of the enum's range.
+static bool to_sensor_type(VALUE val, cgss::SensorType& out)
+{
+    const long t = NUM2LONG(val);
+    if (t < static_cast<long>(cgss::SensorType::Accelerometer) ||
+        t > static_cast<long>(cgss::SensorType::Orientation)) return false;
+    out = static_cast<cgss::SensorType>(t);
+    return true;
+}
 
 VALUE rb_Sensor_isAvailable(VALUE self, VALUE val)
 {
     (void)self;
-    long t = NUM2LONG(val);
-#if defined(CGSS_BACKEND_SFML)
-    if (t < 0 || t >= sf::Sensor::Type::Count) return Qfalse;
-    return sf::Sensor::isAvailable(static_cast<sf::Sensor::Type>(t)) ? Qtrue : Qfalse;
-#else
-    (void)t;
-    return Qfalse;
-#endif
+    cgss::SensorType type;
+    if (!to_sensor_type(val, type)) return Qfalse;
+    return cgss::sensor::isAvailable(type) ? Qtrue : Qfalse;
 }
 
 VALUE rb_Sensor_setEnabled(VALUE self, VALUE sType, VALUE enabled)
 {
-    long t = NUM2LONG(sType);
-#if defined(CGSS_BACKEND_SFML)
-    if (t < 0 || t >= sf::Sensor::Type::Count) return Qfalse;
-    sf::Sensor::setEnabled(static_cast<sf::Sensor::Type>(t), RTEST(enabled));
-#else
-    (void)t; (void)enabled;
-#endif
+    cgss::SensorType type;
+    if (!to_sensor_type(sType, type)) return Qfalse;
+    cgss::sensor::setEnabled(type, RTEST(enabled));
     return self;
 }
 
 VALUE rb_Sensor_getValue(VALUE self, VALUE sType)
 {
     (void)self;
-    long t = NUM2LONG(sType);
+    cgss::SensorType type;
+    const cgss::Vector3 v = to_sensor_type(sType, type) ? cgss::sensor::value(type) : cgss::Vector3{};
     VALUE ary = rb_ary_new_capa(3);
-#if defined(CGSS_BACKEND_SFML)
-    if (t < 0 || t >= sf::Sensor::Type::Count) {
-        rb_ary_push(ary, DBL2NUM(0.0));
-        rb_ary_push(ary, DBL2NUM(0.0));
-        rb_ary_push(ary, DBL2NUM(0.0));
-        return ary;
-    }
-    auto v = sf::Sensor::getValue(static_cast<sf::Sensor::Type>(t));
     rb_ary_push(ary, DBL2NUM(static_cast<double>(v.x)));
     rb_ary_push(ary, DBL2NUM(static_cast<double>(v.y)));
     rb_ary_push(ary, DBL2NUM(static_cast<double>(v.z)));
-#else
-    (void)t;
-    rb_ary_push(ary, DBL2NUM(0.0));
-    rb_ary_push(ary, DBL2NUM(0.0));
-    rb_ary_push(ary, DBL2NUM(0.0));
-#endif
     return ary;
 }
 

@@ -5,7 +5,6 @@
 #include "../graphics/Image.h"
 #include "../rbAdapter.h"
 
-#include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
 #include "LiteCGSS/Events/Event.h"
 #include "LiteCGSS/Image/Image.h"
@@ -17,9 +16,6 @@
 #include <unordered_map>
 
 namespace {
-	using Backend = cgss::backend::ActiveBackend;
-	using Ops     = Backend::Ops;
-
 	// File-static cgss::DisplayWindow. Owns the native window plus the
 	// View-side DrawableStack that Sprite/Viewport/Text/Shape/SpriteMap
 	// register into (via cgss::*::create). cgss::DisplayWindow::draw() runs

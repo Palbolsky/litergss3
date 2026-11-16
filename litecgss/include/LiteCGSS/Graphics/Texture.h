@@ -74,7 +74,7 @@ namespace cgss {
 		// through `Ops::texture_share(tex)`. External consumers that
 		// legitimately need a native handle (video decoders, platform
 		// plugins) should include `LiteCGSS/Extension/NativeAccess.h` and
-		// use `cgss::extension::native(tex)` — opt-in via CGSS_ENABLE_EXTENSION_SPI.
+		// use `cgss::extension::native(tex)` — opt-in via the LiteCGSS::extension_spi CMake target.
 
 		TextureFactorNpot factorNpot() const;
 

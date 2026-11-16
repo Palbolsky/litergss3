@@ -2,22 +2,18 @@
 #include "RubyValue.h"
 
 #include "LiteCGSS/Events/MouseButton.h"
-
-namespace {
-	using Backend = cgss::backend::ActiveBackend;
-	using Ops = Backend::Ops;
-}
+#include "LiteCGSS/Inputs/Mouse.h"
 
 VALUE rb_Mouse_press(VALUE self, VALUE button)
 {
 	(void)self;
-	return Ops::mouse_is_button_pressed(static_cast<cgss::MouseButton>(NUM2INT(button))) ? Qtrue : Qfalse;
+	return cgss::mouse::isButtonPressed(static_cast<cgss::MouseButton>(NUM2INT(button))) ? Qtrue : Qfalse;
 }
 
 VALUE rb_Mouse_getPosition(VALUE self)
 {
 	(void)self;
-	const auto position = Ops::mouse_get_position();
+	const auto position = cgss::mouse::position();
 	VALUE ary = rb_ary_new_capa(2);
 	rb_ary_push(ary, INT2NUM(position.x));
 	rb_ary_push(ary, INT2NUM(position.y));
@@ -26,21 +22,16 @@ VALUE rb_Mouse_getPosition(VALUE self)
 
 VALUE rb_Mouse_setPosition(VALUE self, VALUE x, VALUE y)
 {
-	Ops::mouse_set_position(NUM2INT(x), NUM2INT(y));
+	cgss::mouse::setPosition(NUM2INT(x), NUM2INT(y));
 	return self;
 }
 
 VALUE rb_Mouse_wheelMove(VALUE self)
 {
 	(void)self;
-	// SFML reports wheel only via events (has_wheel_state_query=false);
-	// Raylib has a proper sync query. Under SFML, Ops::mouse_wheel_delta()
-	// returns 0.0 — PSDK scripts that want wheel under SFML must poll events.
-	if constexpr (Backend::has_wheel_state_query) {
-		return DBL2NUM(Ops::mouse_wheel_delta());
-	} else {
-		return DBL2NUM(0.0);
-	}
+	// Backends that only report the wheel through events (SFML) return 0.0:
+	// PSDK scripts that want the wheel there must poll events.
+	return DBL2NUM(cgss::mouse::wheelDelta());
 }
 
 void Init_Mouse()

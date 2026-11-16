@@ -3,8 +3,6 @@
 
 #include "RubyValue.h"
 
-#include "Backend/ActiveBackend.h"
-
 extern VALUE rb_mInputs;
 
 void Init_Inputs();

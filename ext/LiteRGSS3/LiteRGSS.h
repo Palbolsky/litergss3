@@ -3,10 +3,9 @@
 
 #include "RubyValue.h"
 
-// Shared top-level header. Intentionally backend-neutral: the inputs/ +
-// events/ + window/ layers route through cgss backend Ops and don't need
-// raylib symbols; the raylib-coupled graphics/ + fonts/ TUs include
-// <raylib.h> directly in their own headers.
+// Shared top-level header. Backend-neutral, like every LiteRGSS TU: the
+// bindings only use LiteCGSS' public API (litecgss/include/), never a
+// backend header (raylib.h, SFML/...) nor the engine's private Ops.
 
 extern VALUE rb_mLiteRGSS;
 extern VALUE rb_mConfig;

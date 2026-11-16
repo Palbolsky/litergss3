@@ -55,9 +55,11 @@ extern "C" {
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Common/Point.h"
 #include "LiteCGSS/Common/Serializer.h"
+#include "LiteCGSS/Common/Vector3.h"
 #include "LiteCGSS/Configuration/DisplayWindowContextSettings.h"
 #include "LiteCGSS/Events/EventPayloads.h"
 #include "LiteCGSS/Events/EventType.h"
+#include "LiteCGSS/Events/SensorType.h"
 #include "LiteCGSS/Graphics/BlendMode.h"
 #include "LiteCGSS/Graphics/Glsl.h"
 #include "LiteCGSS/Graphics/ShaderType.h"
@@ -428,6 +430,21 @@ namespace cgss::backend {
 			const int id = GetTouchPointId(static_cast<int>(index));
 			return id < 0 ? 0u : static_cast<unsigned int>(id);
 		}
+
+		// ---- Clipboard ops ----
+		static inline std::string clipboard_get_string() {
+			const char* text = GetClipboardText();
+			return text != nullptr ? std::string(text) : std::string();
+		}
+		static inline void clipboard_set_string(const std::string& utf8) {
+			SetClipboardText(utf8.c_str());
+		}
+
+		// ---- Sensor ops ----
+		// raylib 5.x has no device-sensor API: nothing is ever available.
+		static inline bool sensor_is_available(cgss::SensorType) noexcept { return false; }
+		static inline void sensor_set_enabled(cgss::SensorType, bool) noexcept {}
+		static inline cgss::Vector3 sensor_get_value(cgss::SensorType) noexcept { return {}; }
 		static inline native_view window_get_default_view(const native_window&) {
 			// Default view: full-screen viewport, world-space window matching
 			// the native pixel dimensions, origin at top-left (center at half).

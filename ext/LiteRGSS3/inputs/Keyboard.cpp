@@ -2,21 +2,18 @@
 #include "RubyValue.h"
 
 #include "LiteCGSS/Events/KeyCode.h"
-
-namespace {
-	using Ops = cgss::backend::ActiveBackend::Ops;
-}
+#include "LiteCGSS/Inputs/Keyboard.h"
 
 VALUE rb_Keyboard_press(VALUE self, VALUE key)
 {
 	(void)self;
-	return Ops::keyboard_is_key_pressed(static_cast<cgss::KeyCode>(NUM2INT(key))) ? Qtrue : Qfalse;
+	return cgss::keyboard::isKeyPressed(static_cast<cgss::KeyCode>(NUM2INT(key))) ? Qtrue : Qfalse;
 }
 
 static void DefineKeyboardConstants(VALUE rb_mKeyboard)
 {
 	// Canonical cgss::KeyCode names (SFML 2.6 layout) — single source of
-	// truth for values. See external/litecgss2/include/LiteCGSS/Events/KeyCode.h.
+	// truth for values. See litecgss/include/LiteCGSS/Events/KeyCode.h.
 #define X(Name) \
 	rb_define_const(rb_mKeyboard, #Name, INT2NUM(static_cast<int>(cgss::KeyCode::Name)));
 	CGSS_KEYCODE_LIST(X)

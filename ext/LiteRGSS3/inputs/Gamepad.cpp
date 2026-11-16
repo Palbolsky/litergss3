@@ -3,35 +3,32 @@
 
 #include "LiteCGSS/Events/GamepadAxis.h"
 #include "LiteCGSS/Events/GamepadButton.h"
-
-namespace {
-	using Ops = cgss::backend::ActiveBackend::Ops;
-}
+#include "LiteCGSS/Inputs/Gamepad.h"
 
 VALUE rb_Gamepad_connected(VALUE self, VALUE id)
 {
 	(void)self;
-	return Ops::gamepad_is_connected(NUM2UINT(id)) ? Qtrue : Qfalse;
+	return cgss::gamepad::isConnected(NUM2UINT(id)) ? Qtrue : Qfalse;
 }
 
 VALUE rb_Gamepad_axis_count(VALUE self, VALUE id)
 {
 	(void)self;
-	return UINT2NUM(Ops::gamepad_axis_count(NUM2UINT(id)));
+	return UINT2NUM(cgss::gamepad::axisCount(NUM2UINT(id)));
 }
 
 VALUE rb_Gamepad_axis(VALUE self, VALUE id, VALUE axis)
 {
 	(void)self;
 	const long vaxis = NUM2LONG(axis);
-	const unsigned int axisCount = Ops::gamepad_axis_count(NUM2UINT(id));
+	const unsigned int axisCount = cgss::gamepad::axisCount(NUM2UINT(id));
 	return (vaxis >= 0 && static_cast<unsigned long>(vaxis) < axisCount) ? Qtrue : Qfalse;
 }
 
 VALUE rb_Gamepad_press(VALUE self, VALUE id, VALUE button)
 {
 	(void)self;
-	return Ops::gamepad_is_button_pressed(
+	return cgss::gamepad::isButtonPressed(
 		NUM2UINT(id),
 		static_cast<cgss::GamepadButton>(NUM2INT(button))
 	) ? Qtrue : Qfalse;
@@ -40,7 +37,7 @@ VALUE rb_Gamepad_press(VALUE self, VALUE id, VALUE button)
 VALUE rb_Gamepad_release(VALUE self, VALUE id, VALUE button)
 {
 	(void)self;
-	return Ops::gamepad_is_button_released(
+	return cgss::gamepad::isButtonReleased(
 		NUM2UINT(id),
 		static_cast<cgss::GamepadButton>(NUM2INT(button))
 	) ? Qtrue : Qfalse;
@@ -49,7 +46,7 @@ VALUE rb_Gamepad_release(VALUE self, VALUE id, VALUE button)
 VALUE rb_Gamepad_axis_position(VALUE self, VALUE id, VALUE axis)
 {
 	(void)self;
-	const float position = Ops::gamepad_axis_position(
+	const float position = cgss::gamepad::axisPosition(
 		NUM2UINT(id),
 		static_cast<cgss::GamepadAxis>(NUM2INT(axis))
 	);
@@ -58,15 +55,14 @@ VALUE rb_Gamepad_axis_position(VALUE self, VALUE id, VALUE axis)
 
 VALUE rb_Gamepad_update(VALUE self)
 {
-	Ops::gamepad_update();
+	cgss::gamepad::update();
 	return self;
 }
 
 VALUE rb_Gamepad_name(VALUE self, VALUE id)
 {
 	(void)self;
-	const char* name = Ops::gamepad_name(NUM2UINT(id));
-	return rb_utf8_str_new_cstr(name != nullptr ? name : "");
+	return rb_utf8_str_new_cstr(cgss::gamepad::name(NUM2UINT(id)));
 }
 
 // Vibration: no-op on both backends today (raylib 5.0 vendored doesn't ship
@@ -75,7 +71,7 @@ VALUE rb_Gamepad_name(VALUE self, VALUE id)
 // either backend grows the capability.
 VALUE rb_Gamepad_set_vibration(VALUE self, VALUE id, VALUE leftMotor, VALUE rightMotor, VALUE duration)
 {
-	Ops::gamepad_set_vibration(
+	cgss::gamepad::setVibration(
 		NUM2UINT(id),
 		static_cast<float>(NUM2DBL(leftMotor)),
 		static_cast<float>(NUM2DBL(rightMotor)),

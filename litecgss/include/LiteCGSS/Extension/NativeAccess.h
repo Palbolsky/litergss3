@@ -6,12 +6,14 @@
 // video decoders writing decoded frames into a cgss::Texture, platform-
 // specific capture or effect plugins, native-interop tooling.
 //
-// Opt-in via `#define CGSS_ENABLE_EXTENSION_SPI` before including this
-// header. Without the define, this file is an empty include — keeps the
-// extension surface from silently bleeding into portable code.
+// Opt-in by linking the `LiteCGSS::extension_spi` CMake target (instead of
+// `LiteCGSS::engine`): it defines CGSS_ENABLE_EXTENSION_SPI and exposes the
+// private backend headers this file needs. Without it, this file is an empty
+// include — keeps the extension surface from silently bleeding into portable
+// code. This is the only public header allowed to include a private one.
 //
 // Usage:
-//     #define CGSS_ENABLE_EXTENSION_SPI
+//     target_link_libraries(my_plugin PRIVATE LiteCGSS::extension_spi)
 //     #include "LiteCGSS/Extension/NativeAccess.h"
 //
 //     cgss::Texture tex = ...;

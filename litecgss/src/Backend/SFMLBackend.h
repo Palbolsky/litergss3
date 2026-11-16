@@ -34,14 +34,18 @@
 #include <SFML/Graphics/Transform.hpp>
 #include <SFML/Graphics/VertexArray.hpp>
 #include <SFML/Graphics/View.hpp>
+#include <SFML/Window/Clipboard.hpp>
 #include <SFML/Window/ContextSettings.hpp>
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Joystick.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
+#include <SFML/Window/Sensor.hpp>
+#include <SFML/System/String.hpp>
 
 #include <cstdlib>
 #include <optional>
+#include <string>
 
 #include <lodepng.h>
 
@@ -51,8 +55,10 @@
 #include "LiteCGSS/Common/IntRect.h"
 #include "LiteCGSS/Configuration/DisplayWindowContextSettings.h"
 #include "LiteCGSS/Common/Point.h"
+#include "LiteCGSS/Common/Vector3.h"
 #include "LiteCGSS/Events/EventPayloads.h"
 #include "LiteCGSS/Events/EventType.h"
+#include "LiteCGSS/Events/SensorType.h"
 #include "LiteCGSS/Graphics/BlendMode.h"
 #include "LiteCGSS/Graphics/Glsl.h"
 #include "LiteCGSS/Graphics/ShaderType.h"
@@ -377,6 +383,33 @@ namespace cgss::backend {
 		static inline unsigned int touch_count() noexcept { return 0u; }
 		static inline Point2i      touch_position(unsigned int /*index*/) noexcept { return {}; }
 		static inline unsigned int touch_id(unsigned int /*index*/) noexcept { return 0u; }
+
+		// ---- Clipboard ops ----
+		static inline std::string clipboard_get_string() {
+			const auto bytes = sf::Clipboard::getString().toUtf8();
+			return std::string(bytes.begin(), bytes.end());
+		}
+		static inline void clipboard_set_string(const std::string& utf8) {
+			sf::Clipboard::setString(sf::String::fromUtf8(utf8.begin(), utf8.end()));
+		}
+
+		// ---- Sensor ops ----
+		// cgss::SensorType mirrors sf::Sensor::Type 1:1 (see SensorType.h).
+		static inline bool sensor_in_range(cgss::SensorType type) noexcept {
+			const int i = static_cast<int>(type);
+			return i >= 0 && i < static_cast<int>(sf::Sensor::Count);
+		}
+		static inline bool sensor_is_available(cgss::SensorType type) {
+			return sensor_in_range(type) && sf::Sensor::isAvailable(static_cast<sf::Sensor::Type>(type));
+		}
+		static inline void sensor_set_enabled(cgss::SensorType type, bool enabled) {
+			if (sensor_in_range(type)) sf::Sensor::setEnabled(static_cast<sf::Sensor::Type>(type), enabled);
+		}
+		static inline cgss::Vector3 sensor_get_value(cgss::SensorType type) {
+			if (!sensor_in_range(type)) return {};
+			const auto v = sf::Sensor::getValue(static_cast<sf::Sensor::Type>(type));
+			return { v.x, v.y, v.z };
+		}
 
 	private:
 		// cgss::GamepadButton <-> sf::Joystick raw button index. SFML treats

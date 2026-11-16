@@ -22,11 +22,7 @@
 #include "Inputs.h"
 
 #include "LiteCGSS/Events/GamepadAxis.h"
-
-namespace {
-	using Backend = cgss::backend::ActiveBackend;
-	using Ops = Backend::Ops;
-}
+#include "LiteCGSS/Inputs/Gamepad.h"
 
 // Helper: define a constant on `mod` only if not already present. PSDK
 // reads `Sf::Mouse::LEFT`; LiteRGSS3 already defines `Sf::Mouse::Left` —
@@ -44,8 +40,8 @@ static void define_const_if_absent(VALUE mod, const char* name, VALUE value)
 static VALUE rb_SfJoystick_axis_position(VALUE self, VALUE id, VALUE axis)
 {
 	(void)self;
-	if (!Ops::gamepad_is_connected(NUM2UINT(id))) return INT2NUM(0);
-	const float position = Ops::gamepad_axis_position(
+	if (!cgss::gamepad::isConnected(NUM2UINT(id))) return INT2NUM(0);
+	const float position = cgss::gamepad::axisPosition(
 		NUM2UINT(id),
 		static_cast<cgss::GamepadAxis>(NUM2INT(axis))
 	);
