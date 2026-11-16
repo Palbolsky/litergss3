@@ -1,105 +1,130 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.21)
+
+# LiteCGSS — C++ 2D engine. Self-contained: builds standalone
+# (`cmake -S litecgss -B build`) without Ruby, or as a subproject of the
+# LiteRGSS3 monorepo (`add_subdirectory(litecgss)`).
+#
+# Consumers link `LiteCGSS::engine` and nothing else. Every setting that
+# changes the public headers' meaning (backend, logs, physfs, window
+# preservation) is a PUBLIC compile definition carried by the targets, so a
+# consumer can never compile the headers with a different configuration than
+# the library itself.
+project(LiteCGSS LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+if(PROJECT_IS_TOP_LEVEL)
+	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+	set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+	set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+	if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+		set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+	endif()
 endif()
 
-if(CGSS_NO_LOGS)
-  set(CMAKE_CXX_FLAGS "-DCGSS_NO_LOGS")
-endif()
-
-project(LiteCGSS_engine CXX C)
-
-if(NOT DEFINED CGSS_WINDOW_PRESERVATION)
-  if(ANDROID OR CMAKE_SYSTEM_NAME STREQUAL "Android")
-    set(CGSS_WINDOW_PRESERVATION ON)
-  else()
-    set(CGSS_WINDOW_PRESERVATION OFF)
-  endif()
-endif()
-message(STATUS "CGSS_WINDOW_PRESERVATION=${CGSS_WINDOW_PRESERVATION} (ANDROID=${ANDROID}, CMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME})")
-if(CGSS_WINDOW_PRESERVATION)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCGSS_WINDOW_PRESERVATION")
-endif()
-
-set(CGSS_BACKEND "sfml" CACHE STRING "Graphics backend for LiteCGSS (sfml, raylib, libretro)")
+# ---------------------------------------------------------------------------
+# Options
+# ---------------------------------------------------------------------------
+set(CGSS_BACKEND "raylib" CACHE STRING "Graphics backend for LiteCGSS (sfml, raylib, libretro)")
 set_property(CACHE CGSS_BACKEND PROPERTY STRINGS sfml raylib libretro)
-if(CGSS_BACKEND STREQUAL "sfml")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCGSS_BACKEND_SFML")
-elseif(CGSS_BACKEND STREQUAL "raylib")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCGSS_BACKEND_RAYLIB")
-elseif(CGSS_BACKEND STREQUAL "libretro")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCGSS_BACKEND_LIBRETRO")
-else()
-  message(FATAL_ERROR "Unknown CGSS_BACKEND '${CGSS_BACKEND}'. Must be one of: sfml, raylib, libretro.")
+if(NOT CGSS_BACKEND MATCHES "^(sfml|raylib|libretro)$")
+	message(FATAL_ERROR "Unknown CGSS_BACKEND '${CGSS_BACKEND}'. Must be one of: sfml, raylib, libretro.")
 endif()
 message(STATUS "CGSS_BACKEND=${CGSS_BACKEND}")
 
-if(CMAKE_COMPILER_IS_GNUCXX)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
+option(CGSS_NO_LOGS "Compile out LiteCGSS logging" OFF)
+option(LITECGSS_USE_PHYSFS "Load assets through PhysicsFS" OFF)
+option(LITECGSS_BUILD_TESTS "Build the LiteCGSS unit tests" ${PROJECT_IS_TOP_LEVEL})
+option(LITECGSS_BUILD_PLAYGROUND "Build the LiteCGSS playground executable" ${PROJECT_IS_TOP_LEVEL})
+
+if(ANDROID OR CMAKE_SYSTEM_NAME STREQUAL "Android")
+	set(_cgss_window_preservation_default ON)
+else()
+	set(_cgss_window_preservation_default OFF)
 endif()
+option(CGSS_WINDOW_PRESERVATION "Keep the native window alive across DisplayWindow reloads" ${_cgss_window_preservation_default})
+message(STATUS "CGSS_WINDOW_PRESERVATION=${CGSS_WINDOW_PRESERVATION}")
 
 set(LITECGSS_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(LITE_CGSS_EXTERNAL ${CMAKE_CURRENT_SOURCE_DIR}/external)
 
+# ---------------------------------------------------------------------------
+# LiteCGSS::config — the configuration contract. INTERFACE-only: it carries
+# the compile definitions that the public headers depend on. Linked PUBLIC by
+# the engine, and directly by white-box tests that compile engine sources.
+# ---------------------------------------------------------------------------
+add_library(LiteCGSS_config INTERFACE)
+add_library(LiteCGSS::config ALIAS LiteCGSS_config)
+string(TOUPPER "${CGSS_BACKEND}" _cgss_backend_upper)
+target_compile_definitions(LiteCGSS_config INTERFACE
+	CGSS_BACKEND_${_cgss_backend_upper}
+	$<$<BOOL:${CGSS_NO_LOGS}>:CGSS_NO_LOGS>
+	$<$<BOOL:${CGSS_WINDOW_PRESERVATION}>:CGSS_WINDOW_PRESERVATION>
+	$<$<BOOL:${LITECGSS_USE_PHYSFS}>:LITECGSS_USE_PHYSFS>
+)
+target_compile_features(LiteCGSS_config INTERFACE cxx_std_17)
+
+# ---------------------------------------------------------------------------
+# Backend dependencies
+# ---------------------------------------------------------------------------
 if(CGSS_BACKEND STREQUAL "sfml")
-  find_package(SFML 2 REQUIRED COMPONENTS graphics window system)
+	find_package(SFML 2 REQUIRED COMPONENTS graphics window system)
 elseif(CGSS_BACKEND STREQUAL "raylib")
-  # raylib 5.0 header ships via the submodule (external/raylib/raylib.h);
-  # the library itself must be installed system-wide (or point CMake at
-  # a custom install via -Draylib_DIR=/path/to/raylib/cmake). On Linux
-  # the standard path is to clone raylib, `cmake --install`, then this
-  # find_package picks it up.
-  #
-  # Note: raylib's 5.0 git tag shipped with `PROJECT_VERSION 4.5.0` still
-  # in src/CMakeLists.txt — a raylib-upstream bug. Installs from that tag
-  # report themselves as 4.5.0 to CMake even though the header is 5.0.
-  # We don't enforce a version here; the submodule's raylib.h (consulted
-  # at compile time) sets the API contract.
-  find_package(raylib REQUIRED)
+	# The raylib 5.0 header ships vendored (external/raylib/raylib.h) and sets
+	# the API contract; the library itself must be installed system-wide.
+	# Note: raylib's 5.0 git tag still reports `PROJECT_VERSION 4.5.0`
+	# (upstream bug), so no version is enforced here.
+	find_package(raylib QUIET)
+	if(NOT raylib_FOUND)
+		message(FATAL_ERROR
+			"raylib was not found. Install it system-wide:\n"
+			"  git clone https://github.com/raysan5/raylib\n"
+			"  cd raylib && cmake -B build -DBUILD_SHARED_LIBS=ON && sudo cmake --install build\n"
+			"or point CMake at an existing install with -Draylib_DIR=/path/to/lib/cmake/raylib")
+	endif()
 endif()
 
 function(generate_source_groups src_files src_dir)
-    foreach(_source IN ITEMS ${src_files})
-        get_filename_component(_source_path "${_source}" PATH)
-        string(REPLACE "/" "\\" _group_path "${_source_path}")
-        string(REPLACE "/" "\\" src_dir "${src_dir}")
-        string(REPLACE "${src_dir}" "" _group_path "${_group_path}")
-        source_group("${_group_path}" FILES "${_source}")
-    endforeach()
+	foreach(_source IN ITEMS ${src_files})
+		get_filename_component(_source_path "${_source}" PATH)
+		string(REPLACE "/" "\\" _group_path "${_source_path}")
+		string(REPLACE "/" "\\" src_dir "${src_dir}")
+		string(REPLACE "${src_dir}" "" _group_path "${_group_path}")
+		source_group("${_group_path}" FILES "${_source}")
+	endforeach()
 endfunction()
 
-set(OLD_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
-set(BUILD_SHARED_LIBS False)
+# Vendored dependencies are always static, whatever BUILD_SHARED_LIBS says.
+set(_cgss_old_build_shared_libs ${BUILD_SHARED_LIBS})
+set(BUILD_SHARED_LIBS OFF)
 
-set(SKALOG_NO_TEST True)
+set(SKALOG_NO_TEST ON)
 add_subdirectory(external/skalog)
+# skalog does not declare its own usage requirements; Common/Logger.h (public)
+# includes <Logging/...>, so its include dir is part of our public interface.
+target_include_directories(skalog PUBLIC ${LITE_CGSS_EXTERNAL}/skalog/src/src)
 
-if (LITECGSS_USE_PHYSFS)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DLITECGSS_USE_PHYSFS")
-  set(PHYSFS_BUILD_TEST OFF CACHE INTERNAL "")
-  set(PHYSFS_BUILD_SHARED OFF CACHE INTERNAL "")
-  add_subdirectory(${LITE_CGSS_EXTERNAL}/physfs)
+if(LITECGSS_USE_PHYSFS)
+	set(PHYSFS_BUILD_TEST OFF CACHE INTERNAL "")
+	set(PHYSFS_BUILD_SHARED OFF CACHE INTERNAL "")
+	add_subdirectory(${LITE_CGSS_EXTERNAL}/physfs)
+	set_property(TARGET physfs-static PROPERTY POSITION_INDEPENDENT_CODE ON)
+	target_include_directories(physfs-static INTERFACE ${FETCHCONTENT_BASE_DIR}/physfs-src/src)
 endif()
 
-set(BUILD_SHARED_LIBS ${OLD_BUILD_SHARED_LIBS})
+set(BUILD_SHARED_LIBS ${_cgss_old_build_shared_libs})
 
 # ---------------------------------------------------------------------------
-# LiteCGSS_engine target
+# LiteCGSS_engine target (alias LiteCGSS::engine)
 #
-#   include/LiteCGSS/**  -> PUBLIC headers propagated to consumers
+#   include/LiteCGSS/**  -> PUBLIC headers, included as <LiteCGSS/...>
 #   src/**               -> PRIVATE tree (.cpp files + backend-coupled headers
-#                           such as ActiveBackend.h, SFMLBackend.h, ScrollText.h
-#                           and the Internal/ Sf*Conv.h helpers). Not reachable
-#                           from consumer TUs.
+#                           such as Backend/ActiveBackend.h, SFMLBackend.h,
+#                           ScrollText.h and the Internal/ helpers), included
+#                           without prefix. Never on a consumer's include path.
 # ---------------------------------------------------------------------------
-
 file(GLOB_RECURSE LITECGSS_PUBLIC_HEADERS CONFIGURE_DEPENDS
 	include/LiteCGSS/*.h
 )
@@ -150,47 +175,48 @@ set(LITECGSS_ALL_SOURCES
 generate_source_groups("${LITECGSS_ALL_SOURCES}" "${LITECGSS_ROOT_DIR}")
 
 add_library(LiteCGSS_engine ${LITECGSS_ALL_SOURCES})
+add_library(LiteCGSS::engine ALIAS LiteCGSS_engine)
 
-set(TARGET_LIBS skalog)
+target_link_libraries(LiteCGSS_engine PUBLIC LiteCGSS::config skalog)
 if(CGSS_BACKEND STREQUAL "sfml")
-	set(TARGET_LIBS ${TARGET_LIBS} sfml-graphics sfml-window sfml-system)
+	target_link_libraries(LiteCGSS_engine PUBLIC sfml-graphics sfml-window sfml-system)
 elseif(CGSS_BACKEND STREQUAL "raylib")
-	set(TARGET_LIBS ${TARGET_LIBS} raylib)
+	target_link_libraries(LiteCGSS_engine PUBLIC raylib)
 	if(WIN32)
 		# Safety net: raylib's Windows build needs winmm (timeBeginPeriod).
 		# Normally propagated transitively by find_package(raylib), but some
 		# MinGW installs ship libraylib.a without the interface link libs.
-		set(TARGET_LIBS ${TARGET_LIBS} winmm)
+		target_link_libraries(LiteCGSS_engine PUBLIC winmm)
 	endif()
 endif()
 if(LITECGSS_USE_PHYSFS)
-	set(TARGET_LIBS ${TARGET_LIBS} physfs-static)
-	set_property(TARGET physfs-static PROPERTY POSITION_INDEPENDENT_CODE ON)
+	target_link_libraries(LiteCGSS_engine PUBLIC physfs-static)
 endif()
-
-target_link_libraries(LiteCGSS_engine PUBLIC ${TARGET_LIBS})
 
 target_include_directories(LiteCGSS_engine
 	PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/include
 	PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
-	PUBLIC  ${LITE_CGSS_EXTERNAL}/lodepng
-	PUBLIC  ${LITE_CGSS_EXTERNAL}/libnsgif
-	PUBLIC  ${LITE_CGSS_EXTERNAL}/skalog/src/src
+	PRIVATE ${LITE_CGSS_EXTERNAL}/lodepng
+	PRIVATE ${LITE_CGSS_EXTERNAL}/libnsgif
 )
-if(LITECGSS_USE_PHYSFS)
-	target_include_directories(LiteCGSS_engine
-		PUBLIC ${FETCHCONTENT_BASE_DIR}/physfs-src/src)
-endif()
 if(CGSS_BACKEND STREQUAL "raylib")
-	# Header-only use of raylib for PR M scope (b): types only, no link.
+	# Public on purpose: Backend/RaylibBackendFwd.h (public) includes
+	# <raylib.h> because raylib's nested POD types cannot be forward-declared.
 	target_include_directories(LiteCGSS_engine PUBLIC ${LITE_CGSS_EXTERNAL}/raylib)
+endif()
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+	target_compile_options(LiteCGSS_engine PRIVATE -Wall -Wextra -pedantic)
 endif()
 
 if(NOT BUILD_SHARED_LIBS)
 	set_property(TARGET LiteCGSS_engine PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
 
-if(NOT LITECGSS_NO_TEST)
+if(LITECGSS_BUILD_TESTS)
+	enable_testing()
 	add_subdirectory(test)
 endif()
-add_subdirectory(playground)
+if(LITECGSS_BUILD_PLAYGROUND)
+	add_subdirectory(playground)
+endif()

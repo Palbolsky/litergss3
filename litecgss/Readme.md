@@ -162,50 +162,38 @@ After that, you can provide a "SFML_DIR" variable in your environment variables 
 	- On Linux: `sudo apt install libsfml-dev` should do the trick
 	- On MacOS: there should be some SFML dev package that you can install with `homebrew`
 
-## Get projects from Gitlab
+## Get the sources
 
-- Extract this actual repository of LiteCGSS with `git clone https://gitlab.com/NuriYuri/litecgss.git` into the directory of your choice
-
-- LiteRGSS2 automatically embeds skalog as git submodule. To keep everything functional, you have to init all submodules recursively by typing
-		`git submodule update --recursive --init`
+LiteCGSS lives in the LiteRGSS3 monorepo, under `litecgss/`. It has no
+dependency on Ruby or on LiteRGSS: clone the monorepo and only build this
+folder. Its dependencies (skalog, lodepng, libnsgif, the raylib header) are
+vendored — no git submodules.
 
 ## Build the LiteCGSS
 
-__Compilation__
+Standalone, from the `litecgss/` folder:
 
-Two ways:
+		cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+		cmake --build build
+		ctest --test-dir build
 
-### Using CMake
+_Options (CMake cache variables):_
 
-Go back to LiteCGSS root folder.
-	Configure your project with
-		`cmake -G $YOUR_CMAKE_GENERATOR .`
+`CGSS_BACKEND`: `raylib` (default), `sfml` or `libretro`
 
-_Extra options (CMake variables):_
+`LITECGSS_BUILD_TESTS` / `LITECGSS_BUILD_PLAYGROUND`: ON by default when LiteCGSS is the top-level project, OFF when it is consumed with `add_subdirectory`
 
-`LITECGSS_NO_TEST`: Toggle (True/False) no-test builds
+`LITECGSS_USE_PHYSFS`: build the assets management with PhysFS
 
-`LITECGSS_USE_PHYSFS`: Build the assets management with PhysFS lib if it's defined
+`CGSS_NO_LOGS`: compile logging out
 
-`CGSS_NO_LOGS`: Logs won't show anywhere if it's defined
+`CGSS_WINDOW_PRESERVATION`: keep the native window across reloads (ON by default on Android)
 
+## Consume the LiteCGSS
 
-Example of a valid CMake configuration:
+		add_subdirectory(litecgss)
+		target_link_libraries(my_target PRIVATE LiteCGSS::engine)
 
-`cmake -G "MinGW Makefiles" -DLITECGSS_NO_TEST=True -DCGSS_NO_LOGS=True .`
-
-Then, build your project by typing
-		`cmake --build .`
-
-### Using Rake
-
-Ensure you have the Ruby dev kit toolchain by typing `ridk enable`
-
-Go back to LiteCGSS root folder. First you have to configure (only the first time you build) the whole project. For that, type `rake configure`
-
-This time we will use the ruby rake compiler toolchain, by simply typing
-		`rake clean; rake compile`
-
-_Extra options (Environment variables):_
-
-`LITECGSS_CMAKE_GENERATOR`: allow you to select a specific CMake Generator if defined
+`LiteCGSS::engine` only exposes `include/` (included as `<LiteCGSS/...>`) and
+carries every configuration define the public headers depend on. The private
+`src/` tree is never on a consumer's include path.
