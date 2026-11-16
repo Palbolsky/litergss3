@@ -1226,6 +1226,15 @@ namespace cgss::backend {
 			draw_sprite_impl(s, s.x, s.y, s.originX, s.originY, s.scaleX, s.scaleY, 0.f);
 		}
 
+		// Sprites sharing one texture, drawn back to back: rlgl merges
+		// consecutive same-texture quads into one draw call by itself.
+		static inline void draw_sprite_batch(native_render_target& target,
+		                                     const native_sprite* const* sprites, std::size_t count) {
+			for (std::size_t i = 0; i < count; ++i) {
+				draw_sprite(target, *sprites[i]);
+			}
+		}
+
 		// Raylib draws against the currently-active BeginDrawing /
 		// BeginTextureMode scope; the target is implicit. ScrollText emits
 		// DrawTextPro via its own `draw()` method against that active state.

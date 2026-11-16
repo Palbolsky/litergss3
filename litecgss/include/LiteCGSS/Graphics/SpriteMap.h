@@ -38,7 +38,19 @@ namespace cgss {
 			ActivableSprite& operator=(const ActivableSprite&) = delete;
 		};
 
+		// Active tiles grouped by texture, so a map draws in one batch per
+		// tileset. Few tilesets per map: a vector with linear search beats a map.
+		struct TextureGroup {
+			const void* texture = nullptr; // the native texture, as an identity key
+			std::vector<std::size_t> spriteIndices;
+		};
+
+		void addToTextureGroup(std::size_t index, const void* texture);
+		void removeFromTextureGroup(std::size_t index, const void* texture);
+
 		std::vector<ActivableSprite> m_sprites;
+		std::vector<TextureGroup> m_textureGroups;
+		mutable std::vector<const typename cgss::backend::ActiveBackend::native_sprite*> m_batch;
 		unsigned long m_tileWidth = 1;
 	public:
 		SpriteMapItem(SpriteMap* owner);

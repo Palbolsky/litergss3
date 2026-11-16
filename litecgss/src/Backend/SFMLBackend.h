@@ -889,6 +889,41 @@ namespace cgss::backend {
 			target.draw(sprite);
 		}
 
+		// Draws `count` sprites sharing one texture in a single draw call: two
+		// triangles per sprite, laid out as sf::Sprite lays its quad out.
+		static inline void draw_sprite_batch(native_render_target& target,
+		                                     const native_sprite* const* sprites, std::size_t count) {
+			if (count == 0) return;
+			if (count == 1) {
+				// sf::Sprite's own draw (a cached triangle strip) is as cheap
+				target.draw(*sprites[0]);
+				return;
+			}
+			thread_local std::vector<sf::Vertex> vertices;
+			vertices.clear();
+			vertices.reserve(count * 6);
+			for (std::size_t i = 0; i < count; ++i) {
+				const auto& sprite = *sprites[i];
+				const auto& t = sprite.getTransform();
+				const auto& rect = sprite.getTextureRect();
+				const auto w = static_cast<float>(std::abs(rect.width));
+				const auto h = static_cast<float>(std::abs(rect.height));
+				const auto color = sprite.getColor();
+				const auto u0 = static_cast<float>(rect.left);
+				const auto v0 = static_cast<float>(rect.top);
+				const auto u1 = u0 + static_cast<float>(rect.width);
+				const auto v1 = v0 + static_cast<float>(rect.height);
+				const sf::Vertex p0{ t.transformPoint(0.f, 0.f), color, { u0, v0 } };
+				const sf::Vertex p1{ t.transformPoint(w,   0.f), color, { u1, v0 } };
+				const sf::Vertex p2{ t.transformPoint(0.f, h),   color, { u0, v1 } };
+				const sf::Vertex p3{ t.transformPoint(w,   h),   color, { u1, v1 } };
+				vertices.insert(vertices.end(), { p0, p1, p2, p1, p3, p2 });
+			}
+			sf::RenderStates states;
+			states.texture = sprites[0]->getTexture();
+			target.draw(vertices.data(), vertices.size(), sf::Triangles, states);
+		}
+
 		// Returns the texture's size if a texture is bound, else {0, 0}.
 		static inline Size2u get_sprite_bound_texture_size(const native_sprite& s) noexcept {
 			const auto* t = s.getTexture();
