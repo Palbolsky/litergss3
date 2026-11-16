@@ -97,6 +97,14 @@ void cgss::Viewport::moveOrigin(long ox, long oy) {
 	m_proxy->moveOrigin(ox, oy);
 }
 
+void cgss::Viewport::setScreenSpace(bool screenSpace) {
+	m_proxy->setScreenSpace(screenSpace);
+}
+
+bool cgss::Viewport::isScreenSpace() const {
+	return m_proxy->isScreenSpace();
+}
+
 void cgss::Viewport::resize(long width, long height) {
 	m_proxy->resize(width, height);
 }
@@ -129,7 +137,11 @@ void cgss::ViewportItem::updateFromValue(const RenderStatesData* renderStatesDat
 void cgss::ViewportItem::scaleRenderSpriteToViewport() const {
 	using Ops = cgss::backend::ActiveBackend::Ops;
 	assert (m_windowData.userRenderSprite != nullptr);
-	const auto viewportBox = getViewportBox();
+	// The viewport box is in the game's coordinates, the render texture in the window's
+	auto viewportBox = getViewportBox();
+	const auto origin = getOrigin();
+	viewportBox.left += static_cast<int>(origin.x);
+	viewportBox.top += static_cast<int>(origin.y);
 	Ops::set_sprite_texture_rect(*m_windowData.userRenderSprite, viewportBox);
 	Ops::sprite_set_position(*m_windowData.userRenderSprite,
 		static_cast<float>(viewportBox.left), static_cast<float>(viewportBox.top));

@@ -118,6 +118,10 @@ void cgss::basic_DisplayWindow<B>::applyReload(DisplayWindowSettings settings, b
 
 	LOG_DEBUG << "applyReload: force=" << force << " windowCreateNeeded=" << windowCreateNeeded;
 
+	// The origin is the host's (setOrigin), not a reload parameter: settings
+	// coming from the scripts never carry it
+	settings.originX = m_settings.originX;
+	settings.originY = m_settings.originY;
 	m_settings = std::move(settings);
 
 	if (m_settings.headless) {
@@ -193,6 +197,8 @@ void cgss::basic_DisplayWindow<B>::notifyWindowSizeChange() {
 	auto we = WindowSizeChangeEvent{};
 	we.width = m_settings.video.width;
 	we.height = m_settings.video.height;
+	we.originX = m_settings.originX;
+	we.originY = m_settings.originY;
 	m_eventDispatcher.Observable<WindowSizeChangeEvent>::notifyObservers(we);
 }
 
@@ -261,8 +267,14 @@ void cgss::basic_DisplayWindow<B>::draw() {
 	cgss::Camera defview{Ops::window_get_default_view(m_gameWindow)};
 	auto render_target = configureAndGetRenderTarget(defview);
 
-	// Rendering C++ sprite stack
-	drawables().draw(defview, render_target);
+	// Rendering C++ sprite stack. The drawables placed on the window itself are
+	// moved by the origin like the viewports are (viewports set their own view);
+	// post processing keeps the unmoved default view.
+	cgss::Camera gameView{defview};
+	Ops::view_set_center(cgss::backend::native_of(gameView),
+		round(m_draw.screenWidth / 2.0f) - static_cast<float>(m_settings.originX),
+		round(m_draw.screenHeight / 2.0f) - static_cast<float>(m_settings.originY));
+	drawables().draw(gameView, render_target);
 
 	postProcessing();
 
@@ -314,6 +326,29 @@ void cgss::basic_DisplayWindow<B>::postProcessing() {
 	if (m_draw.brightness != 255) {
 		drawBrightness();
 	}
+}
+
+template <class B>
+void cgss::basic_DisplayWindow<B>::setOrigin(long x, long y) {
+	if (m_settings.originX == x && m_settings.originY == y) {
+		return;
+	}
+	m_settings.originX = x;
+	m_settings.originY = y;
+	LOG_INFO << "Window origin set to x = " << x << " y = " << y;
+	notifyWindowSizeChange();
+}
+
+template <class B>
+cgss::IntPoint cgss::basic_DisplayWindow<B>::originPixels() const {
+	if ((m_settings.originX == 0 && m_settings.originY == 0) || m_draw.screenWidth <= 0 || m_draw.screenHeight <= 0) {
+		return {};
+	}
+	const auto size = B::Ops::window_get_size(m_gameWindow);
+	return {
+		static_cast<int>(std::lround(static_cast<double>(m_settings.originX) * size.x / m_draw.screenWidth)),
+		static_cast<int>(std::lround(static_cast<double>(m_settings.originY) * size.y / m_draw.screenHeight))
+	};
 }
 
 template <class B>

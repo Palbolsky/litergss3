@@ -29,6 +29,8 @@ struct ViewportData
     float zoom  = 1.0f;
     float angle = 0.0f;
     bool visible = true;
+    // Not moved by the window's origin (DisplayWindow#game_area=)
+    bool screen_space = false;
     bool disposed = false;
 
     // Lazily move-assigned in initialize once the active DisplayWindow is

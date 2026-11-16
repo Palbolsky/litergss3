@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "LiteCGSS/Backend/ActiveBackendFwd.h"
+#include "LiteCGSS/Common/Point.h"
 #include "LiteCGSS/Configuration/VideoMode.h"
 #include "LiteCGSS/Events/Event.h"
 #include "LiteCGSS/Views/View.h"
@@ -90,6 +91,12 @@ namespace cgss {
 		const DisplayWindowSettings& getSettings() const;
 		DisplayWindowContextSettings getContextSettings() const;
 		void resizeScreen(unsigned int width, unsigned int height);
+		/* Where the game's (0, 0) is on the window (DisplayWindowSettings::originX) */
+		void setOrigin(long x, long y);
+		long originX() const { return m_settings.originX; }
+		long originY() const { return m_settings.originY; }
+		/* The origin in the window's own pixels: the unit of its mouse and touch events */
+		cgss::IntPoint originPixels() const;
 		void setVsync(bool enable);
 		void setTitle(const char* title);
 		void setFrameRate(unsigned int frameRate);

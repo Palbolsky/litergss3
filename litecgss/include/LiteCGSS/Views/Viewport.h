@@ -72,6 +72,10 @@ namespace cgss {
 		void moveOrigin(long ox, long oy);
 		void move(float x, float y);
 		void resize(long width, long height);
+
+		/* Screen space: the window's origin does not move this viewport (ViewBox::setScreenSpace) */
+		void setScreenSpace(bool screenSpace);
+		bool isScreenSpace() const;
 		void setRectangle(cgss::IntRect rectangle);
 		cgss::IntRect getViewportBox() const;
 

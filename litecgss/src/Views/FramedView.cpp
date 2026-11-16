@@ -290,9 +290,11 @@ void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, cgss::Camera&
 	const auto sw = static_cast<float>(ViewBox::getScreenWidth());
 	const auto sh = static_cast<float>(ViewBox::getScreenHeight());
 
-	// Convert the (normalized) viewport rect into pixel coords.
-	targetViewport.left   *= sw;
-	targetViewport.top    *= sh;
+	// Convert the (normalized) viewport rect into pixel coords,
+	// in the game's coordinates (like the parent's box).
+	const auto origin = ViewBox::getOrigin();
+	targetViewport.left   = targetViewport.left * sw - origin.x;
+	targetViewport.top    = targetViewport.top * sh - origin.y;
 	targetViewport.width  *= sw;
 	targetViewport.height *= sh;
 
@@ -342,6 +344,11 @@ void cgss::FramedViewItem::drawCalculateView(ViewportItem& parent, cgss::Camera&
 		targetSize.x         -= dx * zoom;
 		targetCenter.x       -= dx * zoom / 2.f;
 	}
+
+	// Back to the window's coordinates: the parent is where its origin puts it
+	const auto parentOrigin = parent.getOrigin();
+	targetViewport.left += parentOrigin.x;
+	targetViewport.top  += parentOrigin.y;
 
 	Ops::view_set_center(native_of(targetView), targetCenter.x, targetCenter.y);
 	Ops::view_set_size(native_of(targetView), targetSize.x, targetSize.y);

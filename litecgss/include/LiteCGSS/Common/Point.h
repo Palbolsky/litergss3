@@ -10,6 +10,12 @@ namespace cgss {
 		float y = 0.f;
 	};
 
+	// 2D integer point, in pixels.
+	struct IntPoint {
+		int x = 0;
+		int y = 0;
+	};
+
 }
 
 #endif

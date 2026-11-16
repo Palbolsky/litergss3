@@ -17,7 +17,9 @@ using cgss::backend::native_of;
 cgss::ViewBox::ViewBox(MainEventDispatcher& ed, const DisplayWindowSettings& windowSettings) :
 	SubObserver<WindowSizeChangeEvent>(std::bind(&ViewBox::onWindowSizeChange, this, std::placeholders::_1), ed),
 	m_screenWidth(windowSettings.video.width),
-	m_screenHeight(windowSettings.video.height) {
+	m_screenHeight(windowSettings.video.height),
+	m_originX(windowSettings.originX),
+	m_originY(windowSettings.originY) {
 	resize(m_screenWidth, m_screenHeight);
 }
 
@@ -60,10 +62,7 @@ void cgss::ViewBox::resize(long width, long height) {
 		static_cast<float>(height) * m_zoom);
 
 	/* Resize the viewport (don't move) */
-	const auto percentBox = Ops::view_get_viewport(native_of(m_view));
-	const auto sw = static_cast<float>(m_screenWidth);
-	const auto sh = static_cast<float>(m_screenHeight);
-	moveViewport(percentBox.left * sw, percentBox.top * sh);
+	moveViewport(m_x, m_y);
 
 	updateCenter();
 
@@ -94,8 +93,9 @@ void cgss::ViewBox::moveViewport(float x, float y) {
 	m_x = x;
 	m_y = y;
 	const auto sz = Ops::view_get_size(native_of(m_view));
+	const auto origin = getOrigin();
 	Ops::view_set_viewport(native_of(m_view),
-		m_x / sw, m_y / sh,
+		(m_x + origin.x) / sw, (m_y + origin.y) / sh,
 		(sz.x / m_zoom) / sw, (sz.y / m_zoom) / sh);
 
 	LOG_DEBUG << "Viewbox " << static_cast<void*>(this) <<  " has been moved to x = " << x << " y = " << y;
@@ -106,6 +106,8 @@ void cgss::ViewBox::moveViewport(float x, float y) {
 bool cgss::ViewBox::onWindowSizeChange(WindowSizeChangeEvent& event) {
 	m_screenWidth = event.width;
 	m_screenHeight = event.height;
+	m_originX = event.originX;
+	m_originY = event.originY;
 
 	moveViewport(m_x, m_y);
 
@@ -157,10 +159,26 @@ cgss::IntRect cgss::ViewBox::getRectangleBox() const {
 	const auto percentBox = Ops::view_get_viewport(native_of(m_view));
 	const auto sw = static_cast<float>(m_screenWidth);
 	const auto sh = static_cast<float>(m_screenHeight);
+	const auto origin = getOrigin();
 	return cgss::IntRect {
-		static_cast<int>(percentBox.left * sw),
-		static_cast<int>(percentBox.top * sh),
+		static_cast<int>(std::round(percentBox.left * sw - origin.x)),
+		static_cast<int>(std::round(percentBox.top * sh - origin.y)),
 		static_cast<int>(percentBox.width * sw),
 		static_cast<int>(percentBox.height * sh)
 	};
+}
+
+void cgss::ViewBox::setScreenSpace(bool screenSpace) {
+	if (m_screenSpace == screenSpace) {
+		return;
+	}
+	m_screenSpace = screenSpace;
+	moveViewport(m_x, m_y);
+}
+
+cgss::Point cgss::ViewBox::getOrigin() const {
+	if (m_screenSpace) {
+		return {};
+	}
+	return { static_cast<float>(m_originX), static_cast<float>(m_originY) };
 }

@@ -228,14 +228,80 @@ VALUE rb_DisplayWindow_setSettings(VALUE self, VALUE arr)
 	return arr;
 }
 
-VALUE rb_DisplayWindow_getWidth(VALUE self)
+// The game's place on a window larger than it (game_area=): the engine moves
+// the game there (setOrigin), width / height answer the game's size and the
+// mouse / touch positions reach the callbacks moved the same way. 0: no game
+// area, the game is the whole window.
+namespace {
+	long g_game_width  = 0;
+	long g_game_height = 0;
+
+	bool hasGameArea() { return g_game_width > 0; }
+
+	// Mouse and touch positions come in the window's pixels.
+	cgss::IntPoint inputOrigin() { return g_window ? g_window->originPixels() : cgss::IntPoint{}; }
+}
+
+// The whole window's width, black bars included
+VALUE rb_DisplayWindow_screenWidth(VALUE self)
 {
 	return rb_ary_entry(rb_ivar_get(self, iv_settings), SI_WIDTH);
 }
 
-VALUE rb_DisplayWindow_getHeight(VALUE self)
+// The whole window's height, black bars included
+VALUE rb_DisplayWindow_screenHeight(VALUE self)
 {
 	return rb_ary_entry(rb_ivar_get(self, iv_settings), SI_HEIGHT);
+}
+
+// The game's width: the whole window's without a game area
+VALUE rb_DisplayWindow_getWidth(VALUE self)
+{
+	return hasGameArea() ? LONG2NUM(g_game_width) : rb_DisplayWindow_screenWidth(self);
+}
+
+// The game's height: the whole window's without a game area
+VALUE rb_DisplayWindow_getHeight(VALUE self)
+{
+	return hasGameArea() ? LONG2NUM(g_game_height) : rb_DisplayWindow_screenHeight(self);
+}
+
+// [x, y, width, height] in window pixels, nil when the game is the whole window
+VALUE rb_DisplayWindow_getGameArea(VALUE self)
+{
+	(void)self;
+	if (!hasGameArea() || !g_window) return Qnil;
+	return rb_ary_new_from_args(4, LONG2NUM(g_window->originX()), LONG2NUM(g_window->originY()),
+		LONG2NUM(g_game_width), LONG2NUM(g_game_height));
+}
+
+// Put the game at its place on a window larger than it (nil: the whole window)
+VALUE rb_DisplayWindow_setGameArea(VALUE self, VALUE area)
+{
+	ensureWindow();
+	if (NIL_P(area)) {
+		g_game_width = g_game_height = 0;
+		g_window->setOrigin(0, 0);
+		return area;
+	}
+	Check_Type(area, T_ARRAY);
+	if (RARRAY_LEN(area) != 4) {
+		rb_raise(rb_eArgError, "Expected [x, y, width, height] as the game area, or nil");
+	}
+	const long x = NUM2LONG(rb_ary_entry(area, 0));
+	const long y = NUM2LONG(rb_ary_entry(area, 1));
+	const long width = NUM2LONG(rb_ary_entry(area, 2));
+	const long height = NUM2LONG(rb_ary_entry(area, 3));
+	const long sw = NUM2LONG(rb_DisplayWindow_screenWidth(self));
+	const long sh = NUM2LONG(rb_DisplayWindow_screenHeight(self));
+	if (x < 0 || y < 0 || width <= 0 || height <= 0 || x + width > sw || y + height > sh) {
+		rb_raise(rb_eArgError, "The game area [%ld, %ld, %ld, %ld] is not inside the %ldx%ld window",
+			x, y, width, height, sw, sh);
+	}
+	g_game_width = width;
+	g_game_height = height;
+	g_window->setOrigin(x, y);
+	return area;
 }
 
 // --- Window operations -----------------------------------------------------
@@ -647,7 +713,8 @@ static VALUE drain_events_internal(VALUE self)
 			case ET::MouseMoved: {
 				const auto p = ev.asMouseMove();
 				if (!p) break;
-				VALUE args[2] = { INT2NUM(p->x), INT2NUM(p->y) };
+				const auto origin = inputOrigin();
+				VALUE args[2] = { INT2NUM(p->x - origin.x), INT2NUM(p->y - origin.y) };
 				invoke_cb(cb_hash, "on_mouse_moved", 2, args);
 				break;
 			}
@@ -755,21 +822,24 @@ static VALUE drain_events_internal(VALUE self)
 			case ET::TouchBegan: {
 				const auto p = ev.asTouch();
 				if (!p) break;
-				VALUE args[3] = { UINT2NUM(p->finger), INT2NUM(p->x), INT2NUM(p->y) };
+				const auto origin = inputOrigin();
+				VALUE args[3] = { UINT2NUM(p->finger), INT2NUM(p->x - origin.x), INT2NUM(p->y - origin.y) };
 				invoke_cb(cb_hash, "on_touch_began", 3, args);
 				break;
 			}
 			case ET::TouchMoved: {
 				const auto p = ev.asTouch();
 				if (!p) break;
-				VALUE args[3] = { UINT2NUM(p->finger), INT2NUM(p->x), INT2NUM(p->y) };
+				const auto origin = inputOrigin();
+				VALUE args[3] = { UINT2NUM(p->finger), INT2NUM(p->x - origin.x), INT2NUM(p->y - origin.y) };
 				invoke_cb(cb_hash, "on_touch_moved", 3, args);
 				break;
 			}
 			case ET::TouchEnded: {
 				const auto p = ev.asTouch();
 				if (!p) break;
-				VALUE args[3] = { UINT2NUM(p->finger), INT2NUM(p->x), INT2NUM(p->y) };
+				const auto origin = inputOrigin();
+				VALUE args[3] = { UINT2NUM(p->finger), INT2NUM(p->x - origin.x), INT2NUM(p->y - origin.y) };
 				invoke_cb(cb_hash, "on_touch_ended", 3, args);
 				break;
 			}
@@ -845,6 +915,10 @@ void Init_DisplayWindow()
 	rb_define_method(rb_cDisplayWindow, "settings=",        _rbf rb_DisplayWindow_setSettings,        1);
 	rb_define_method(rb_cDisplayWindow, "width",            _rbf rb_DisplayWindow_getWidth,           0);
 	rb_define_method(rb_cDisplayWindow, "height",           _rbf rb_DisplayWindow_getHeight,          0);
+	rb_define_method(rb_cDisplayWindow, "screen_width",     _rbf rb_DisplayWindow_screenWidth,        0);
+	rb_define_method(rb_cDisplayWindow, "screen_height",    _rbf rb_DisplayWindow_screenHeight,       0);
+	rb_define_method(rb_cDisplayWindow, "game_area",        _rbf rb_DisplayWindow_getGameArea,        0);
+	rb_define_method(rb_cDisplayWindow, "game_area=",       _rbf rb_DisplayWindow_setGameArea,        1);
 	rb_define_method(rb_cDisplayWindow, "scale_window",     _rbf rb_DisplayWindow_scale,              1);
 	rb_define_method(rb_cDisplayWindow, "resize_screen",    _rbf rb_DisplayWindow_resizeScreen,       2);
 	rb_define_method(rb_cDisplayWindow, "set_title",        _rbf rb_DisplayWindow_setTitle,           1);

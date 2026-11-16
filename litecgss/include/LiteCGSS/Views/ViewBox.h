@@ -2,6 +2,7 @@
 #define CGSS_INNER_VIEW_H
 
 #include "LiteCGSS/Common/IntRect.h"
+#include "LiteCGSS/Common/Point.h"
 #include "LiteCGSS/Graphics/Camera.h"
 #include "LiteCGSS/Graphics/RenderTarget.h"
 #include "LiteCGSS/Events/Patterns/SubObserver.h"
@@ -36,6 +37,15 @@ namespace cgss {
 		float getAngle() const;
 		float getZoom() const;
 
+		/* A viewport in screen space ignores the window's origin: its rect is in window
+		   pixels. Everything else (the game's viewports) is moved by the origin and keeps
+		   its rect in the game's coordinates. */
+		void setScreenSpace(bool screenSpace);
+		bool isScreenSpace() const { return m_screenSpace; }
+		/* The offset applied to this view box on the window: the window's origin, or none
+		   in screen space */
+		cgss::Point getOrigin() const;
+
 	protected:
 		long getScreenWidth() const { return m_screenWidth; }
 		long getScreenHeight() const { return m_screenHeight; }
@@ -66,6 +76,9 @@ namespace cgss {
 		long m_oy = 0;
 		long m_screenWidth = 640;
 		long m_screenHeight = 320;
+		long m_originX = 0;
+		long m_originY = 0;
+		bool m_screenSpace = false;
 		float m_zoom = 1.f;
 		float m_angle = 0.f;
 	};

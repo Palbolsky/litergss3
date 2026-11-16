@@ -41,6 +41,13 @@ namespace cgss {
 		bool vSync = false;
 		bool fullscreen = false;
 		bool visibleMouse = false;
+		/* Where the game's (0, 0) is on the window, in window pixels. Viewports and
+		   the drawables placed on the window itself are moved by it, unless a viewport
+		   is in screen space (ViewBox::setScreenSpace). A window larger than the game
+		   (a phone in landscape) centres the game with it, while the game keeps reading
+		   its own coordinates (viewport rects start at 0). */
+		long originX = 0;
+		long originY = 0;
 	};
 }
 #endif

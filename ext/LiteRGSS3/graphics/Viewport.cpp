@@ -130,6 +130,17 @@ VALUE rb_Viewport_setVisible(VALUE self, VALUE val)
     if (vp->viewport) vp->viewport->setVisible(vp->visible);
     return val;
 }
+// A viewport in screen space is not moved by the window's game area
+// (DisplayWindow#game_area=): its rect stays in window pixels.
+VALUE rb_Viewport_getScreenSpace(VALUE self) { check_disposed(get_viewport(self)); return get_viewport(self)->screen_space ? Qtrue : Qfalse; }
+VALUE rb_Viewport_setScreenSpace(VALUE self, VALUE val)
+{
+    check_disposed(get_viewport(self));
+    auto *vp = get_viewport(self);
+    vp->screen_space = RTEST(val);
+    if (vp->viewport) vp->viewport->setScreenSpace(vp->screen_space);
+    return val;
+}
 VALUE rb_Viewport_getZ(VALUE self) { check_disposed(get_viewport(self)); return INT2NUM(get_viewport(self)->z); }
 VALUE rb_Viewport_setZ(VALUE self, VALUE val)
 {
@@ -258,6 +269,8 @@ void Init_Viewport()
     rb_define_method(rb_cViewport, "oy=", _rbf rb_Viewport_setOY, 1);
     rb_define_method(rb_cViewport, "visible", _rbf rb_Viewport_getVisible, 0);
     rb_define_method(rb_cViewport, "visible=", _rbf rb_Viewport_setVisible, 1);
+    rb_define_method(rb_cViewport, "screen_space", _rbf rb_Viewport_getScreenSpace, 0);
+    rb_define_method(rb_cViewport, "screen_space=", _rbf rb_Viewport_setScreenSpace, 1);
     rb_define_method(rb_cViewport, "z", _rbf rb_Viewport_getZ, 0);
     // Deprecated in LiteRGSS2 already (the stack is kept sorted): no-ops.
     rb_define_method(rb_cViewport, "update", _rbf rb_Viewport_noop, 0);
