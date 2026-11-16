@@ -10,6 +10,7 @@
 #include <LiteCGSS/Views/Viewport.h>
 #include <string>
 #include "Text.h"
+#include <cstdint>
 #include "Color.h"
 #include "DrawableDisposable.h"
 #include "Viewport.h"
@@ -204,6 +205,28 @@ VALUE rb_Text_getZ(VALUE self) { return LONG2NUM(get_text(self)->text.getZ().z);
 VALUE rb_Text_setZ(VALUE self, VALUE val) { get_text(self)->text.setZ(NUM2LONG(val)); return val; }
 VALUE rb_Text_Index(VALUE self) { return UINT2NUM(get_text(self)->text.getZ().index); }
 
+// Style bits (as sf::Text::Style): Bold = 1, Italic = 2.
+static constexpr std::uint32_t kTextStyleBold   = 1u << 0;
+static constexpr std::uint32_t kTextStyleItalic = 1u << 1;
+
+static VALUE text_style_flag(VALUE self, std::uint32_t flag)
+{
+    return (get_text(self)->text.getStyle() & flag) ? Qtrue : Qfalse;
+}
+
+static VALUE text_set_style_flag(VALUE self, std::uint32_t flag, VALUE val)
+{
+    auto &text = get_text(self)->text;
+    const std::uint32_t style = text.getStyle();
+    text.setStyle(RTEST(val) ? (style | flag) : (style & ~flag));
+    return self;
+}
+
+VALUE rb_Text_getBold(VALUE self) { return text_style_flag(self, kTextStyleBold); }
+VALUE rb_Text_setBold(VALUE self, VALUE val) { return text_set_style_flag(self, kTextStyleBold, val); }
+VALUE rb_Text_getItalic(VALUE self) { return text_style_flag(self, kTextStyleItalic); }
+VALUE rb_Text_setItalic(VALUE self, VALUE val) { return text_set_style_flag(self, kTextStyleItalic, val); }
+
 VALUE rb_Text_getViewport(VALUE self) { return get_text(self)->rViewport; }
 
 VALUE rb_Text_getAlign(VALUE self) { return get_text(self)->rAlign; }
@@ -348,6 +371,10 @@ void Init_Text()
     rb_define_method(rb_cText, "text_width", _rbf rb_Text_getTextWidth, 1);
     rb_define_method(rb_cText, "load_color", _rbf rb_Text_load_color, 1);
     rb_define_method(rb_cText, "z", _rbf rb_Text_getZ, 0);
+    rb_define_method(rb_cText, "bold", _rbf rb_Text_getBold, 0);
+    rb_define_method(rb_cText, "bold=", _rbf rb_Text_setBold, 1);
+    rb_define_method(rb_cText, "italic", _rbf rb_Text_getItalic, 0);
+    rb_define_method(rb_cText, "italic=", _rbf rb_Text_setItalic, 1);
     rb_define_method(rb_cText, "z=", _rbf rb_Text_setZ, 1);
     rb_define_method(rb_cText, "__index__", _rbf rb_Text_Index, 0);
     rb_define_method(rb_cText, "viewport", _rbf rb_Text_getViewport, 0);

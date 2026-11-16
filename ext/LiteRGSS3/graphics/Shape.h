@@ -25,6 +25,9 @@ struct ShapeData
     VALUE rZoomY = LONG2FIX(1);
     VALUE rShapeType = Qnil;
     VALUE rBlendMode = Qnil;
+    // Cached Rect returned by `shape.src_rect` (the textured part of the
+    // bitmap); its mutations reach the shape through Rect's on_change hook.
+    VALUE rRect = Qnil;
     bool disposed = false;
 
     ~ShapeData() {

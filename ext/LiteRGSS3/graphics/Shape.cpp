@@ -9,6 +9,7 @@
 #include <LiteCGSS/Views/Viewport.h>
 #include <cmath>
 #include "Shape.h"
+#include "Rect.h"
 #include "Color.h"
 #include "DrawableDisposable.h"
 #include "DisplayWindow.h"
@@ -29,6 +30,7 @@ namespace rb {
         if (s == nullptr) return;
         rb_gc_mark(s->rViewport);
         rb_gc_mark(s->rBitmap);
+        rb_gc_mark(s->rRect);
         rb_gc_mark(s->rX);
         rb_gc_mark(s->rY);
         rb_gc_mark(s->rOX);
@@ -42,6 +44,46 @@ namespace rb {
 }
 
 static ShapeData *get_shape(VALUE self) { return rb::GetPtr<ShapeData>(self); }
+
+// --- src_rect: the part of the bitmap textured on the shape (LiteRGSS2 API).
+static void shape_rect_did_change(VALUE shape_value)
+{
+    auto *s = get_shape(shape_value);
+    if (s == nullptr || s->disposed || NIL_P(s->rRect)) return;
+    const auto *r = get_rect_data(s->rRect);
+    s->shape.setRectangle(cgss::IntRect{ r->x, r->y, r->width, r->height });
+}
+
+VALUE rb_Shape_getSrcRect(VALUE self)
+{
+    auto *s = get_shape(self);
+    const cgss::IntRect current = s->disposed ? cgss::IntRect{} : s->shape.getRectangle();
+    if (NIL_P(s->rRect)) {
+        VALUE args[4] = { INT2NUM(current.left), INT2NUM(current.top), INT2NUM(current.width), INT2NUM(current.height) };
+        s->rRect = rb_class_new_instance(4, args, rb_cRect);
+        auto *r = get_rect_data(s->rRect);
+        r->owner = self;
+        r->on_change = shape_rect_did_change;
+    } else {
+        auto *r = get_rect_data(s->rRect);
+        r->x = current.left; r->y = current.top; r->width = current.width; r->height = current.height;
+    }
+    return s->rRect;
+}
+
+VALUE rb_Shape_setSrcRect(VALUE self, VALUE rect)
+{
+    VALUE cached = rb_Shape_getSrcRect(self);
+    auto *dst = get_rect_data(cached);
+    if (rb_obj_is_kind_of(rect, rb_cRect) == Qtrue) {
+        const auto *src = get_rect_data(rect);
+        dst->x = src->x; dst->y = src->y; dst->width = src->width; dst->height = src->height;
+    } else {
+        dst->x = dst->y = dst->width = dst->height = 0;
+    }
+    shape_rect_did_change(self);
+    return self;
+}
 
 VALUE rb_Shape_Initialize(int argc, VALUE *argv, VALUE self)
 {
@@ -319,6 +361,8 @@ void Init_Shape()
     rb_define_method(rb_cShape, "y=", _rbf rb_Shape_setY, 1);
     rb_define_method(rb_cShape, "set_position", _rbf rb_Shape_setPosition, 2);
     rb_define_method(rb_cShape, "z", _rbf rb_Shape_getZ, 0);
+    rb_define_method(rb_cShape, "src_rect", _rbf rb_Shape_getSrcRect, 0);
+    rb_define_method(rb_cShape, "src_rect=", _rbf rb_Shape_setSrcRect, 1);
     rb_define_method(rb_cShape, "z=", _rbf rb_Shape_setZ, 1);
     rb_define_method(rb_cShape, "ox", _rbf rb_Shape_getOX, 0);
     rb_define_method(rb_cShape, "ox=", _rbf rb_Shape_setOX, 1);

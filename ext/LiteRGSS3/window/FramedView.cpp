@@ -458,6 +458,14 @@ VALUE rb_FramedView_index(VALUE self)
     return f->has_view ? ULONG2NUM(f->view->getZ().index) : INT2NUM(0);
 }
 
+// Like LiteRGSS2: windows can't be copied.
+static VALUE rb_FramedView_Copy(VALUE self)
+{
+    (void)self;
+    rb_raise(rb_eRGSSError, "Windows cannot be cloned or duplicated.");
+    return Qnil;
+}
+
 void Init_FramedView()
 {
     // Registers as `LiteRGSS::Window` — matches litergss2 PSDK API. The
@@ -467,6 +475,8 @@ void Init_FramedView()
 
     rb_define_method(rb_cFramedView, "initialize", _rbf rb_FramedView_Initialize, -1);
     rb_define_method(rb_cFramedView, "dispose", _rbf rb_FramedView_Dispose, 0);
+    rb_define_method(rb_cFramedView, "clone", _rbf rb_FramedView_Copy, 0);
+    rb_define_method(rb_cFramedView, "dup", _rbf rb_FramedView_Copy, 0);
     rb_define_method(rb_cFramedView, "disposed?", _rbf rb_FramedView_Disposed, 0);
     rb_define_method(rb_cFramedView, "update", _rbf rb_FramedView_Update, 0);
     rb_define_method(rb_cFramedView, "sort_z", _rbf rb_FramedView_SortZ, 0);

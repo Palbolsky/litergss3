@@ -207,6 +207,14 @@ VALUE rb_Sprite_setY(VALUE self, VALUE v)
 }
 
 VALUE rb_Sprite_getZ(VALUE self) { check_disposed(get_sprite(self)); return INT2NUM(get_sprite(self)->z); }
+
+// Creation index in the parent stack (ties on z are drawn in this order).
+VALUE rb_Sprite_Index(VALUE self)
+{
+    auto *s = get_sprite(self);
+    check_disposed(s);
+    return UINT2NUM(s->has_sprite ? s->sprite->getZ().index : 0u);
+}
 VALUE rb_Sprite_setZ(VALUE self, VALUE v)
 {
     check_disposed(get_sprite(self));
@@ -453,6 +461,7 @@ void Init_Sprite()
     rb_define_method(rb_cSprite, "y", _rbf rb_Sprite_getY, 0);
     rb_define_method(rb_cSprite, "y=", _rbf rb_Sprite_setY, 1);
     rb_define_method(rb_cSprite, "z", _rbf rb_Sprite_getZ, 0);
+    rb_define_method(rb_cSprite, "__index__", _rbf rb_Sprite_Index, 0);
     rb_define_method(rb_cSprite, "z=", _rbf rb_Sprite_setZ, 1);
     rb_define_method(rb_cSprite, "ox", _rbf rb_Sprite_getOX, 0);
     rb_define_method(rb_cSprite, "ox=", _rbf rb_Sprite_setOX, 1);

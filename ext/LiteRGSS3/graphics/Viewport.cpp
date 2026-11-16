@@ -240,6 +240,8 @@ VALUE rb_Viewport_setShader(VALUE self, VALUE val)
 
 // --- Init ---
 
+static VALUE rb_Viewport_noop(VALUE self) { return self; }
+
 void Init_Viewport()
 {
     rb_cViewport = rb_define_class_under(rb_mLiteRGSS, "Viewport", rb_cDrawable);
@@ -257,6 +259,9 @@ void Init_Viewport()
     rb_define_method(rb_cViewport, "visible", _rbf rb_Viewport_getVisible, 0);
     rb_define_method(rb_cViewport, "visible=", _rbf rb_Viewport_setVisible, 1);
     rb_define_method(rb_cViewport, "z", _rbf rb_Viewport_getZ, 0);
+    // Deprecated in LiteRGSS2 already (the stack is kept sorted): no-ops.
+    rb_define_method(rb_cViewport, "update", _rbf rb_Viewport_noop, 0);
+    rb_define_method(rb_cViewport, "reload_stack", _rbf rb_Viewport_noop, 0);
     rb_define_method(rb_cViewport, "z=", _rbf rb_Viewport_setZ, 1);
     rb_define_method(rb_cViewport, "zoom", _rbf rb_Viewport_getZoom, 0);
     rb_define_method(rb_cViewport, "zoom=", _rbf rb_Viewport_setZoom, 1);
