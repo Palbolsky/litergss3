@@ -19,6 +19,11 @@ namespace cgss {
 
 		virtual ~Observer() = default;
 
+	protected:
+		// Called by an Observable this observer is still registered to, when
+		// that Observable is destroyed: it must not be reached anymore.
+		virtual void observableDestroyed() {}
+
 	private:
 		std::function<bool(T&)> m_handler;
 

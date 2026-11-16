@@ -31,7 +31,13 @@ namespace cgss {
 		using ObserverType = ObserverT<T>;
 	public:
 		Observable() = default;
-		virtual ~Observable() = default;
+		// Observers may outlive the Observable (e.g. a viewport outliving its
+		// window): tell them it is gone, so they don't unregister from it.
+		virtual ~Observable() {
+			for (auto& obs : m_head) {
+				obs->observableDestroyed();
+			}
+		}
 
 		void addObserver(ObserverType& obs) {
 			detail::observable::insert_in_container(m_head, &obs);
