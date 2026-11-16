@@ -94,6 +94,16 @@ cgss::basic_Texture<B> cgss::basic_Texture<B>::create_from_native(typename B::na
 }
 
 template <class B>
+cgss::basic_Image<B> cgss::basic_Texture<B>::copyToImage() const {
+	auto result = basic_Image<B>{};
+	// basic_Texture friends basic_Image, so result.m_image is reachable.
+	if (!B::Ops::texture_read_to_image(*m_texture, *result.m_image)) {
+		return basic_Image<B>{};
+	}
+	return result;
+}
+
+template <class B>
 cgss::basic_Texture<B> cgss::basic_Texture<B>::create(const basic_Image<B>& image) {
 	auto result = basic_Texture{};
 	// texture_create_from_image allocates GPU storage sized to the image
@@ -196,6 +206,11 @@ const typename cgss::basic_Texture<B>::native_type& cgss::basic_Texture<B>::nati
 
 template <class B>
 cgss::TextureFactorNpot cgss::basic_Texture<B>::factorNpot() const {
+	// (1, 1) unless the backend pads the storage to the next power of two:
+	// over-correcting on desktop would crop textures sampled with it.
+	if (B::Ops::texture_supports_npot()) {
+		return { 1.0, 1.0 };
+	}
 	const auto sz = B::Ops::get_texture_size(*m_texture);
 	return {
 		static_cast<double>(sz.x) / getNpotSize(sz.x),

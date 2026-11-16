@@ -60,6 +60,10 @@ namespace cgss {
 
 		basic_Texture clone() const;
 
+		// Read the GPU texels back into a new CPU image (slow: GPU sync).
+		// Empty image when the texture has no storage.
+		basic_Image<B> copyToImage() const;
+
 		bool load(const TextureLoader& loader);
 		unsigned int write(TextureSaver& saver) const;
 

@@ -39,4 +39,9 @@ ImageData *get_image(VALUE self);
 // mutation of the Image — call again after mutations to refresh.
 cgss::Texture& image_acquire_texture(ImageData *img);
 
+// Wrap a GPU texture (e.g. a viewport / window snapshot) in a new Ruby Image:
+// pixels are read back once for the CPU side, and the texture itself becomes
+// the image's cached GPU copy (no re-upload when it is drawn).
+VALUE image_from_texture(cgss::Texture&& texture);
+
 #endif

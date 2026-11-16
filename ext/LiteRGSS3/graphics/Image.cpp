@@ -50,6 +50,23 @@ cgss::Texture& image_acquire_texture(ImageData *img)
     return img->cachedTexture;
 }
 
+VALUE image_from_texture(cgss::Texture&& texture)
+{
+    cgss::Image pixels = texture.copyToImage();
+    const unsigned int w = pixels.width() > 0 ? pixels.width() : 1;
+    const unsigned int h = pixels.height() > 0 ? pixels.height() : 1;
+    VALUE args[2] = { UINT2NUM(w), UINT2NUM(h) };
+    VALUE result = rb_class_new_instance(2, args, rb_cImage);
+    if (pixels.width() == 0 || pixels.height() == 0) return result;
+
+    auto *img = get_image(result);
+    img->image = std::move(pixels);
+    img->cachedTexture = std::move(texture);
+    img->textureValid = true;
+    img->textureDirty = false;
+    return result;
+}
+
 VALUE rb_Image_Initialize(int argc, VALUE *argv, VALUE self)
 {
     VALUE arg1, arg2;

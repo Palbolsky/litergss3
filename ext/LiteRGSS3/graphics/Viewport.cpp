@@ -197,11 +197,7 @@ VALUE rb_Viewport_snapToBitmap(VALUE self)
     auto *vp = get_viewport(self);
     if (vp->viewport) {
         auto snapshot = vp->viewport->takeSnapshot();
-        if (snapshot) {
-            const auto sz = snapshot->getSize();
-            VALUE args[2] = { UINT2NUM(sz.x), UINT2NUM(sz.y) };
-            return rb_class_new_instance(2, args, rb_cImage);
-        }
+        if (snapshot) return image_from_texture(std::move(*snapshot));
     }
     const long w = vp->width  > 0 ? vp->width  : 1;
     const long h = vp->height > 0 ? vp->height : 1;

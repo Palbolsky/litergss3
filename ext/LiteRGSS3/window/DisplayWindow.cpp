@@ -468,9 +468,7 @@ VALUE rb_DisplayWindow_snapToBitmap(VALUE self)
 		VALUE args[2] = { LONG2NUM(w > 0 ? w : 1), LONG2NUM(h > 0 ? h : 1) };
 		return rb_class_new_instance(2, args, rb_cImage);
 	}
-	const auto sz = snapshot->getSize();
-	VALUE args[2] = { UINT2NUM(sz.x), UINT2NUM(sz.y) };
-	return rb_class_new_instance(2, args, rb_cImage);
+	return image_from_texture(std::move(*snapshot));
 }
 
 // --- Event callbacks -------------------------------------------------------
