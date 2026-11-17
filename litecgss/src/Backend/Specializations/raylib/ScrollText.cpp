@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <mutex>
+#include <string>
 #include <string_view>
 
 #include "Backend/ActiveBackend.h"
@@ -30,8 +31,12 @@ namespace {
 	// padding=4, so up to 4 px of expansion is safe: the source-rect
 	// expansion samples into pre-zeroed inter-glyph gutter, never into
 	// neighbouring glyphs.
-	constexpr const char* kOutlineFragShader = R"GLSL(
-#version 330
+	//
+	// The body is GLSL 330 and GLSL ES 3.00 alike: its #version (and the ES
+	// precision) follows the shader target, as the preprocessed shaders do.
+	// A desktop-only #version 330 failed on GL ES 3 (Android), silently
+	// leaving the +1,+1 stamp below: outlines drawn as a drop shadow.
+	constexpr const char* kOutlineFragShaderBody = R"GLSL(
 in vec2 fragTexCoord;
 in vec4 fragColor;
 uniform sampler2D texture0;
@@ -41,11 +46,18 @@ uniform float thickness;
 out vec4 finalColor;
 void main() {
     float centre = texture(texture0, fragTexCoord).a;
+    // Every atlas pixel within the outline's disc (not only the ones at
+    // exactly +/-thickness: a 2 px outline left a gap at 1 px), up to the
+    // atlas' 4 px glyph padding. The +1 keeps the diagonals of a 1 px
+    // outline and rounds a 2 px one as FreeType's stroker does (LiteRGSS2:
+    // tests/scenes/text_shadow_outline.rb)
+    float reach = thickness * thickness + 1.0;
     float n = 0.0;
-    for (int dy = -1; dy <= 1; ++dy) {
-        for (int dx = -1; dx <= 1; ++dx) {
-            if (dx == 0 && dy == 0) continue;
-            vec2 off = vec2(float(dx), float(dy)) * atlasTexel * thickness;
+    for (int dy = -4; dy <= 4; ++dy) {
+        for (int dx = -4; dx <= 4; ++dx) {
+            float d2 = float(dx * dx + dy * dy);
+            if (d2 == 0.0 || d2 > reach) continue;
+            vec2 off = vec2(float(dx), float(dy)) * atlasTexel;
             n = max(n, texture(texture0, fragTexCoord + off).a);
         }
     }
@@ -77,8 +89,15 @@ void main() {
 		auto& s = outlineShaderState();
 		if (s.tried) return s.shader.id != 0;
 		s.tried = true;
-		s.shader = ::LoadShaderFromMemory(nullptr, kOutlineFragShader);
-		if (s.shader.id == 0) return false;
+		using Ops = cgss::backend::ActiveBackend::Ops;
+		const bool es = Ops::shader_preprocessor_target() == cgss::ShaderPreprocessor::Target::RaylibGlslEs300;
+		const std::string source = std::string(es ? "#version 300 es\nprecision highp float;\n" : "#version 330\n")
+			+ kOutlineFragShaderBody;
+		s.shader = ::LoadShaderFromMemory(nullptr, source.c_str());
+		if (s.shader.id == 0) {
+			::TraceLog(LOG_WARNING, "LiteCGSS: the text outline shader failed to load: outlines are drawn as a +1,+1 stamp");
+			return false;
+		}
 		s.locAtlasTexel = ::GetShaderLocation(s.shader, "atlasTexel");
 		s.locThickness  = ::GetShaderLocation(s.shader, "thickness");
 		return true;
