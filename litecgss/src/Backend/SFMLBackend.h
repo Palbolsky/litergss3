@@ -730,6 +730,9 @@ namespace cgss::backend {
 		static inline bool font_load_from_memory(native_font& f, const void* data, std::size_t size) {
 			return f.loadFromMemory(data, size);
 		}
+		static inline bool font_load_from_memory_with_size(native_font& f, const void* data, std::size_t size, int /*fontSize*/) {
+			return f.loadFromMemory(data, size);
+		}
 		// No-op on SFML — sf::Font's dtor releases its font-face data via
 		// its own unique_ptr<sf::Font> deleter. Exposed for Ops-symmetry
 		// with RaylibBackend::Ops::font_destroy, which must call UnloadFont
