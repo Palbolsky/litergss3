@@ -14,6 +14,12 @@
 #                       (default prefix then: vendor/deps-android-<ABI>)
 #   --ndk DIR           Android NDK (default: $ANDROID_NDK)
 #   --api N             Android API level (default: 26, as litergss-everywhere)
+#   --raylib-patches DIR  apply the raylib patches listed in DIR/series (patch
+#                       -p1), e.g. litergss-everywhere's
+#                       cmake/litergss-app/patches/raylib/android: with
+#                       --android, raylib is then built PLATFORM=AndroidHosted
+#                       (rendering into the host's surface; LiteCGSS' Android
+#                       host surface needs it)
 #   --with LIST         extras, comma-separated: gtest, tracy, tracy-tools
 #                       (default for host builds: gtest)
 #   -h, --help
@@ -35,6 +41,7 @@ ABI=""
 NDK="${ANDROID_NDK:-}"
 API=26
 WITH=""
+RAYLIB_PATCHES=""
 
 usage() { sed -n '2,/^$/{s/^# \{0,1\}//;p}' "${BASH_SOURCE[0]}"; }
 
@@ -45,6 +52,7 @@ while [[ $# -gt 0 ]]; do
 		--ndk)     NDK="$2"; shift 2 ;;
 		--api)     API="$2"; shift 2 ;;
 		--with)    WITH="$2"; shift 2 ;;
+		--raylib-patches) RAYLIB_PATCHES="$(cd "$2" && pwd)"; shift 2 ;;
 		-h|--help) usage; exit 0 ;;
 		*) echo "build-deps: unknown option $1" >&2; usage >&2; exit 2 ;;
 	esac
@@ -88,11 +96,25 @@ build() { # name source-dir cmake-args...
 		|| die "$name: install failed ($PREFIX/build-$name.log)"
 }
 
+RAYLIB_SRC="$(fetch raylib https://github.com/raysan5/raylib.git "$RAYLIB_TAG")"
+if [[ -n "$RAYLIB_PATCHES" ]]; then
+	[[ -f "$RAYLIB_PATCHES/series" ]] || die "--raylib-patches: no series file in $RAYLIB_PATCHES"
+	while read -r patch; do
+		[[ -z "$patch" || "$patch" == \#* ]] && continue
+		# Already applied (it reverses cleanly): nothing to do
+		if ! (cd "$RAYLIB_SRC" && patch -p1 -R -s -f --dry-run -i "$RAYLIB_PATCHES/$patch" > /dev/null 2>&1); then
+			(cd "$RAYLIB_SRC" && patch -p1 -s -f --no-backup-if-mismatch -i "$RAYLIB_PATCHES/$patch") || die "raylib: $patch does not apply"
+		fi
+		echo "== raylib: $patch"
+	done < "$RAYLIB_PATCHES/series"
+fi
 RAYLIB_ARGS=(-DBUILD_SHARED_LIBS=OFF -DBUILD_EXAMPLES=OFF)
-if [[ -n "$ABI" ]]; then
+if [[ -n "$ABI" && -n "$RAYLIB_PATCHES" ]]; then
+	RAYLIB_ARGS+=(-DPLATFORM=AndroidHosted)
+elif [[ -n "$ABI" ]]; then
 	RAYLIB_ARGS+=(-DPLATFORM=Android "-DOPENGL_VERSION=ES 3.0")
 fi
-build raylib "$(fetch raylib https://github.com/raysan5/raylib.git "$RAYLIB_TAG")" "${RAYLIB_ARGS[@]}"
+build raylib "$RAYLIB_SRC" "${RAYLIB_ARGS[@]}"
 
 # physfs 3.2.0 declares cmake_minimum_required(VERSION 2.8.x), which CMake 4 rejects.
 build physfs "$(fetch physfs https://github.com/icculus/physfs.git "$PHYSFS_TAG")" \

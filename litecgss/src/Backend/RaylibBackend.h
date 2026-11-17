@@ -36,6 +36,13 @@
 // redefine Matrix.
 #include <raylib.h>
 #include <rlgl.h>
+// Android, hosted surface (raylib built PLATFORM=AndroidHosted, see
+// Specializations/raylib/AndroidHostSurface.cpp): the render thread applies
+// the host's surface and input when it pumps events, drawing or not.
+#if (defined(__ANDROID__) || defined(ANDROID)) && __has_include(<raylib_android_hosted.h>)
+#  include <raylib_android_hosted.h>
+#  define CGSS_RAYLIB_ANDROID_HOSTED 1
+#endif
 
 // The raylib LiteCGSS is written for (its CMake checks the same at configure time).
 static_assert(RAYLIB_VERSION_MAJOR >= 6, "LiteCGSS needs raylib 6.0 or newer");
@@ -329,10 +336,16 @@ namespace cgss::backend {
 		// that produces these events from raylib's polled-only API.
 		// The events are the screen owner's.
 		static inline bool window_poll_event(native_window& w, native_event& ev) {
+#ifdef CGSS_RAYLIB_ANDROID_HOSTED
+			RaylibHostedPump();
+#endif
 			return owns_screen(w) && raylib_detail::tryPopEvent(ev);
 		}
 		// raylib has no blocking-wait primitive; fall back to the poll form.
 		static inline bool window_wait_event(native_window& w, native_event& ev) {
+#ifdef CGSS_RAYLIB_ANDROID_HOSTED
+			RaylibHostedPump();
+#endif
 			return owns_screen(w) && raylib_detail::tryPopEvent(ev);
 		}
 
