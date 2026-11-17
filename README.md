@@ -59,7 +59,7 @@ the host), `libLiteCGSS_engine.a`, `libskalog.a` and the public headers
 header folders are given instead (`LITERGSS_EMBEDDED`).
 
     export ANDROID_NDK=<ndk>                                   # r25b+
-    export LITERGSS_RUBY_HDR_DIR=<target ruby>/include         # has ruby.h
+    export LITERGSS_RUBY_HDR_DIR=<target ruby>/include         # has ruby/ruby.h
     export LITERGSS_RUBY_ARCH_HDR_DIR=<target ruby>/include/<arch>  # has ruby/config.h
     tools/deps/build-deps.sh --android arm64-v8a               # raylib (Android, GL ES 3) + PhysicsFS
     cmake --preset android-arm64-v8a && cmake --build --preset android-arm64-v8a
