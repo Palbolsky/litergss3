@@ -1,0 +1,55 @@
+#version 300 es
+// [LiteCGSS::ShaderPreprocessor glsl330]
+// [LiteCGSS::ShaderPreprocessor processed]
+in vec3 vertexPosition;
+in vec2 vertexTexCoord;
+in vec4 vertexColor;
+uniform mat4 mvp;
+out vec2 v_texture_coordinates;
+out vec2 v_inv_texture_coordinates;
+out vec4 sf_color;
+out vec2 v_factor_npot;
+vec4 sf_Vertex;
+vec4 sf_MultiTexCoord0;
+vec4 sf_Color;
+mat4 sf_ModelViewProjectionMatrix;
+mat4 sf_modelview;
+mat4 sf_projection;
+mat4 sf_TextureMatrix;
+vec4 sf_TexCoord[2];
+// Old PSDK (Foret Eternelle) graphics/shaders/map_viewport.vert: desktop fixed
+// pipeline built-ins, a uniform initializer, "1 - y" and a local named like
+// SFML ES's position attribute.
+uniform bool in_snapshot;
+
+// Entry point function
+void sf_legacy_main()
+{
+  vec2 position = (sf_TextureMatrix * sf_MultiTexCoord0).xy;
+  if (in_snapshot) {
+    sf_TexCoord[1].xy = vec2(position.x, 1.0 - position.y);
+  } else {
+    sf_TexCoord[1].xy = position;
+  }
+  sf_TexCoord[0].xy = position;
+  gl_Position = sf_ModelViewProjectionMatrix * sf_Vertex;
+  sf_color = sf_Color;
+}
+
+void main()
+{
+    sf_Vertex = vec4(vertexPosition, 1.0);
+    sf_MultiTexCoord0 = vec4(vertexTexCoord, 0.0, 1.0);
+    sf_Color = vertexColor;
+    sf_ModelViewProjectionMatrix = mvp;
+    sf_modelview = mat4(1.0);
+    sf_projection = mvp;
+    sf_color = sf_Color;
+    sf_TextureMatrix = mat4(1.0);
+    sf_TexCoord[0] = sf_TextureMatrix * sf_MultiTexCoord0;
+    sf_TexCoord[1] = sf_TexCoord[0];
+    sf_legacy_main();
+    v_texture_coordinates = sf_TexCoord[0].xy;
+    v_inv_texture_coordinates = sf_TexCoord[1].xy;
+    v_factor_npot = vec2(1.0, 1.0);
+}

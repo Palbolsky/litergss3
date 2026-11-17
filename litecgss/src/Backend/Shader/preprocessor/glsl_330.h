@@ -19,7 +19,10 @@
 
 namespace cgss::glsl {
 
-std::string toGlsl330(const std::string& source, bool vertexStage);
+// `es`: GLSL ES 3.00 (`#version 300 es`) instead: the same syntax for what the
+// preprocessor emits, and fragment shaders get `precision highp float;` first
+// (GLSL ES has no default float precision there).
+std::string toGlsl330(const std::string& source, bool vertexStage, bool es = false);
 
 // True when `source` is already a toGlsl330 output (keeps processing idempotent).
 bool isGlsl330Processed(std::string_view source);

@@ -902,16 +902,19 @@ std::string writeNpotVarying(const std::string& source) {
 	return out + kNpotVaryingMain;
 }
 
-std::string enforceEsStrictness(const std::string& source, std::vector<ShaderPreprocessor::UniformDefault>& defaults) {
+std::string enforceEsStrictness(const std::string& source, std::vector<ShaderPreprocessor::UniformDefault>& defaults,
+                                bool glslEs100) {
 	const auto tokens = lex(source);
 	const SymbolTable sym = discoverSymbols(tokens, source);
 	std::vector<Edit> edits(tokens.size());
 	stripUniformInitializers(tokens, source, edits, defaults);
-	rewriteIntegerModulus(tokens, source, edits);
+	if (glslEs100) rewriteIntegerModulus(tokens, source, edits);
 	promoteIntegerLiterals(tokens, source, edits);
-	// After the promotion: element expressions are emitted with its edits
-	rewriteConstArrays(tokens, source, edits);
-	addRoundPolyfill(tokens, source, sym, edits);
+	if (glslEs100) {
+		// After the promotion: element expressions are emitted with its edits
+		rewriteConstArrays(tokens, source, edits);
+		addRoundPolyfill(tokens, source, sym, edits);
+	}
 	return emit(tokens, source, edits);
 }
 

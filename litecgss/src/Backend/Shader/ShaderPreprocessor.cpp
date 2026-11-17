@@ -194,7 +194,7 @@ bool rewritesBuiltins(Target target) {
 }
 
 cgss::glsl::VertexInterface vertexInterface(Target target) {
-	return target == Target::RaylibGlsl330 ? cgss::glsl::VertexInterface::Raylib : cgss::glsl::VertexInterface::SfmlEs;
+	return cgss::ShaderPreprocessor::isRaylibTarget(target) ? cgss::glsl::VertexInterface::Raylib : cgss::glsl::VertexInterface::SfmlEs;
 }
 
 // Desktop GL's default vertex shader, as SFML writes it: on GL ES / raylib the
@@ -223,7 +223,7 @@ std::string processFragmentModern(const std::string& source, Target target) {
 	const auto sym    = cgss::glsl::discoverSymbols(tokens, source);
 	std::string rewritten = cgss::glsl::rewriteAndEmit(tokens, source, sym, rewritesBuiltins(target));
 
-	rewritten = std::string(target == Target::RaylibGlsl330 ? kRaylibFragmentVaryingHeader : kFragmentVaryingHeader) + rewritten;
+	rewritten = std::string(cgss::ShaderPreprocessor::isRaylibTarget(target) ? kRaylibFragmentVaryingHeader : kFragmentVaryingHeader) + rewritten;
 	rewritten = std::string(kPrecisionBlock) + rewritten;
 	rewritten = std::string(kProcessedMarker) + rewritten;
 	return rewritten;
@@ -249,14 +249,15 @@ ShaderPreprocessor::Result ShaderPreprocessor::processDetailed(const std::string
 
 ShaderPreprocessor::Result ShaderPreprocessor::processDetailed(const std::string& source, Stage stage, const Options& opts) {
 	Result result;
-	if (opts.target == Target::RaylibGlsl330 && cgss::glsl::isGlsl330Processed(source)) {
+	if (isRaylibTarget(opts.target) && cgss::glsl::isGlsl330Processed(source)) {
 		result.source = source;
 		return result;
 	}
 	auto splittedShader = splitShader(source);
-	if (opts.target == Target::RaylibGlsl330) {
-		// raylib's desktop GL never defines GL_ES: keep the desktop branches
-		// of a GL ES-aware shader, which the rewrite below then handles.
+	if (isRaylibTarget(opts.target)) {
+		// Keep the desktop branches of a GL ES-aware shader, which the rewrite
+		// below then handles: its GL ES branches are written for SFML ES'
+		// attributes, not raylib's (and raylib's desktop GL never defines GL_ES).
 		splittedShader.body = cgss::glsl::resolveGlEsConditionals(splittedShader.body, false);
 	}
 
@@ -272,13 +273,15 @@ ShaderPreprocessor::Result ShaderPreprocessor::processDetailed(const std::string
 		splittedShader.body = cgss::glsl::rewriteLegacyVertex(splittedShader.body, vertexInterface(opts.target));
 		splittedShader.body = cgss::glsl::writeNpotVarying(splittedShader.body);
 	}
-	if (opts.target == Target::SfmlEs100) {
-		splittedShader.body = cgss::glsl::enforceEsStrictness(splittedShader.body, result.uniformDefaults);
+	if (opts.target == Target::SfmlEs100 || opts.target == Target::RaylibGlslEs300) {
+		splittedShader.body = cgss::glsl::enforceEsStrictness(splittedShader.body, result.uniformDefaults,
+			opts.target == Target::SfmlEs100);
 	}
 
 	result.source = splittedShader.prologue + splittedShader.body;
-	if (opts.target == Target::RaylibGlsl330) {
-		result.source = cgss::glsl::toGlsl330(result.source, stage == Stage::Vertex);
+	if (isRaylibTarget(opts.target)) {
+		result.source = cgss::glsl::toGlsl330(result.source, stage == Stage::Vertex,
+			opts.target == Target::RaylibGlslEs300);
 	}
 	return result;
 }
@@ -292,6 +295,7 @@ const std::string& ShaderPreprocessor::defaultVertexShader(Target target) {
 		process(kFixedPipelineVertexShader, Stage::Vertex, Options{ Target::DesktopFixedPipeline }),
 		process(kFixedPipelineVertexShader, Stage::Vertex, Options{ Target::SfmlEs100 }),
 		process(kFixedPipelineVertexShader, Stage::Vertex, Options{ Target::RaylibGlsl330 }),
+		process(kFixedPipelineVertexShader, Stage::Vertex, Options{ Target::RaylibGlslEs300 }),
 	};
 	return shaders[static_cast<int>(target)];
 }
@@ -301,12 +305,13 @@ const std::string& ShaderPreprocessor::defaultFragmentShader(Target target) {
 		process(kFixedPipelineFragmentShader, Stage::Fragment, Options{ Target::DesktopFixedPipeline }),
 		process(kFixedPipelineFragmentShader, Stage::Fragment, Options{ Target::SfmlEs100 }),
 		process(kFixedPipelineFragmentShader, Stage::Fragment, Options{ Target::RaylibGlsl330 }),
+		process(kFixedPipelineFragmentShader, Stage::Fragment, Options{ Target::RaylibGlslEs300 }),
 	};
 	return shaders[static_cast<int>(target)];
 }
 
 std::string ShaderPreprocessor::uniformName(const std::string& name, Target target) {
-	return target == Target::RaylibGlsl330 ? cgss::glsl::glsl330UniformName(name) : name;
+	return isRaylibTarget(target) ? cgss::glsl::glsl330UniformName(name) : name;
 }
 
 } // namespace cgss

@@ -1,0 +1,46 @@
+#version 300 es
+precision highp float;
+// [LiteCGSS::ShaderPreprocessor glsl330]
+out vec4 cgss_FragColor;
+// [LiteCGSS::ShaderPreprocessor processed]
+#ifdef GL_ES
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+#else
+precision mediump float;
+#endif
+#endif
+in vec2 v_texture_coordinates;
+in vec2 v_inv_texture_coordinates;
+in vec4 sf_color;
+in vec2 v_factor_npot;
+// Negative-match cases: substrings that look like texture2D / gl_TexCoord /
+// gl_Color but are actually part of longer identifiers must NOT be rewritten.
+// (Identifier-boundary check exercises the i==0 || !isIdentChar(prev) guard
+// in wrapTexture2DCallsImpl and the \b anchors in the regex rewrites.)
+uniform sampler2D texture0;
+
+// --- per-sampler NPOT factors (auto-generated) ---
+#define texture_factor_npot v_factor_npot
+// -------------------------------------------------
+vec2 my_texture2D_helper(vec2 uv) {
+  return uv * 2.0;
+}
+
+float read_gl_Color_alpha(vec4 c) {
+  return c.a;
+}
+
+float pick_from_gl_TexCoord_slot(vec2 uv) {
+  return uv.x;
+}
+
+void main() {
+  vec2 uv = my_texture2D_helper((v_texture_coordinates / v_factor_npot).xy);
+  vec4 frag = texture(texture0, (uv) * texture_factor_npot);
+  frag.a *= read_gl_Color_alpha(frag);
+  float k = pick_from_gl_TexCoord_slot(uv);
+  cgss_FragColor = frag * k;
+}

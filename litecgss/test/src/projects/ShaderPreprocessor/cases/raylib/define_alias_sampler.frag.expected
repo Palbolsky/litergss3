@@ -21,7 +21,7 @@ in vec2 v_factor_npot;
 // the output — the GLSL compiler's own preprocessor expands the macro
 // before compilation.
 uniform sampler2D texture0;
-#define TEX texture
+#define TEX texture0
 
 // --- per-sampler NPOT factors (auto-generated) ---
 #define texture_factor_npot v_factor_npot

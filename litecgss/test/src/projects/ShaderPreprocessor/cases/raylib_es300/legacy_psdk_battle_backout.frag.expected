@@ -1,0 +1,66 @@
+#version 300 es
+precision highp float;
+// [LiteCGSS::ShaderPreprocessor glsl330]
+out vec4 cgss_FragColor;
+// [LiteCGSS::ShaderPreprocessor processed]
+#ifdef GL_ES
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+#else
+precision mediump float;
+#endif
+#endif
+in vec2 v_texture_coordinates;
+in vec2 v_inv_texture_coordinates;
+in vec4 sf_color;
+in vec2 v_factor_npot;
+// Old PSDK (Foret Eternelle) graphics/shaders/battle_backout.frag: integer arguments to built-ins,
+// round() (GLSL 1.30), float / int.
+uniform sampler2D texture0;
+uniform float time;
+uniform sampler2D bk0;
+uniform sampler2D bk1;
+uniform sampler2D bk2;
+uniform sampler2D bk3;
+uniform sampler2D bk4;
+uniform sampler2D bk5;
+const vec2 bkDistr = vec2(10, 8);
+const vec4 blank = vec4(0, 0, 0, 0);
+// --- per-sampler NPOT factors (auto-generated) ---
+#define texture_factor_npot v_factor_npot
+uniform vec2 bk0_factor_npot;
+uniform vec2 bk1_factor_npot;
+uniform vec2 bk2_factor_npot;
+uniform vec2 bk3_factor_npot;
+uniform vec2 bk4_factor_npot;
+uniform vec2 bk5_factor_npot;
+// -------------------------------------------------
+void main()
+{
+  vec4 bkfrag;
+  vec2 bkCoord = mod((v_texture_coordinates / v_factor_npot).xy * bkDistr, 1.0);
+  float currentTime = time * (bkDistr.x + 6.0);
+  float currentPos = ceil((1.0 - (v_texture_coordinates / v_factor_npot).x) * bkDistr.x);
+  if (currentTime >= currentPos) {
+    float texIndex = floor(currentTime - currentPos);
+    if (texIndex < 1.0) {
+      bkfrag = texture(bk5, (bkCoord) * bk5_factor_npot);
+    } else if (texIndex < 2.0) {
+      bkfrag = texture(bk4, (bkCoord) * bk4_factor_npot);
+    } else if (texIndex < 3.0) {
+      bkfrag = texture(bk3, (bkCoord) * bk3_factor_npot);
+    } else if (texIndex < 4.0) {
+      bkfrag = texture(bk2, (bkCoord) * bk2_factor_npot);
+    } else if (texIndex < 5.0) {
+      bkfrag = texture(bk1, (bkCoord) * bk1_factor_npot);
+    } else {
+      bkfrag = texture(bk0, (bkCoord) * bk0_factor_npot);
+    }
+  } else {
+    bkfrag = blank;
+  }
+  vec4 frag = texture(texture0, ((v_texture_coordinates / v_factor_npot).xy) * texture_factor_npot);
+  cgss_FragColor = vec4(mix(frag, bkfrag, round(bkfrag.a * 6.0) / 6.0).rgb, 1);
+}

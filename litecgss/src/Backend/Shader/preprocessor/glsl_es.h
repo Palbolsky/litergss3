@@ -47,8 +47,11 @@ std::string writeNpotVarying(const std::string& source);
 
 // Makes the source acceptable to a GLSL ES compiler: removes uniform
 // initializers (appending their values to `defaults`) and turns integer
-// literals next to a float operand into float literals.
+// literals next to a float operand into float literals. For GLSL ES 1.00
+// (`glslEs100`) also what 1.00 lacks and 3.00 has: integer `%`, round(),
+// const arrays indexed at run time.
 std::string enforceEsStrictness(const std::string& source,
-                                std::vector<ShaderPreprocessor::UniformDefault>& defaults);
+                                std::vector<ShaderPreprocessor::UniformDefault>& defaults,
+                                bool glslEs100 = true);
 
 } // namespace cgss::glsl

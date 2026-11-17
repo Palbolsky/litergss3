@@ -46,7 +46,40 @@ std::string glsl330UniformName(const std::string& name) {
 	return name;
 }
 
-std::string toGlsl330(const std::string& source, bool vertexStage) {
+// A `#define` line, its replacement list converted like code (the sampler
+// `texture` -> texture0, texture2D & co, reserved words), its macro name kept:
+// `#define TEX texture` must still name the sampler once it's renamed.
+static std::string convertDefine(std::string_view directive) {
+	const std::size_t keyword = directive.find("define");
+	if (keyword == std::string_view::npos) return std::string(directive);
+	std::string out(directive.substr(0, keyword + 6));
+	const std::string rest(directive.substr(keyword + 6));
+	const auto tokens = lex(rest);
+	bool nameSeen = false;
+	for (std::size_t i = 0; i < tokens.size(); ++i) {
+		const std::string_view s = text(tokens[i], rest);
+		if (tokens[i].kind != TokenKind::Ident) {
+			out.append(s);
+		} else if (!nameSeen) {
+			nameSeen = true;
+			out.append(s);
+		} else if (const auto fn = textureFunction(s); !fn.empty()) {
+			out.append(fn);
+		} else if (s == "texture") {
+			const std::size_t next = skipTrivia(tokens, i + 1);
+			const bool call = next < tokens.size() && isPunctChar(tokens[next], rest, '(');
+			out.append(call ? "texture" : "texture0");
+		} else if (isReservedIn330(s)) {
+			out.append(s);
+			out.push_back('_');
+		} else {
+			out.append(s);
+		}
+	}
+	return out;
+}
+
+std::string toGlsl330(const std::string& source, bool vertexStage, bool es) {
 	if (isGlsl330Processed(source)) return source;
 	const auto tokens = lex(source);
 
@@ -65,6 +98,10 @@ std::string toGlsl330(const std::string& source, bool vertexStage) {
 				extensions.push_back('\n');
 			}
 			if (i + 1 < tokens.size() && tokens[i + 1].kind == TokenKind::Newline) ++i;
+			continue;
+		}
+		if (t.kind == TokenKind::Preproc && startsWithDirective(s, "define")) {
+			body.append(convertDefine(s));
 			continue;
 		}
 		if (t.kind != TokenKind::Ident) {
@@ -94,7 +131,10 @@ std::string toGlsl330(const std::string& source, bool vertexStage) {
 		}
 	}
 
-	std::string out = "#version 330\n";
+	std::string out = es ? "#version 300 es\n" : "#version 330\n";
+	// GLSL ES fragment shaders have no default float precision, and the
+	// declarations below come before the precision block: highp from the start.
+	if (es && !vertexStage) out.append("precision highp float;\n");
 	out.append(kMarker);
 	out.append(extensions);
 	if (usesFragColor) out.append("out vec4 cgss_FragColor;\n");

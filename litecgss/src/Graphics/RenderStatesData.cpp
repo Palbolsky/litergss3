@@ -189,7 +189,7 @@ bool cgss::basic_RenderStatesData<B>::loadShaderFromMemory(const std::string& sh
 		// Without the fixed pipeline, the vertex stage must write the
 		// varyings the processed fragment shader reads.
 		success = B::Ops::shader_load_from_memory(*m_shader, Preprocessor::defaultVertexShader(target), processed.source);
-	} else if (target == Preprocessor::Target::RaylibGlsl330 && type == cgss::ShaderType::Vertex) {
+	} else if (Preprocessor::isRaylibTarget(target) && type == cgss::ShaderType::Vertex) {
 		// raylib's default fragment stage reads other varyings.
 		success = B::Ops::shader_load_from_memory(*m_shader, processed.source, Preprocessor::defaultFragmentShader(target));
 	} else {

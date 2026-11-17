@@ -93,7 +93,18 @@ public:
 		// cgss_FragColor, the `texture` sampler renamed texture0 — the one
 		// raylib binds the drawn texture to; see uniformName()).
 		RaylibGlsl330,
+		// raylib on GL ES 3 (Android): RaylibGlsl330's rewrite, as GLSL ES
+		// 3.00 (#version 300 es, highp in fragment shaders through the
+		// precision block), with what GLSL ES forbids rewritten (uniform
+		// initializers, integer literals next to float operands — step 9's
+		// first two; 3.00 has the rest).
+		RaylibGlslEs300,
 	};
+
+	// Targets on raylib's attributes and uniforms (RaylibGlsl330, RaylibGlslEs300).
+	static constexpr bool isRaylibTarget(Target target) {
+		return target == Target::RaylibGlsl330 || target == Target::RaylibGlslEs300;
+	}
 
 	struct Options {
 		Target target = Target::SfmlEs100;

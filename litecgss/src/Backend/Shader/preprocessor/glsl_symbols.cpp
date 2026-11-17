@@ -255,6 +255,20 @@ SymbolTable discoverSymbols(const std::vector<Token>& tokens, std::string_view s
 				c = parseUniform(c, sym);
 				continue;
 			}
+			// `const vec2 <sampler>_factor_npot = ...;` declares the factor as
+			// much as a uniform does (a shader's desktop branch: a padded-
+			// coordinates PSDK shader keeps its own maths, 1.0 off GL ES).
+			if (c == "const") {
+				auto type = c.next().skipTrivia().skipIdents("highp", "mediump", "lowp");
+				if (type.isIdent() && type.text() == "vec2") {
+					auto name = type.next().skipTrivia();
+					if (name.isIdent() && endsWith(name.text(), "_factor_npot")) {
+						pushUnique(sym.declaredFactorNpots, name.text());
+					}
+				}
+				c = c.next();
+				continue;
+			}
 			// Try to interpret c as the return type of a function declaration
 			// (definition or forward decl). On success this advances to the
 			// body's '{' (definition — the '{' bumps `depth` on the next

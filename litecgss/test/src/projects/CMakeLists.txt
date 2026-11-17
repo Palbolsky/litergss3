@@ -31,3 +31,16 @@ FOREACH(subdir ${SUBDIRS})
 		message(STATUS "Not building ${subdir} because physfs is disabled and it depends on it.")
 	endif()
 ENDFOREACH()
+
+# The GLSL ES 3.00 golden files (ShaderPreprocessor, Target::RaylibGlslEs300)
+# compiled by glslangValidator, the Khronos reference compiler, when installed
+# (apt install glslang-tools): valid GLSL ES 3.00 without a GL ES device.
+find_program(GLSLANG_VALIDATOR NAMES glslangValidator)
+if(GLSLANG_VALIDATOR)
+	add_test(NAME LiteCGSS.ShaderPreprocessor.glslang
+		COMMAND ${CMAKE_COMMAND} -DVALIDATOR=${GLSLANG_VALIDATOR}
+			-DDIR=${CMAKE_CURRENT_SOURCE_DIR}/ShaderPreprocessor/cases/raylib_es300
+			-P ${LITECGSS_ROOT_DIR}/test/ValidateGlsl.cmake)
+else()
+	message(STATUS "glslangValidator not found: the GLSL ES 3.00 golden files are not compiled (apt install glslang-tools)")
+endif()

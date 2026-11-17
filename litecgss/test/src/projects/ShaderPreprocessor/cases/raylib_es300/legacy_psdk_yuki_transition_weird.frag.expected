@@ -1,0 +1,39 @@
+#version 300 es
+precision highp float;
+// [LiteCGSS::ShaderPreprocessor glsl330]
+out vec4 cgss_FragColor;
+// [LiteCGSS::ShaderPreprocessor processed]
+#ifdef GL_ES
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+#else
+precision mediump float;
+#endif
+#endif
+in vec2 v_texture_coordinates;
+in vec2 v_inv_texture_coordinates;
+in vec4 sf_color;
+in vec2 v_factor_npot;
+// Old PSDK (Foret Eternelle) graphics/shaders/yuki_transition_weird.txt: integer arguments to sqrt() / mix().
+uniform float alpha;
+uniform float tau;
+uniform float radius;
+uniform sampler2D texture0;
+// --- per-sampler NPOT factors (auto-generated) ---
+#define texture_factor_npot v_factor_npot
+// -------------------------------------------------
+void main()
+{
+  float x = (v_texture_coordinates / v_factor_npot).x - .5;
+  float y = (v_texture_coordinates / v_factor_npot).y - .5;
+  float val = sqrt(x * x + y * y) / sqrt(2.0);
+  if(val <= radius)
+  { val = mix(1.0, exp(- (val - radius) / tau), alpha); }
+  else
+  { val = 1.; }
+  x = (x * val) + .5;
+  y = (y * val) + .5;
+  cgss_FragColor = texture(texture0, (vec2(x, y)) * texture_factor_npot);
+}

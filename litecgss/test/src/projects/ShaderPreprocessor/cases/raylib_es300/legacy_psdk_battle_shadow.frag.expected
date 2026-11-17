@@ -1,0 +1,31 @@
+#version 300 es
+precision highp float;
+// [LiteCGSS::ShaderPreprocessor glsl330]
+out vec4 cgss_FragColor;
+// [LiteCGSS::ShaderPreprocessor processed]
+#ifdef GL_ES
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+#else
+precision mediump float;
+#endif
+#endif
+in vec2 v_texture_coordinates;
+in vec2 v_inv_texture_coordinates;
+in vec4 sf_color;
+in vec2 v_factor_npot;
+// Old PSDK (Foret Eternelle) graphics/shaders/battle_shadow.frag: integer
+// constructor arguments, which GLSL ES accepts.
+uniform sampler2D texture0;
+const vec4 gray = vec4(0.5, 0.5, 0.5, 0.8);
+const vec4 blank = vec4(0, 0, 0, 0);
+// --- per-sampler NPOT factors (auto-generated) ---
+#define texture_factor_npot v_factor_npot
+// -------------------------------------------------
+void main()
+{
+  vec4 frag = texture(texture0, ((v_texture_coordinates / v_factor_npot).xy) * texture_factor_npot);
+  cgss_FragColor = mix(blank, gray, frag.a) * sf_color;
+}

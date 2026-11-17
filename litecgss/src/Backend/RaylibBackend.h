@@ -876,14 +876,15 @@ namespace cgss::backend {
 			return v == RL_OPENGL_11 || v == RL_OPENGL_21;
 		}
 
-		// Preprocessor target: GLSL 330 core on raylib's attributes for
-		// desktop GL 3.3 / 4.3 builds. Other raylib profiles (GL 1.1 / 2.1,
-		// GL ES 2) have no dedicated target yet and get sources unchanged.
+		// Preprocessor target, on raylib's attributes: GLSL 330 core for
+		// desktop GL 3.3 / 4.3 builds, GLSL ES 3.00 for GL ES 3 (Android).
+		// Other raylib profiles (GL 1.1 / 2.1, GL ES 2) have no dedicated
+		// target and get sources unchanged.
 		static inline cgss::ShaderPreprocessor::Target shader_preprocessor_target() {
 			const int v = rlGetVersion();
-			return v == RL_OPENGL_33 || v == RL_OPENGL_43
-				? cgss::ShaderPreprocessor::Target::RaylibGlsl330
-				: cgss::ShaderPreprocessor::Target::DesktopFixedPipeline;
+			if (v == RL_OPENGL_33 || v == RL_OPENGL_43) return cgss::ShaderPreprocessor::Target::RaylibGlsl330;
+			if (v == RL_OPENGL_ES_30) return cgss::ShaderPreprocessor::Target::RaylibGlslEs300;
+			return cgss::ShaderPreprocessor::Target::DesktopFixedPipeline;
 		}
 
 		// raylib never pads textures to a power of two.

@@ -19,7 +19,7 @@ in vec2 v_factor_npot;
 // real sampler. Used at both a texture2D call and a helper call site to
 // exercise both wrap and call-site injection paths.
 uniform sampler2D texture0;
-#define B texture
+#define B texture0
 #define A B
 
 // --- per-sampler NPOT factors (auto-generated) ---

@@ -1,0 +1,32 @@
+#version 300 es
+precision highp float;
+// [LiteCGSS::ShaderPreprocessor glsl330]
+out vec4 cgss_FragColor;
+// [LiteCGSS::ShaderPreprocessor processed]
+#ifdef GL_ES
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+#else
+precision mediump float;
+#endif
+#endif
+in vec2 v_texture_coordinates;
+in vec2 v_inv_texture_coordinates;
+in vec4 sf_color;
+in vec2 v_factor_npot;
+uniform sampler2D texture0;
+uniform sampler2D noise;
+uniform sampler2D color_gradient;
+// --- per-sampler NPOT factors (auto-generated) ---
+#define texture_factor_npot v_factor_npot
+uniform vec2 noise_factor_npot;
+uniform vec2 color_gradient_factor_npot;
+// -------------------------------------------------
+void main() {
+  vec4 base  = texture(texture0, ((v_texture_coordinates / v_factor_npot).xy) * texture_factor_npot);
+  vec4 n     = texture(noise, ((v_texture_coordinates / v_factor_npot).xy) * noise_factor_npot);
+  vec4 c     = texture(color_gradient, (vec2(n.r, 0.5)) * color_gradient_factor_npot);
+  cgss_FragColor = base + n + c;
+}

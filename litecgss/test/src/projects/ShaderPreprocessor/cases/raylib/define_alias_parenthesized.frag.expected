@@ -19,7 +19,7 @@ in vec2 v_factor_npot;
 // peels the parens so the alias resolves to `texture`, just like the bare
 // `#define TEX texture` form would.
 uniform sampler2D texture0;
-#define TEX (texture)
+#define TEX (texture0)
 
 // --- per-sampler NPOT factors (auto-generated) ---
 #define texture_factor_npot v_factor_npot

@@ -1,0 +1,15 @@
+#version 300 es
+// [LiteCGSS::ShaderPreprocessor glsl330]
+// Vertex shaders are passed through unchanged: the engine does not inject
+// fragment-only varyings/precision blocks and does not rewrite gl_TexCoord
+// or gl_Color here. Verifying this protects map_viewport.vert and friends.
+in vec2 position;
+in vec2 texCoord;
+uniform mat4 sf_modelview;
+uniform mat4 sf_projection;
+out vec2 v_factor_npot;
+uniform vec2 factor_npot;
+void main() {
+  v_factor_npot = factor_npot;
+  gl_Position = sf_projection * sf_modelview * vec4(position, 0.0, 1.0);
+}
