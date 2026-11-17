@@ -69,9 +69,11 @@ The presets (`android-arm64-v8a`, `android-x86_64`) use
 `vendor/deps-android-<ABI>/` when it exists; a packager passes its own prefix
 (`-DCMAKE_PREFIX_PATH=<prefix> -DCMAKE_FIND_ROOT_PATH=<prefix>`: the NDK
 toolchain only searches under `CMAKE_FIND_ROOT_PATH`). The agent tooling is
-not built there. With a Ruby older than 3.2 (no internal thread events), the
-GL context stays with the thread that created the window: a window driven
-from another Ruby thread can't draw.
+not built there.
+
+The raylib backend needs **Ruby 3.2 or newer** (its one GL context follows the
+Ruby thread holding the GVL, through Ruby's internal thread events): the
+build refuses an older Ruby with it. The SFML backend has no such need.
 
 The tests open no window on the desktop: CTest runs the Ruby suite with
 `LITERGSS_HIDDEN_WINDOW=1`, whose windows (and GL contexts) are real but never

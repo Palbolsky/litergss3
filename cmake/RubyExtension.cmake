@@ -11,6 +11,16 @@
 
 include_guard(GLOBAL)
 
+# The raylib backend has one GL context for every window: it follows the Ruby
+# thread holding the GVL through Ruby's internal thread events (Ruby >= 3.2,
+# ext/LiteRGSS3/window/DisplayWindow.cpp). An older Ruby is refused there.
+function(_litergss_check_ruby_for_backend)
+	if(CGSS_BACKEND STREQUAL "raylib" AND LITERGSS_RUBY_API_VERSION VERSION_LESS 3.2)
+		message(FATAL_ERROR "The raylib backend needs Ruby 3.2 or newer (internal thread events: its GL context "
+			"follows the GVL); this Ruby is ${LITERGSS_RUBY_API_VERSION}. Use a newer Ruby, or the SFML backend.")
+	endif()
+endfunction()
+
 # Embedded (LITERGSS_EMBEDDED): the extension is a static library linked into
 # a host that embeds Ruby (litergss-everywhere's runtime, cross-compiled):
 # the target Ruby cannot run here, so its header folders are given, nothing
@@ -22,7 +32,12 @@ if(LITERGSS_EMBEDDED)
 		message(FATAL_ERROR "LITERGSS_EMBEDDED: give the target Ruby's headers: -DRUBY_HDR_DIR=<dir with ruby.h> "
 			"-DRUBY_ARCH_HDR_DIR=<dir with ruby/config.h> (now: '${RUBY_HDR_DIR}', '${RUBY_ARCH_HDR_DIR}')")
 	endif()
-	message(STATUS "Ruby (embedded): headers ${RUBY_HDR_DIR}, ${RUBY_ARCH_HDR_DIR}")
+	file(STRINGS "${RUBY_HDR_DIR}/ruby/version.h" _ruby_api REGEX "^#define RUBY_API_VERSION_(MAJOR|MINOR) ")
+	string(REGEX REPLACE ".*MAJOR ([0-9]+).*" "\\1" _ruby_major "${_ruby_api}")
+	string(REGEX REPLACE ".*MINOR ([0-9]+).*" "\\1" _ruby_minor "${_ruby_api}")
+	set(LITERGSS_RUBY_API_VERSION "${_ruby_major}.${_ruby_minor}")
+	message(STATUS "Ruby ${LITERGSS_RUBY_API_VERSION} (embedded): headers ${RUBY_HDR_DIR}, ${RUBY_ARCH_HDR_DIR}")
+	_litergss_check_ruby_for_backend()
 
 	function(add_ruby_extension target)
 		add_library(${target} STATIC ${ARGN})
@@ -53,6 +68,8 @@ _ruby_rbconfig(RUBY_DLEXT DLEXT)
 _ruby_rbconfig(RUBY_LIB_DIR libdir)
 _ruby_rbconfig(RUBY_LIBRUBY LIBRUBY)
 message(STATUS "Ruby ${RUBY_VERSION_STRING} (${RUBY_EXECUTABLE}), headers: ${RUBY_HDR_DIR}")
+string(REGEX MATCH "^[0-9]+\\.[0-9]+" LITERGSS_RUBY_API_VERSION "${RUBY_VERSION_STRING}")
+_litergss_check_ruby_for_backend()
 
 function(add_ruby_extension target)
 	add_library(${target} MODULE ${ARGN})

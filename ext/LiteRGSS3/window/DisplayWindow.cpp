@@ -106,9 +106,10 @@ namespace {
 	// (PSDK's error screen) finds it current. Released when a thread lets the
 	// GVL go, acquired when one gets it back; a frame drawn without the GVL
 	// holds it meanwhile (draw_without_gvl).
-	// Needs Ruby's internal thread events (Ruby >= 3.2). On an older Ruby
-	// (litergss-everywhere's 3.0 variant) the context stays with the thread
-	// that created the window: windows driven from other threads can't draw.
+	// Needs Ruby's internal thread events (Ruby >= 3.2): the build refuses an
+	// older Ruby with the raylib backend (cmake/RubyExtension.cmake), and a
+	// window of such a backend refuses to open on one (SFML has a context per
+	// window, it doesn't need them).
 #if RUBY_API_VERSION_MAJOR > 3 || (RUBY_API_VERSION_MAJOR == 3 && RUBY_API_VERSION_MINOR >= 2)
 #define LITERGSS_CONTEXT_FOLLOWS_GVL 1
 	bool g_context_follows_gvl = false;
@@ -134,7 +135,12 @@ namespace {
 	}
 #else
 	constexpr bool g_context_follows_gvl = false;
-	void install_context_hook() {}
+	void install_context_hook()
+	{
+		if (cgss::DisplayWindow::ContextFollowsThread()) {
+			rb_raise(rb_eRGSSError, "this graphics backend needs Ruby 3.2 or newer (its GL context follows the GVL)");
+		}
+	}
 #endif
 }
 
