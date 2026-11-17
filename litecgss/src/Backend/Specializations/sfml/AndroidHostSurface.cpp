@@ -44,6 +44,9 @@ namespace cgss::android::backend {
 		return sf::android::injectHostedEvent(event);
 	}
 
+	// SFML's Closed events live in its window's queue: they go with it
+	void dropClosed() {}
+
 	bool pushTouch(TouchPhase phase, int pointerId, float x, float y) {
 		sf::Event event;
 		event.type = phase == TouchPhase::Began ? sf::Event::TouchBegan

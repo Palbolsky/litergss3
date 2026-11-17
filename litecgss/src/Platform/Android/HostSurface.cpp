@@ -177,6 +177,7 @@ namespace cgss::android {
 	void hostSurfaceEventsDropped() {
 		std::lock_guard<std::mutex> lock(g_mutex);
 		g_closesQueued = 0;
+		backend::dropClosed();
 	}
 
 	void requestHostSurfaceClose() {

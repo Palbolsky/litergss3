@@ -25,6 +25,9 @@ namespace cgss::android::backend {
 	// queue (false: no window exists yet).
 	bool pushFocus(bool gained);
 	bool pushClosed();
+	// Forget the close requests not delivered yet (hostSurfaceEventsDropped),
+	// where they outlive their window: raylib keeps one window per process.
+	void dropClosed();
 	enum class TouchPhase { Began, Moved, Ended };
 	bool pushTouch(TouchPhase phase, int pointerId, float x, float y);
 

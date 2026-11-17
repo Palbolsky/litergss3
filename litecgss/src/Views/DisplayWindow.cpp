@@ -168,6 +168,9 @@ void cgss::basic_DisplayWindow<B>::applyReload(DisplayWindowSettings settings, b
 				// Don't call setSize() — on Android the native window is always fullscreen,
 				// and resizing would desync the backend's internal size from the actual surface.
 				LOG_WARN << "Reusing existing window instead of recreating";
+				// As a recreated one: the closes made for the previous
+				// DisplayWindow don't reach this one
+				cgss::android::hostSurfaceEventsDropped();
 				B::Ops::window_set_title(m_gameWindow, m_settings.title.c_str());
 			} else
 #endif
@@ -285,6 +288,9 @@ template <class B>
 void cgss::basic_DisplayWindow<B>::stop() {
 	m_snapshot.stop();
 	if (usesSharedWindow()) {
+		// A close this DisplayWindow never read was meant for it, not for
+		// the next one the preserved window serves
+		cgss::android::hostSurfaceEventsDropped();
 		// The preserved window stays open for the next DisplayWindow, left
 		// clean. That's GL work: skipped if the hosted surface is gone.
 		if (!cgss::android::beginHostedDraw()) {

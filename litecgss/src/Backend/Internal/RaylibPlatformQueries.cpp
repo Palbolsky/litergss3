@@ -1,6 +1,11 @@
 #include "Backend/Internal/RaylibPlatformQueries.h"
 
 #include <raylib.h>
+// Android, hosted surface (Backend/RaylibBackend.h): its EGL context
+#if (defined(__ANDROID__) || defined(ANDROID)) && __has_include(<raylib_android_hosted.h>)
+#  include <raylib_android_hosted.h>
+#  define CGSS_RAYLIB_ANDROID_HOSTED 1
+#endif
 
 #if defined(__ELF__)
 #  define CGSS_GLFW_WEAK __attribute__((weak))
@@ -89,7 +94,12 @@ namespace cgss::backend::raylib_detail {
 	}
 
 	bool makeContextCurrent(bool current) {
-#if CGSS_HAS_GLFW_QUERIES
+#if defined(CGSS_RAYLIB_ANDROID_HOSTED)
+		// raylib's hosted platform owns the EGL context: without this, it
+		// stays on the thread that created it, and a workload running on
+		// another thread draws and presents with no context (nothing shown)
+		return RaylibHostedMakeCurrent(current);
+#elif CGSS_HAS_GLFW_QUERIES
 		// The GLFW window owning the context, as GLFW reports it on the thread
 		// releasing it. Not GetWindowHandle(): from raylib 6.0 on, it returns
 		// the native (X11 / Wayland) window, not the GLFWwindow.

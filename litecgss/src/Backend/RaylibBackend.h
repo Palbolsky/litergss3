@@ -296,6 +296,15 @@ namespace cgss::backend {
 			return raylib_detail::maxTextureSize();
 		}
 		static inline Size2u desktop_size() noexcept {
+#ifdef CGSS_RAYLIB_ANDROID_HOSTED
+			// The host's surface is the screen, known before the window
+			// (as SFML's hosted Android reports it): games size their
+			// window from it (PSDK's fullscreen resolution)
+			int surfaceWidth = 0, surfaceHeight = 0;
+			if (RaylibHostedGetSurfaceSize(&surfaceWidth, &surfaceHeight)) {
+				return { static_cast<unsigned int>(surfaceWidth), static_cast<unsigned int>(surfaceHeight) };
+			}
+#endif
 			if (!IsWindowReady()) return { 0u, 0u };
 			const int m = GetCurrentMonitor();
 			return { static_cast<unsigned int>(GetMonitorWidth(m)),

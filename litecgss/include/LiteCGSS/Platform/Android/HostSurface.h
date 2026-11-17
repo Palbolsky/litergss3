@@ -123,8 +123,10 @@ namespace cgss::android {
 	// keeps beginHostedFrame from waiting.
 	void hostSurfaceCloseDelivered();
 
-	// The window closed or was recreated, its event queue with it: the
-	// Closed events queued there are no longer waited for.
+	// The window closed or was recreated, its event queue with it, or its
+	// DisplayWindow stopped using the preserved one: the Closed events queued
+	// for it are no longer waited for, nor delivered to the next one (a close
+	// request is addressed to the DisplayWindow live when it is made).
 	void hostSurfaceEventsDropped();
 
 }

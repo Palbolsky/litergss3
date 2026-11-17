@@ -48,6 +48,12 @@ namespace cgss::android::backend {
 		return true;
 	}
 
+	// raylib's close latch (WindowShouldClose) and its queued closes belong
+	// to its single window, which outlives each DisplayWindow
+	void dropClosed() {
+		RaylibHostedClearClose();
+	}
+
 	bool pushTouch(TouchPhase phase, int pointerId, float x, float y) {
 		if (!RaylibHostedIsReady()) return false;
 		RaylibHostedPushTouch(phase == TouchPhase::Began ? RAYLIB_HOSTED_TOUCH_DOWN
@@ -111,6 +117,7 @@ namespace cgss::android::backend {
 	void setJniContext(JavaVM*, jobject) {}
 	bool pushFocus(bool) { return false; }
 	bool pushClosed() { return false; }
+	void dropClosed() {}
 	bool pushTouch(TouchPhase, int, float, float) { return false; }
 	void pushKeyDown(int, int, int) {}
 	void pushKeyUp(int, int) {}
