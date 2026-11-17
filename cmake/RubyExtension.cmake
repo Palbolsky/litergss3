@@ -11,6 +11,27 @@
 
 include_guard(GLOBAL)
 
+# Embedded (LITERGSS_EMBEDDED): the extension is a static library linked into
+# a host that embeds Ruby (litergss-everywhere's runtime, cross-compiled):
+# the target Ruby cannot run here, so its header folders are given, nothing
+# is queried, and <target> registers itself (Init_<target>) from the host.
+if(LITERGSS_EMBEDDED)
+	set(RUBY_HDR_DIR "" CACHE PATH "Embedded build: the target Ruby's header folder (RbConfig rubyhdrdir)")
+	set(RUBY_ARCH_HDR_DIR "" CACHE PATH "Embedded build: the target Ruby's arch header folder (RbConfig rubyarchhdrdir, with ruby/config.h)")
+	if(NOT EXISTS "${RUBY_HDR_DIR}/ruby.h" OR NOT EXISTS "${RUBY_ARCH_HDR_DIR}/ruby/config.h")
+		message(FATAL_ERROR "LITERGSS_EMBEDDED: give the target Ruby's headers: -DRUBY_HDR_DIR=<dir with ruby.h> "
+			"-DRUBY_ARCH_HDR_DIR=<dir with ruby/config.h> (now: '${RUBY_HDR_DIR}', '${RUBY_ARCH_HDR_DIR}')")
+	endif()
+	message(STATUS "Ruby (embedded): headers ${RUBY_HDR_DIR}, ${RUBY_ARCH_HDR_DIR}")
+
+	function(add_ruby_extension target)
+		add_library(${target} STATIC ${ARGN})
+		set_target_properties(${target} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+		target_include_directories(${target} SYSTEM PRIVATE ${RUBY_ARCH_HDR_DIR} ${RUBY_HDR_DIR})
+	endfunction()
+	return()
+endif()
+
 find_program(RUBY_EXECUTABLE ruby REQUIRED)
 
 function(_ruby_rbconfig out_var key)

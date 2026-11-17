@@ -14,24 +14,34 @@ wrapper over it.
 ## Before compilation
 
 1. Ruby with its headers (on Windows: Ruby with Devkit, then `ridk enable`)
-2. CMake ≥ 3.21 (≥ 3.25 when raylib is fetched, see 3.) and a C++17 compiler
-3. Nothing for raylib: the build uses an installed raylib **6.0 or newer** if
-   CMake finds one (`raylib_DIR`, or a prebuilt tree with `-DRAYLIB_ROOT=...`,
-   e.g. `vendor/raylib/`), and otherwise fetches raylib 6.0 and builds it
-   statically (`LITECGSS_RAYLIB_SOURCE=auto|system|fetch`,
-   `LITECGSS_RAYLIB_FETCH_TAG`). The engine compiles against the headers of
-   the raylib it links, and refuses an older one (configure-time and
-   `static_assert`).
+2. CMake ≥ 3.21 and a C++17 compiler
+3. The external libraries, **provided** to the build: LiteRGSS never downloads
+   them, it finds them (`CMAKE_PREFIX_PATH`, `<Package>_DIR`, the system), the
+   way SFML finds its own dependencies:
+
+   | Library | Needed by | Found as |
+   |---|---|---|
+   | raylib ≥ 6.0 | the raylib backend (default) | `raylib_DIR`, or a prebuilt tree with `-DRAYLIB_ROOT=` (e.g. `vendor/raylib/`) |
+   | PhysicsFS 3 | `LITECGSS_USE_PHYSFS` (`debug-physfs`, Android) | `PhysFS_DIR` |
+   | GoogleTest (with GMock) | the C++ tests (`LITECGSS_BUILD_TESTS`, debug presets) | `GTest_DIR` |
+   | Tracy 0.13 client | `LITECGSS_USE_TRACY` (`debug-tracy`) | `Tracy_DIR`; built with `TRACY_ENABLE`, `TRACY_MANUAL_LIFETIME`, `TRACY_ONLY_LOCALHOST` (checked) |
+   | SFML 2.6 | the SFML backend (`debug-sfml`) | `SFML_DIR` (e.g. `vendor/sfml/`) |
+
+   The engine compiles against the headers of the raylib it links and refuses
+   one older than 6.0 (configure time and `static_assert`).
+
+   For a development machine, `tools/deps/build-deps.sh` builds the pinned
+   versions into `vendor/deps/`, which the build uses automatically (a script
+   you run once, outside the build):
+
+       tools/deps/build-deps.sh                          # raylib, PhysicsFS, GoogleTest
+       tools/deps/build-deps.sh --with gtest,tracy,tracy-tools   # + Tracy client, tracy-capture/-csvexport
 
    A **shared** raylib 6 hides the GLFW it embeds, which the engine needs to
    move the GL context between threads (a second window from a thread,
-   PSDK's error screen); build such an install with GLFW exported:
-
-       cmake -S raylib -B raylib-build -DBUILD_SHARED_LIBS=ON -DBUILD_EXAMPLES=OFF \
-             -DCMAKE_C_FLAGS=-D_GLFW_BUILD_DLL -DCMAKE_INSTALL_PREFIX=<prefix>
-       cmake --build raylib-build && cmake --install raylib-build
-
-   (The fetched static raylib needs nothing: GLFW links into the engine.)
+   PSDK's error screen); build such an install with GLFW exported
+   (`-DCMAKE_C_FLAGS=-D_GLFW_BUILD_DLL`). A static raylib (build-deps.sh's)
+   needs nothing.
 
 ## Compilation
 
@@ -39,6 +49,29 @@ wrapper over it.
     PRESET=release rake compile   # any preset: debug, release, debug-sfml, debug-physfs, debug-tracy, litecgss
     rake test                     # LiteCGSS (C++) + LiteRGSS (Ruby) tests, through CTest
     rake clean
+
+### Android (embedded)
+
+LiteRGSS cross-compiles for Android as static libraries for a host that
+embeds Ruby (litergss-everywhere): `libLiteRGSS.a` (`Init_LiteRGSS`, called by
+the host), `libLiteCGSS_engine.a`, `libskalog.a` and the public headers
+(`cmake --install`). The target Ruby can't run on the build machine: its
+header folders are given instead (`LITERGSS_EMBEDDED`).
+
+    export ANDROID_NDK=<ndk>                                   # r25b+
+    export LITERGSS_RUBY_HDR_DIR=<target ruby>/include         # has ruby.h
+    export LITERGSS_RUBY_ARCH_HDR_DIR=<target ruby>/include/<arch>  # has ruby/config.h
+    tools/deps/build-deps.sh --android arm64-v8a               # raylib (Android, GL ES 3) + PhysicsFS
+    cmake --preset android-arm64-v8a && cmake --build --preset android-arm64-v8a
+    cmake --install build/android-arm64-v8a --prefix <staging>
+
+The presets (`android-arm64-v8a`, `android-x86_64`) use
+`vendor/deps-android-<ABI>/` when it exists; a packager passes its own prefix
+(`-DCMAKE_PREFIX_PATH=<prefix> -DCMAKE_FIND_ROOT_PATH=<prefix>`: the NDK
+toolchain only searches under `CMAKE_FIND_ROOT_PATH`). The agent tooling is
+not built there. With a Ruby older than 3.2 (no internal thread events), the
+GL context stays with the thread that created the window: a window driven
+from another Ruby thread can't draw.
 
 The tests open no window on the desktop: CTest runs the Ruby suite with
 `LITERGSS_HIDDEN_WINDOW=1`, whose windows (and GL contexts) are real but never

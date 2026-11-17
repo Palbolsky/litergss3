@@ -38,7 +38,7 @@ cmake --build --preset debug --target litergss2-reference                       
 $B/envs up a1 --xvfb && $B/litergss-scene <scene> --env a1                         # vs LiteRGSS2 (needs Xvfb: no hidden window there)
 ```
 
-Profile (Tracy build; tools built once with `cmake --build --preset debug-tracy --target tracy-tools`):
+Profile (Tracy build; Tracy's client and programs built once with `tools/deps/build-deps.sh --with gtest,tracy,tracy-tools`):
 
 ```sh
 build/debug-tracy/bin/litergss-run --env a1 && build/debug-tracy/bin/litergss-profile --env a1 --seconds 10

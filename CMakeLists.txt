@@ -21,8 +21,29 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 option(LITERGSS_BUILD_RUBY_EXT "Build the LiteRGSS Ruby extension (requires Ruby)" ON)
+# Embedded: the extension is a static library (libLiteRGSS.a, Init_LiteRGSS)
+# for a host embedding Ruby, typically cross-compiled (litergss-everywhere,
+# the android-* presets): the target Ruby's headers are given (RUBY_HDR_DIR,
+# RUBY_ARCH_HDR_DIR), no Ruby runs, no agent tooling. `cmake --install`
+# installs the engine, the extension and the public headers.
+option(LITERGSS_EMBEDDED "Build LiteRGSS as a static library for a host embedding Ruby" OFF)
+include(GNUInstallDirs)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+
+# The development prefix: dependencies built by tools/deps/build-deps.sh
+# (raylib, PhysicsFS, GoogleTest, Tracy). Found like any other install;
+# LiteRGSS never downloads its dependencies itself.
+if(EXISTS ${PROJECT_SOURCE_DIR}/vendor/deps AND NOT CMAKE_CROSSCOMPILING)
+	list(PREPEND CMAKE_PREFIX_PATH ${PROJECT_SOURCE_DIR}/vendor/deps)
+endif()
+# Its Android counterpart (build-deps.sh --android <ABI>). A cross toolchain
+# (the NDK's) searches packages only under CMAKE_FIND_ROOT_PATH: the prefix
+# is added there too. litergss-everywhere passes its own staging prefix.
+if(ANDROID AND ANDROID_ABI AND EXISTS ${PROJECT_SOURCE_DIR}/vendor/deps-android-${ANDROID_ABI})
+	list(PREPEND CMAKE_PREFIX_PATH ${PROJECT_SOURCE_DIR}/vendor/deps-android-${ANDROID_ABI})
+	list(APPEND CMAKE_FIND_ROOT_PATH ${PROJECT_SOURCE_DIR}/vendor/deps-android-${ANDROID_ABI})
+endif()
 
 # Historical location of a prebuilt raylib (see README).
 if(EXISTS ${PROJECT_SOURCE_DIR}/vendor/raylib/include/raylib.h)
@@ -52,5 +73,7 @@ if(LITERGSS_BUILD_RUBY_EXT)
 	add_subdirectory(ext/LiteRGSS3)
 	# Agent tooling (litergss-agent, envs, litergss-run), staged into
 	# build/<preset>/bin with this build's Ruby, extension and backend.
-	add_subdirectory(tools)
+	if(NOT LITERGSS_EMBEDDED)
+		add_subdirectory(tools)
+	endif()
 endif()

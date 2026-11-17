@@ -1,6 +1,7 @@
 #include "DisplayWindow.h"
 
 #include <ruby/thread.h>
+#include <ruby/version.h>
 
 #include <cstdlib>
 #include <cstring>
@@ -105,6 +106,13 @@ namespace {
 	// (PSDK's error screen) finds it current. Released when a thread lets the
 	// GVL go, acquired when one gets it back; a frame drawn without the GVL
 	// holds it meanwhile (draw_without_gvl).
+	// Needs Ruby's internal thread events (Ruby >= 3.2). On an older Ruby
+	// (litergss-everywhere's 3.0 variant) the context stays with the thread
+	// that created the window: windows driven from other threads can't draw.
+#if RUBY_API_VERSION_MAJOR > 3 || (RUBY_API_VERSION_MAJOR == 3 && RUBY_API_VERSION_MINOR >= 2)
+#define LITERGSS_CONTEXT_FOLLOWS_GVL 1
+	bool g_context_follows_gvl = false;
+
 	void context_follows_gvl(rb_event_flag_t event, const rb_internal_thread_event_data_t*, void*)
 	{
 		if (event == RUBY_INTERNAL_THREAD_EVENT_RESUMED) {
@@ -116,15 +124,18 @@ namespace {
 
 	void install_context_hook()
 	{
-		static bool installed = false;
-		if (installed || !cgss::DisplayWindow::ContextFollowsThread()) return;
-		installed = true;
+		if (g_context_follows_gvl || !cgss::DisplayWindow::ContextFollowsThread()) return;
+		g_context_follows_gvl = true;
 		// This thread runs Ruby, so it has the GVL: it takes the context first.
 		cgss::DisplayWindow::AcquireContext();
 		rb_internal_thread_add_event_hook(context_follows_gvl,
 			RUBY_INTERNAL_THREAD_EVENT_RESUMED | RUBY_INTERNAL_THREAD_EVENT_SUSPENDED | RUBY_INTERNAL_THREAD_EVENT_EXITED,
 			nullptr);
 	}
+#else
+	constexpr bool g_context_follows_gvl = false;
+	void install_context_hook() {}
+#endif
 }
 
 VALUE rb_cDisplayWindow      = Qnil;
@@ -563,10 +574,10 @@ namespace {
 	void* draw_without_gvl(void* window)
 	{
 		// The GL context left with the GVL (context_follows_gvl): this frame
-		// holds it until done.
-		cgss::DisplayWindow::AcquireContext();
+		// holds it until done. Without that hook it never left this thread.
+		if (g_context_follows_gvl) cgss::DisplayWindow::AcquireContext();
 		static_cast<cgss::DisplayWindow*>(window)->draw();
-		cgss::DisplayWindow::ReleaseContext();
+		if (g_context_follows_gvl) cgss::DisplayWindow::ReleaseContext();
 		return nullptr;
 	}
 

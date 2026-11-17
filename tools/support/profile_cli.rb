@@ -15,8 +15,8 @@ module LiteRGSSTools
       build/debug-tracy/bin/litergss-run --env NAME starts it with the profiler on,
       loopback only). Prints frame times and the top zones by total time; the
       trace stays in the run folder (open it in the Tracy GUI for more).
-      Needs Tracy's command-line tools once:
-        cmake --build --preset debug-tracy --target tracy-tools
+      Needs Tracy's command-line tools (tracy-capture, tracy-csvexport) on PATH or in
+      vendor/deps/bin (tools/deps/build-deps.sh --tracy-tools), found at configure time.
     TXT
 
     def main(argv)
@@ -41,8 +41,11 @@ module LiteRGSSTools
     private
 
     def tool(name)
-      path = File.join(BUILD[:tracy_tools_dir], name, "tracy-#{name}")
-      raise Error, "no #{path} (cmake --build --preset #{BUILD[:preset]} --target tracy-tools)" unless File.executable?(path)
+      path = BUILD[:"tracy_#{name}"].to_s
+      unless File.executable?(path)
+        raise Error, "no tracy-#{name} found at configure time (put it on PATH or in vendor/deps/bin: " \
+                     'tools/deps/build-deps.sh --tracy-tools; then reconfigure)'
+      end
 
       path
     end

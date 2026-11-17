@@ -35,25 +35,12 @@ add_custom_target(litergss2-reference
 	COMMENT "Building the LiteRGSS2 reference from ${LITERGSS2_REFERENCE_DIR} (a copy)"
 	USES_TERMINAL VERBATIM)
 
-# Tracy's command-line capture and CSV export (litergss-profile), built from
-# the Tracy sources this build fetched. Opt-in, never in `all`: the first build
-# downloads their own dependencies (Tracy's CPM).
-#   cmake --build --preset debug-tracy --target tracy-tools
-set(LITERGSS_TRACY_TOOLS_DIR ${CMAKE_BINARY_DIR}/tracy-tools)
+# Tracy's command-line capture and CSV export (litergss-profile): provided
+# programs, found on PATH or in the development prefix (vendor/deps/bin, built
+# by tools/deps/build-deps.sh), never built here.
 if(LITECGSS_USE_TRACY)
-	include(ExternalProject)
-	FetchContent_GetProperties(tracy)
-	foreach(_tool IN ITEMS capture csvexport)
-		ExternalProject_Add(tracy-${_tool}
-			SOURCE_DIR ${tracy_SOURCE_DIR}/${_tool}
-			BINARY_DIR ${LITERGSS_TRACY_TOOLS_DIR}/${_tool}
-			# No GUI pieces: no file dialog (nfd needs pkg-config / GTK)
-			CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release -DNO_ISA_EXTENSIONS=ON -DNO_FILESELECTOR=ON
-			INSTALL_COMMAND ""
-			EXCLUDE_FROM_ALL TRUE
-			USES_TERMINAL_BUILD TRUE)
-	endforeach()
-	add_custom_target(tracy-tools DEPENDS tracy-capture tracy-csvexport)
+	find_program(LITERGSS_TRACY_CAPTURE NAMES tracy-capture)
+	find_program(LITERGSS_TRACY_CSVEXPORT NAMES tracy-csvexport)
 	set(LITERGSS_TOOLS_TRACY true)
 else()
 	set(LITERGSS_TOOLS_TRACY false)

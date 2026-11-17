@@ -39,6 +39,7 @@ option(CGSS_NO_LOGS "Compile out LiteCGSS logging" OFF)
 # shaders the preprocessor rewrites to GLSL ES 1.00 on SFML ES's attributes.
 option(LITECGSS_USE_FIXED_PIPELINE "SFML backend: desktop GL feeding the fixed-pipeline GLSL built-ins" ON)
 option(LITECGSS_USE_PHYSFS "Load assets through PhysicsFS" OFF)
+option(LITECGSS_PHYSFS_SHARED "Link PhysicsFS's shared library even when its package has a static one" OFF)
 # Instruments the engine with Tracy zones. The embedder must then start
 # Tracy's client before LiteCGSS runs (tracy::StartupProfiler()).
 option(LITECGSS_USE_TRACY "Instrument LiteCGSS for the Tracy profiler" OFF)
@@ -87,7 +88,7 @@ target_compile_features(LiteCGSS_config INTERFACE cxx_std_17)
 if(LITECGSS_USE_TRACY)
 	# With the define that turns the zones on: whatever compiles LiteCGSS
 	# sources (the engine, the unit tests) gets Tracy's headers and client.
-	target_link_libraries(LiteCGSS_config INTERFACE TracyClient)
+	target_link_libraries(LiteCGSS_config INTERFACE Tracy::TracyClient)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -96,79 +97,45 @@ endif()
 if(CGSS_BACKEND STREQUAL "sfml")
 	find_package(SFML 2 REQUIRED COMPONENTS graphics window system)
 elseif(CGSS_BACKEND STREQUAL "raylib")
-	# raylib >= LITECGSS_RAYLIB_MIN_VERSION. The engine compiles against the
-	# headers of the raylib it links — never a copy — and checks their version.
-	#
-	# Where it comes from (LITECGSS_RAYLIB_SOURCE):
-	#   auto    an installed CMake package (raylib_DIR / system), else a
-	#           prebuilt tree at RAYLIB_ROOT ({include,lib}/, e.g. the official
-	#           raylib-x.y_win32_mingw-w64 zip), else fetched (below)
-	#   system  installed package or RAYLIB_ROOT only; fail otherwise
-	#   fetch   always fetched: raylib LITECGSS_RAYLIB_FETCH_TAG, built static
-	#           with this build (same on Linux, macOS, Windows, Android)
+	# raylib >= LITECGSS_RAYLIB_MIN_VERSION, provided by whoever builds LiteCGSS
+	# (never downloaded here): an installed CMake package (raylib_DIR,
+	# CMAKE_PREFIX_PATH, system), or a prebuilt tree at RAYLIB_ROOT
+	# ({include,lib}/, e.g. the official raylib-x.y_win32_mingw-w64 zip). The
+	# engine compiles against the headers of the raylib it links, and checks
+	# their version.
 	set(LITECGSS_RAYLIB_MIN_VERSION 6.0)
-	set(LITECGSS_RAYLIB_SOURCE "auto" CACHE STRING "Where raylib comes from: auto, system, fetch")
-	set_property(CACHE LITECGSS_RAYLIB_SOURCE PROPERTY STRINGS auto system fetch)
-	set(LITECGSS_RAYLIB_FETCH_TAG "6.0" CACHE STRING "raylib git tag fetched when no suitable install is found")
 	set(RAYLIB_ROOT "" CACHE PATH "Prebuilt raylib tree (include/ + lib/) used when no CMake package is found")
 
 	set(_raylib_include_dirs "")
-	if(NOT LITECGSS_RAYLIB_SOURCE STREQUAL "fetch")
-		# A package's own version can't be trusted (raylib 5.0's says 4.5.0):
-		# the header's is checked below too.
-		find_package(raylib ${LITECGSS_RAYLIB_MIN_VERSION} QUIET)
-		if(raylib_FOUND)
-			get_target_property(_raylib_include_dirs raylib INTERFACE_INCLUDE_DIRECTORIES)
-			if(NOT _raylib_include_dirs AND raylib_INCLUDE_DIRS)
-				set(_raylib_include_dirs ${raylib_INCLUDE_DIRS})
+	# A package's own version can't be trusted (raylib 5.0's says 4.5.0): the
+	# header's is checked below too.
+	find_package(raylib ${LITECGSS_RAYLIB_MIN_VERSION} QUIET)
+	if(raylib_FOUND)
+		get_target_property(_raylib_include_dirs raylib INTERFACE_INCLUDE_DIRECTORIES)
+		if(NOT _raylib_include_dirs AND raylib_INCLUDE_DIRS)
+			set(_raylib_include_dirs ${raylib_INCLUDE_DIRS})
+		endif()
+		message(STATUS "raylib: package ${raylib_DIR}")
+	elseif(RAYLIB_ROOT)
+		find_library(RAYLIB_LIBRARY NAMES raylib PATHS ${RAYLIB_ROOT}/lib NO_DEFAULT_PATH)
+		if(RAYLIB_LIBRARY AND EXISTS ${RAYLIB_ROOT}/include/raylib.h)
+			add_library(raylib UNKNOWN IMPORTED)
+			set_target_properties(raylib PROPERTIES
+				IMPORTED_LOCATION ${RAYLIB_LIBRARY}
+				INTERFACE_INCLUDE_DIRECTORIES ${RAYLIB_ROOT}/include)
+			if(WIN32)
+				set_property(TARGET raylib PROPERTY INTERFACE_LINK_LIBRARIES opengl32 gdi32 winmm)
 			endif()
-			message(STATUS "raylib: installed package ${raylib_DIR}")
-		elseif(RAYLIB_ROOT)
-			find_library(RAYLIB_LIBRARY NAMES raylib PATHS ${RAYLIB_ROOT}/lib NO_DEFAULT_PATH)
-			if(RAYLIB_LIBRARY AND EXISTS ${RAYLIB_ROOT}/include/raylib.h)
-				add_library(raylib UNKNOWN IMPORTED)
-				set_target_properties(raylib PROPERTIES
-					IMPORTED_LOCATION ${RAYLIB_LIBRARY}
-					INTERFACE_INCLUDE_DIRECTORIES ${RAYLIB_ROOT}/include)
-				if(WIN32)
-					set_property(TARGET raylib PROPERTY INTERFACE_LINK_LIBRARIES opengl32 gdi32 winmm)
-				endif()
-				set(raylib_FOUND TRUE)
-				set(_raylib_include_dirs ${RAYLIB_ROOT}/include)
-				message(STATUS "raylib: prebuilt tree ${RAYLIB_ROOT}")
-			endif()
+			set(raylib_FOUND TRUE)
+			set(_raylib_include_dirs ${RAYLIB_ROOT}/include)
+			message(STATUS "raylib: prebuilt tree ${RAYLIB_ROOT}")
 		endif()
 	endif()
 	if(NOT raylib_FOUND)
-		if(LITECGSS_RAYLIB_SOURCE STREQUAL "system")
-			message(FATAL_ERROR
-				"No raylib >= ${LITECGSS_RAYLIB_MIN_VERSION} found (LITECGSS_RAYLIB_SOURCE=system). Point CMake at one with\n"
-				"-Draylib_DIR=/path/to/lib/cmake/raylib or -DRAYLIB_ROOT=/path/to/raylib, or let it fetch raylib\n"
-				"(-DLITECGSS_RAYLIB_SOURCE=auto).")
-		endif()
-		# Static, inside this build: nothing to install, and its GLFW links into
-		# the engine directly (the context switch between threads needs it;
-		# a *shared* raylib 6 hides it unless built with -D_GLFW_BUILD_DLL).
-		include(FetchContent)
-		set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-		set(CUSTOMIZE_BUILD OFF CACHE BOOL "" FORCE)
-		if(ANDROID OR CMAKE_SYSTEM_NAME STREQUAL "Android")
-			set(PLATFORM "Android" CACHE STRING "" FORCE)
-		endif()
-		set(_cgss_shared_before_raylib ${BUILD_SHARED_LIBS})
-		set(BUILD_SHARED_LIBS OFF)
-		FetchContent_Declare(raylib
-			GIT_REPOSITORY https://github.com/raysan5/raylib.git
-			GIT_TAG ${LITECGSS_RAYLIB_FETCH_TAG}
-			GIT_SHALLOW TRUE)
-		FetchContent_MakeAvailable(raylib)
-		set(BUILD_SHARED_LIBS ${_cgss_shared_before_raylib})
-		set_target_properties(raylib PROPERTIES POSITION_INDEPENDENT_CODE ON)
-		if(TARGET glfw)
-			set_target_properties(glfw PROPERTIES POSITION_INDEPENDENT_CODE ON)
-		endif()
-		set(_raylib_include_dirs ${raylib_SOURCE_DIR}/src)
-		message(STATUS "raylib: fetched ${LITECGSS_RAYLIB_FETCH_TAG}, static (${raylib_SOURCE_DIR})")
+		message(FATAL_ERROR
+			"No raylib >= ${LITECGSS_RAYLIB_MIN_VERSION} found. Give its location: -Draylib_DIR=<prefix>/lib/cmake/raylib,\n"
+			"-DCMAKE_PREFIX_PATH=<prefix>, or -DRAYLIB_ROOT=<tree with include/ and lib/>. To build one into this\n"
+			"repository's development prefix (vendor/deps, used automatically): tools/deps/build-deps.sh (README).")
 	endif()
 
 	# The version the engine compiles against: the header's, whatever the package says.
@@ -181,8 +148,8 @@ elseif(CGSS_BACKEND STREQUAL "raylib")
 	set(LITECGSS_RAYLIB_VERSION ${CMAKE_MATCH_1})
 	if(LITECGSS_RAYLIB_VERSION VERSION_LESS LITECGSS_RAYLIB_MIN_VERSION)
 		message(FATAL_ERROR "raylib ${LITECGSS_RAYLIB_VERSION} (${LITECGSS_RAYLIB_HEADER}) is older than the "
-			"${LITECGSS_RAYLIB_MIN_VERSION} LiteCGSS needs: point raylib_DIR / RAYLIB_ROOT at a newer one, or "
-			"-DLITECGSS_RAYLIB_SOURCE=fetch")
+			"${LITECGSS_RAYLIB_MIN_VERSION} LiteCGSS needs: point raylib_DIR / RAYLIB_ROOT at a newer one "
+			"(tools/deps/build-deps.sh builds one)")
 	endif()
 	message(STATUS "raylib ${LITECGSS_RAYLIB_VERSION} (${LITECGSS_RAYLIB_HEADER})")
 endif()
@@ -208,30 +175,42 @@ add_subdirectory(external/skalog)
 target_include_directories(skalog PUBLIC ${LITE_CGSS_EXTERNAL}/skalog/src/src)
 
 if(LITECGSS_USE_TRACY)
-	# Configured as LiteCGSS2 does: every instrumented library of a process
-	# (tracy_ruby...) must share this exact Tracy setup and the one shared
-	# TracyClient.
-	set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-	set(TRACY_ENABLE ON)
-	set(TRACY_ON_DEMAND ON)
-	set(TRACY_DELAYED_INIT ON)
-	set(TRACY_MANUAL_LIFETIME ON)
-	set(TRACY_STATIC OFF)
-	# The profiled process listens for the profiler: on loopback only.
-	set(TRACY_ONLY_LOCALHOST ON)
-	include(FetchContent)
-	FetchContent_Declare(tracy
-		GIT_REPOSITORY https://github.com/wolfpld/tracy.git
-		GIT_TAG v0.13.1
-		GIT_SHALLOW TRUE)
-	FetchContent_MakeAvailable(tracy)
+	# Tracy's client, provided (Tracy_DIR / CMAKE_PREFIX_PATH), never downloaded.
+	# Every instrumented library of a process (tracy_ruby...) must share the one
+	# client and its setup, which is the package's: it must be built with
+	# TRACY_ENABLE, TRACY_ON_DEMAND, TRACY_DELAYED_INIT, TRACY_MANUAL_LIFETIME
+	# and TRACY_ONLY_LOCALHOST (tools/deps/build-deps.sh does).
+	find_package(Tracy CONFIG)
+	if(NOT TARGET Tracy::TracyClient)
+		message(FATAL_ERROR "LITECGSS_USE_TRACY: no Tracy package found (Tracy_DIR=<prefix>/share/Tracy or "
+			"CMAKE_PREFIX_PATH); tools/deps/build-deps.sh builds one")
+	endif()
+	# The extension links and stages it from its own directory.
+	set_target_properties(Tracy::TracyClient PROPERTIES IMPORTED_GLOBAL TRUE)
+	get_target_property(_tracy_defs Tracy::TracyClient INTERFACE_COMPILE_DEFINITIONS)
+	foreach(_def TRACY_ENABLE TRACY_MANUAL_LIFETIME TRACY_ONLY_LOCALHOST)
+		if(NOT "${_tracy_defs}" MATCHES "${_def}")
+			message(FATAL_ERROR "The Tracy package (${Tracy_DIR}) was not built with ${_def}: LiteCGSS needs it")
+		endif()
+	endforeach()
 endif()
 
 if(LITECGSS_USE_PHYSFS)
-	set(PHYSFS_BUILD_TEST OFF CACHE INTERNAL "")
-	set(PHYSFS_BUILD_SHARED OFF CACHE INTERNAL "")
-	add_subdirectory(${LITE_CGSS_EXTERNAL}/physfs)
-	set_property(TARGET physfs-static PROPERTY POSITION_INDEPENDENT_CODE ON)
+	# PhysicsFS 3.x, provided (PhysFS_DIR / CMAKE_PREFIX_PATH / system), never
+	# downloaded. Its static library when it has one (it must then be
+	# position-independent: it ends up in a shared extension), else its shared one.
+	# (Its package has no version file: no version can be required here.)
+	find_package(PhysFS CONFIG)
+	if(TARGET PhysFS::PhysFS-static AND NOT LITECGSS_PHYSFS_SHARED)
+		set(LITECGSS_PHYSFS_TARGET PhysFS::PhysFS-static)
+	elseif(TARGET PhysFS::PhysFS)
+		set(LITECGSS_PHYSFS_TARGET PhysFS::PhysFS)
+	else()
+		message(FATAL_ERROR "LITECGSS_USE_PHYSFS: no PhysicsFS 3 package found (PhysFS_DIR=<prefix>/lib/cmake/PhysFS "
+			"or CMAKE_PREFIX_PATH); tools/deps/build-deps.sh builds one")
+	endif()
+	set_target_properties(${LITECGSS_PHYSFS_TARGET} PROPERTIES IMPORTED_GLOBAL TRUE)
+	message(STATUS "PhysicsFS: ${LITECGSS_PHYSFS_TARGET} (${PhysFS_DIR})")
 endif()
 
 set(BUILD_SHARED_LIBS ${_cgss_old_build_shared_libs})
@@ -325,7 +304,7 @@ target_link_libraries(LiteCGSS_engine
 	PRIVATE LiteCGSS_backend
 )
 if(LITECGSS_USE_PHYSFS)
-	target_link_libraries(LiteCGSS_engine PUBLIC physfs-static)
+	target_link_libraries(LiteCGSS_engine PUBLIC ${LITECGSS_PHYSFS_TARGET})
 endif()
 
 target_include_directories(LiteCGSS_engine
@@ -380,3 +359,15 @@ endif()
 if(LITECGSS_BUILD_PLAYGROUND)
 	add_subdirectory(playground)
 endif()
+
+# ---------------------------------------------------------------------------
+# Install: the engine, skalog (its logging, part of its public headers) and
+# the public headers, for a host linking them (litergss-everywhere).
+# ---------------------------------------------------------------------------
+include(GNUInstallDirs)
+install(TARGETS LiteCGSS_engine skalog
+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(DIRECTORY include/LiteCGSS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(DIRECTORY ${LITE_CGSS_EXTERNAL}/skalog/src/src/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+	FILES_MATCHING PATTERN "*.h")

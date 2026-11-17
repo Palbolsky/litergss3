@@ -11,6 +11,9 @@ FOREACH(subdir ${SUBDIRS})
 	include(${subdir}/cmake.conf)
 
 	if(NOT("${SUBDIR_LIBS}" MATCHES "[^ ]?physfs[$ ]?") OR LITECGSS_USE_PHYSFS)
+		# cmake.conf names PhysicsFS `physfs-static` (also the marker above):
+		# the package's target found by litecgss/CMakeLists.txt.
+		list(TRANSFORM SUBDIR_LIBS REPLACE "^physfs-static$" "${LITECGSS_PHYSFS_TARGET}")
 		file(GLOB_RECURSE SOURCES
 			${subdir}/*.h
 			${subdir}/*.cpp
@@ -20,7 +23,7 @@ FOREACH(subdir ${SUBDIRS})
 
 		set(TARGET_LIBS LiteCGSS::config LiteCGSS_backend ${SUBDIR_LIBS} gmock_main)
 		if (LITECGSS_USE_PHYSFS)
-			set(TARGET_LIBS ${TARGET_LIBS} physfs-static)
+			set(TARGET_LIBS ${TARGET_LIBS} ${LITECGSS_PHYSFS_TARGET})
 		endif()
 		target_link_libraries(LiteCGSS_${subdir}_test PRIVATE ${TARGET_LIBS})
 		add_test(NAME LiteCGSS.${subdir} COMMAND LiteCGSS_${subdir}_test)

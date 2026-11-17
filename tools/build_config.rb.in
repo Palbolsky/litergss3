@@ -16,7 +16,8 @@ module LiteRGSSTools
     agent_scripts: '@PROJECT_SOURCE_DIR@/tools/agent',
     reference_dir: '@LITERGSS2_REFERENCE_OUTPUT@',
     tracy: @LITERGSS_TOOLS_TRACY@,
-    tracy_tools_dir: '@LITERGSS_TRACY_TOOLS_DIR@',
+    tracy_capture: '@LITERGSS_TRACY_CAPTURE@',
+    tracy_csvexport: '@LITERGSS_TRACY_CSVEXPORT@',
     default_game: File.expand_path('@PROJECT_SOURCE_DIR@/../PSDKTechnicalDemo')
   }.freeze
 end

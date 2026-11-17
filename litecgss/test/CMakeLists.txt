@@ -10,24 +10,20 @@ include_directories(${LITECGSS_ROOT_DIR}/src)
 
 add_definitions(-DLITE_CGSS_TEST_DIR="${LITECGSS_ROOT_DIR}/test")
 
-# Google Test — prefer the system install (apt install libgtest-dev on
-# Debian/Ubuntu). Fall back to FetchContent if not installed.
-find_package(GTest QUIET)
+# Google Test, provided (GTest_DIR / CMAKE_PREFIX_PATH / system: apt install
+# libgtest-dev), never downloaded. tools/deps/build-deps.sh builds one into
+# vendor/deps; or configure with -DLITECGSS_BUILD_TESTS=OFF.
+find_package(GTest CONFIG QUIET)
 if(NOT GTest_FOUND)
-  message(STATUS "GTest not found system-wide; fetching googletest via FetchContent")
-  include(FetchContent)
-  FetchContent_Declare(
-    googletest
-    URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
-  )
-  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-  set(BUILD_GMOCK ON CACHE BOOL "" FORCE)
-  FetchContent_MakeAvailable(googletest)
+  find_package(GTest QUIET)
+endif()
+if(NOT TARGET GTest::gmock_main)
+  message(FATAL_ERROR "LITECGSS_BUILD_TESTS: no GoogleTest (with GMock) found. Give its location "
+    "(-DGTest_DIR=<prefix>/lib/cmake/GTest or CMAKE_PREFIX_PATH), build one with tools/deps/build-deps.sh, "
+    "or -DLITECGSS_BUILD_TESTS=OFF")
 endif()
 
-# Per-project CMakeLists link `gmock_main` unprefixed. Create an alias so
-# both the system-installed (GTest::gmock_main) and the FetchContent paths
-# expose the same target name.
+# Per-project CMakeLists link `gmock_main` unprefixed.
 if(TARGET GTest::gmock_main AND NOT TARGET gmock_main)
   add_library(gmock_main ALIAS GTest::gmock_main)
 endif()

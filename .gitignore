@@ -4,6 +4,8 @@
 # Prebuilt dependencies (see README)
 vendor/raylib
 vendor/sfml
+vendor/deps
+vendor/deps-android-*
 
 # Agent runs (envs / litergss-run): per-worktree run dirs and game copies
 .run/

@@ -53,6 +53,37 @@
       }
     },
     {
+      "name": "android",
+      "hidden": true,
+      "displayName": "Android (embedded, raylib)",
+      "description": "Static libLiteRGSS.a + engine for an Android host embedding Ruby. Needs ANDROID_NDK, LITERGSS_RUBY_HDR_DIR, LITERGSS_RUBY_ARCH_HDR_DIR; dependencies in vendor/deps-android-<ABI> (tools/deps/build-deps.sh --android <ABI>) or CMAKE_PREFIX_PATH + CMAKE_FIND_ROOT_PATH.",
+      "inherits": "base",
+      "toolchainFile": "$env{ANDROID_NDK}/build/cmake/android.toolchain.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CGSS_NO_LOGS": "ON",
+        "ANDROID_PLATFORM": "android-26",
+        "ANDROID_STL": "c++_shared",
+        "LITERGSS_EMBEDDED": "ON",
+        "LITECGSS_BUILD_TESTS": "OFF",
+        "LITECGSS_USE_PHYSFS": "ON",
+        "RUBY_HDR_DIR": "$env{LITERGSS_RUBY_HDR_DIR}",
+        "RUBY_ARCH_HDR_DIR": "$env{LITERGSS_RUBY_ARCH_HDR_DIR}"
+      }
+    },
+    {
+      "name": "android-arm64-v8a",
+      "displayName": "Android arm64-v8a (embedded, raylib)",
+      "inherits": "android",
+      "cacheVariables": { "ANDROID_ABI": "arm64-v8a" }
+    },
+    {
+      "name": "android-x86_64",
+      "displayName": "Android x86_64 (embedded, raylib)",
+      "inherits": "android",
+      "cacheVariables": { "ANDROID_ABI": "x86_64" }
+    },
+    {
       "name": "litecgss",
       "displayName": "LiteCGSS only (no Ruby)",
       "inherits": "debug",
@@ -68,7 +99,9 @@
     { "name": "debug-sfml", "configurePreset": "debug-sfml" },
     { "name": "debug-physfs", "configurePreset": "debug-physfs" },
     { "name": "debug-tracy", "configurePreset": "debug-tracy" },
-    { "name": "litecgss", "configurePreset": "litecgss" }
+    { "name": "litecgss", "configurePreset": "litecgss" },
+    { "name": "android-arm64-v8a", "configurePreset": "android-arm64-v8a" },
+    { "name": "android-x86_64", "configurePreset": "android-x86_64" }
   ],
   "testPresets": [
     { "name": "debug", "configurePreset": "debug", "output": { "outputOnFailure": true } },
