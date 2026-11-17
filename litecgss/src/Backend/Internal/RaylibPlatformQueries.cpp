@@ -25,6 +25,7 @@ extern "C" {
 	void* glfwGetProcAddress(const char* procname) CGSS_GLFW_WEAK;
 	struct GLFWwindow;
 	void glfwMakeContextCurrent(GLFWwindow* window) CGSS_GLFW_WEAK;
+	GLFWwindow* glfwGetCurrentContext(void) CGSS_GLFW_WEAK;
 }
 #endif
 
@@ -89,10 +90,19 @@ namespace cgss::backend::raylib_detail {
 
 	bool makeContextCurrent(bool current) {
 #if CGSS_HAS_GLFW_QUERIES
-		if (glfwMakeContextCurrent != nullptr && IsWindowReady()) {
-			glfwMakeContextCurrent(current ? static_cast<GLFWwindow*>(GetWindowHandle()) : nullptr);
+		// The GLFW window owning the context, as GLFW reports it on the thread
+		// releasing it. Not GetWindowHandle(): from raylib 6.0 on, it returns
+		// the native (X11 / Wayland) window, not the GLFWwindow.
+		static GLFWwindow* contextWindow = nullptr;
+		if (glfwMakeContextCurrent == nullptr || glfwGetCurrentContext == nullptr || !IsWindowReady()) return false;
+		if (!current) {
+			if (GLFWwindow* owner = glfwGetCurrentContext()) contextWindow = owner;
+			glfwMakeContextCurrent(nullptr);
 			return true;
 		}
+		if (contextWindow == nullptr) return glfwGetCurrentContext() != nullptr; // never released: still current here
+		glfwMakeContextCurrent(contextWindow);
+		return true;
 #endif
 		(void)current;
 		return false;

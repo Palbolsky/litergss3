@@ -1,12 +1,24 @@
 #ifndef CGSS_LOGGER_H
 #define CGSS_LOGGER_H
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <string>
 #include <Logging/MultiLogger.h>
 #include <Logging/LogAsync.h>
 #include <Logging/Logger.h>
 
 namespace cgss {
+	// Where a log file named `filename` is written: in LITECGSS_LOG_DIR when
+	// set (agent runs give each run its own), else in the working directory.
+	inline std::string LogFilePath(const char* filename) {
+		const char* dir = std::getenv("LITECGSS_LOG_DIR");
+		if (dir == nullptr || *dir == '\0') return filename;
+		std::string path{ dir };
+		if (path.back() != '/' && path.back() != '\\') path += '/';
+		return path + filename;
+	}
+
 	template <ska::LogLevel BaseLogLevel>
 #ifdef CGSS_NO_LOGS
 	using LoggerBaseType = ska::Logger<ska::LogLevel::Disabled, ska::LogLevel::Disabled, ska::LogSync>;
@@ -21,7 +33,7 @@ namespace cgss {
 			updatePatterns(*this);
 			LoggerBaseType<BaseLogLevel>::addOutputTarget(std::cout);
 			if (filename != nullptr) {
-				m_fileOutput.open(filename);
+				m_fileOutput.open(LogFilePath(filename));
 				LoggerBaseType<BaseLogLevel>::addOutputTarget(m_fileOutput);
 			}
 		}

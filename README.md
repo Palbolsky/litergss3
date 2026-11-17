@@ -14,11 +14,24 @@ wrapper over it.
 ## Before compilation
 
 1. Ruby with its headers (on Windows: Ruby with Devkit, then `ridk enable`)
-2. CMake ≥ 3.21 and a C++17 compiler
-3. raylib, either:
-   - installed system-wide (`find_package(raylib)` must find it), or
-   - a prebuilt tree extracted in `vendor/raylib/` (`include/` + `lib/`,
-     e.g. raylib-5.5_win32_mingw-w64 on Windows)
+2. CMake ≥ 3.21 (≥ 3.25 when raylib is fetched, see 3.) and a C++17 compiler
+3. Nothing for raylib: the build uses an installed raylib **6.0 or newer** if
+   CMake finds one (`raylib_DIR`, or a prebuilt tree with `-DRAYLIB_ROOT=...`,
+   e.g. `vendor/raylib/`), and otherwise fetches raylib 6.0 and builds it
+   statically (`LITECGSS_RAYLIB_SOURCE=auto|system|fetch`,
+   `LITECGSS_RAYLIB_FETCH_TAG`). The engine compiles against the headers of
+   the raylib it links, and refuses an older one (configure-time and
+   `static_assert`).
+
+   A **shared** raylib 6 hides the GLFW it embeds, which the engine needs to
+   move the GL context between threads (a second window from a thread,
+   PSDK's error screen); build such an install with GLFW exported:
+
+       cmake -S raylib -B raylib-build -DBUILD_SHARED_LIBS=ON -DBUILD_EXAMPLES=OFF \
+             -DCMAKE_C_FLAGS=-D_GLFW_BUILD_DLL -DCMAKE_INSTALL_PREFIX=<prefix>
+       cmake --build raylib-build && cmake --install raylib-build
+
+   (The fetched static raylib needs nothing: GLFW links into the engine.)
 
 ## Compilation
 

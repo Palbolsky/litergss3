@@ -42,6 +42,18 @@ option(LITECGSS_USE_PHYSFS "Load assets through PhysicsFS" OFF)
 # Instruments the engine with Tracy zones. The embedder must then start
 # Tracy's client before LiteCGSS runs (tracy::StartupProfiler()).
 option(LITECGSS_USE_TRACY "Instrument LiteCGSS for the Tracy profiler" OFF)
+# Agent channel (include/LiteCGSS/Agent/Channel.h): a local socket development
+# tools use to query and drive a running game. Debug presets only; a release
+# build refuses it, and it does not exist on Windows / Android.
+option(LITECGSS_AGENT "Compile in the agent channel (development tooling)" OFF)
+if(LITECGSS_AGENT AND (WIN32 OR ANDROID OR CMAKE_SYSTEM_NAME STREQUAL "Android"))
+	message(WARNING "LITECGSS_AGENT: Unix sockets only, not built on this platform")
+	set(LITECGSS_AGENT OFF)
+endif()
+if(LITECGSS_AGENT AND (CMAKE_BUILD_TYPE STREQUAL "Release" OR CGSS_NO_LOGS))
+	message(FATAL_ERROR "LITECGSS_AGENT is development tooling: it must stay OFF in a release build")
+endif()
+message(STATUS "LITECGSS_AGENT=${LITECGSS_AGENT}")
 option(LITECGSS_BUILD_TESTS "Build the LiteCGSS unit tests" ${PROJECT_IS_TOP_LEVEL})
 option(LITECGSS_BUILD_PLAYGROUND "Build the LiteCGSS playground executable" ${PROJECT_IS_TOP_LEVEL})
 
@@ -84,38 +96,95 @@ endif()
 if(CGSS_BACKEND STREQUAL "sfml")
 	find_package(SFML 2 REQUIRED COMPONENTS graphics window system)
 elseif(CGSS_BACKEND STREQUAL "raylib")
-	# The raylib 5.0 header ships vendored (external/raylib/raylib.h) and sets
-	# the API contract; the library itself must be installed system-wide.
-	# Note: raylib's 5.0 git tag still reports `PROJECT_VERSION 4.5.0`
-	# (upstream bug), so no version is enforced here.
+	# raylib >= LITECGSS_RAYLIB_MIN_VERSION. The engine compiles against the
+	# headers of the raylib it links — never a copy — and checks their version.
 	#
-	# Lookup order: an installed CMake package (raylib_DIR / system install),
-	# then a prebuilt tree at RAYLIB_ROOT ({include,lib}/ — e.g. the official
-	# raylib-x.y_win32_mingw-w64 zip, which ships no CMake package config).
+	# Where it comes from (LITECGSS_RAYLIB_SOURCE):
+	#   auto    an installed CMake package (raylib_DIR / system), else a
+	#           prebuilt tree at RAYLIB_ROOT ({include,lib}/, e.g. the official
+	#           raylib-x.y_win32_mingw-w64 zip), else fetched (below)
+	#   system  installed package or RAYLIB_ROOT only; fail otherwise
+	#   fetch   always fetched: raylib LITECGSS_RAYLIB_FETCH_TAG, built static
+	#           with this build (same on Linux, macOS, Windows, Android)
+	set(LITECGSS_RAYLIB_MIN_VERSION 6.0)
+	set(LITECGSS_RAYLIB_SOURCE "auto" CACHE STRING "Where raylib comes from: auto, system, fetch")
+	set_property(CACHE LITECGSS_RAYLIB_SOURCE PROPERTY STRINGS auto system fetch)
+	set(LITECGSS_RAYLIB_FETCH_TAG "6.0" CACHE STRING "raylib git tag fetched when no suitable install is found")
 	set(RAYLIB_ROOT "" CACHE PATH "Prebuilt raylib tree (include/ + lib/) used when no CMake package is found")
-	find_package(raylib QUIET)
-	if(NOT raylib_FOUND AND RAYLIB_ROOT)
-		find_library(RAYLIB_LIBRARY NAMES raylib PATHS ${RAYLIB_ROOT}/lib NO_DEFAULT_PATH)
-		if(RAYLIB_LIBRARY AND EXISTS ${RAYLIB_ROOT}/include/raylib.h)
-			add_library(raylib UNKNOWN IMPORTED)
-			set_target_properties(raylib PROPERTIES
-				IMPORTED_LOCATION ${RAYLIB_LIBRARY}
-				INTERFACE_INCLUDE_DIRECTORIES ${RAYLIB_ROOT}/include)
-			if(WIN32)
-				set_property(TARGET raylib PROPERTY INTERFACE_LINK_LIBRARIES opengl32 gdi32 winmm)
+
+	set(_raylib_include_dirs "")
+	if(NOT LITECGSS_RAYLIB_SOURCE STREQUAL "fetch")
+		# A package's own version can't be trusted (raylib 5.0's says 4.5.0):
+		# the header's is checked below too.
+		find_package(raylib ${LITECGSS_RAYLIB_MIN_VERSION} QUIET)
+		if(raylib_FOUND)
+			get_target_property(_raylib_include_dirs raylib INTERFACE_INCLUDE_DIRECTORIES)
+			if(NOT _raylib_include_dirs AND raylib_INCLUDE_DIRS)
+				set(_raylib_include_dirs ${raylib_INCLUDE_DIRS})
 			endif()
-			set(raylib_FOUND TRUE)
-			message(STATUS "Using prebuilt raylib from ${RAYLIB_ROOT}")
+			message(STATUS "raylib: installed package ${raylib_DIR}")
+		elseif(RAYLIB_ROOT)
+			find_library(RAYLIB_LIBRARY NAMES raylib PATHS ${RAYLIB_ROOT}/lib NO_DEFAULT_PATH)
+			if(RAYLIB_LIBRARY AND EXISTS ${RAYLIB_ROOT}/include/raylib.h)
+				add_library(raylib UNKNOWN IMPORTED)
+				set_target_properties(raylib PROPERTIES
+					IMPORTED_LOCATION ${RAYLIB_LIBRARY}
+					INTERFACE_INCLUDE_DIRECTORIES ${RAYLIB_ROOT}/include)
+				if(WIN32)
+					set_property(TARGET raylib PROPERTY INTERFACE_LINK_LIBRARIES opengl32 gdi32 winmm)
+				endif()
+				set(raylib_FOUND TRUE)
+				set(_raylib_include_dirs ${RAYLIB_ROOT}/include)
+				message(STATUS "raylib: prebuilt tree ${RAYLIB_ROOT}")
+			endif()
 		endif()
 	endif()
 	if(NOT raylib_FOUND)
-		message(FATAL_ERROR
-			"raylib was not found. Either install it system-wide:\n"
-			"  git clone https://github.com/raysan5/raylib\n"
-			"  cd raylib && cmake -B build -DBUILD_SHARED_LIBS=ON && sudo cmake --install build\n"
-			"or point CMake at an existing install with -Draylib_DIR=/path/to/lib/cmake/raylib,\n"
-			"or at a prebuilt tree (include/ + lib/) with -DRAYLIB_ROOT=/path/to/raylib")
+		if(LITECGSS_RAYLIB_SOURCE STREQUAL "system")
+			message(FATAL_ERROR
+				"No raylib >= ${LITECGSS_RAYLIB_MIN_VERSION} found (LITECGSS_RAYLIB_SOURCE=system). Point CMake at one with\n"
+				"-Draylib_DIR=/path/to/lib/cmake/raylib or -DRAYLIB_ROOT=/path/to/raylib, or let it fetch raylib\n"
+				"(-DLITECGSS_RAYLIB_SOURCE=auto).")
+		endif()
+		# Static, inside this build: nothing to install, and its GLFW links into
+		# the engine directly (the context switch between threads needs it;
+		# a *shared* raylib 6 hides it unless built with -D_GLFW_BUILD_DLL).
+		include(FetchContent)
+		set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+		set(CUSTOMIZE_BUILD OFF CACHE BOOL "" FORCE)
+		if(ANDROID OR CMAKE_SYSTEM_NAME STREQUAL "Android")
+			set(PLATFORM "Android" CACHE STRING "" FORCE)
+		endif()
+		set(_cgss_shared_before_raylib ${BUILD_SHARED_LIBS})
+		set(BUILD_SHARED_LIBS OFF)
+		FetchContent_Declare(raylib
+			GIT_REPOSITORY https://github.com/raysan5/raylib.git
+			GIT_TAG ${LITECGSS_RAYLIB_FETCH_TAG}
+			GIT_SHALLOW TRUE)
+		FetchContent_MakeAvailable(raylib)
+		set(BUILD_SHARED_LIBS ${_cgss_shared_before_raylib})
+		set_target_properties(raylib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+		if(TARGET glfw)
+			set_target_properties(glfw PROPERTIES POSITION_INDEPENDENT_CODE ON)
+		endif()
+		set(_raylib_include_dirs ${raylib_SOURCE_DIR}/src)
+		message(STATUS "raylib: fetched ${LITECGSS_RAYLIB_FETCH_TAG}, static (${raylib_SOURCE_DIR})")
 	endif()
+
+	# The version the engine compiles against: the header's, whatever the package says.
+	find_file(LITECGSS_RAYLIB_HEADER raylib.h PATHS ${_raylib_include_dirs} NO_DEFAULT_PATH NO_CACHE)
+	if(NOT LITECGSS_RAYLIB_HEADER)
+		message(FATAL_ERROR "raylib.h not found in ${_raylib_include_dirs}")
+	endif()
+	file(STRINGS ${LITECGSS_RAYLIB_HEADER} _raylib_version_line REGEX "^#define RAYLIB_VERSION[ \t]+\"")
+	string(REGEX MATCH "\"([0-9.]+)" _ "${_raylib_version_line}")
+	set(LITECGSS_RAYLIB_VERSION ${CMAKE_MATCH_1})
+	if(LITECGSS_RAYLIB_VERSION VERSION_LESS LITECGSS_RAYLIB_MIN_VERSION)
+		message(FATAL_ERROR "raylib ${LITECGSS_RAYLIB_VERSION} (${LITECGSS_RAYLIB_HEADER}) is older than the "
+			"${LITECGSS_RAYLIB_MIN_VERSION} LiteCGSS needs: point raylib_DIR / RAYLIB_ROOT at a newer one, or "
+			"-DLITECGSS_RAYLIB_SOURCE=fetch")
+	endif()
+	message(STATUS "raylib ${LITECGSS_RAYLIB_VERSION} (${LITECGSS_RAYLIB_HEADER})")
 endif()
 
 function(generate_source_groups src_files src_dir)
@@ -148,6 +217,8 @@ if(LITECGSS_USE_TRACY)
 	set(TRACY_DELAYED_INIT ON)
 	set(TRACY_MANUAL_LIFETIME ON)
 	set(TRACY_STATIC OFF)
+	# The profiled process listens for the profiler: on loopback only.
+	set(TRACY_ONLY_LOCALHOST ON)
 	include(FetchContent)
 	FetchContent_Declare(tracy
 		GIT_REPOSITORY https://github.com/wolfpld/tracy.git
@@ -222,6 +293,13 @@ generate_source_groups("${LITECGSS_ALL_SOURCES}" "${LITECGSS_ROOT_DIR}")
 add_library(LiteCGSS_engine ${LITECGSS_ALL_SOURCES})
 add_library(LiteCGSS::engine ALIAS LiteCGSS_engine)
 
+# Only the channel's translation unit knows whether it is compiled in.
+set_property(SOURCE src/Agent/Channel.cpp APPEND PROPERTY COMPILE_DEFINITIONS
+	$<$<BOOL:${LITECGSS_AGENT}>:LITECGSS_AGENT_ENABLED>)
+# The frame dump (LITECGSS_DUMP_FRAMES) is development tooling too.
+set_property(SOURCE src/Views/FrameDump.cpp APPEND PROPERTY COMPILE_DEFINITIONS
+	$<$<BOOL:${LITECGSS_AGENT}>:LITECGSS_FRAME_DUMP_ENABLED>)
+
 # LiteCGSS_backend — the graphics backend library and its headers. Internal
 # (no LiteCGSS:: alias): linked PRIVATE by the engine, so consumers get the
 # backend at link time only — never its include paths. Public headers only
@@ -230,9 +308,8 @@ add_library(LiteCGSS_backend INTERFACE)
 if(CGSS_BACKEND STREQUAL "sfml")
 	target_link_libraries(LiteCGSS_backend INTERFACE sfml-graphics sfml-window sfml-system)
 elseif(CGSS_BACKEND STREQUAL "raylib")
+	# Its own headers come with the target (see the raylib lookup above).
 	target_link_libraries(LiteCGSS_backend INTERFACE raylib)
-	# Vendored raylib 5.0 header: sets the API contract (see find_package above).
-	target_include_directories(LiteCGSS_backend INTERFACE ${LITE_CGSS_EXTERNAL}/raylib)
 	# stb_truetype: font rasterization with SFML's metrics (Internal/RaylibFontAtlas.cpp).
 	target_include_directories(LiteCGSS_backend INTERFACE ${LITE_CGSS_EXTERNAL}/stb)
 	if(WIN32)

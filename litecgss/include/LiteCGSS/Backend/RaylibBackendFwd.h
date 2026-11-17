@@ -171,6 +171,9 @@ namespace cgss::backend {
 		using native_vertex_array   = ::Mesh;
 		using native_transform      = raylib::Transform;
 
+		// What tools report as the engine's backend (cgss::agent::BackendName()).
+		static constexpr const char* name = "raylib";
+
 		// ---- Capability tags ----
 		static constexpr bool has_window      = true;
 		static constexpr bool has_event_pump  = true;

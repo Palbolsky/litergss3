@@ -50,4 +50,7 @@ add_subdirectory(litecgss)
 
 if(LITERGSS_BUILD_RUBY_EXT)
 	add_subdirectory(ext/LiteRGSS3)
+	# Agent tooling (litergss-agent, envs, litergss-run), staged into
+	# build/<preset>/bin with this build's Ruby, extension and backend.
+	add_subdirectory(tools)
 endif()

@@ -10,6 +10,11 @@
 #include "fonts/Fonts.h"
 #include "events/Events.h"
 #include "graphics/Image.h"
+#include "agent/Agent.h"
+#include <LiteCGSS/Common/Profiler.h>
+
+#include <cstdlib>
+#include <cstring>
 
 VALUE rb_mLiteRGSS = Qnil;
 VALUE rb_mConfig = Qnil;
@@ -26,8 +31,19 @@ extern "C"
   // set by CMake as LITERGSS_INIT_FUNCTION). The internal Ruby
   // module is still named `LiteRGSS3` — `LiteRGSS` is aliased to it for
   // compat with callers that use the library's short name.
+  static void stop_profiler(VALUE) { cgss::profiler::Stop(); }
+
   void LITERGSS_INIT_FUNCTION()
   {
+    // A Tracy build (LiteRGSS_tracy) with no host to start the profiler
+    // (tracy_ruby): LITERGSS_TRACY_START=1 starts it here, before anything
+    // else of LiteCGSS runs (litergss-run does, for litergss-profile).
+    const char* startTracy = std::getenv("LITERGSS_TRACY_START");
+    if (cgss::profiler::Available() && startTracy != nullptr && std::strcmp(startTracy, "1") == 0) {
+      cgss::profiler::Start();
+      rb_set_end_proc(stop_profiler, Qnil);
+    }
+
     rb_mLiteRGSS = rb_define_module("LiteRGSS3");
 
     // Short-name alias — PSDK and the in-repo test suite reference
@@ -56,5 +72,7 @@ extern "C"
 #ifdef LITECGSS_USE_PHYSFS
     Init_VfsLock();
 #endif
+    // Last: the runtime it may load refers to the classes above.
+    Init_Agent();
   }
 }

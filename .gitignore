@@ -5,6 +5,9 @@
 vendor/raylib
 vendor/sfml
 
+# Agent runs (envs / litergss-run): per-worktree run dirs and game copies
+.run/
+
 # Other things
 .vscode
 *.code-workspace

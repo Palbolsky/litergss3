@@ -11,6 +11,7 @@
 #include "../inputs/SfMouse.h"
 #include "../graphics/BlendMode.h"
 #include "../graphics/Image.h"
+#include "../agent/Agent.h"
 #include "../rbAdapter.h"
 
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
@@ -165,6 +166,7 @@ static ID iv_event_callbacks;
 // Forward declarations
 static void apply_settings_array(VALUE self, VALUE arr);
 static VALUE drain_events_internal(VALUE self);
+static void close_requested(VALUE self, const char* message);
 
 // The title the window shows: the script's, plus LITERGSS_TITLE_SUFFIX if
 // set (tools/psdk-demo.sh names the build there). The settings keep the
@@ -598,6 +600,9 @@ namespace {
 		if (!window_of(self).isOpen()) {
 			rb_raise(rb_eStoppedWindowError, "Game Window was closed during DisplayWindow.update by an unknown cause...");
 		}
+		// Agent requests run here: GVL and GL context held, between frames.
+		agent_drain(draw_frame, self);
+		if (agent_take_quit_request()) close_requested(self, "Game Window has been closed by the agent channel (quit)");
 		draw_frame(self);
 		if (RTEST(rb_ivar_get(self, iv_polling))) drain_events_internal(self);
 		auto* window = window_ptr(self);
@@ -606,6 +611,8 @@ namespace {
 
 	VALUE update_no_input_body(VALUE self)
 	{
+		// Served during transitions too; a quit waits for the next update.
+		agent_drain(draw_frame, self);
 		draw_frame(self);
 		return self;
 	}
@@ -774,6 +781,28 @@ static void invoke_cb(VALUE cb_hash, const char* sym_name, int argc, const VALUE
 	rb_proc_call_with_block(cb, argc, argv, Qnil);
 }
 
+// A request to close the window: its Closed event, or an agent's `quit`.
+// LiteRGSS2 surfaced it as a raised `LiteRGSS::DisplayWindow::ClosedWindowError`
+// so the main loop would bail out of `Graphics.update`; PSDK's on_closed proc
+// returns truthy specifically to opt into that. Match that behaviour: invoke
+// the user's callback first, and if it returns truthy (or is unset) raise the
+// same error to break the run loop. Without this, PSDK nils its @window and
+// then spins forever in update_no_input — that's the close-window freeze.
+// Emit the error AFTER tearing down the window so any `ensure` block
+// downstream still sees a disposed state. Like LiteRGSS2, only an explicit
+// `false` keeps the window open (nil included, any other answer closes it):
+// then this returns.
+static void close_requested(VALUE self, const char* message)
+{
+	VALUE cb = rb_hash_lookup(rb_ivar_get(self, iv_event_callbacks), ID2SYM(rb_intern("on_closed")));
+	const bool close = NIL_P(cb)
+		|| rb_proc_call_with_block(cb, 0, nullptr, Qnil) != Qfalse;
+	if (!close) return;
+	window_of(self).stop();
+	rb_ivar_set(self, iv_disposed, Qtrue);
+	rb_raise(rb_eClosedWindowError, "%s", message);
+}
+
 // Translates raw cgss events into LiteRGSS2-shape callbacks. This is the
 // heart of the C-side replacement for LiteRGSS_compat#drain_events.
 static VALUE drain_events_internal(VALUE self)
@@ -785,27 +814,9 @@ static VALUE drain_events_internal(VALUE self)
 		using ET = cgss::EventType;
 		switch (ev.type())
 		{
-			case ET::Closed: {
-				// LiteRGSS2 surfaced a window-close request as a raised
-				// `LiteRGSS::DisplayWindow::ClosedWindowError` so the main loop
-				// would bail out of `Graphics.update`; PSDK's on_closed proc
-				// returns truthy specifically to opt into that. Match that
-				// behaviour: invoke the user's callback first, and if it
-				// returns truthy (or is unset) raise the same error to break
-				// the run loop. Without this, PSDK nils its @window and then
-				// spins forever in update_no_input — that's the close-window
-				// freeze. Emit the error AFTER tearing down the window so any
-				// `ensure` block downstream still sees a disposed state.
-				// Like LiteRGSS2, only an explicit `false` keeps the window
-				// open (nil included, any other answer closes it).
-				VALUE cb = rb_hash_lookup(cb_hash, ID2SYM(rb_intern("on_closed")));
-				const bool close = NIL_P(cb)
-					|| rb_proc_call_with_block(cb, 0, nullptr, Qnil) != Qfalse;
-				if (!close) break; // on_closed returned false: the window stays open
-				window_of(self).stop();
-				rb_ivar_set(self, iv_disposed, Qtrue);
-				rb_raise(rb_eClosedWindowError, "Game Window has been closed by user");
-			}
+			case ET::Closed:
+				close_requested(self, "Game Window has been closed by user");
+				break; // on_closed returned false: the window stays open
 			case ET::LostFocus: {
 				rb_ivar_set(self, iv_focus, Qfalse);
 				invoke_cb(cb_hash, "on_lost_focus", 0, nullptr);

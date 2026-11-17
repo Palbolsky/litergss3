@@ -6,19 +6,7 @@
 #include <vector>
 
 #include <raylib.h>
-#if __has_include(<rlgl.h>)
-#  include <rlgl.h>
-#else
-extern "C" {
-	void rlActiveTextureSlot(int slot);
-	void rlEnableTexture(unsigned int id);
-	void rlSetUniform(int locIndex, const void* value, int uniformType, int count);
-	void rlDrawRenderBatchActive(void);
-	void rlEnableShader(unsigned int id);
-	void rlDisableShader(void);
-}
-#  define RL_SHADER_UNIFORM_INT 4
-#endif
+#include <rlgl.h>
 
 namespace cgss::backend::raylib_detail {
 

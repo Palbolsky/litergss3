@@ -1,7 +1,11 @@
 #include "LiteCGSS/Views/DisplayWindow.h"
+#include "Inputs/InjectionQueue.h"
+#include "Views/FrameDump.h"
 #include "Common/Profiling.h"
 
 #include <cmath>
+#include <cstdlib>
+#include <string>
 #include <cassert>
 #include <mutex>
 #include <thread>
@@ -33,6 +37,28 @@ static bool usesSharedGameWindow(const cgss::DisplayWindowSettings& settings) {
 	return settings.fullscreen || cgss::android::isReuseSharedWindowEnabled();
 }
 #endif
+
+namespace {
+	// LITECGSS_NO_VSYNC=1: the display has no vertical sync to wait for (a
+	// virtual X server, e.g. an agent run's Xvfb), so a game asking for vsync
+	// would run uncapped; its frame rate caps it instead.
+	bool vsyncAvailable() {
+		static const bool available = [] {
+			const char* value = std::getenv("LITECGSS_NO_VSYNC");
+			return value == nullptr || *value == '\0' || std::string{ value } == "0";
+		}();
+		return available;
+	}
+
+	// The frame-rate cap: none under vsync; the game's frame rate otherwise.
+	// A game that asked for vsync where there is none (frame rate 0, "vsync
+	// paces me") gets the 60 Hz vsync would have given it.
+	unsigned int frameLimit(bool vsyncRequested, unsigned int frameRate) {
+		if (vsyncRequested && vsyncAvailable()) return 0;
+		if (vsyncRequested && frameRate == 0) return 60;
+		return frameRate;
+	}
+}
 
 template <class B>
 cgss::basic_DisplayWindow<B>::basic_DisplayWindow(const DisplayWindowSettings& settings) :
@@ -151,7 +177,7 @@ void cgss::basic_DisplayWindow<B>::applyReload(DisplayWindowSettings settings, b
 					scaledHeight,
 					static_cast<unsigned int>(m_settings.video.bitsPerPixel),
 					m_settings.fullscreen,
-					m_settings.vSync,
+					m_settings.vSync && vsyncAvailable(),
 					m_settings.hidden,
 					&m_settings.context,
 				};
@@ -330,7 +356,11 @@ void cgss::basic_DisplayWindow<B>::draw() {
 
 	postProcessing();
 
+	// The presented frame, out of band (LITECGSS_DUMP_FRAMES; dev builds only).
+	cgss::detail::frameDumpAfterDraw(this, m_settings.video.scale, [this] { return takeSnapshot(); });
+
 	Ops::window_display(m_gameWindow);
+	CGSS_PROFILE_FRAME();
 
 	cgss::android::endHostedDraw();
 }
@@ -342,6 +372,14 @@ bool cgss::basic_DisplayWindow<B>::popEvent(cgss::Event& event) {
 	// Not gated on the hosted surface: the queue survives a detach, and the
 	// focus pair a detach / attach pushes must be pumped (the backend drops
 	// and rebuilds the GL surface from them).
+	// Injected input (cgss::input::injectKey) comes first, as if the device
+	// had sent it just now.
+	cgss::KeyEvent injected;
+	bool injectedDown = false;
+	if (cgss::input::detail::popInjectedKey(injected, injectedDown)) {
+		Ops::event_set_key(native_of(event), injectedDown, injected);
+		return true;
+	}
 	bool popped = Ops::window_poll_event(m_gameWindow, native_of(event));
 	if (!popped) {
 		// Drained: the backend handled its window events (the GL surface rebuild)
@@ -436,15 +474,17 @@ void cgss::basic_DisplayWindow<B>::setTitle(const char* title) {
 template <class B>
 void cgss::basic_DisplayWindow<B>::setVsync(bool enable) {
 	m_settings.vSync = enable;
-	/* VSYNC choice */
-	B::Ops::window_set_vsync(m_gameWindow, m_settings.vSync);
-	B::Ops::window_set_framerate_limit(m_gameWindow, !m_settings.vSync ? m_settings.frameRate : 0);
+	/* VSYNC choice: the settings keep what the game asked for; without vsync
+	   available, the frame rate is the cap. */
+	const bool vsync = m_settings.vSync && vsyncAvailable();
+	B::Ops::window_set_vsync(m_gameWindow, vsync);
+	B::Ops::window_set_framerate_limit(m_gameWindow, frameLimit(m_settings.vSync, m_settings.frameRate));
 }
 
 template <class B>
 void cgss::basic_DisplayWindow<B>::setFrameRate(unsigned int frameRate) {
 	m_settings.frameRate = frameRate;
-	B::Ops::window_set_framerate_limit(m_gameWindow, !m_settings.vSync ? m_settings.frameRate : 0);
+	B::Ops::window_set_framerate_limit(m_gameWindow, frameLimit(m_settings.vSync, m_settings.frameRate));
 }
 
 template <class B>

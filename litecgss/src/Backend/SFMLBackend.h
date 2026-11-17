@@ -201,6 +201,19 @@ namespace cgss::backend {
 			return static_cast<cgss::EventType>(e.type);
 		}
 
+		// A synthetic key event (cgss::input::injectKey). cgss::KeyCode and
+		// cgss::Scancode share SFML's numbering (see event_as_key_press).
+		static inline void event_set_key(native_event& e, bool pressed, const cgss::KeyEvent& key) {
+			e = native_event{};
+			e.type = pressed ? sf::Event::KeyPressed : sf::Event::KeyReleased;
+			e.key.code = static_cast<sf::Keyboard::Key>(key.code);
+			e.key.scancode = static_cast<sf::Keyboard::Scancode>(key.scancode);
+			e.key.alt = key.alt;
+			e.key.control = key.control;
+			e.key.shift = key.shift;
+			e.key.system = key.system;
+		}
+
 		static inline std::optional<cgss::KeyEvent> event_as_key_press(const native_event& e) {
 			if (e.type != sf::Event::KeyPressed) return std::nullopt;
 			return cgss::KeyEvent{

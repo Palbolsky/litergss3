@@ -22,13 +22,17 @@
 # runs apart (LITERGSS_TITLE_SUFFIX, read by the extension).
 #
 # How it works: PSDK's loader requires "$GAMEDEPS/ruby-dist/lib/LiteRGSS" on
-# Unix. The script stages the preset's extension (build/<preset>/lib) in
-# build/<preset>/psdk-gamedeps (symlink, so rebuilds are picked up: one
-# folder per preset, so backends can run side by side) and runs Game.rb
-# with the Ruby the extension was compiled
-# against (RUBY_EXECUTABLE from the preset's CMake cache): a native extension
-# only loads in the Ruby version it was built for. Audio is silent unless a
-# SFMLAudio / RubyFmod extension is also put in that folder.
+# Unix. Each build stages its extension in build/<preset>/psdk-gamedeps
+# (symlink, so rebuilds are picked up: one folder per preset, so backends can
+# run side by side) and writes the Ruby it was compiled against to
+# build/<preset>/tools/build_config.sh; the script runs Game.rb with that
+# Ruby, as a native extension only loads in the Ruby version it was built for.
+# Audio is silent unless a SFMLAudio / RubyFmod extension is also put in
+# that folder.
+#
+# This is the human's launcher: visible window, in the game folder itself.
+# Agents use build/<preset>/bin/litergss-run (a copy of the game per env,
+# hidden window, agent channel) — see AGENTS.md.
 
 set -euo pipefail
 
@@ -77,18 +81,20 @@ if [[ $BUILD -eq 1 ]]; then
 fi
 [[ -f "$BINARY_DIR/CMakeCache.txt" ]] || die "preset '$PRESET_NAME' is not configured (drop --no-build)"
 
-cache_value() { sed -n "s/^$1:[A-Z]*=//p" "$BINARY_DIR/CMakeCache.txt"; }
-RUBY_BIN="$(cache_value RUBY_EXECUTABLE)"
-BACKEND_NAME="$(cache_value CGSS_BACKEND)"
-EXT_DIR="$(cache_value LITERGSS_EXT_OUTPUT_DIR)"
-EXTENSION="$(ls "$EXT_DIR"/LiteRGSS.* 2>/dev/null | head -n1 || true)"
-[[ -x "$RUBY_BIN" ]] || die "Ruby '$RUBY_BIN' from the CMake cache is not executable"
-[[ -n "$EXTENSION" ]] || die "no LiteRGSS extension in '$EXT_DIR' (build first)"
-
-# Staged dependency folder, laid out the way PSDK's Unix loader expects.
-GAMEDEPS_DIR="$BINARY_DIR/psdk-gamedeps"
-mkdir -p "$GAMEDEPS_DIR/ruby-dist/lib"
-ln -sfn "$EXTENSION" "$GAMEDEPS_DIR/ruby-dist/lib/$(basename "$EXTENSION")"
+# This build's Ruby, extension and staged gamedeps, written by CMake
+# (tools/build_config.sh.in; the extension's POST_BUILD stages
+# psdk-gamedeps/ruby-dist/lib/LiteRGSS.so the way PSDK's Unix loader expects).
+BUILD_CONFIG="$BINARY_DIR/tools/build_config.sh"
+[[ -f "$BUILD_CONFIG" ]] || die "no $BUILD_CONFIG (reconfigure: cmake --preset $PRESET_NAME)"
+# shellcheck source=/dev/null
+source "$BUILD_CONFIG"
+RUBY_BIN="$LITERGSS_RUBY"
+BACKEND_NAME="$LITERGSS_BACKEND"
+GAMEDEPS_DIR="$LITERGSS_GAMEDEPS_DIR"
+EXTENSION="$(ls "$LITERGSS_EXT_DIR/$LITERGSS_EXT_NAME".* 2>/dev/null | head -n1 || true)"
+[[ -x "$RUBY_BIN" ]] || die "Ruby '$RUBY_BIN' of this build is not executable"
+[[ -n "$EXTENSION" ]] || die "no LiteRGSS extension in '$LITERGSS_EXT_DIR' (build first)"
+[[ -e "$GAMEDEPS_DIR/ruby-dist/lib/$(basename "$EXTENSION")" ]] || die "extension not staged in '$GAMEDEPS_DIR' (build first)"
 
 echo "psdk-demo: $GAME_DIR"
 echo "psdk-demo: LiteRGSS3 $EXTENSION (backend $BACKEND_NAME, preset $PRESET_NAME), $("$RUBY_BIN" -e 'print RUBY_DESCRIPTION')"

@@ -29,43 +29,16 @@
 #include "Backend/Internal/RaylibKeyTranslation.h"
 #include "Backend/Shader/ShaderPreprocessor.h"
 
-// rlgl.h — raylib's immediate-mode matrix stack (rlPushMatrix/rlTranslatef/
-// rlScalef). Used by viewport_begin/end Ops. Lives alongside raylib.h on
-// any real raylib install; minimal submodule checkouts may skip it.
-// When absent, forward-declare the four functions we use so the header
-// stays compilable in stripped-down environments (CI image build-tests,
-// etc.). A real build links against libraylib and resolves the symbols.
+// raylib's own headers, from the raylib this build links (see the raylib
+// lookup in litecgss/CMakeLists.txt): rlgl.h — the immediate-mode matrix stack
+// and blend factors the viewport / blend Ops use — ships with every raylib.
 // raylib.h must precede rlgl.h: it defines RL_MATRIX_TYPE so rlgl.h does not
 // redefine Matrix.
 #include <raylib.h>
-#if __has_include(<rlgl.h>)
-#  include <rlgl.h>
-#else
-extern "C" {
-	void rlPushMatrix(void);
-	void rlPopMatrix(void);
-	void rlTranslatef(float x, float y, float z);
-	void rlScalef(float x, float y, float z);
-	void rlSetBlendMode(int mode);
-	void rlSetBlendFactorsSeparate(int glSrcRGB, int glDstRGB, int glSrcAlpha, int glDstAlpha, int glEqRGB, int glEqAlpha);
-}
-#  define RL_BLEND_CUSTOM_SEPARATE 7
-#  define RL_ZERO 0
-#  define RL_ONE 1
-#  define RL_SRC_COLOR 0x0300
-#  define RL_ONE_MINUS_SRC_COLOR 0x0301
-#  define RL_SRC_ALPHA 0x0302
-#  define RL_ONE_MINUS_SRC_ALPHA 0x0303
-#  define RL_DST_ALPHA 0x0304
-#  define RL_ONE_MINUS_DST_ALPHA 0x0305
-#  define RL_DST_COLOR 0x0306
-#  define RL_ONE_MINUS_DST_COLOR 0x0307
-#  define RL_FUNC_ADD 0x8006
-#  define RL_MIN 0x8007
-#  define RL_MAX 0x8008
-#  define RL_FUNC_SUBTRACT 0x800A
-#  define RL_FUNC_REVERSE_SUBTRACT 0x800B
-#endif
+#include <rlgl.h>
+
+// The raylib LiteCGSS is written for (its CMake checks the same at configure time).
+static_assert(RAYLIB_VERSION_MAJOR >= 6, "LiteCGSS needs raylib 6.0 or newer");
 
 #include <cctype>
 #include <cmath>
@@ -369,6 +342,14 @@ namespace cgss::backend {
 		// the event type tag.
 		static inline cgss::EventType event_type(const native_event& e) noexcept { return e.type; }
 
+		// A synthetic key event (cgss::input::injectKey): the same shape the
+		// polled-input queue produces.
+		static inline void event_set_key(native_event& e, bool pressed, const cgss::KeyEvent& key) {
+			e = native_event{};
+			e.type = pressed ? cgss::EventType::KeyPressed : cgss::EventType::KeyReleased;
+			e.key = key;
+		}
+
 		static inline std::optional<cgss::KeyEvent> event_as_key_press(const native_event& e) {
 			if (e.type != cgss::EventType::KeyPressed) return std::nullopt;
 			return e.key;
@@ -514,10 +495,11 @@ namespace cgss::backend {
 		static inline const char* gamepad_name(unsigned int id) {
 			return GetGamepadName(static_cast<int>(id));
 		}
-		// Vibration: raylib 5.0 (vendored) has no public SetGamepadVibration
-		// API — that lands in 5.1+. No-op here; a future raylib bump can
-		// wire this up. Matches SFML backend behaviour (also no-op).
-		static inline void gamepad_set_vibration(unsigned int /*id*/, float /*left*/, float /*right*/, float /*ms*/) {}
+		// Vibration (raylib >= 5.5): both motors, duration in seconds. The SFML
+		// backend has none (no-op there).
+		static inline void gamepad_set_vibration(unsigned int id, float left, float right, float ms) {
+			SetGamepadVibration(static_cast<int>(id), left, right, ms / 1000.f);
+		}
 		static inline void gamepad_update() {
 			PollInputEvents();
 		}
@@ -545,7 +527,7 @@ namespace cgss::backend {
 		}
 
 		// ---- Sensor ops ----
-		// raylib 5.x has no device-sensor API: nothing is ever available.
+		// raylib (6.0) has no device-sensor API: nothing is ever available.
 		static inline bool sensor_is_available(cgss::SensorType) noexcept { return false; }
 		static inline void sensor_set_enabled(cgss::SensorType, bool) noexcept {}
 		static inline cgss::Vector3 sensor_get_value(cgss::SensorType) noexcept { return {}; }
