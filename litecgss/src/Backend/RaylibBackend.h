@@ -866,12 +866,20 @@ namespace cgss::backend {
 			return font_load_from_memory_with_size(f, data, size, kDefaultFontSize);
 		}
 		// Release the GPU atlas a raylib Font owns. Safe on zero-initialized.
+		// Without a window, the GL context is gone and the atlas texture with
+		// it: only the CPU side is freed. A GL call then crashes, at exit
+		// above all (fonts in statics, LiteRGSS's font table: the GL library
+		// may be unloaded already).
 		static inline void font_destroy(native_font& f) noexcept {
 			raylib_detail::forgetFontAtlas(f);
-			if (f.texture.id != 0) {
+			if (f.texture.id == 0) return;
+			if (IsWindowReady()) {
 				UnloadFont(f);
-				f = native_font{};
+			} else {
+				UnloadFontData(f.glyphs, f.glyphCount);
+				RL_FREE(f.recs);
 			}
+			f = native_font{};
 		}
 
 		// ---- Shader ops ----

@@ -82,8 +82,18 @@ namespace cgss::backend::raylib_detail {
 			std::unordered_set<int> baked;   // in the atlas
 			std::unordered_set<int> missing; // asked for, not in the font
 		};
-		std::mutex g_sourcesMutex;
-		std::unordered_map<const ::Font*, std::unique_ptr<FontSource>> g_sources;
+		using FontSources = std::unordered_map<const ::Font*, std::unique_ptr<FontSource>>;
+		// Never destroyed: a font held by a static of another file (LiteRGSS's
+		// font table) is destroyed at exit, maybe after this file's statics,
+		// and still forgets its atlas then (a destroyed map: double free).
+		std::mutex& sourcesMutex() {
+			static auto* mutex = new std::mutex;
+			return *mutex;
+		}
+		FontSources& sources() {
+			static auto* map = new FontSources;
+			return *map;
+		}
 	}
 
 	bool buildFontAtlas(::Font& out, const unsigned char* data, int dataSize, int characterSize) {
@@ -105,15 +115,15 @@ namespace cgss::backend::raylib_detail {
 		if (font.texture.id != 0) UnloadFont(font);
 		font = built;
 		source->baked.insert(codepoints.begin(), codepoints.end());
-		std::lock_guard<std::mutex> lock(g_sourcesMutex);
-		g_sources[&font] = std::move(source);
+		std::lock_guard<std::mutex> lock(sourcesMutex());
+		sources()[&font] = std::move(source);
 		return true;
 	}
 
 	void ensureFontGlyphs(::Font& font, const char* utf8, std::size_t size) {
-		std::lock_guard<std::mutex> lock(g_sourcesMutex);
-		const auto it = g_sources.find(&font);
-		if (it == g_sources.end() || utf8 == nullptr) return;
+		std::lock_guard<std::mutex> lock(sourcesMutex());
+		const auto it = sources().find(&font);
+		if (it == sources().end() || utf8 == nullptr) return;
 		FontSource& source = *it->second;
 		std::vector<int> added;
 		const char* p = utf8;
@@ -141,8 +151,8 @@ namespace cgss::backend::raylib_detail {
 	}
 
 	void forgetFontAtlas(const ::Font& font) {
-		std::lock_guard<std::mutex> lock(g_sourcesMutex);
-		g_sources.erase(&font);
+		std::lock_guard<std::mutex> lock(sourcesMutex());
+		sources().erase(&font);
 	}
 
 	namespace {

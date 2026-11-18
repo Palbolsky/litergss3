@@ -14,9 +14,6 @@ class TestValueTypes < Minitest::Test
 
   def teardown
     @window.close_window
-    # Like test_fonts: fonts still loaded when the process exits crash it
-    # (double free in the font table's destruction, a bug of its own)
-    LiteRGSS::Fonts.clear_all
   end
 
   def assert_same_value(expected, actual)
