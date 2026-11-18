@@ -290,7 +290,18 @@ namespace cgss::backend {
 		// pre-window monitor info (to e.g. size the window to a fraction of
 		// the desktop) must guard on the returned zero dims.
 		static inline std::vector<cgss::VideoMode> fullscreen_modes() {
-			return raylib_detail::fullscreenModes();
+			auto modes = raylib_detail::fullscreenModes();
+			if (modes.empty()) {
+				// Before the window (hosted Android: always), the screen is
+				// the one mode, as SFML's Android lists it: games pick their
+				// fullscreen resolution from this list before opening the
+				// window (PSDK's find_best_matching_resolution).
+				const auto screen = desktop_size();
+				if (screen.x != 0 && screen.y != 0) {
+					modes.push_back({ screen.x, screen.y, 32u });
+				}
+			}
+			return modes;
 		}
 		static inline unsigned int texture_max_size() {
 			return raylib_detail::maxTextureSize();
