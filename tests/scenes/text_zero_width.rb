@@ -4,7 +4,8 @@
 # A litergss-scene scenario: `window` is given; only APIs LiteRGSS2 has too.
 font = File.expand_path('../../../PSDKTechnicalDemo/Fonts/PowerGreenSmall.ttf', __dir__)
 LiteRGSS::Fonts.load_font(0, font)
-LiteRGSS::Fonts.set_default_size(0, 16)
+# 11: the size PSDK gives PowerGreenSmall (font 20 of its texts config)
+LiteRGSS::Fonts.set_default_size(0, 11)
 viewport = LiteRGSS::Viewport.new(window, 0, 0, 320, 240)
 background = LiteRGSS::Image.new(320, 240)
 background.fill_rect(0, 0, 320, 240, LiteRGSS::Color.new(40, 40, 60))
