@@ -1,5 +1,6 @@
 #ifndef CGSS_GRAPHICS_STACK_ITEM_H
 #define CGSS_GRAPHICS_STACK_ITEM_H
+#include <cstdint>
 #include <memory>
 #include "LiteCGSS/Graphics/GraphicItem.h"
 #include "LiteCGSS/Graphics/GraphicsStackItemPtr.h"
