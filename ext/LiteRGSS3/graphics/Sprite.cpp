@@ -137,16 +137,21 @@ VALUE rb_Sprite_setBitmap(VALUE self, VALUE val)
 
     s->rBitmap = val;
 
-    if (NIL_P(val)) {
+    // No bitmap (nil, or a disposed / empty one): the native sprite drops
+    // its texture too, or it keeps drawing the previous bitmap
+    const auto unbind = [s]() {
         s->texture = cgss::Texture{};
         s->has_texture = false;
+        if (s->has_sprite) s->sprite->clearTexture();
+    };
+    if (NIL_P(val)) {
+        unbind();
         return val;
     }
 
     ImageData *img = get_image(val);
     if (!img->valid()) {
-        s->texture = cgss::Texture{};
-        s->has_texture = false;
+        unbind();
         return val;
     }
 

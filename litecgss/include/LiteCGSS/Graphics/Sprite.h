@@ -90,6 +90,9 @@ namespace cgss {
 
 		void bindRenderStates(RenderStates* renderStates);
 		void setTexture(basic_Texture<B>& texture, bool resetRect = false);
+		// Unbinds the texture: the sprite draws nothing until the next
+		// setTexture, and no longer keeps the texture alive.
+		void clearTexture();
 		void setTextureRect(cgss::IntRect rectangle);
 		cgss::IntRect getTextureRect() const;
 		void setMirror(bool mirror);

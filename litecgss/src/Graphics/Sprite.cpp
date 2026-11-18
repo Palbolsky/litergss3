@@ -112,6 +112,13 @@ void cgss::basic_Sprite<B>::setTexture(basic_Texture<B>& texture, bool resetRect
 }
 
 template <class B>
+void cgss::basic_Sprite<B>::clearTexture() {
+	// The native sprite first: it points at the texture m_linkedTexture keeps alive
+	B::Ops::clear_sprite_texture(*this->m_proxy->m_sprite);
+	this->m_proxy->m_linkedTexture.reset();
+}
+
+template <class B>
 void cgss::basic_SpriteItem<B>::updateFromValue(const cgss::IntRect* rectangle) {
 	const auto textureSize = B::Ops::get_sprite_bound_texture_size(*m_sprite);
 	auto tmpRectangle = rectangle == nullptr

@@ -1288,6 +1288,11 @@ namespace cgss::backend {
 				s.textureRect = cgss::IntRect{ 0, 0, static_cast<int>(t.width), static_cast<int>(t.height) };
 			}
 		}
+		// Unbinds the texture: draw_sprite_impl skips a sprite without one.
+		static inline void clear_sprite_texture(native_sprite& s) noexcept {
+			s.texture = nullptr;
+			s.textureRect = cgss::IntRect{};
+		}
 		static inline void sprite_set_position(native_sprite& s, float x, float y) noexcept { s.x = x; s.y = y; }
 		static inline void sprite_set_origin(native_sprite& s, float ox, float oy) noexcept { s.originX = ox; s.originY = oy; }
 		static inline void sprite_set_scale(native_sprite& s, float sx, float sy) noexcept { s.scaleX = sx; s.scaleY = sy; }

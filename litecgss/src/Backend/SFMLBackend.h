@@ -885,6 +885,15 @@ namespace cgss::backend {
 			s.setTexture(t, resetRect);
 		}
 
+		// Unbinds the texture: an sf::Sprite without one draws nothing.
+		// sf::Sprite has no setter back to "no texture", only its default
+		// state; the colour (the opacity) is the one setting kept.
+		static inline void clear_sprite_texture(native_sprite& s) {
+			const auto color = s.getColor();
+			s = sf::Sprite{};
+			s.setColor(color);
+		}
+
 		// Position used for raw sprite-handle drawing (e.g., the per-window
 		// user-render sprite owned by DisplayWindow). cgss::Sprite stores its
 		// own position in cgss::Transformable; this is for native handles.
