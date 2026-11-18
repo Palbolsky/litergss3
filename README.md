@@ -71,9 +71,11 @@ The presets (`android-arm64-v8a`, `android-x86_64`) use
 toolchain only searches under `CMAKE_FIND_ROOT_PATH`). The agent tooling is
 not built there.
 
-The raylib backend needs **Ruby 3.2 or newer** (its one GL context follows the
-Ruby thread holding the GVL, through Ruby's internal thread events): the
-build refuses an older Ruby with it. The SFML backend has no such need.
+The raylib backend needs **Ruby's internal thread events** (its one GL context
+follows the Ruby thread holding the GVL through them): Ruby 3.2 or newer, or
+an older Ruby patched with them (litergss-everywhere's Ruby 3.0). The build
+refuses a Ruby without them (it reads `ruby/thread.h`). The SFML backend has
+no such need.
 
 The tests open no window on the desktop: CTest runs the Ruby suite with
 `LITERGSS_HIDDEN_WINDOW=1`, whose windows (and GL contexts) are real but never

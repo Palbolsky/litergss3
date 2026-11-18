@@ -1,7 +1,6 @@
 #include "DisplayWindow.h"
 
 #include <ruby/thread.h>
-#include <ruby/version.h>
 
 #include <cstdlib>
 #include <cstring>
@@ -106,11 +105,12 @@ namespace {
 	// (PSDK's error screen) finds it current. Released when a thread lets the
 	// GVL go, acquired when one gets it back; a frame drawn without the GVL
 	// holds it meanwhile (draw_without_gvl).
-	// Needs Ruby's internal thread events (Ruby >= 3.2): the build refuses an
-	// older Ruby with the raylib backend (cmake/RubyExtension.cmake), and a
-	// window of such a backend refuses to open on one (SFML has a context per
-	// window, it doesn't need them).
-#if RUBY_API_VERSION_MAJOR > 3 || (RUBY_API_VERSION_MAJOR == 3 && RUBY_API_VERSION_MINOR >= 2)
+	// Needs Ruby's internal thread events (Ruby >= 3.2, or an older Ruby
+	// patched with them, as litergss-everywhere's 3.0): the build refuses a
+	// Ruby without them with the raylib backend (cmake/RubyExtension.cmake),
+	// and a window of such a backend refuses to open on one (SFML has a
+	// context per window, it doesn't need them).
+#ifdef RUBY_INTERNAL_THREAD_EVENT_RESUMED
 #define LITERGSS_CONTEXT_FOLLOWS_GVL 1
 	bool g_context_follows_gvl = false;
 
@@ -138,7 +138,7 @@ namespace {
 	void install_context_hook()
 	{
 		if (cgss::DisplayWindow::ContextFollowsThread()) {
-			rb_raise(rb_eRGSSError, "this graphics backend needs Ruby 3.2 or newer (its GL context follows the GVL)");
+			rb_raise(rb_eRGSSError, "this graphics backend needs Ruby's internal thread events, Ruby 3.2 or newer (its GL context follows the GVL)");
 		}
 	}
 #endif
