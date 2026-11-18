@@ -46,19 +46,20 @@ uniform float thickness;
 out vec4 finalColor;
 void main() {
     float centre = texture(texture0, fragTexCoord).a;
-    // Every atlas pixel within the outline's disc (not only the ones at
-    // exactly +/-thickness: a 2 px outline left a gap at 1 px), up to the
-    // atlas' 4 px glyph padding. The +1 keeps the diagonals of a 1 px
-    // outline and rounds a 2 px one as FreeType's stroker does (LiteRGSS2:
-    // tests/scenes/text_shadow_outline.rb)
-    float reach = thickness * thickness + 1.0;
+    // How much of this pixel the outline's stroke covers, from each glyph
+    // pixel around it (up to the atlas' 4 px glyph padding): the distance from
+    // this pixel's centre to that glyph pixel's edge. Fitted on LiteRGSS2
+    // (FreeType's round stroker): a pixel beside the glyph is covered, one it
+    // touches diagonally only is ~70% (tests/scenes/text_shadow_outline.rb).
     float n = 0.0;
     for (int dy = -4; dy <= 4; ++dy) {
         for (int dx = -4; dx <= 4; ++dx) {
-            float d2 = float(dx * dx + dy * dy);
-            if (d2 == 0.0 || d2 > reach) continue;
+            if (dx == 0 && dy == 0) continue;
+            float d = length(max(abs(vec2(float(dx), float(dy))) - 0.5, 0.0));
+            float cover = clamp((thickness + 0.5 - d) * 1.45 - 0.45, 0.0, 1.0);
+            if (cover <= 0.0) continue;
             vec2 off = vec2(float(dx), float(dy)) * atlasTexel;
-            n = max(n, texture(texture0, fragTexCoord + off).a);
+            n = max(n, cover * texture(texture0, fragTexCoord + off).a);
         }
     }
     float outline = n * (1.0 - centre);
@@ -220,6 +221,9 @@ void cgss::ScrollText::setOutlineColor(cgss::Color c) {
 
 void cgss::ScrollText::setOutlineThickness(float thickness) {
 	m_outlineThickness = thickness;
+	// As SFML's (LiteRGSS2): an outline replaces the shadow, none brings it
+	// back; draw_shadow= after it still decides
+	m_drawShadow = (thickness < 1.0f);
 }
 
 void cgss::ScrollText::setDrawShadow(bool on) {
