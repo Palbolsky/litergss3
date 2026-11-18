@@ -1,0 +1,29 @@
+// PSDK-android's loader background (app/src/main/ruby/loader/layers/
+// background.rb): its varyings are written in the GL_ES branch only, the
+// desktop one has SFML ES' attributes and nothing else. On raylib, the GL ES
+// branch is the one mapped onto raylib's attributes.
+#ifdef GL_ES
+uniform mat4 sf_modelview;
+uniform mat4 sf_projection;
+uniform mat4 sf_texture;
+uniform vec2 factor_npot;
+attribute vec2 position;
+attribute vec2 texCoord;
+attribute vec4 color;
+varying vec4 sf_color;
+varying vec2 v_texture_coordinates;
+varying vec2 v_inv_texture_coordinates;
+varying vec2 v_factor_npot;
+#else
+attribute vec2 position;
+uniform mat4 sf_modelview;
+uniform mat4 sf_projection;
+#endif
+void main() {
+#ifdef GL_ES
+  sf_color = color;
+  v_texture_coordinates = (sf_texture * vec4(texCoord, 0.0, 1.0)).xy;
+  v_factor_npot = factor_npot;
+#endif
+  gl_Position = sf_projection * sf_modelview * vec4(position.xy, 0.0, 1.0);
+}

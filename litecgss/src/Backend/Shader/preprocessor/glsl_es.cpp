@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <optional>
 #include <string_view>
 
 namespace cgss::glsl {
@@ -771,6 +772,111 @@ bool isDesktopVersionDirective(std::string_view directive) {
 	while (i < directive.size() && isSpace(directive[i])) ++i;
 	const std::string_view profile = directive.substr(i, directive.find_first_of(" \t\r\n", i) - i);
 	return !number.empty() && number != "100" && profile != "es";
+}
+
+namespace {
+
+bool isSfmlEsAttribute(std::string_view s) { return contains({ "position", "texCoord", "color" }, s); }
+bool isSfmlEsUniform(std::string_view s) {
+	return contains({ "sf_modelview", "sf_projection", "sf_texture", "factor_npot" }, s);
+}
+bool isPrecisionQualifier(std::string_view s) { return contains({ "lowp", "mediump", "highp" }, s); }
+
+// A top-level `attribute|uniform [precision] <type> <name>;` declaration of
+// one of `isName`'s names at token i: its type and name tokens, and the end.
+struct Declaration { std::size_t type, name, end; };
+std::optional<Declaration> declarationAt(const std::vector<Token>& tokens, std::string_view source, std::size_t i,
+                                         std::string_view keyword, bool (*isName)(std::string_view)) {
+	if (tokens[i].kind != TokenKind::Ident || text(tokens[i], source) != keyword) return std::nullopt;
+	std::size_t type = skipTrivia(tokens, i + 1);
+	if (type < tokens.size() && isPrecisionQualifier(text(tokens[type], source))) type = skipTrivia(tokens, type + 1);
+	const std::size_t name = type < tokens.size() ? skipTrivia(tokens, type + 1) : tokens.size();
+	const std::size_t semi = name < tokens.size() ? skipTrivia(tokens, name + 1) : tokens.size();
+	if (semi >= tokens.size() || !isPunctChar(tokens[semi], source, ';')) return std::nullopt;
+	if (tokens[name].kind != TokenKind::Ident || !isName(text(tokens[name], source))) return std::nullopt;
+	std::size_t end = semi + 1;
+	if (end < tokens.size() && tokens[end].kind == TokenKind::Newline) ++end;
+	return Declaration{ type, name, end };
+}
+
+// The global an attribute becomes, from raylib's
+std::string attributeValue(std::string_view name, std::string_view type) {
+	if (name == "position") {
+		if (type == "vec2") return "vertexPosition.xy";
+		if (type == "vec4") return "vec4(vertexPosition, 1.0)";
+		return "vertexPosition";
+	}
+	if (name == "texCoord") return type == "vec4" ? "vec4(vertexTexCoord, 0.0, 1.0)" : "vertexTexCoord";
+	return type == "vec3" ? "vertexColor.rgb" : "vertexColor";
+}
+
+}  // namespace
+
+bool declaresSfmlEsInterface(const std::string& source) {
+	const auto tokens = lex(source);
+	for (std::size_t i = 0; i < tokens.size(); ++i) {
+		if (declarationAt(tokens, source, i, "attribute", isSfmlEsAttribute)) return true;
+		if (auto d = declarationAt(tokens, source, i, "uniform", isSfmlEsUniform);
+		    d && text(tokens[d->name], source) != "factor_npot") return true;
+	}
+	return false;
+}
+
+std::string adaptSfmlEsVertex(const std::string& source) {
+	const auto tokens = lex(source);
+	const SymbolTable sym = discoverSymbols(tokens, source);
+	std::vector<Edit> edits(tokens.size());
+
+	std::string globals;
+	std::string setup;
+	bool hasFactorNpot = false;
+	for (std::size_t i = 0; i < tokens.size(); ++i) {
+		auto attribute = declarationAt(tokens, source, i, "attribute", isSfmlEsAttribute);
+		auto uniform   = attribute ? std::nullopt : declarationAt(tokens, source, i, "uniform", isSfmlEsUniform);
+		const auto& d  = attribute ? attribute : uniform;
+		if (!d) continue;
+		const std::string type(text(tokens[d->type], source));
+		const std::string name(text(tokens[d->name], source));
+		globals += type + " " + name + ";\n";
+		if (attribute)                   setup += "    " + name + " = " + attributeValue(name, type) + ";\n";
+		else if (name == "sf_projection") setup += "    sf_projection = mvp;\n";
+		else if (name == "factor_npot")  { setup += "    factor_npot = vec2(1.0, 1.0);\n"; hasFactorNpot = true; }
+		else                             setup += "    " + name + " = mat4(1.0);\n";
+		for (std::size_t k = i; k < d->end; ++k) edits[k].kind = Edit::Kind::Skip;
+		i = d->end - 1;
+	}
+	// The fragment rewrite reads v_factor_npot: writeNpotVarying reads this one
+	if (!hasFactorNpot) {
+		globals += "vec2 factor_npot;\n";
+		setup   += "    factor_npot = vec2(1.0, 1.0);\n";
+	}
+	for (const auto& fn : sym.functions) {
+		if (fn.name == "main") {
+			edits[fn.nameTok].kind        = Edit::Kind::Replace;
+			edits[fn.nameTok].replacement = "sf_es_main";
+		}
+	}
+	// The varyings the fragment rewrite reads, from raylib's attributes, before
+	// the shader's own main(), which may write them otherwise: a shader that
+	// doesn't write one still links (the fragment stage reads all of them)
+	std::string defaults;
+	static constexpr struct { const char* type; const char* name; const char* value; } kVaryings[] = {
+		{ "vec4", "sf_color", "vertexColor" },
+		{ "vec2", "v_texture_coordinates", "vertexTexCoord" },
+		{ "vec2", "v_inv_texture_coordinates", "vertexTexCoord" },
+		{ "vec2", "v_factor_npot", "vec2(1.0, 1.0)" },
+	};
+	for (const auto& v : kVaryings) {
+		if (!hasIdent(tokens, source, v.name)) globals += std::string("varying ") + v.type + " " + v.name + ";\n";
+		defaults += std::string("    ") + v.name + " = " + v.value + ";\n";
+	}
+	setup += defaults;
+	return "attribute vec3 vertexPosition;\n"
+	       "attribute vec2 vertexTexCoord;\n"
+	       "attribute vec4 vertexColor;\n"
+	       "uniform mat4 mvp;\n" + globals
+	     + emit(tokens, source, edits)
+	     + "\nvoid main()\n{\n" + setup + "    sf_es_main();\n}\n";
 }
 
 std::string rewriteLegacyVertex(const std::string& source, VertexInterface iface) {

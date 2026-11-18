@@ -1,23 +1,38 @@
 #version 330
 // [LiteCGSS::ShaderPreprocessor glsl330]
+in vec3 vertexPosition;
+in vec2 vertexTexCoord;
+in vec4 vertexColor;
+uniform mat4 mvp;
+vec2 position;
+vec2 texCoord;
+mat4 sf_modelview;
+mat4 sf_projection;
+mat4 sf_texture;
+vec2 factor_npot;
+out vec4 sf_color;
+out vec2 v_inv_texture_coordinates;
+out vec2 v_factor_npot;
 // Handles GL ES itself, with nothing about the NPOT factor: a return in main
 // must not skip the varying.
-in vec2 position;
-in vec2 texCoord;
-uniform mat4 sf_modelview;
-uniform mat4 sf_projection;
-uniform mat4 sf_texture;
 out vec2 v_texture_coordinates;
-void sf_author_main() {
+void sf_es_main() {
   v_texture_coordinates = (sf_texture * vec4(texCoord, 0.0, 1.0)).xy;
   gl_Position = sf_projection * sf_modelview * vec4(position, 0.0, 1.0);
   return;
 }
 
-out vec2 v_factor_npot;
-uniform vec2 factor_npot;
 void main()
 {
-    sf_author_main();
-    v_factor_npot = factor_npot;
+    position = vertexPosition.xy;
+    texCoord = vertexTexCoord;
+    sf_modelview = mat4(1.0);
+    sf_projection = mvp;
+    sf_texture = mat4(1.0);
+    factor_npot = vec2(1.0, 1.0);
+    sf_color = vertexColor;
+    v_texture_coordinates = vertexTexCoord;
+    v_inv_texture_coordinates = vertexTexCoord;
+    v_factor_npot = vec2(1.0, 1.0);
+    sf_es_main();
 }

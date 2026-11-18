@@ -33,6 +33,18 @@ enum class VertexInterface {
 // GL ES itself (mentions GL_ES, declares attributes).
 std::string rewriteLegacyVertex(const std::string& source, VertexInterface iface = VertexInterface::SfmlEs);
 
+// Whether a vertex shader is written against SFML ES' interface: it declares
+// its attributes (position / texCoord / color) or the sf_modelview /
+// sf_projection / sf_texture uniforms.
+bool declaresSfmlEsInterface(const std::string& source);
+
+// Rewrites such a shader for raylib's attributes and mvp: the SFML ES
+// attributes and uniforms become globals its main() reads, set by a main()
+// wrapping it from vertexPosition / vertexTexCoord / vertexColor and mvp
+// (sf_modelview the identity, sf_projection mvp; sf_texture the identity and
+// factor_npot 1: raylib's texture coordinates are normalized, never padded).
+std::string adaptSfmlEsVertex(const std::string& source);
+
 // Resolves `#ifdef GL_ES` / `#ifndef GL_ES` / `#if [!]defined(GL_ES)` blocks
 // (with their #else) for a compiler that does (`glEs`) or doesn't define
 // GL_ES: the dead branch and the directives go, the live branch stays. Other

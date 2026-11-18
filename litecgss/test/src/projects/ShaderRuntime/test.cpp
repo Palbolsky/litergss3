@@ -41,15 +41,6 @@ std::string readAll(const fs::path& path) {
 	return ss.str();
 }
 
-// Cases of the preprocessor suite that aren't runnable on raylib: vertex
-// shaders written for SFML ES (its `position` / `texCoord` attributes and
-// sf_* uniforms, which raylib never feeds), left alone by the preprocessor
-// because they handle GL ES themselves. They link on desktop GL only because
-// it tolerates fragment inputs no vertex output writes; GL ES refuses.
-const char* const kNotRunnableOnRaylib[] = {
-	"psdk_gles_aware_no_factor_uniform.vert.expected",
-	"vertex_stage_passthrough.vert.expected",
-};
 
 bool link(const std::string& vertex, const std::string& fragment) {
 	cgss::RenderStatesData states;
@@ -91,7 +82,6 @@ TEST_P(ShaderRuntime, GoldenShadersCompileAndLink) {
 	for (const auto& path : goldens) {
 		const std::string name = path.filename().string();
 		if (name.rfind("default.", 0) == 0) continue;
-		if (std::find(std::begin(kNotRunnableOnRaylib), std::end(kNotRunnableOnRaylib), name) != std::end(kNotRunnableOnRaylib)) continue;
 		if (name.find(".frag.") != std::string::npos) {
 			EXPECT_TRUE(link(defaultVertex, readAll(path))) << name;
 		} else if (name.find(".vert.") != std::string::npos) {

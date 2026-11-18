@@ -258,7 +258,17 @@ ShaderPreprocessor::Result ShaderPreprocessor::processDetailed(const std::string
 		// Keep the desktop branches of a GL ES-aware shader, which the rewrite
 		// below then handles: its GL ES branches are written for SFML ES'
 		// attributes, not raylib's (and raylib's desktop GL never defines GL_ES).
-		splittedShader.body = cgss::glsl::resolveGlEsConditionals(splittedShader.body, false);
+		std::string desktop = cgss::glsl::resolveGlEsConditionals(splittedShader.body, false);
+		if (stage == Stage::Vertex && cgss::glsl::declaresSfmlEsInterface(desktop)) {
+			// Unless that desktop branch is written for SFML ES' attributes too
+			// (no built-in to rewrite): then the GL ES branch, the complete one
+			// (PSDK-android's loader background, which writes its varyings
+			// there only), is mapped onto raylib's attributes.
+			splittedShader.body = cgss::glsl::adaptSfmlEsVertex(
+				cgss::glsl::resolveGlEsConditionals(splittedShader.body, true));
+		} else {
+			splittedShader.body = std::move(desktop);
+		}
 	}
 
 	if (opts.target == Target::SfmlEs100) {
