@@ -38,15 +38,19 @@ void cgss::ViewportItem::draw(cgss::RenderTarget& target) const {
 
 	const auto* renderStates = getRenderStates() == nullptr ? nullptr : &getRenderStates()->getRenderStates();
 	if (renderStates) {
+		// Clear it, before the view: it binds the render texture (raylib), and
+		// a view clipping the viewport (a game area smaller than the window)
+		// computes its scissor against the bound framebuffer. Installed
+		// before, it was the window's: the scissor missed the texture, the
+		// clear cleared nothing, and its last content showed through.
+		Ops::render_texture_clear_color(*m_windowData.userRenderTexture, cgss::Colors::Transparent);
+
 		// Loading Target view
 		cgss::RenderTarget userRenderTarget{*m_windowData.userRenderTexture};
 		ViewBox::onRenderTarget(userRenderTarget, true);
 
 		// Prepare texture destination dimensions
 		scaleRenderSpriteToViewport();
-
-		// Clear it
-		Ops::render_texture_clear_color(*m_windowData.userRenderTexture, cgss::Colors::Transparent);
 
 		// Drawing sprites
 		drawables().drawFast(userRenderTarget);

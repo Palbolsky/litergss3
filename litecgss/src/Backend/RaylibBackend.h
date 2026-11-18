@@ -738,14 +738,19 @@ namespace cgss::backend {
 			if (!IsWindowReady()) return;
 			EndTextureMode();
 		}
+		// A clear covers the whole texture: glClear honours the scissor test,
+		// and the scissor left by the previous view (target_set_view) is in
+		// another framebuffer's coordinates. The next view installs its own.
 		static inline void render_texture_clear(native_render_texture& rt) {
 			if (!IsWindowReady() || rt.id == 0) return;
 			BeginTextureMode(rt);
+			raylib_detail::endCurrentScissor();
 			ClearBackground(::Color{ 0, 0, 0, 0 });
 		}
 		static inline void render_texture_clear_color(native_render_texture& rt, cgss::Color c) {
 			if (!IsWindowReady() || rt.id == 0) return;
 			BeginTextureMode(rt);
+			raylib_detail::endCurrentScissor();
 			ClearBackground(::Color{ c.r, c.g, c.b, c.a });
 		}
 
@@ -1235,18 +1240,19 @@ namespace cgss::backend {
 		// FBO contents bottom-up (origin at lower-left) while raylib's
 		// BeginTextureMode flips the projection so logical (0, 0) renders
 		// to the top-left — net effect: the LOGICAL top row of content
-		// ends up in texel row `texH - 1` of the underlying texture. To
-		// sample the box back in its natural top-down orientation we both
-		// invert the V direction (negative source height) AND shift
-		// source.y up to `texH - boxTop` so the destination top-row reads
-		// from the GL row holding the box's LOGICAL top. The simpler "just
-		// negate height" idiom only works when the box covers the full FBO
-		// (boxTop == 0).
+		// ends up in texel row `texH - 1` of the underlying texture, and the
+		// box's logical rows [boxTop, boxTop + boxH) are the GL rows
+		// [texH - boxTop - boxH, texH - boxTop). DrawTexturePro samples a
+		// negative-height source as the rows [y, y + |h|) upside down, so
+		// source.y is the box's GL bottom row: `texH - boxTop - boxH`.
+		// (`texH - boxTop` read the rows past the box: right only for a box
+		// covering the whole FBO, through the texture's REPEAT wrap; a
+		// letterboxed game area, boxTop = its origin, showed the wrong rows.)
 		static inline void draw_sprite(native_render_target&, const native_sprite& s, const native_render_states& rs) {
 			if (s.texture == nullptr) return;
 			const int texH = static_cast<int>(s.texture->height);
 			native_sprite flipped = s;
-			flipped.textureRect.top    = texH - s.textureRect.top;
+			flipped.textureRect.top    = texH - s.textureRect.top - s.textureRect.height;
 			flipped.textureRect.height = -s.textureRect.height;
 			draw_with_render_states(&rs, [&]() {
 				draw_sprite_impl(flipped, flipped.x, flipped.y,
