@@ -29,7 +29,10 @@ namespace rb {
     void Mark<ViewportData>(void *ptr)
     {
         auto *vp = static_cast<ViewportData *>(ptr);
-        if (vp != nullptr) rb_gc_mark(vp->rRect);
+        if (vp != nullptr) {
+            rb_gc_mark(vp->rRect);
+            rb_gc_mark(vp->rZoom);
+        }
     }
 }
 
@@ -159,16 +162,17 @@ VALUE rb_Viewport_setZ(VALUE self, VALUE val)
     if (vp->viewport) vp->viewport->setZ(vp->z);
     return val;
 }
-VALUE rb_Viewport_getZoom(VALUE self) { check_disposed(get_viewport(self)); return DBL2NUM(get_viewport(self)->zoom); }
+VALUE rb_Viewport_getZoom(VALUE self) { check_disposed(get_viewport(self)); return get_viewport(self)->rZoom; }
 VALUE rb_Viewport_setZoom(VALUE self, VALUE val)
 {
     check_disposed(get_viewport(self));
     auto *vp = get_viewport(self);
     vp->zoom = (float)NUM2DBL(val);
+    vp->rZoom = val;
     if (vp->viewport) vp->viewport->setZoom(vp->zoom);
     return val;
 }
-VALUE rb_Viewport_getAngle(VALUE self) { check_disposed(get_viewport(self)); return DBL2NUM(get_viewport(self)->angle); }
+VALUE rb_Viewport_getAngle(VALUE self) { check_disposed(get_viewport(self)); return LONG2NUM(static_cast<long>(get_viewport(self)->angle)); }
 VALUE rb_Viewport_setAngle(VALUE self, VALUE val)
 {
     check_disposed(get_viewport(self));

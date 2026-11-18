@@ -38,6 +38,7 @@ namespace rb {
         rb_gc_mark(s->rAngle);
         rb_gc_mark(s->rZoomX);
         rb_gc_mark(s->rZoomY);
+        rb_gc_mark(s->rOutlineThickness);
         rb_gc_mark(s->rShapeType);
         rb_gc_mark(s->rBlendMode);
     }
@@ -247,7 +248,8 @@ VALUE rb_Shape_setVisible(VALUE self, VALUE val) { get_shape(self)->shape.setVis
 
 VALUE rb_Shape_getPointCount(VALUE self) { return ULONG2NUM(get_shape(self)->shape.getPointCount()); }
 VALUE rb_Shape_setPointCount(VALUE self, VALUE val) { get_shape(self)->shape.setPointCount(NUM2ULONG(val)); return val; }
-VALUE rb_Shape_getRadius(VALUE self) { return DBL2NUM(get_shape(self)->shape.getRadius()); }
+// An Integer, as LiteRGSS2 returned it
+VALUE rb_Shape_getRadius(VALUE self) { return LONG2NUM(static_cast<long>(get_shape(self)->shape.getRadius())); }
 VALUE rb_Shape_setRadius(VALUE self, VALUE val) { get_shape(self)->shape.setRadius(static_cast<float>(NUM2DBL(val))); return val; }
 VALUE rb_Shape_getType(VALUE self) { return get_shape(self)->rShapeType; }
 
@@ -292,10 +294,12 @@ VALUE rb_Shape_setOutlineColor(VALUE self, VALUE val)
     get_shape(self)->shape.setOutlineColor(cgss::Color{cd->r, cd->g, cd->b, cd->a});
     return val;
 }
-VALUE rb_Shape_getOutlineThickness(VALUE self) { return DBL2NUM(get_shape(self)->shape.getOutlineThickness()); }
+// As assigned, as LiteRGSS2 returned it
+VALUE rb_Shape_getOutlineThickness(VALUE self) { return get_shape(self)->rOutlineThickness; }
 VALUE rb_Shape_setOutlineThickness(VALUE self, VALUE val)
 {
     get_shape(self)->shape.setOutlineThickness(static_cast<float>(NUM2DBL(val)));
+    get_shape(self)->rOutlineThickness = val;
     return val;
 }
 

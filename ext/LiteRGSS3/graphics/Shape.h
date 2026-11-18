@@ -23,6 +23,7 @@ struct ShapeData
     VALUE rAngle = LONG2FIX(0);
     VALUE rZoomX = LONG2FIX(1);
     VALUE rZoomY = LONG2FIX(1);
+    VALUE rOutlineThickness = LONG2FIX(0);
     VALUE rShapeType = Qnil;
     VALUE rBlendMode = Qnil;
     // Cached Rect returned by `shape.src_rect` (the textured part of the

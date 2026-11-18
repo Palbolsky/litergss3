@@ -30,6 +30,9 @@ struct ViewportData
     unsigned long index = 0;
     float zoom  = 1.0f;
     float angle = 0.0f;
+    // zoom as assigned, as LiteRGSS2 returned it (1 reads back 1, not
+    // 1.0); angle is an Integer there (angle % 360), so it is read back as one.
+    VALUE rZoom = INT2FIX(1);
     bool visible = true;
     // Not moved by the window's origin (DisplayWindow#game_area=)
     bool screen_space = false;

@@ -30,6 +30,18 @@ struct SpriteData
     float zoom_x = 1.0f;
     float zoom_y = 1.0f;
 
+    // The Ruby values as assigned, returned by the readers (LiteRGSS2, and
+    // Shape here, do the same): `sprite.x = 131` reads back the Integer 131,
+    // not 131.0. Games compute with them and pass the result to Integer-only
+    // APIs (PSDK's `add_text(sprite.x + sprite.width / 2, ...)` -> Text.new).
+    VALUE rX = INT2FIX(0);
+    VALUE rY = INT2FIX(0);
+    VALUE rOX = INT2FIX(0);
+    VALUE rOY = INT2FIX(0);
+    VALUE rAngle = INT2FIX(0);
+    VALUE rZoomX = INT2FIX(1);
+    VALUE rZoomY = INT2FIX(1);
+
     bool visible = true;
     bool mirror = false;
     bool disposed = false;

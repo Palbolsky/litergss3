@@ -28,6 +28,13 @@ namespace rb {
         rb_gc_mark(s->rBitmap);
         rb_gc_mark(s->rViewport);
         rb_gc_mark(s->rRect);
+        rb_gc_mark(s->rX);
+        rb_gc_mark(s->rY);
+        rb_gc_mark(s->rOX);
+        rb_gc_mark(s->rOY);
+        rb_gc_mark(s->rAngle);
+        rb_gc_mark(s->rZoomX);
+        rb_gc_mark(s->rZoomY);
     }
 }
 
@@ -191,13 +198,14 @@ VALUE rb_Sprite_setBitmap(VALUE self, VALUE val)
     return val;
 }
 
-VALUE rb_Sprite_getX(VALUE self) { check_disposed(get_sprite(self)); return DBL2NUM(get_sprite(self)->x); }
-VALUE rb_Sprite_getY(VALUE self) { check_disposed(get_sprite(self)); return DBL2NUM(get_sprite(self)->y); }
+VALUE rb_Sprite_getX(VALUE self) { check_disposed(get_sprite(self)); return get_sprite(self)->rX; }
+VALUE rb_Sprite_getY(VALUE self) { check_disposed(get_sprite(self)); return get_sprite(self)->rY; }
 VALUE rb_Sprite_setX(VALUE self, VALUE v)
 {
     check_disposed(get_sprite(self));
     auto *s = get_sprite(self);
     s->x = (float)NUM2DBL(v);
+    s->rX = v;
     if (s->has_sprite) s->sprite->move(s->x, s->y);
     return v;
 }
@@ -206,6 +214,7 @@ VALUE rb_Sprite_setY(VALUE self, VALUE v)
     check_disposed(get_sprite(self));
     auto *s = get_sprite(self);
     s->y = (float)NUM2DBL(v);
+    s->rY = v;
     if (s->has_sprite) s->sprite->move(s->x, s->y);
     return v;
 }
@@ -228,13 +237,14 @@ VALUE rb_Sprite_setZ(VALUE self, VALUE v)
     return v;
 }
 
-VALUE rb_Sprite_getOX(VALUE self) { check_disposed(get_sprite(self)); return DBL2NUM(get_sprite(self)->ox); }
-VALUE rb_Sprite_getOY(VALUE self) { check_disposed(get_sprite(self)); return DBL2NUM(get_sprite(self)->oy); }
+VALUE rb_Sprite_getOX(VALUE self) { check_disposed(get_sprite(self)); return get_sprite(self)->rOX; }
+VALUE rb_Sprite_getOY(VALUE self) { check_disposed(get_sprite(self)); return get_sprite(self)->rOY; }
 VALUE rb_Sprite_setOX(VALUE self, VALUE v)
 {
     check_disposed(get_sprite(self));
     auto *s = get_sprite(self);
     s->ox = (float)NUM2DBL(v);
+    s->rOX = v;
     if (s->has_sprite) s->sprite->moveOrigin(s->ox, s->oy);
     return v;
 }
@@ -243,6 +253,7 @@ VALUE rb_Sprite_setOY(VALUE self, VALUE v)
     check_disposed(get_sprite(self));
     auto *s = get_sprite(self);
     s->oy = (float)NUM2DBL(v);
+    s->rOY = v;
     if (s->has_sprite) s->sprite->moveOrigin(s->ox, s->oy);
     return v;
 }
@@ -257,23 +268,25 @@ VALUE rb_Sprite_setVisible(VALUE self, VALUE v)
     return v;
 }
 
-VALUE rb_Sprite_getAngle(VALUE self) { check_disposed(get_sprite(self)); return DBL2NUM(get_sprite(self)->angle); }
+VALUE rb_Sprite_getAngle(VALUE self) { check_disposed(get_sprite(self)); return get_sprite(self)->rAngle; }
 VALUE rb_Sprite_setAngle(VALUE self, VALUE v)
 {
     check_disposed(get_sprite(self));
     auto *s = get_sprite(self);
     s->angle = (float)NUM2DBL(v);
+    s->rAngle = v;
     if (s->has_sprite) s->sprite->setAngle(s->angle);
     return v;
 }
 
-VALUE rb_Sprite_getZoomX(VALUE self) { check_disposed(get_sprite(self)); return DBL2NUM(get_sprite(self)->zoom_x); }
-VALUE rb_Sprite_getZoomY(VALUE self) { check_disposed(get_sprite(self)); return DBL2NUM(get_sprite(self)->zoom_y); }
+VALUE rb_Sprite_getZoomX(VALUE self) { check_disposed(get_sprite(self)); return get_sprite(self)->rZoomX; }
+VALUE rb_Sprite_getZoomY(VALUE self) { check_disposed(get_sprite(self)); return get_sprite(self)->rZoomY; }
 VALUE rb_Sprite_setZoomX(VALUE self, VALUE v)
 {
     check_disposed(get_sprite(self));
     auto *s = get_sprite(self);
     s->zoom_x = (float)NUM2DBL(v);
+    s->rZoomX = v;
     if (s->has_sprite) s->sprite->scale(s->zoom_x, s->zoom_y);
     return v;
 }
@@ -282,6 +295,7 @@ VALUE rb_Sprite_setZoomY(VALUE self, VALUE v)
     check_disposed(get_sprite(self));
     auto *s = get_sprite(self);
     s->zoom_y = (float)NUM2DBL(v);
+    s->rZoomY = v;
     if (s->has_sprite) s->sprite->scale(s->zoom_x, s->zoom_y);
     return v;
 }
@@ -293,6 +307,8 @@ VALUE rb_Sprite_setZoom(VALUE self, VALUE v)
     auto *s = get_sprite(self);
     s->zoom_x = z;
     s->zoom_y = z;
+    s->rZoomX = v;
+    s->rZoomY = v;
     if (s->has_sprite) s->sprite->scale(z, z);
     return v;
 }
@@ -423,6 +439,8 @@ VALUE rb_Sprite_setPosition(VALUE self, VALUE x, VALUE y)
     auto *s = get_sprite(self);
     s->x = (float)NUM2DBL(x);
     s->y = (float)NUM2DBL(y);
+    s->rX = x;
+    s->rY = y;
     if (s->has_sprite) s->sprite->move(s->x, s->y);
     return self;
 }
@@ -433,6 +451,8 @@ VALUE rb_Sprite_setOrigin(VALUE self, VALUE x, VALUE y)
     auto *s = get_sprite(self);
     s->ox = (float)NUM2DBL(x);
     s->oy = (float)NUM2DBL(y);
+    s->rOX = x;
+    s->rOY = y;
     if (s->has_sprite) s->sprite->moveOrigin(s->ox, s->oy);
     return self;
 }
