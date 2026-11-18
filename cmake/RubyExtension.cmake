@@ -14,13 +14,21 @@ include_guard(GLOBAL)
 # The raylib backend has one GL context for every window: it follows the Ruby
 # thread holding the GVL through Ruby's internal thread events
 # (ext/LiteRGSS3/window/DisplayWindow.cpp). Ruby has them since 3.2, an older
-# one when patched with them (litergss-everywhere's Ruby 3.0): ruby/thread.h
-# tells. A Ruby without them is refused there.
+# one when patched with them (litergss-everywhere's Ruby 3.0): its public
+# headers tell (ruby/thread.h on 3.2+, ruby/thread_event_hooks.h, included by
+# ruby/thread.h, on that 3.0). A Ruby without them is refused there.
 function(_litergss_check_ruby_for_backend)
 	if(NOT CGSS_BACKEND STREQUAL "raylib")
 		return()
 	endif()
-	file(STRINGS "${RUBY_HDR_DIR}/ruby/thread.h" _thread_events REGEX "^#define RUBY_INTERNAL_THREAD_EVENT_RESUMED ")
+	file(GLOB _ruby_headers "${RUBY_HDR_DIR}/ruby/*.h")
+	set(_thread_events "")
+	foreach(_header IN LISTS _ruby_headers)
+		file(STRINGS "${_header}" _thread_events REGEX "^#define RUBY_INTERNAL_THREAD_EVENT_RESUMED ")
+		if(_thread_events)
+			break()
+		endif()
+	endforeach()
 	if(NOT _thread_events)
 		message(FATAL_ERROR "The raylib backend needs Ruby's internal thread events (Ruby 3.2 or newer, or a Ruby "
 			"patched with them): its GL context follows the GVL. This Ruby ${LITERGSS_RUBY_API_VERSION} "
