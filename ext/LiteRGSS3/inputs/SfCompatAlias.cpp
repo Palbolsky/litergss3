@@ -27,13 +27,23 @@
 #include "LiteCGSS/Events/Scancode.h"
 #include "LiteCGSS/Inputs/Keyboard.h"
 #include "LiteCGSS/Inputs/Gamepad.h"
+#if defined(__ANDROID__) || defined(ANDROID)
+#include "LiteCGSS/Platform/Android/HostSurface.h"
+#endif
 
 // Sf::Keyboard.virtual_keyboard= — present on mobile builds of LiteRGSS2.
-// Desktop is a no-op. PSDK calls this unconditionally when its in-game
-// name-input scene activates.
+// PSDK calls it when its name input scene starts, the touch overlay when a
+// text field is tapped. On Android the host shows its keyboard (the
+// callback it armed, cgss::android::requestVirtualKeyboard); its keys come
+// back as text events. Desktop is a no-op.
 static VALUE rb_SfKeyboard_set_virtual_keyboard(VALUE self, VALUE flag)
 {
-	(void)self; (void)flag;
+	(void)self;
+#if defined(__ANDROID__) || defined(ANDROID)
+	cgss::android::requestVirtualKeyboard(RTEST(flag));
+#else
+	(void)flag;
+#endif
 	return Qnil;
 }
 

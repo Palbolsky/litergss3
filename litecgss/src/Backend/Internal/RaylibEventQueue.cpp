@@ -93,6 +93,15 @@ namespace cgss::backend::raylib_detail {
 			return e;
 		}
 
+		// Backspace is text too, as SFML sends it ('\b', on press and repeat):
+		// raylib's text queue never has it, and text fields erase on it
+		// (PSDK's UserInput), the virtual keyboard's Backspace included.
+		void pushBackspaceText() {
+			auto ev = makeEvent(cgss::EventType::TextEntered);
+			ev.text = cgss::TextEvent{ static_cast<std::uint32_t>('\b') };
+			pushEvent(ev);
+		}
+
 		void pollKeyboard() {
 			// Modifier state for KeyEvent payload. Checked once per refill.
 			const bool alt     = IsKeyDown(KEY_LEFT_ALT)     || IsKeyDown(KEY_RIGHT_ALT);
@@ -101,6 +110,7 @@ namespace cgss::backend::raylib_detail {
 			const bool sys     = IsKeyDown(KEY_LEFT_SUPER)   || IsKeyDown(KEY_RIGHT_SUPER);
 
 			// Key presses: drain GetKeyPressed queue (returns 0 when empty).
+			bool backspaceTyped = false;
 			while (int k = GetKeyPressed()) {
 				auto ev = makeEvent(cgss::EventType::KeyPressed);
 				ev.key = cgss::KeyEvent{ fromRaylibKey(k), alt, control, shift, sys, scancodeFromRaylibKey(k) };
@@ -108,7 +118,14 @@ namespace cgss::backend::raylib_detail {
 				if (k >= 0 && static_cast<unsigned int>(k) < kMaxRaylibKey) {
 					g_prev.keyDown[k] = true;
 				}
+				if (k == KEY_BACKSPACE) {
+					pushBackspaceText();
+					backspaceTyped = true;
+				}
 			}
+			// A held key: GLFW's repeats only set the repeat flag, the hosted
+			// Android platform's (a key down again) also queue the key
+			if (!backspaceTyped && IsKeyPressedRepeat(KEY_BACKSPACE)) pushBackspaceText();
 
 			// Key releases: diff previous-frame down-state against current.
 			// IsKeyDown is cheap but iterating 0..512 is wasteful; iterate
