@@ -102,18 +102,29 @@ namespace cgss::backend::raylib_detail {
 			pushEvent(ev);
 		}
 
-		void pollKeyboard() {
-			// Modifier state for KeyEvent payload. Checked once per refill.
-			const bool alt     = IsKeyDown(KEY_LEFT_ALT)     || IsKeyDown(KEY_RIGHT_ALT);
-			const bool control = IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL);
-			const bool shift   = IsKeyDown(KEY_LEFT_SHIFT)   || IsKeyDown(KEY_RIGHT_SHIFT);
-			const bool sys     = IsKeyDown(KEY_LEFT_SUPER)   || IsKeyDown(KEY_RIGHT_SUPER);
+		struct Modifiers { bool alt, control, shift, sys; };
 
+		Modifiers modifiers() {
+			return { IsKeyDown(KEY_LEFT_ALT)     || IsKeyDown(KEY_RIGHT_ALT),
+			         IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL),
+			         IsKeyDown(KEY_LEFT_SHIFT)   || IsKeyDown(KEY_RIGHT_SHIFT),
+			         IsKeyDown(KEY_LEFT_SUPER)   || IsKeyDown(KEY_RIGHT_SUPER) };
+		}
+
+		// Key presses and typed text: raylib's queues, emptied when read (no
+		// event twice), and cleared by the next PollInputEvents. Read at the
+		// frame's refill and again whenever the queue runs dry after it: the
+		// hosted Android platform moves the host's keys and text into them at
+		// every window poll (RaylibHostedPump), and those arriving after the
+		// refill were lost, the next frame's PollInputEvents clearing them
+		// (the virtual keyboard's second letter, typed in the same frame).
+		// @return if Backspace was pressed
+		bool drainKeyQueues(const Modifiers& m) {
 			// Key presses: drain GetKeyPressed queue (returns 0 when empty).
 			bool backspaceTyped = false;
 			while (int k = GetKeyPressed()) {
 				auto ev = makeEvent(cgss::EventType::KeyPressed);
-				ev.key = cgss::KeyEvent{ fromRaylibKey(k), alt, control, shift, sys, scancodeFromRaylibKey(k) };
+				ev.key = cgss::KeyEvent{ fromRaylibKey(k), m.alt, m.control, m.shift, m.sys, scancodeFromRaylibKey(k) };
 				pushEvent(ev);
 				if (k >= 0 && static_cast<unsigned int>(k) < kMaxRaylibKey) {
 					g_prev.keyDown[k] = true;
@@ -123,6 +134,19 @@ namespace cgss::backend::raylib_detail {
 					backspaceTyped = true;
 				}
 			}
+			// Text input: drain GetCharPressed.
+			while (int c = GetCharPressed()) {
+				auto ev = makeEvent(cgss::EventType::TextEntered);
+				ev.text = cgss::TextEvent{ static_cast<std::uint32_t>(c) };
+				pushEvent(ev);
+			}
+			return backspaceTyped;
+		}
+
+		void pollKeyboard() {
+			// Modifier state for KeyEvent payload. Checked once per refill.
+			const Modifiers m = modifiers();
+			const bool backspaceTyped = drainKeyQueues(m);
 			// A held key: GLFW's repeats only set the repeat flag, the hosted
 			// Android platform's (a key down again) also queue the key
 			if (!backspaceTyped && IsKeyPressedRepeat(KEY_BACKSPACE)) pushBackspaceText();
@@ -133,17 +157,10 @@ namespace cgss::backend::raylib_detail {
 			for (unsigned int k = 0; k < kMaxRaylibKey; ++k) {
 				if (g_prev.keyDown[k] && !IsKeyDown(static_cast<int>(k))) {
 					auto ev = makeEvent(cgss::EventType::KeyReleased);
-					ev.key = cgss::KeyEvent{ fromRaylibKey(static_cast<int>(k)), alt, control, shift, sys, scancodeFromRaylibKey(static_cast<int>(k)) };
+					ev.key = cgss::KeyEvent{ fromRaylibKey(static_cast<int>(k)), m.alt, m.control, m.shift, m.sys, scancodeFromRaylibKey(static_cast<int>(k)) };
 					pushEvent(ev);
 					g_prev.keyDown[k] = false;
 				}
-			}
-
-			// Text input: drain GetCharPressed.
-			while (int c = GetCharPressed()) {
-				auto ev = makeEvent(cgss::EventType::TextEntered);
-				ev.text = cgss::TextEvent{ static_cast<std::uint32_t>(c) };
-				pushEvent(ev);
 			}
 		}
 
@@ -344,6 +361,9 @@ namespace cgss::backend::raylib_detail {
 		if (g_queue.empty() && !g_frameRefillDone) {
 			refillQueue();
 			g_frameRefillDone = true;
+		} else if (g_queue.empty()) {
+			// Refilled already: only what came since in raylib's queues
+			drainKeyQueues(modifiers());
 		}
 		if (g_queue.empty()) return false;
 		out = g_queue.front();
