@@ -34,6 +34,8 @@ namespace cgss::android::backend {
 
 	// raylib needs no JNI context (the host opens URLs, owns the clipboard)
 	void setJniContext(JavaVM*, jobject) {}
+	// Sf::Keyboard requests go through cgss::android::requestVirtualKeyboard
+	void setVirtualKeyboardCallback(void (*)(int)) {}
 
 	// Events reach a window once raylib's InitWindow is done
 	bool pushFocus(bool gained) {
@@ -115,6 +117,8 @@ namespace cgss::android::backend {
 	void detach() {}
 	void resized(int, int) {}
 	void setJniContext(JavaVM*, jobject) {}
+	// Sf::Keyboard requests go through cgss::android::requestVirtualKeyboard
+	void setVirtualKeyboardCallback(void (*)(int)) {}
 	bool pushFocus(bool) { return false; }
 	bool pushClosed() { return false; }
 	void dropClosed() {}

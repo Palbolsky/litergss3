@@ -8,6 +8,8 @@
 
 #include <atomic>
 
+#include "Platform/Android/HostSurfaceBackend.h"
+
 namespace {
 	// Read by the render thread (DisplayWindow's constructor), written by
 	// the UI thread.
@@ -29,6 +31,9 @@ namespace cgss::android {
 
 	void setVirtualKeyboardCallback(VirtualKeyboardCallback cb) {
 		g_virtualKeyboardCallback.store(cb, std::memory_order_release);
+#if defined(__ANDROID__) || defined(ANDROID)
+		backend::setVirtualKeyboardCallback(cb);
+#endif
 	}
 
 	void requestVirtualKeyboard(bool show) {
@@ -43,8 +48,6 @@ namespace cgss::android {
 
 #include <condition_variable>
 #include <mutex>
-
-#include "Platform/Android/HostSurfaceBackend.h"
 
 namespace {
 

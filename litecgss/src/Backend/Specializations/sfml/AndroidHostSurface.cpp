@@ -30,6 +30,13 @@ namespace cgss::android::backend {
 		sf::android::setHostedJniContext(vm, activity);
 	}
 
+	void setVirtualKeyboardCallback(void (*callback)(int show)) {
+		// sf::Keyboard::setVirtualKeyboardVisible reaches the host's IME
+		// bridge too (it focuses its text field), instead of an
+		// InputMethodManager bound to no text field
+		sf_android_set_hosted_virtual_keyboard_handler(callback);
+	}
+
 	bool pushFocus(bool gained) {
 		// SFML drops (LostFocus) / rebuilds (GainedFocus) the EGL surface
 		// when the window's event pump handles these.

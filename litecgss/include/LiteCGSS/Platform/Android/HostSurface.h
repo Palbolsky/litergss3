@@ -20,8 +20,9 @@ typedef void* jobject;
 // backend implements it (SFML-opengl-es2's hosted Android window); the
 // raylib backend doesn't yet: there, attaching logs that it is unsupported.
 //
-// Include-safe from C++ and from C (the JNI bridge of litergss-everywhere):
-// C consumers only see the C-linkage functions at the end.
+// Include-safe from C++ and from C (a host's own JNI code): C consumers
+// only see the C-linkage functions at the end. HostSurfaceJni.cpp is the
+// JNI bridge a host registers on its class (cgss_android_register_natives).
 //
 // Every function is a no-op off Android (the render gate always passes).
 
@@ -161,6 +162,21 @@ extern "C" {
 	void cgss_android_set_host_jni_context(JavaVM* vm, jobject activity);
 	void cgss_android_set_reuse_shared_window(int enabled);
 	int  cgss_android_is_reuse_shared_window_enabled(void);
+
+	// Host surface listener: the host's own concerns (e.g. pausing its audio while
+	// the app is in the background). Called with 1 once a surface is attached, 0
+	// before it is detached; NULL clears it.
+	typedef void (*cgss_android_host_surface_listener_t)(int attached);
+	void cgss_android_set_host_surface_listener(cgss_android_host_surface_listener_t listener);
+
+#if defined(__ANDROID__) || defined(ANDROID)
+	// JNI bridge (HostSurfaceJni.cpp): registers the natives of the host's class
+	// (attach, detach, inject*... see HostSurfaceJni.cpp for the list), which
+	// declares them static, with `static void dispatchVirtualKeyboardRequest(
+	// boolean)` for the IME callback. Typically from the host's JNI_OnLoad.
+	// Returns JNI_OK, or a JNI error (an exception may be pending).
+	int cgss_android_register_natives(JNIEnv* env, jclass hostClass);
+#endif
 
 #ifdef __cplusplus
 }

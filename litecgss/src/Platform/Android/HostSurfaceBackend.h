@@ -20,6 +20,9 @@ namespace cgss::android::backend {
 	void resized(int width, int height);
 	// Called after attach and whenever the JNI context changes.
 	void setJniContext(JavaVM* vm, jobject activity);
+	// The host's virtual keyboard callback (null: none), for a backend whose
+	// own keyboard requests should reach the host too.
+	void setVirtualKeyboardCallback(void (*callback)(int show));
 
 	// Window events. Each returns true when the event reached a window's
 	// queue (false: no window exists yet).
