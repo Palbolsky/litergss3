@@ -18,8 +18,19 @@ namespace cgss {
 	using Ops = ActiveBackend::Ops;
 
 	namespace {
+		// A load's three steps, each its own profiler zone: reading the file,
+		// decoding the PNG (CPU), uploading the pixels (GPU)
 		bool uploadImage(ActiveBackend::native_texture& texture, const ActiveBackend::native_image& image) {
+			CGSS_PROFILE_ZONE("cgss::texture upload");
 			return detail::uploadImage<Ops>(texture, image);
+		}
+		bool decodePngFile(ActiveBackend::native_image& image, const std::string& filename) {
+			CGSS_PROFILE_ZONE("cgss::png decode (file)");
+			return Ops::png_decode_file(image, filename.c_str());
+		}
+		bool decodePngMemory(ActiveBackend::native_image& image, const void* data, std::size_t size) {
+			CGSS_PROFILE_ZONE("cgss::png decode");
+			return Ops::png_decode_memory(image, data, size);
 		}
 	}
 
@@ -27,7 +38,7 @@ namespace cgss {
 	bool basic_TextureMemorySerializeMethod<ActiveBackend>::load(ActiveBackend::native_texture& texture, const MemorySerializerData& rawData, ActiveBackend::native_image& image) {
 	CGSS_PROFILE_ZONE("cgss::TextureMemorySerializeMethod::load");
 		Ops::texture_destroy(texture);
-		if (!Ops::png_decode_memory(image, rawData.first, rawData.second)) return false;
+		if (!decodePngMemory(image, rawData.first, rawData.second)) return false;
 		return uploadImage(texture, image);
 	}
 
@@ -56,11 +67,15 @@ namespace cgss {
 		Ops::texture_destroy(texture);
 		bool ok = false;
 		if (!cgss::vfs::exists(filename)) {
-			ok = Ops::png_decode_file(image, filename.c_str());
+			ok = decodePngFile(image, filename);
 		} else {
 			try {
-				const auto buffer = cgss::vfs::loadFully(filename);
-				ok = Ops::png_decode_memory(image, buffer.data(), buffer.size());
+				std::vector<char> buffer;
+				{
+					CGSS_PROFILE_ZONE("cgss::vfs read");
+					buffer = cgss::vfs::loadFully(filename);
+				}
+				ok = decodePngMemory(image, buffer.data(), buffer.size());
 			} catch (const std::exception& err) {
 				std::cerr << "Error while loading asset \"" << filename << "\" : " << err.what() << std::endl;
 				return false;
@@ -86,7 +101,7 @@ namespace cgss {
 	bool basic_TextureFilesystemSerializeMethod<ActiveBackend>::load(ActiveBackend::native_texture& texture, const std::string& filename, ActiveBackend::native_image& image) {
 	CGSS_PROFILE_ZONE("cgss::TextureFilesystemSerializeMethod::load");
 		Ops::texture_destroy(texture);
-		if (!Ops::png_decode_file(image, filename.c_str())) return false;
+		if (!decodePngFile(image, filename)) return false;
 		return uploadImage(texture, image);
 	}
 
