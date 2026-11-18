@@ -20,10 +20,6 @@ namespace cgss {
 			const auto itemZ = ZGet::z(item);
 			const auto position = this->findFirstGreater(itemZ);
 
-			SKA_LOGC_STATIC(cgss::GetLoggerStack(), ska::LogLevel::Info, cgss::ZContainerLog) <<
-				"Adding element to stack " << static_cast<void*>(this) << " with z-index = " <<
-				itemZ.z << ", " << itemZ.index << " at position = " << position;
-
 			if (position == this->m_stack.size()) {
 				this->m_stack.push_back(std::move(item));
 			} else {
@@ -34,7 +30,6 @@ namespace cgss {
 		void set(ZIndex& itemZ, long z) {
 			auto nextZ = ZIndex{z, itemZ.index};
 			const auto [originalIndex, finalIndex] = zSwap(itemZ, nextZ);
-			SKA_LOGC_STATIC(cgss::GetLoggerStack(), ska::LogLevel::Debug, cgss::ZContainerLog) << "Zswapping to z = " << z;
 			ZGet::setZ(this->m_stack[finalIndex], z);
 		}
 
@@ -76,10 +71,6 @@ namespace cgss {
 			} else if (diff < 0) {
 				rightCircleShift(range[1], range[0]);
 			}
-
-			SKA_LOGC_STATIC(cgss::GetLoggerStack(), ska::LogLevel::Debug, cgss::ZContainerLog)
-			<< "Stack item zswaping, previous = " << previous.z << ", " << previous.index << " found at index = " << range[0]
-			<< " next = " << next.z << ", " << next.index << " found at index = " << range[1];
 			return std::make_pair(range[0], range[1]);
 		}
 	};

@@ -1,17 +1,18 @@
 #ifndef CGSS_Z_BASE_CONTAINER_H
 #define CGSS_Z_BASE_CONTAINER_H
 
+#include <cstddef>
+#include <ostream>
 #include <vector>
-#include "LiteCGSS/Views/Stack/LoggerStack.h"
 #include "LiteCGSS/Views/Stack/ZGetter.h"
 #include "LiteCGSS/Graphics/ZIndex.h"
 
 namespace cgss {
-	struct ZContainerLog;
-}
-SKA_LOGC_CONFIG(ska::LogLevel::Error, cgss::ZContainerLog)
-
-namespace cgss {
+	namespace detail {
+		// Logged by src/Views/Stack/ZContainerLog.cpp, out of line:
+		// logging stays out of the public headers
+		void LogZRemoveMiss(const void* container, const ZIndex& itemZ, std::size_t position);
+	}
 
 	template <class ZIndexedElement>
 	class ZBaseContainer {
@@ -55,7 +56,6 @@ namespace cgss {
 
 			const auto diff = (value - ZGet::z(m_stack[index])).sign();
 			if (index == 1) {
-				SKA_LOGC_STATIC(cgss::GetLoggerStack(), ska::LogLevel::Debug, cgss::ZContainerLog) << "\tAdapting index " << index << " with diff = " << diff << " for value z = " << value.z << ", " << value.index;
 				if (diff == -1) {
 					return (value - ZGet::z(m_stack[0])).sign() <= 0 ? 0 : 1;
 				}
@@ -63,7 +63,6 @@ namespace cgss {
 			}
 
 			const auto finalIndex = index + (diff <= 0 ? 0 : 1);
-			SKA_LOGC_STATIC(cgss::GetLoggerStack(), ska::LogLevel::Debug, cgss::ZContainerLog) << "\tAdapting index " << index << " to index = " << finalIndex << " for value z = " << value.z << ", " << value.index;
 			return finalIndex;
 		}
 
@@ -73,13 +72,9 @@ namespace cgss {
 
 			const auto foundExactValue = predicate(m_stack[index]);
 			if (!foundExactValue) {
-				SKA_LOGC_STATIC(cgss::GetLoggerStack(), ska::LogLevel::Error, cgss::ZContainerLog) << static_cast<void*>(this) << " Trying to remove an element from stack but unable to find it for z-index = " << itemZ.z << ", " << itemZ.index
-					<< " only found position = " << index << " but no item equality";
-				//SKA_LOGC_STATIC(cgss::GetLoggerStack(), ska::LogLevel::Error, cgss::ZContainerLog) << *this;
+				detail::LogZRemoveMiss(this, itemZ, index);
 				return false;
 			}
-
-			SKA_LOGC_STATIC(cgss::GetLoggerStack(), ska::LogLevel::Info, cgss::ZContainerLog) << "Element removed from stack at index " << index << " for z-index = " << itemZ.z << ", " << itemZ.index;
 
 			m_stack.erase(m_stack.begin() + index);
 			return true;

@@ -53,6 +53,5 @@ generated/
 \#*
 
 #External
-external/skalog
 external/gtest
 _deps

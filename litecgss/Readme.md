@@ -166,7 +166,7 @@ After that, you can provide a "SFML_DIR" variable in your environment variables 
 
 LiteCGSS lives in the LiteRGSS3 monorepo, under `litecgss/`. It has no
 dependency on Ruby or on LiteRGSS: clone the monorepo and only build this
-folder. Its dependencies (skalog, lodepng, libnsgif, the raylib header) are
+folder. Its dependencies (spdlog, lodepng, libnsgif, the raylib header) are
 vendored — no git submodules.
 
 ## Build the LiteCGSS
@@ -188,6 +188,20 @@ _Options (CMake cache variables):_
 `CGSS_NO_LOGS`: compile logging out
 
 `CGSS_WINDOW_PRESERVATION`: keep the native window across reloads (ON by default on Android)
+
+## Logs
+
+LiteCGSS logs to stderr, one line per event, named after the component that
+wrote it (`DisplayWindow: Reloading window...`). It writes no file unless the
+environment asks for one:
+
+- `LITECGSS_LOG_DIR=<dir>`: also write the lines to `<dir>/LiteCGSS.log`
+  (`litergss-run` / `litergss-scene` set it to their run folder)
+- `LITECGSS_LOG_LEVEL`: override the components' levels, spdlog style:
+  `debug` for all, `Viewport=debug,ZContainer=info` for some, or both
+  (`warn,Viewport=debug`)
+
+A component's default level is in its `.cpp` (`CGSS_LOG_COMPONENT`).
 
 ## Consume the LiteCGSS
 

@@ -54,7 +54,7 @@ wrapper over it.
 
 LiteRGSS cross-compiles for Android as static libraries for a host that
 embeds Ruby (litergss-everywhere): `libLiteRGSS.a` (`Init_LiteRGSS`, called by
-the host), `libLiteCGSS_engine.a`, `libskalog.a` and the public headers
+the host), `libLiteCGSS_engine.a` and the public headers
 (`cmake --install`). The target Ruby can't run on the build machine: its
 header folders are given instead (`LITERGSS_EMBEDDED`).
 

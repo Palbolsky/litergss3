@@ -168,11 +168,11 @@ endfunction()
 set(_cgss_old_build_shared_libs ${BUILD_SHARED_LIBS})
 set(BUILD_SHARED_LIBS OFF)
 
-set(SKALOG_NO_TEST ON)
-add_subdirectory(external/skalog)
-# skalog does not declare its own usage requirements; Common/Logger.h (public)
-# includes <Logging/...>, so its include dir is part of our public interface.
-target_include_directories(skalog PUBLIC ${LITE_CGSS_EXTERNAL}/skalog/src/src)
+# spdlog (header-only, with its bundled fmt): the engine's logging, private
+# to src/ (Common/Log.h). No public header includes it: nothing to link or
+# install for a host.
+add_library(LiteCGSS_spdlog INTERFACE)
+target_include_directories(LiteCGSS_spdlog SYSTEM INTERFACE ${LITE_CGSS_EXTERNAL}/spdlog/include)
 
 if(LITECGSS_USE_TRACY)
 	# Tracy's client, provided (Tracy_DIR / CMAKE_PREFIX_PATH), never downloaded.
@@ -300,8 +300,8 @@ elseif(CGSS_BACKEND STREQUAL "raylib")
 endif()
 
 target_link_libraries(LiteCGSS_engine
-	PUBLIC  LiteCGSS::config skalog
-	PRIVATE LiteCGSS_backend
+	PUBLIC  LiteCGSS::config
+	PRIVATE LiteCGSS_backend LiteCGSS_spdlog
 )
 if(LITECGSS_USE_PHYSFS)
 	target_link_libraries(LiteCGSS_engine PUBLIC ${LITECGSS_PHYSFS_TARGET})
@@ -361,13 +361,11 @@ if(LITECGSS_BUILD_PLAYGROUND)
 endif()
 
 # ---------------------------------------------------------------------------
-# Install: the engine, skalog (its logging, part of its public headers) and
-# the public headers, for a host linking them (litergss-everywhere).
+# Install: the engine and its public headers, for a host linking them
+# (litergss-everywhere).
 # ---------------------------------------------------------------------------
 include(GNUInstallDirs)
-install(TARGETS LiteCGSS_engine skalog
+install(TARGETS LiteCGSS_engine
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(DIRECTORY include/LiteCGSS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(DIRECTORY ${LITE_CGSS_EXTERNAL}/skalog/src/src/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-	FILES_MATCHING PATTERN "*.h")

@@ -1,16 +1,13 @@
 #include <cmath>
 #include "Common/Profiling.h"
 #include "LiteCGSS/Views/ViewBox.h"
-#include "Views/LoggerViews.h"
+#include "Common/Log.h"
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
 #include "LiteCGSS/Common/NormalizeNumbers.h"
 
-SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::ViewBox)
+CGSS_LOG_COMPONENT("ViewBox", warn)
 
-#define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Debug, cgss::ViewBox)
-#define LOG_INFO SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info, cgss::ViewBox)
-#define LOG_WARN SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Warn, cgss::ViewBox)
 
 namespace { using Ops = cgss::backend::ActiveBackend::Ops; }
 using cgss::backend::native_of;
@@ -31,7 +28,7 @@ void cgss::ViewBox::moveOrigin(long ox, long oy) {
 
 	updateCenter();
 
-	LOG_DEBUG << "Center updated to ox = " << ox << " oy = " << oy;
+	CGSS_LOG_DEBUG("Center updated to ox = {} oy = {}", ox, oy);
 
 	if (m_triggerMove) {
 		m_triggerMove = false;
@@ -58,7 +55,7 @@ void cgss::ViewBox::resize(long width, long height) {
 	}
 	{
 		const auto sz = Ops::view_get_size(native_of(m_view));
-		LOG_INFO << "Size was width = " << sz.x << " height = " << sz.y;
+		CGSS_LOG_INFO("Size was width = {} height = {}", sz.x, sz.y);
 	}
 	Ops::view_set_size(native_of(m_view),
 		static_cast<float>(width) * m_zoom,
@@ -71,7 +68,7 @@ void cgss::ViewBox::resize(long width, long height) {
 
 	{
 		const auto sz = Ops::view_get_size(native_of(m_view));
-		LOG_INFO << "Resizing to width = " << sz.x << " height = " << sz.y;
+		CGSS_LOG_INFO("Resizing to width = {} height = {}", sz.x, sz.y);
 	}
 
 	if (m_triggerResize) {
@@ -102,7 +99,7 @@ void cgss::ViewBox::moveViewport(float x, float y) {
 		(m_x + origin.x) / sw, (m_y + origin.y) / sh,
 		(sz.x / m_zoom) / sw, (sz.y / m_zoom) / sh);
 
-	LOG_DEBUG << "Viewbox " << static_cast<void*>(this) <<  " has been moved to x = " << x << " y = " << y;
+	CGSS_LOG_DEBUG("Viewbox {} has been moved to x = {} y = {}", static_cast<void*>(this), x, y);
 	auto event = ViewportChangeEvent { getRectangleBox() };
 	Observable<ViewportChangeEvent>::notifyObservers(event);
 }
@@ -115,7 +112,7 @@ bool cgss::ViewBox::onWindowSizeChange(WindowSizeChangeEvent& event) {
 
 	moveViewport(m_x, m_y);
 
-	LOG_INFO << "Window size has changed to screenwidth = " << m_screenWidth << " screenheight = " << m_screenHeight;
+	CGSS_LOG_INFO("Window size has changed to screenwidth = {} screenheight = {}", m_screenWidth, m_screenHeight);
 	return true;
 }
 
@@ -143,7 +140,7 @@ void cgss::ViewBox::setZoom(float zoom) {
 	updateCenter();
 	Ops::view_set_rotation(native_of(m_view), m_angle);
 	const auto sz = Ops::view_get_size(native_of(m_view));
-	LOG_DEBUG << "Zoom of " << m_zoom << " transformed width = " << sz.x << " height = " << sz.y;
+	CGSS_LOG_DEBUG("Zoom of {} transformed width = {} height = {}", m_zoom, sz.x, sz.y);
 }
 
 float cgss::ViewBox::getZoom() const {

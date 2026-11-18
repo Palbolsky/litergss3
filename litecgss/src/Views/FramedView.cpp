@@ -8,17 +8,14 @@
 #include <algorithm>
 #include "Common/Profiling.h"
 #include <cstdint>
-#include "Views/LoggerViews.h"
+#include "Common/Log.h"
 #include "LiteCGSS/Views/FramedView.h"
 #include "LiteCGSS/Views/Viewport.h"
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Common/Rectangle.h"
 
-SKA_LOGC_CONFIG(ska::LogLevel::Warn, cgss::FramedViewItem)
+CGSS_LOG_COMPONENT("FramedView", warn)
 
-#define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Debug, cgss::FramedViewItem)
-#define LOG_INFO  SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info,  cgss::FramedViewItem)
-#define LOG_WARN  SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Warn,  cgss::FramedViewItem)
 
 // Backend state shared by both backends — just two non-owning skin handles.
 // The 9-slice skin, cursor + pause overlays are re-derived from the public
@@ -383,7 +380,7 @@ void cgss::FramedViewItem::updateView() {
 	long height       = static_cast<long>(m_wantedHeight) - offset_y - offset_y2;
 	if (width  < 0) width  = 0;
 	if (height < 0) height = 0;
-	LOG_INFO << "View updated to x = " << x << " y = " << y << " width = " << width << " height = " << height;
+	CGSS_LOG_INFO("View updated to x = {} y = {} width = {} height = {}", x, y, width, height);
 	resize(width, height);
 	moveViewport(static_cast<float>(x), static_cast<float>(y));
 }
@@ -409,7 +406,7 @@ void cgss::FramedViewItem::updateContentsOpacity() {
 }
 
 void cgss::FramedViewItem::setBuilder(std::array<long, 6> windowBuilder) {
-	LOG_INFO << "Setting window builder 6";
+	CGSS_LOG_INFO("Setting window builder 6");
 	std::copy(std::begin(windowBuilder), std::begin(windowBuilder) + 6, std::begin(m_windowBuilder));
 	m_windowBuilderExtended = false;
 	updateVertices();
@@ -417,7 +414,7 @@ void cgss::FramedViewItem::setBuilder(std::array<long, 6> windowBuilder) {
 }
 
 void cgss::FramedViewItem::setBuilder(std::array<long, 8> windowBuilder) {
-	LOG_INFO << "Setting window builder 8";
+	CGSS_LOG_INFO("Setting window builder 8");
 	m_windowBuilder = std::move(windowBuilder);
 	m_windowBuilderExtended = true;
 	updateVertices();
@@ -435,11 +432,11 @@ std::uint8_t cgss::FramedViewItem::getBackOpacity() const { return m_backOpacity
 
 void cgss::FramedViewItem::lock() {
 	m_locked = true;
-	LOG_INFO << "Locked";
+	CGSS_LOG_INFO("Locked");
 }
 void cgss::FramedViewItem::unlock() {
 	m_locked = false;
-	LOG_INFO << "Unlocked, updating vertices";
+	CGSS_LOG_INFO("Unlocked, updating vertices");
 	updateVertices();
 }
 bool cgss::FramedViewItem::isLocked() const { return m_locked; }
@@ -502,7 +499,7 @@ uint8_t cgss::FramedViewItem::getContentsOpacity() const { return m_contentOpaci
 
 void cgss::FramedViewItem::setSkin(cgss::Texture* skin) {
 	m_texture = skin;
-	LOG_INFO << "Skin set";
+	CGSS_LOG_INFO("Skin set");
 	updateVertices();
 }
 cgss::Texture* cgss::FramedViewItem::getSkin() const { return m_texture; }

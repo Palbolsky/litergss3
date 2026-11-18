@@ -46,7 +46,7 @@ build/debug-tracy/bin/litergss-run --env a1 && build/debug-tracy/bin/litergss-pr
 
 - `litergss-agent` with no argument lists the scripts (`tools/agent/*.rb`); add one there rather
   than repeating a long eval. A script's last value is its JSON result; `args` holds its arguments.
-- Each run gets `.run/<env>/run-NNNN/`: `stdout.log`, `stderr.log`, `logs/` (engine logs,
+- Each run gets `.run/<env>/run-NNNN/`: `stdout.log`, `stderr.log`, `logs/` (`LiteCGSS.log`,
   `LITECGSS_LOG_DIR`), `shots/`, and `files-written.txt` after `envs stop`.
 - Never stop a game with a signal: SIGTERM opens PSDK's error window and writes `Error.log`.
   `envs stop` quits it properly, and SIGKILLs only a game that no longer answers (and says so).

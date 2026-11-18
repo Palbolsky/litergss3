@@ -12,15 +12,12 @@
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
 #include "LiteCGSS/Platform/Android/HostSurface.h"
-#include "Views/LoggerViews.h"
+#include "Common/Log.h"
 
 // Backend-neutral: every native interaction goes through B::Ops.
 
-SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::DisplayWindow)
+CGSS_LOG_COMPONENT("DisplayWindow", info)
 
-#define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Debug, cgss::DisplayWindow)
-#define LOG_INFO SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info, cgss::DisplayWindow)
-#define LOG_WARN SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Warn, cgss::DisplayWindow)
 
 #ifdef CGSS_WINDOW_PRESERVATION
 static cgss::backend::ActiveBackend::native_window& sharedGameWindow() {
@@ -147,7 +144,7 @@ void cgss::basic_DisplayWindow<B>::applyReload(DisplayWindowSettings settings, b
 		settings.video.bitsPerPixel != m_settings.video.bitsPerPixel ||
 		settings.fullscreen != m_settings.fullscreen;
 
-	LOG_DEBUG << "applyReload: force=" << force << " windowCreateNeeded=" << windowCreateNeeded;
+	CGSS_LOG_DEBUG("applyReload: force={} windowCreateNeeded={}", force, windowCreateNeeded);
 
 	// The origin is the host's (setOrigin), not a reload parameter: settings
 	// coming from the scripts never carry it
@@ -167,7 +164,7 @@ void cgss::basic_DisplayWindow<B>::applyReload(DisplayWindowSettings settings, b
 				// Window already exists (shared static), just update settings.
 				// Don't call setSize() — on Android the native window is always fullscreen,
 				// and resizing would desync the backend's internal size from the actual surface.
-				LOG_WARN << "Reusing existing window instead of recreating";
+				CGSS_LOG_WARN("Reusing existing window instead of recreating");
 				// As a recreated one: the closes made for the previous
 				// DisplayWindow don't reach this one
 				cgss::android::hostSurfaceEventsDropped();
@@ -211,8 +208,7 @@ void cgss::basic_DisplayWindow<B>::applyReload(DisplayWindowSettings settings, b
 		onSizeChanged();
 	}
 
-	LOG_WARN << "Reloading window with parameters screenwidth = " << m_draw.screenWidth << " screenheight = " << m_draw.screenHeight
-		<< " smoothScreen = " << m_draw.smoothScreen << " scale = " << m_draw.scale << " framerate = " << m_draw.frameRate;
+	CGSS_LOG_WARN("Reloading window with parameters screenwidth = {} screenheight = {} smoothScreen = {} scale = {} framerate = {}", m_draw.screenWidth, m_draw.screenHeight, m_draw.smoothScreen, m_draw.scale, m_draw.frameRate);
 }
 
 template <class B>
@@ -408,7 +404,7 @@ void cgss::basic_DisplayWindow<B>::drawBrightness() {
 	using Ops = typename B::Ops;
 	const auto size = Ops::window_get_size(m_gameWindow);
 	const cgss::Color overlay{ 0, 0, 0, static_cast<std::uint8_t>(255 - m_draw.brightness) };
-	LOG_INFO << "Drawing brightness " << static_cast<int>(m_draw.brightness) << " on window size " << size.x << ", " << size.y;
+	CGSS_LOG_INFO("Drawing brightness {} on window size {}, {}", static_cast<int>(m_draw.brightness), size.x, size.y);
 	Ops::window_draw_color_quad(m_gameWindow, 0.f, 0.f,
 		static_cast<float>(size.x), static_cast<float>(size.y), overlay);
 }
@@ -443,7 +439,7 @@ void cgss::basic_DisplayWindow<B>::setOrigin(long x, long y) {
 	}
 	m_settings.originX = x;
 	m_settings.originY = y;
-	LOG_INFO << "Window origin set to x = " << x << " y = " << y;
+	CGSS_LOG_INFO("Window origin set to x = {} y = {}", x, y);
 	notifyWindowSizeChange();
 }
 
@@ -526,17 +522,17 @@ void cgss::basic_DisplayWindow<B>::bindRenderStates(RenderStates* renderStates) 
 		renderStates->data().setShaderUniform("texture", cgss::CurrentTexture);
 		ShaderRenderable::bindValue(&renderStates->data());
 		setShader(&renderStates->data().getRenderStates());
-		LOG_INFO << "Binding render states " << &renderStates->data();
+		CGSS_LOG_INFO("Binding render states {}", static_cast<const void*>(&renderStates->data()));
 	} else {
 		ShaderRenderable::bindValue(nullptr);
 		setShader(nullptr);
-		LOG_INFO << "Unbinding render states";
+		CGSS_LOG_INFO("Unbinding render states");
 	}
 }
 
 template <class B>
 void cgss::basic_DisplayWindow<B>::updateFromValue(const RenderStatesData* renderStatesData) {
-	LOG_INFO << "Updating render states " << renderStatesData;
+	CGSS_LOG_INFO("Updating render states {}", static_cast<const void*>(renderStatesData));
 	setShader(renderStatesData == nullptr ? nullptr : &renderStatesData->getRenderStates());
 }
 

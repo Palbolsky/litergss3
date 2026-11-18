@@ -9,13 +9,10 @@
 #include <algorithm>
 
 #include "Backend/ActiveBackend.h"
-#include "Graphics/LoggerDrawables.h"
+#include "Common/Log.h"
 
-SKA_LOGC_CONFIG(ska::LogLevel::Error, cgss::SpriteMapItem)
+CGSS_LOG_COMPONENT("SpriteMap", err)
 
-#define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Debug, cgss::SpriteMapItem)
-#define LOG_INFO  SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Info,  cgss::SpriteMapItem)
-#define LOG_WARN  SKA_LOGC_STATIC(GetLoggerDrawables(), ska::LogLevel::Warn,  cgss::SpriteMapItem)
 
 namespace { using Ops = cgss::backend::ActiveBackend::Ops; }
 
@@ -35,7 +32,7 @@ void cgss::SpriteMapItem::draw(cgss::RenderTarget& target) const {
 
 void cgss::SpriteMapItem::drawFast(cgss::RenderTarget& target) const {
 	CGSS_PROFILE_ZONE("cgss::SpriteMapItem::drawFast");
-	LOG_INFO << "Drawing " << m_sprites.size() << " sprites in " << m_textureGroups.size() << " texture groups";
+	CGSS_LOG_INFO("Drawing {} sprites in {} texture groups", m_sprites.size(), m_textureGroups.size());
 	// One batch per texture (tileset): tiles don't overlap, so the order
 	// between groups doesn't show.
 	for (const auto& group : m_textureGroups) {
@@ -72,7 +69,7 @@ void cgss::SpriteMapItem::removeFromTextureGroup(std::size_t index, const void* 
 
 void cgss::SpriteMapItem::defineMap(unsigned long tileWidth, unsigned long tileCount) {
 	m_tileWidth = tileWidth;
-	LOG_WARN << "Defining SpriteMap tileWidth = " << tileWidth << " tileCount = " << tileCount;
+	CGSS_LOG_WARN("Defining SpriteMap tileWidth = {} tileCount = {}", tileWidth, tileCount);
 
 	m_textureGroups.clear();
 	if (tileCount == 0) {
@@ -93,7 +90,7 @@ void cgss::SpriteMap::setTile(std::size_t index, const cgss::IntRect& tile, cgss
 	if (index >= m_proxy->m_sprites.size()) {
 		return;
 	}
-	LOG_DEBUG << "Activate tile index = " << index << " tileRect = " << tile.left << ", " << tile.top << ", " << tile.width << ", " << tile.height;
+	CGSS_LOG_DEBUG("Activate tile index = {} tileRect = {}, {}, {}, {}", index, tile.left, tile.top, tile.width, tile.height);
 	auto& sprite = m_proxy->m_sprites[index];
 	// Take a shared_ptr ref on the native texture so the GPU handle survives
 	// the cgss::Texture wrapper going out of scope (callers commonly pass a
@@ -121,7 +118,7 @@ void cgss::SpriteMap::setTileRect(std::size_t index, const cgss::IntRect& tile) 
 }
 
 void cgss::SpriteMap::reset() {
-	LOG_DEBUG << "SpriteMap resetted";
+	CGSS_LOG_DEBUG("SpriteMap resetted");
 	for (auto& sprite : m_proxy->m_sprites) {
 		sprite.active = false;
 	}
@@ -129,7 +126,7 @@ void cgss::SpriteMap::reset() {
 }
 
 void cgss::SpriteMap::move(float x, float y) {
-	LOG_WARN << "Moving = " << x << ", " << y;
+	CGSS_LOG_WARN("Moving = {}, {}", x, y);
 	auto xIterator = x;
 	for (auto& sprite : m_proxy->m_sprites) {
 		Ops::sprite_set_position(*sprite.sprite, xIterator, y);
@@ -138,14 +135,14 @@ void cgss::SpriteMap::move(float x, float y) {
 }
 
 void cgss::SpriteMap::moveOrigin(float ox, float oy) {
-	LOG_DEBUG << "Settings origin = " << ox << ", " << oy;
+	CGSS_LOG_DEBUG("Settings origin = {}, {}", ox, oy);
 	for (auto& sprite : m_proxy->m_sprites) {
 		Ops::sprite_set_origin(*sprite.sprite, ox, oy);
 	}
 }
 
 void cgss::SpriteMap::setTileScale(float scale) {
-	LOG_WARN << "Settings scale = " << scale;
+	CGSS_LOG_WARN("Settings scale = {}", scale);
 	for (auto& sprite : m_proxy->m_sprites) {
 		Ops::sprite_set_scale(*sprite.sprite, scale, scale);
 	}

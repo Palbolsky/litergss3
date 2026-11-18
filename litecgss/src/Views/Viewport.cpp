@@ -5,13 +5,10 @@
 #include "LiteCGSS/Common/Rectangle.h"
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
 #include "LiteCGSS/Graphics/Texture.h"
-#include "Views/LoggerViews.h"
+#include "Common/Log.h"
 
-SKA_LOGC_CONFIG(ska::LogLevel::Info, cgss::ViewportItem)
+CGSS_LOG_COMPONENT("Viewport", info)
 
-#define LOG_DEBUG SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Debug, cgss::ViewportItem)
-#define LOG_INFO SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Info, cgss::ViewportItem)
-#define LOG_WARN SKA_LOGC_STATIC(GetLoggerViews(), ska::LogLevel::Warn, cgss::ViewportItem)
 
 cgss::ViewportItem::ViewportItem(Viewport*, MainEventDispatcher& eventDispatcher, DisplayWindowUserData windowData, const DisplayWindowSettings& windowSettings) :
 	ViewBox(eventDispatcher, windowSettings),
@@ -152,8 +149,8 @@ void cgss::ViewportItem::scaleRenderSpriteToViewport() const {
 void cgss::ViewportItem::updateFromValue(const cgss::IntRect* rectanglePtr) {
 	auto rectangle = rectanglePtr == nullptr ? getRectangleBox() : *rectanglePtr;
 
-	LOG_INFO << "View " << static_cast<void*>(this) << " updated with rect x = " << rectangle.left << " y = " << rectangle.top << " width = " << rectangle.width << " height = " << rectangle.height;
-	LOG_DEBUG << "Rectangle is " << static_cast<const void*>(rectanglePtr);
+	CGSS_LOG_INFO("View {} updated with rect x = {} y = {} width = {} height = {}", static_cast<void*>(this), rectangle.left, rectangle.top, rectangle.width, rectangle.height);
+	CGSS_LOG_DEBUG("Rectangle is {}", static_cast<const void*>(rectanglePtr));
     ViewBox::resize(rectangle.width, rectangle.height);
 	ViewBox::moveViewport(rectangle.left, rectangle.top);
 }
