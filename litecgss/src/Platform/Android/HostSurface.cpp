@@ -67,6 +67,11 @@ namespace {
 	// would never get them. Under g_mutex.
 	unsigned int g_closesQueued = 0;
 
+	// A detach's LostFocus events queued and not popped yet
+	// (hostSurfaceFocusLostDelivered): frames don't wait meanwhile, so the
+	// script gets the event before the game pauses. Under g_mutex.
+	unsigned int g_focusLostQueued = 0;
+
 	// Detaches so far: a frame finding the surface back still knows it went
 	// away since its last one. Under g_mutex.
 	unsigned int g_detaches = 0;
@@ -136,8 +141,12 @@ namespace cgss::android {
 		// the interpreter) destroys the window.
 		g_attached.store(false, std::memory_order_release);
 		++g_detaches;
-		backend::pushFocus(false);
+		if (backend::pushFocus(false)) {
+			++g_focusLostQueued;
+		}
 		backend::detach();
+		// A frame already waiting delivers it first
+		g_changed.notify_all();
 	}
 
 	void notifyHostSurfaceResized(int width, int height) {
@@ -160,7 +169,7 @@ namespace cgss::android {
 	bool beginHostedFrame(unsigned int& detaches, bool& surfaceChanged) {
 		std::unique_lock<std::mutex> lock(g_mutex);
 		g_changed.wait(lock, [] {
-			return g_attached.load(std::memory_order_acquire) || g_closesQueued > 0;
+			return g_attached.load(std::memory_order_acquire) || g_closesQueued > 0 || g_focusLostQueued > 0;
 		});
 		surfaceChanged = detaches != g_detaches;
 		detaches = g_detaches;
@@ -177,9 +186,15 @@ namespace cgss::android {
 		if (g_closesQueued > 0) --g_closesQueued;
 	}
 
+	void hostSurfaceFocusLostDelivered() {
+		std::lock_guard<std::mutex> lock(g_mutex);
+		if (g_focusLostQueued > 0) --g_focusLostQueued;
+	}
+
 	void hostSurfaceEventsDropped() {
 		std::lock_guard<std::mutex> lock(g_mutex);
 		g_closesQueued = 0;
+		g_focusLostQueued = 0;
 		backend::dropClosed();
 	}
 
@@ -286,6 +301,7 @@ namespace cgss::android {
 		return true;
 	}
 	void hostSurfaceCloseDelivered() {}
+	void hostSurfaceFocusLostDelivered() {}
 	void hostSurfaceEventsDropped() {}
 }
 

@@ -6,6 +6,11 @@
 #include "LiteCGSS/Events/MouseButton.h"
 
 #include <raylib.h>
+// The Android host's platform reports its focus changes one by one
+#if (defined(__ANDROID__) || defined(ANDROID)) && __has_include(<raylib_android_hosted.h>)
+#  include <raylib_android_hosted.h>
+#  define CGSS_RAYLIB_HOSTED_FOCUS 1
+#endif
 
 #include <array>
 #include <cstdio>
@@ -318,8 +323,9 @@ namespace cgss::backend::raylib_detail {
 				pushEvent(ev);
 			}
 
+#ifndef CGSS_RAYLIB_HOSTED_FOCUS
 			// Focus — edge-diff. raylib exposes IsWindowFocused() as the
-			// current state.
+			// current state. (Hosted on Android: drainHostedFocus.)
 			const bool nowFocused = IsWindowFocused();
 			if (nowFocused != g_prev.windowFocused) {
 				auto ev = makeEvent(nowFocused
@@ -328,6 +334,7 @@ namespace cgss::backend::raylib_detail {
 				pushEvent(ev);
 				g_prev.windowFocused = nowFocused;
 			}
+#endif
 
 			// Close — latch once so we don't spam Closed events while the
 			// user-code hasn't torn down the window yet. The latch lives in
@@ -359,7 +366,21 @@ namespace cgss::backend::raylib_detail {
 		pollTouches();
 	}
 
+	// The Android host's focus changes, each one, at every poll: a trip to
+	// the background (LostFocus then GainedFocus) happens while no frame is
+	// drawn (no refill), and IsWindowFocused() is focused again by the time
+	// one is. The LostFocus must reach the script before the game pauses
+	// (cgss::android::hostSurfaceFocusLostDelivered).
+	void drainHostedFocus() {
+#ifdef CGSS_RAYLIB_HOSTED_FOCUS
+		for (int change = RaylibHostedPopFocusChange(); change >= 0; change = RaylibHostedPopFocusChange()) {
+			pushEvent(makeEvent(change ? cgss::EventType::GainedFocus : cgss::EventType::LostFocus));
+		}
+#endif
+	}
+
 	bool tryPopEvent(cgss::backend::raylib::Event& out) noexcept {
+		if (g_queue.empty()) drainHostedFocus();
 		if (g_queue.empty() && !g_frameRefillDone) {
 			refillQueue();
 			g_frameRefillDone = true;

@@ -391,6 +391,9 @@ bool cgss::basic_DisplayWindow<B>::popEvent(cgss::Event& event) {
 	if (popped && event.type() == cgss::EventType::Closed) {
 		cgss::android::hostSurfaceCloseDelivered();
 	}
+	if (popped && event.type() == cgss::EventType::LostFocus) {
+		cgss::android::hostSurfaceFocusLostDelivered();
+	}
 	return popped;
 }
 

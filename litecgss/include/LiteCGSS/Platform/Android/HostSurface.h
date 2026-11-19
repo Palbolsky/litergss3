@@ -124,10 +124,17 @@ namespace cgss::android {
 	// keeps beginHostedFrame from waiting.
 	void hostSurfaceCloseDelivered();
 
+	// The event pump popped a LostFocus event. Until then, a detach's
+	// LostFocus keeps beginHostedFrame from waiting: the script gets it
+	// before the game pauses in the background (a host app about to be
+	// killed there: the game saves on it), not once it is back.
+	void hostSurfaceFocusLostDelivered();
+
 	// The window closed or was recreated, its event queue with it, or its
 	// DisplayWindow stopped using the preserved one: the Closed events queued
 	// for it are no longer waited for, nor delivered to the next one (a close
 	// request is addressed to the DisplayWindow live when it is made).
+	// Likewise the LostFocus events not delivered yet.
 	void hostSurfaceEventsDropped();
 
 }
