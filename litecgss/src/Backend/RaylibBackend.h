@@ -883,6 +883,21 @@ namespace cgss::backend {
 		}
 
 		// ---- Shader ops ----
+		// Releases a program loaded by shader_load_program, and its uniform
+		// locations (a calloc'd array): a defaulted owner deleted the struct
+		// without it. raylib's default shader (handed back by a failed load)
+		// is never unloaded (UnloadShader skips it). After the window closed
+		// no GL call: only the locations go, as font_destroy does.
+		static inline void shader_destroy(native_shader& sh) noexcept {
+			if (sh.id == 0) return;
+			raylib_detail::forgetShaderTextures(sh.id);
+			if (IsWindowReady()) {
+				UnloadShader(sh);
+			} else if (sh.locs != nullptr && sh.locs != rlGetShaderLocsDefault()) {
+				RL_FREE(sh.locs);
+			}
+			sh = native_shader{};
+		}
 		// Clients author shaders against the legacy fixed-pipeline GLSL
 		// contract (gl_TexCoord / gl_Color / gl_FragColor / texture2D, a
 		// `texture` sampler, gl_Vertex-style vertex shaders), which raylib

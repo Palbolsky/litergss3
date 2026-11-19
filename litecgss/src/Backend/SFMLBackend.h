@@ -741,6 +741,8 @@ namespace cgss::backend {
 
 		// ---- Shader ops ----
 		// Capability queries.
+		// Ops-symmetry with RaylibBackend::Ops::shader_destroy: sf::Shader frees itself.
+		static inline void shader_destroy(native_shader&) noexcept {}
 		static inline bool shader_is_available()          { return sf::Shader::isAvailable(); }
 		static inline bool shader_is_geometry_available() { return sf::Shader::isGeometryAvailable(); }
 

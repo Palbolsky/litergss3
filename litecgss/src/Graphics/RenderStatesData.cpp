@@ -57,8 +57,23 @@ cgss::basic_RenderStatesData<B>::basic_RenderStatesData() :
 }
 
 template <class B> cgss::basic_RenderStatesData<B>::basic_RenderStatesData(basic_RenderStatesData&&) = default;
-template <class B> cgss::basic_RenderStatesData<B>& cgss::basic_RenderStatesData<B>::operator=(basic_RenderStatesData&&) = default;
-template <class B> cgss::basic_RenderStatesData<B>::~basic_RenderStatesData() = default;
+// The shader is a native program (raylib's a C struct with GL and heap
+// resources): a defaulted destructor or move deleted it without unloading it.
+template <class B>
+cgss::basic_RenderStatesData<B>& cgss::basic_RenderStatesData<B>::operator=(basic_RenderStatesData&& other) {
+	if (this != &other) {
+		if (m_shader) B::Ops::shader_destroy(*m_shader);
+		m_drawState = std::move(other.m_drawState);
+		m_shader = std::move(other.m_shader);
+		m_shadersEnabled = other.m_shadersEnabled;
+	}
+	return *this;
+}
+
+template <class B>
+cgss::basic_RenderStatesData<B>::~basic_RenderStatesData() {
+	if (m_shader) B::Ops::shader_destroy(*m_shader);
+}
 
 template <class B>
 void cgss::basic_RenderStatesData<B>::enableShaders(bool enable) {
@@ -95,7 +110,8 @@ void cgss::basic_RenderStatesData<B>::warnIfShadersNotAvailable() {
 
 template <class B>
 void cgss::basic_RenderStatesData<B>::updateShader() {
-	if (!m_shadersEnabled) {
+	if (!m_shadersEnabled && m_shader) {
+		B::Ops::shader_destroy(*m_shader);
 		m_shader = nullptr;
 	}
 	B::Ops::draw_state_set_shader(cgss::backend::native_of(m_drawState), m_shader.get());
