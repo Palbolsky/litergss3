@@ -10,6 +10,7 @@
 
 // The runtime's Ruby source (agent_runtime.rb), embedded at build time.
 #include "AgentRuntime.h"
+#include "../Profiling.h"
 
 namespace {
 	VALUE rb_mAgent = Qnil;
@@ -121,6 +122,7 @@ void Init_Agent()
 void agent_drain(void (*redraw)(VALUE), VALUE self)
 {
 	if (!cgss::agent::IsOpen()) return;
+	LITERGSS_PROFILE_ZONE("LiteRGSS::agent_drain");
 	protected_call("tick");
 	if (RTEST(protected_call("stepping?"))) return;
 	cgss::agent::Drain();

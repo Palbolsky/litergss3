@@ -13,6 +13,7 @@
 #include "../graphics/Image.h"
 #include "../agent/Agent.h"
 #include "../rbAdapter.h"
+#include "../Profiling.h"
 
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
 #include "LiteCGSS/Events/Event.h"
@@ -581,7 +582,10 @@ namespace {
 	{
 		// The GL context left with the GVL (context_follows_gvl): this frame
 		// holds it until done. Without that hook it never left this thread.
-		if (g_context_follows_gvl) cgss::DisplayWindow::AcquireContext();
+		if (g_context_follows_gvl) {
+			LITERGSS_PROFILE_ZONE("LiteRGSS::DisplayWindow AcquireContext");
+			cgss::DisplayWindow::AcquireContext();
+		}
 		static_cast<cgss::DisplayWindow*>(window)->draw();
 		if (g_context_follows_gvl) cgss::DisplayWindow::ReleaseContext();
 		return nullptr;
@@ -591,7 +595,10 @@ namespace {
 	{
 		// Bitmaps edited since the last frame reach the GPU now, while the
 		// GVL (and the GL context) is still held.
-		image_flush_pending_uploads();
+		{
+			LITERGSS_PROFILE_ZONE("LiteRGSS::Image uploads");
+			image_flush_pending_uploads();
+		}
 		rb_thread_call_without_gvl(draw_without_gvl, &window_of(self), nullptr, nullptr);
 	}
 
@@ -612,6 +619,7 @@ namespace {
 
 	VALUE update_body(VALUE self)
 	{
+		LITERGSS_PROFILE_ZONE("LiteRGSS::DisplayWindow#update");
 		// Like LiteRGSS2: a window closed by anything but its Closed event
 		// (which raises ClosedWindowError) stops the game loop with StoppedError.
 		if (!window_of(self).isOpen()) {
@@ -621,13 +629,17 @@ namespace {
 		agent_drain(draw_frame, self);
 		if (agent_take_quit_request()) close_requested(self, "Game Window has been closed by the agent channel (quit)");
 		draw_frame(self);
-		if (RTEST(rb_ivar_get(self, iv_polling))) drain_events_internal(self);
+		if (RTEST(rb_ivar_get(self, iv_polling))) {
+			LITERGSS_PROFILE_ZONE("LiteRGSS::DisplayWindow events");
+			drain_events_internal(self);
+		}
 		auto* window = window_ptr(self);
 		return window != nullptr && window->isOpen() ? Qtrue : Qfalse;
 	}
 
 	VALUE update_no_input_body(VALUE self)
 	{
+		LITERGSS_PROFILE_ZONE("LiteRGSS::DisplayWindow#update_no_input");
 		// Served during transitions too; a quit waits for the next update.
 		agent_drain(draw_frame, self);
 		draw_frame(self);

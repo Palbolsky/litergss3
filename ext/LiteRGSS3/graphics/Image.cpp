@@ -6,6 +6,7 @@
 #include "LiteRGSS.h"
 #include "RubyValue.h"
 #include "../rbAdapter.h"
+#include "../Profiling.h"
 #include <LiteCGSS/Common/NormalizeNumbers.h>
 #include <LiteCGSS/Image/Serializers/ImageSerializer.h>
 #include "Color.h"
@@ -57,6 +58,7 @@ static void mark_image_dirty(ImageData *img)
 
 static void sync_texture(ImageData *img)
 {
+    LITERGSS_PROFILE_ZONE("LiteRGSS::Image texture upload");
     // Re-upload pixels into the existing GPU texture rather than
     // reallocating — preserves the shared_ptr<native_texture> identity
     // so any Sprite/SpriteMap that already holds the native handle sees
