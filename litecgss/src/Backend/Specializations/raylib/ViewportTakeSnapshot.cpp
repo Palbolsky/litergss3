@@ -2,13 +2,20 @@
 // of Viewport's body lives in Views/Viewport.cpp; this one method is split
 // out per-backend because it's render-target-shaped (SFML uses
 // sf::RenderTexture + sf::Sprite for the off-screen render-and-grab; raylib
-// uses BeginTextureMode + LoadImageFromTexture for the same dance).
+// uses BeginTextureMode for the same dance).
 //
-// Y-flip note: raylib FBOs are bottom-up in texel space, so after reading
-// pixels we ImageFlipVertical before promoting to a fresh GL texture —
-// otherwise the snapshot would render upside down when bound to a Sprite.
+// The snapshot never leaves the GPU, as on SFML (its texture copy is an FBO
+// blit). Reading it back to flip it on the CPU and uploading it again stalled
+// on the GPU: PSDK's Graphics.snap_to_bitmap takes one snapshot per viewport,
+// a battle start took ~1 s of them on the Android emulator.
+//
+// Y-flip note: raylib FBOs are bottom-up in texel space, a texture made from
+// an image top-down. The last pass draws the render into a second render
+// texture upside down, which stores it top-down; that texture outlives its
+// framebuffer and is the snapshot.
 
 #include <raylib.h>
+#include <rlgl.h>
 #include "Common/Profiling.h"
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Graphics/RenderStates.h"
@@ -63,16 +70,29 @@ std::unique_ptr<cgss::Texture> cgss::ViewportItem::takeSnapshot() const {
 		}
 	}
 
-	// Read the FBO pixels back into a CPU image, flip Y, and upload to a
-	// fresh standalone texture. We can't return rt.texture directly — the
-	// RenderTexture owns the GL handle and unloading it would invalidate
-	// the Sprite that PSDK binds the snapshot to.
-	::Image cpuImage = LoadImageFromTexture(rt.texture);
+	// Upside down into a fresh render texture, as is: no blending, the
+	// snapshot keeps the render's alpha. FBO texels are bottom-up, so drawing
+	// the source rows as they are stores them top-down.
+	::RenderTexture flipped{};
+	if (!Ops::render_texture_create(flipped, w, h)) {
+		UnloadRenderTexture(rt);
+		return nullptr;
+	}
+	Ops::render_texture_clear_color(flipped, cgss::Color{ 0, 0, 0, 0 });
+	rlSetBlendFactors(RL_ONE, RL_ZERO, RL_FUNC_ADD);
+	BeginBlendMode(BLEND_CUSTOM);
+	const float fw = static_cast<float>(w);
+	const float fh = static_cast<float>(h);
+	DrawTexturePro(rt.texture, ::Rectangle{ 0.f, 0.f, fw, fh }, ::Rectangle{ 0.f, 0.f, fw, fh },
+		::Vector2{ 0.f, 0.f }, 0.f, ::WHITE);
+	EndBlendMode();
+	Ops::render_texture_display(flipped);
 	UnloadRenderTexture(rt);
-	if (cpuImage.data == nullptr) return nullptr;
-	ImageFlipVertical(&cpuImage);
-	::Texture2D outTex = LoadTextureFromImage(cpuImage);
-	UnloadImage(cpuImage);
+
+	// The texture stays, its framebuffer (and depth buffer) go: rlUnloadFramebuffer
+	// deletes those only, UnloadRenderTexture would delete the texture too.
+	::Texture2D outTex = flipped.texture;
+	rlUnloadFramebuffer(flipped.id);
 	if (outTex.id == 0) return nullptr;
 
 	return std::make_unique<cgss::Texture>(cgss::Texture::create_from_native(outTex));
