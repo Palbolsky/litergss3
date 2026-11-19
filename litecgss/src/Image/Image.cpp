@@ -38,8 +38,16 @@ cgss::basic_Image<B>& cgss::basic_Image<B>::operator=(const basic_Image& image) 
 	return *this;
 }
 
+// The pixels this image held go first: a defaulted move would delete the
+// native image without unloading it (raylib's is a C struct owning a buffer).
 template <class B>
-cgss::basic_Image<B>& cgss::basic_Image<B>::operator=(basic_Image&& image) noexcept = default;
+cgss::basic_Image<B>& cgss::basic_Image<B>::operator=(basic_Image&& image) noexcept {
+	if (this != &image) {
+		if (m_image) B::Ops::image_destroy(*m_image);
+		m_image = std::move(image.m_image);
+	}
+	return *this;
+}
 
 template <class B>
 cgss::basic_Image<B> cgss::basic_Image<B>::create(const std::string& filename) {

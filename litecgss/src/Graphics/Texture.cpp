@@ -46,11 +46,15 @@ cgss::basic_Texture<B>::basic_Texture() :
 	m_image(std::make_unique<typename B::native_image>()) {
 }
 
+// The CPU mirror is copied, not shared: each texture frees its own.
 template <class B>
 cgss::basic_Texture<B>::basic_Texture(const basic_Texture& other) :
 	m_loaded(other.m_loaded),
 	m_texture(other.m_texture),
-	m_image(std::make_unique<typename B::native_image>(*other.m_image)) {
+	m_image(std::make_unique<typename B::native_image>()) {
+	if (B::Ops::get_image_size(*other.m_image).x != 0) {
+		B::Ops::copy_image(*m_image, *other.m_image);
+	}
 }
 
 template <class B>
@@ -64,11 +68,24 @@ cgss::basic_Texture<B>& cgss::basic_Texture<B>::operator=(const basic_Texture& o
 	return *this;
 }
 
+// The CPU mirror (pixels of a texture loaded from a file, or created
+// blank) is a native image: a defaulted destructor or move would delete it
+// without unloading it, leaking every texture's pixels on raylib.
 template <class B>
-cgss::basic_Texture<B>& cgss::basic_Texture<B>::operator=(basic_Texture&& other) noexcept = default;
+cgss::basic_Texture<B>& cgss::basic_Texture<B>::operator=(basic_Texture&& other) noexcept {
+	if (this != &other) {
+		if (m_image) B::Ops::image_destroy(*m_image);
+		m_loaded = other.m_loaded;
+		m_texture = std::move(other.m_texture);
+		m_image = std::move(other.m_image);
+	}
+	return *this;
+}
 
 template <class B>
-cgss::basic_Texture<B>::~basic_Texture() = default;
+cgss::basic_Texture<B>::~basic_Texture() {
+	if (m_image) B::Ops::image_destroy(*m_image);
+}
 
 template <class B>
 cgss::basic_Texture<B> cgss::basic_Texture<B>::create(const DisplayWindow& window, const std::string& filename) {
