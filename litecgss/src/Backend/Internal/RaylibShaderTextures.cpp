@@ -1,4 +1,5 @@
 #include "Backend/Internal/RaylibShaderTextures.h"
+#include "Views/GLContext.h"
 
 #include <mutex>
 #include <unordered_map>
@@ -38,6 +39,7 @@ namespace cgss::backend::raylib_detail {
 	}
 
 	void bindShaderTextures(unsigned int shaderId) {
+		cgss::detail::ensureGLContext();
 		std::lock_guard<std::mutex> lock(g_mutex);
 		const auto it = g_bindings.find(shaderId);
 		if (it == g_bindings.end() || it->second.empty()) return;

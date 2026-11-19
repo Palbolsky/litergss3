@@ -63,6 +63,14 @@ namespace cgss {
 		static bool ContextFollowsThread();
 		static void AcquireContext();
 		static void ReleaseContext();
+		/* With onUse, a thread takes the context on its first GL work (the
+		   backend's GL operations ask for it), not before: a host handing it
+		   over with its own thread lock (Ruby's GVL) releases it with that
+		   lock, but doesn't acquire it with it. A thread doing no GL work
+		   (file I/O, script compilation) then never waits for a frame drawn
+		   on another thread. A no-op where the context doesn't follow
+		   threads. */
+		static void AcquireContextOnUse(bool onUse);
 
 		basic_DisplayWindow(const DisplayWindowSettings& settings);
 

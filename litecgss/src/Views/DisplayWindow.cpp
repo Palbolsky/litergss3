@@ -7,12 +7,14 @@
 #include <cstdlib>
 #include <string>
 #include <cassert>
+#include <atomic>
 #include <mutex>
 #include <thread>
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Configuration/DisplayWindowSettings.h"
 #include "LiteCGSS/Platform/Android/HostSurface.h"
 #include "Common/Log.h"
+#include "Views/GLContext.h"
 
 // Backend-neutral: every native interaction goes through B::Ops.
 
@@ -588,6 +590,20 @@ namespace {
 	// Held by the thread whose GL work is in progress (context_follows_thread)
 	std::mutex g_contextMutex;
 	thread_local bool t_holdsContext = false;
+	// Threads take the context on their first GL work (ensureGLContext), not
+	// before (AcquireContextOnUse)
+	std::atomic<bool> g_contextOnUse{ false };
+}
+
+void cgss::detail::ensureGLContext() {
+	if (t_holdsContext || !g_contextOnUse.load(std::memory_order_relaxed)) return;
+	cgss::DisplayWindow::AcquireContext();
+}
+
+template <class B>
+void cgss::basic_DisplayWindow<B>::AcquireContextOnUse(bool onUse) {
+	if (!B::Ops::context_follows_thread) return;
+	g_contextOnUse.store(onUse, std::memory_order_relaxed);
 }
 
 template <class B>

@@ -102,10 +102,14 @@ namespace {
 	}
 
 	// Backends with one GL context for all windows (raylib): it follows the
-	// Ruby thread holding the GVL, so a window driven from another thread
-	// (PSDK's error screen) finds it current. Released when a thread lets the
-	// GVL go, acquired when one gets it back; a frame drawn without the GVL
-	// holds it meanwhile (draw_without_gvl).
+	// Ruby threads, so a window driven from another thread (PSDK's error
+	// screen) finds it current. A thread takes it on its first GL work
+	// (cgss's AcquireContextOnUse) and releases it when it lets the GVL go;
+	// a frame drawn without the GVL holds it meanwhile (draw_without_gvl).
+	// Not taken back with the GVL: a thread with no GL work (a script
+	// compilation writing files next to a loading screen) then waited for
+	// the frame in flight each time it got the GVL back, its file I/O
+	// paced by the other thread's frames (each write a frame long).
 	// Needs Ruby's internal thread events (Ruby >= 3.2, or an older Ruby
 	// patched with them, as litergss-everywhere's 3.0): the build refuses a
 	// Ruby without them with the raylib backend (cmake/RubyExtension.cmake),
@@ -115,13 +119,9 @@ namespace {
 #define LITERGSS_CONTEXT_FOLLOWS_GVL 1
 	bool g_context_follows_gvl = false;
 
-	void context_follows_gvl(rb_event_flag_t event, const rb_internal_thread_event_data_t*, void*)
+	void context_follows_gvl(rb_event_flag_t, const rb_internal_thread_event_data_t*, void*)
 	{
-		if (event == RUBY_INTERNAL_THREAD_EVENT_RESUMED) {
-			cgss::DisplayWindow::AcquireContext();
-		} else {
-			cgss::DisplayWindow::ReleaseContext();
-		}
+		cgss::DisplayWindow::ReleaseContext();
 	}
 
 	void install_context_hook()
@@ -130,8 +130,9 @@ namespace {
 		g_context_follows_gvl = true;
 		// This thread runs Ruby, so it has the GVL: it takes the context first.
 		cgss::DisplayWindow::AcquireContext();
+		cgss::DisplayWindow::AcquireContextOnUse(true);
 		rb_internal_thread_add_event_hook(context_follows_gvl,
-			RUBY_INTERNAL_THREAD_EVENT_RESUMED | RUBY_INTERNAL_THREAD_EVENT_SUSPENDED | RUBY_INTERNAL_THREAD_EVENT_EXITED,
+			RUBY_INTERNAL_THREAD_EVENT_SUSPENDED | RUBY_INTERNAL_THREAD_EVENT_EXITED,
 			nullptr);
 	}
 #else

@@ -28,6 +28,7 @@
 #include "Backend/Internal/RaylibWindowStack.h"
 #include "Backend/Internal/RaylibKeyTranslation.h"
 #include "Backend/Shader/ShaderPreprocessor.h"
+#include "Views/GLContext.h"
 
 // raylib's own headers, from the raylib this build links (see the raylib
 // lookup in litecgss/CMakeLists.txt): rlgl.h — the immediate-mode matrix stack
@@ -199,12 +200,14 @@ namespace cgss::backend {
 		// here matches the SFML contract and makes the cgss::DisplayWindow
 		// API backend-uniform.
 		static inline void window_clear(native_window& w) {
+			cgss::detail::ensureGLContext();
 			if (!IsWindowReady() || !owns_screen(w)) return;
 			BeginDrawing();
 			apply_default_blend();
 			ClearBackground(::Color{ 0, 0, 0, 255 });
 		}
 		static inline void window_display(native_window& w) {
+			cgss::detail::ensureGLContext();
 			if (!IsWindowReady() || !owns_screen(w)) return;
 			// Close any scissor region installed by target_set_view during
 			// the frame so the next frame starts from a clean GL state.
@@ -304,6 +307,7 @@ namespace cgss::backend {
 			return modes;
 		}
 		static inline unsigned int texture_max_size() {
+			cgss::detail::ensureGLContext();
 			return raylib_detail::maxTextureSize();
 		}
 		static inline Size2u desktop_size() noexcept {
@@ -572,6 +576,7 @@ namespace cgss::backend {
 			return native_view{ w * 0.5f, h * 0.5f, w, h, 0.f, 0.f, 1.f, 1.f, 0.f };
 		}
 		static inline void window_set_view(native_window&, const native_view& v) {
+			cgss::detail::ensureGLContext();
 			raylib_detail::setCurrentTargetSize(
 				static_cast<float>(IsWindowReady() ? GetScreenWidth()  : 0),
 				static_cast<float>(IsWindowReady() ? GetScreenHeight() : 0));
@@ -607,6 +612,7 @@ namespace cgss::backend {
 		//     variant is the closer analogue to what modern users expect
 		//     and doesn't glitch on compositing Wayland/X11 sessions.
 		static inline void window_create(native_window& win, const WindowCreateOptions& opts, const char* title) {
+			cgss::detail::ensureGLContext();
 			win.width = opts.width;
 			win.height = opts.height;
 			win.title = title != nullptr ? title : "LiteRGSS";
@@ -690,6 +696,7 @@ namespace cgss::backend {
 		static inline void window_draw_render_texture(native_window&,
 		                                              const native_render_texture& rt,
 		                                              const native_render_states* states) {
+			cgss::detail::ensureGLContext();
 			if (!IsWindowReady() || rt.texture.id == 0) return;
 			const float srcW = static_cast<float>(rt.texture.width);
 			const float srcH = static_cast<float>(rt.texture.height);
@@ -705,6 +712,7 @@ namespace cgss::backend {
 		// Solid-color overlay on the window (used for brightness fade etc.).
 		// Bypasses the view transform: draws directly in window pixel space.
 		static inline void window_draw_color_quad(native_window&, float x, float y, float w, float h, cgss::Color c) {
+			cgss::detail::ensureGLContext();
 			if (!IsWindowReady()) return;
 			DrawRectangle(static_cast<int>(x), static_cast<int>(y),
 			              static_cast<int>(w), static_cast<int>(h),
@@ -718,6 +726,7 @@ namespace cgss::backend {
 		// ENDS it. Callers (cgss::ViewportItem::draw) bracket their draws
 		// between these two and must not nest them.
 		static inline bool render_texture_create(native_render_texture& rt, unsigned int width, unsigned int height) {
+			cgss::detail::ensureGLContext();
 			if (!IsWindowReady() || width == 0 || height == 0) return false;
 			if (rt.id != 0) UnloadRenderTexture(rt);
 			rt = LoadRenderTexture(static_cast<int>(width), static_cast<int>(height));
@@ -731,11 +740,13 @@ namespace cgss::backend {
 			return render_texture_create(rt, width, height);
 		}
 		static inline void render_texture_set_smooth(native_render_texture& rt, bool smooth) {
+			cgss::detail::ensureGLContext();
 			if (rt.texture.id == 0) return;
 			SetTextureFilter(rt.texture, smooth ? TEXTURE_FILTER_BILINEAR : TEXTURE_FILTER_POINT);
 		}
 		static inline const native_texture& render_texture_get_texture(const native_render_texture& rt) { return rt.texture; }
 		static inline void render_texture_set_view(native_render_texture& rt, const native_view& v) {
+			cgss::detail::ensureGLContext();
 			raylib_detail::setCurrentTargetSize(
 				static_cast<float>(rt.texture.width),
 				static_cast<float>(rt.texture.height));
@@ -746,6 +757,7 @@ namespace cgss::backend {
 		// (no double-buffer flip on FBOs), so this is just the EndTextureMode
 		// pair-closer.
 		static inline void render_texture_display(native_render_texture&) {
+			cgss::detail::ensureGLContext();
 			if (!IsWindowReady()) return;
 			EndTextureMode();
 		}
@@ -753,12 +765,14 @@ namespace cgss::backend {
 		// and the scissor left by the previous view (target_set_view) is in
 		// another framebuffer's coordinates. The next view installs its own.
 		static inline void render_texture_clear(native_render_texture& rt) {
+			cgss::detail::ensureGLContext();
 			if (!IsWindowReady() || rt.id == 0) return;
 			BeginTextureMode(rt);
 			raylib_detail::endCurrentScissor();
 			ClearBackground(::Color{ 0, 0, 0, 0 });
 		}
 		static inline void render_texture_clear_color(native_render_texture& rt, cgss::Color c) {
+			cgss::detail::ensureGLContext();
 			if (!IsWindowReady() || rt.id == 0) return;
 			BeginTextureMode(rt);
 			raylib_detail::endCurrentScissor();
@@ -846,6 +860,7 @@ namespace cgss::backend {
 		static constexpr int kDefaultFontSize = 32;
 
 		static inline bool font_load_from_memory_with_size(native_font& f, const void* data, std::size_t size, int fontSize) {
+			cgss::detail::ensureGLContext();
 			if (!IsWindowReady()) return false;
 			// Glyphs beyond the common ranges are added when texts use them
 			return raylib_detail::loadFontAtlas(f, static_cast<const unsigned char*>(data), static_cast<int>(size), fontSize);
@@ -871,6 +886,7 @@ namespace cgss::backend {
 		// above all (fonts in statics, LiteRGSS's font table: the GL library
 		// may be unloaded already).
 		static inline void font_destroy(native_font& f) noexcept {
+			cgss::detail::ensureGLContext();
 			raylib_detail::forgetFontAtlas(f);
 			if (f.texture.id == 0) return;
 			if (IsWindowReady()) {
@@ -889,6 +905,7 @@ namespace cgss::backend {
 		// is never unloaded (UnloadShader skips it). After the window closed
 		// no GL call: only the locations go, as font_destroy does.
 		static inline void shader_destroy(native_shader& sh) noexcept {
+			cgss::detail::ensureGLContext();
 			if (sh.id == 0) return;
 			raylib_detail::forgetShaderTextures(sh.id);
 			if (IsWindowReady()) {
@@ -941,6 +958,7 @@ namespace cgss::backend {
 		// Loads a program from optional vertex / fragment sources (nullptr =
 		// raylib's default stage).
 		static inline bool shader_load_program(native_shader& sh, const std::string* vsrc, const std::string* fsrc) {
+			cgss::detail::ensureGLContext();
 			if (!IsWindowReady()) return false;
 			if (sh.id != 0) {
 				raylib_detail::forgetShaderTextures(sh.id);
@@ -969,6 +987,7 @@ namespace cgss::backend {
 		// hood — cheap enough for per-frame uniform writes; cgss callers don't
 		// expect us to cache.
 		static inline int shader_loc(const native_shader& sh, const std::string& name) {
+			cgss::detail::ensureGLContext();
 			if (sh.id == 0) return -1;
 			// The preprocessor renames some uniforms (the `texture` sampler...).
 			return GetShaderLocation(sh, cgss::ShaderPreprocessor::uniformName(name, shader_preprocessor_target()).c_str());
@@ -1088,6 +1107,7 @@ namespace cgss::backend {
 		// BeginTextureMode where the FBO's size differs from the window's
 		// (e.g., scale!=1 windows or per-viewport-shader FBO compositing).
 		static inline void target_set_view(native_render_target& t, const native_view& v) {
+			cgss::detail::ensureGLContext();
 			float tw, th;
 			int fw, fh;
 			if (t.texture.id != 0) {
@@ -1186,6 +1206,7 @@ namespace cgss::backend {
 		                                    float ox, float oy,
 		                                    float scaleX, float scaleY,
 		                                    float angleDegrees) {
+			cgss::detail::ensureGLContext();
 			if (s.texture == nullptr || s.texture->id == 0) return;
 			const auto rect = resolve_sprite_src_rect(s);
 			const float absW = static_cast<float>(rect.width  < 0 ? -rect.width  : rect.width);
@@ -1240,6 +1261,7 @@ namespace cgss::backend {
 			return RL_FUNC_ADD;
 		}
 		static inline void apply_blend(const native_render_states& rs) {
+			cgss::detail::ensureGLContext();
 			rlSetBlendFactorsSeparate(
 				gl_blend_factor(rs.colorSrc), gl_blend_factor(rs.colorDst),
 				gl_blend_factor(rs.alphaSrc), gl_blend_factor(rs.alphaDst),
@@ -1271,6 +1293,7 @@ namespace cgss::backend {
 		// stay where they are), then raylib's are restored.
 		template <class DrawFn>
 		static inline void draw_with_render_states(const native_render_states* rs, DrawFn&& fn) {
+			cgss::detail::ensureGLContext();
 			const bool useShader = rs != nullptr && rs->shader != nullptr && rs->shader->id != 0;
 			if (rs != nullptr) apply_blend(*rs);
 			bool viewportSet = false;
@@ -1410,6 +1433,7 @@ namespace cgss::backend {
 		// consecutive same-texture quads into one draw call by itself.
 		static inline void draw_sprite_batch(native_render_target& target,
 		                                     const native_sprite* const* sprites, std::size_t count) {
+			cgss::detail::ensureGLContext();
 			for (std::size_t i = 0; i < count; ++i) {
 				draw_sprite(target, *sprites[i]);
 			}
@@ -1419,6 +1443,7 @@ namespace cgss::backend {
 		// BeginTextureMode scope; the target is implicit. ScrollText emits
 		// DrawTextPro via its own `draw()` method against that active state.
 		static inline void draw_text(native_render_target&, const cgss::ScrollText& text) {
+			cgss::detail::ensureGLContext();
 			text.draw();
 		}
 		static inline Size2u get_sprite_bound_texture_size(const native_sprite& s) noexcept {
@@ -1462,6 +1487,7 @@ namespace cgss::backend {
 		                                            float ox, float oy,
 		                                            float scaleX, float scaleY,
 		                                            float angleDegrees) {
+			cgss::detail::ensureGLContext();
 			const auto vd = derive_current_view();
 			const ::Color fill{ g.fillColor.r, g.fillColor.g, g.fillColor.b, g.fillColor.a };
 			const ::Color outline{ g.outlineColor.r, g.outlineColor.g, g.outlineColor.b, g.outlineColor.a };
@@ -1612,6 +1638,7 @@ namespace cgss::backend {
 
 		// ---- Texture ops ----
 		static inline void set_smooth(native_texture& t, bool smooth) noexcept {
+			cgss::detail::ensureGLContext();
 			if (t.id == 0) return;
 			SetTextureFilter(t, smooth ? TEXTURE_FILTER_BILINEAR : TEXTURE_FILTER_POINT);
 		}
@@ -1627,6 +1654,7 @@ namespace cgss::backend {
 		}
 
 		static inline void update_texture_from_image(native_texture& t, const native_image& i) {
+			cgss::detail::ensureGLContext();
 			UpdateTexture(t, i.data);
 		}
 
@@ -1637,6 +1665,7 @@ namespace cgss::backend {
 		// Refuses an image beyond GL_MAX_TEXTURE_SIZE like SFML does: drivers
 		// differ on what they do with it (error, garbage, or accepting it).
 		static inline bool texture_create_from_image(native_texture& t, const native_image& i) {
+			cgss::detail::ensureGLContext();
 			if (t.id != 0) UnloadTexture(t);
 			t = native_texture{};
 			// Only against the driver's own limit: the fallback guess would
@@ -1653,6 +1682,7 @@ namespace cgss::backend {
 		// Deep-release a texture's GPU backing. Safe on zero-initialized
 		// textures (id == 0).
 		static inline void texture_destroy(native_texture& t) noexcept {
+			cgss::detail::ensureGLContext();
 			if (t.id != 0) {
 				UnloadTexture(t);
 				t = native_texture{};
@@ -1668,12 +1698,14 @@ namespace cgss::backend {
 		                                  int clipX, int clipY, int clipW, int clipH,
 		                                  float offsetX, float offsetY,
 		                                  float scaleX, float scaleY) {
+			cgss::detail::ensureGLContext();
 			BeginScissorMode(clipX, clipY, clipW, clipH);
 			rlPushMatrix();
 			rlTranslatef(offsetX, offsetY, 0.f);
 			rlScalef(scaleX, scaleY, 1.f);
 		}
 		static inline void viewport_end(native_render_target& /*target*/) {
+			cgss::detail::ensureGLContext();
 			rlPopMatrix();
 			EndScissorMode();
 		}
@@ -1683,6 +1715,7 @@ namespace cgss::backend {
 		// BeginDrawing context.
 		static inline void draw_filled_rect(native_render_target& /*target*/,
 		                                    int x, int y, int w, int h, cgss::Color c) {
+			cgss::detail::ensureGLContext();
 			DrawRectangle(x, y, w, h, ::Color{ c.r, c.g, c.b, c.a });
 		}
 
@@ -1700,6 +1733,7 @@ namespace cgss::backend {
 				float dstX, float dstY, float dstWidth, float dstHeight,
 				float originX, float originY,
 				float angleDegrees, cgss::Color tint) {
+			cgss::detail::ensureGLContext();
 			// In the target's current view, like SFML's draw (and draw_sprite):
 			// the destination is in view coordinates, not target pixels. A
 			// window scaled 2x drew the framed views' skins at half size.
@@ -1721,6 +1755,7 @@ namespace cgss::backend {
 		static inline void texture_update_pixels(native_texture& t, const std::uint8_t* pixels,
 		                                        unsigned int x, unsigned int y,
 		                                        unsigned int w, unsigned int h) {
+			cgss::detail::ensureGLContext();
 			::Rectangle r{ static_cast<float>(x), static_cast<float>(y),
 			               static_cast<float>(w), static_cast<float>(h) };
 			UpdateTextureRec(t, r, pixels);
@@ -1905,6 +1940,7 @@ namespace cgss::backend {
 		// (typically via image_destroy when the cgss::Image wrapper goes out
 		// of scope).
 		static inline bool texture_read_to_image(const native_texture& t, native_image& image) {
+			cgss::detail::ensureGLContext();
 			if (t.id == 0) return false;
 			image_destroy(image);
 			image = LoadImageFromTexture(t);

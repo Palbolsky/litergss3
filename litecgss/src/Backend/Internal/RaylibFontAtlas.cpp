@@ -1,4 +1,5 @@
 #include "Backend/Internal/RaylibFontAtlas.h"
+#include "Views/GLContext.h"
 
 #include <algorithm>
 #include <cmath>
@@ -103,6 +104,7 @@ namespace cgss::backend::raylib_detail {
 	}
 
 	bool loadFontAtlas(::Font& font, const unsigned char* data, int dataSize, int characterSize) {
+		cgss::detail::ensureGLContext();
 		if (characterSize <= 0 || data == nullptr || dataSize <= 0) return false;
 		auto source = std::make_unique<FontSource>();
 		source->data.assign(data, data + dataSize); // stb reads it for the font's lifetime
@@ -120,7 +122,31 @@ namespace cgss::backend::raylib_detail {
 		return true;
 	}
 
+	// Whether the text has characters the font has and its atlas lacks
+	static bool missingFontGlyphs(const ::Font& font, const char* utf8, std::size_t size) {
+		std::lock_guard<std::mutex> lock(sourcesMutex());
+		const auto it = sources().find(&font);
+		if (it == sources().end() || utf8 == nullptr) return false;
+		const FontSource& source = *it->second;
+		const char* p = utf8;
+		const char* end = utf8 + size;
+		while (p < end) {
+			int bytes = 0;
+			const int cp = GetCodepointNext(p, &bytes);
+			p += bytes > 0 ? bytes : 1;
+			if (cp < 0x20 || source.baked.count(cp) != 0 || source.missing.count(cp) != 0) continue;
+			return true;
+		}
+		return false;
+	}
+
 	void ensureFontGlyphs(::Font& font, const char* utf8, std::size_t size) {
+		// The atlas grows in GL: a text whose glyphs are all there doesn't
+		// take the context (a thread with no GL work would wait for a frame
+		// for nothing). The context comes first, the sources lock second,
+		// as everywhere else: missing glyphs, the scan runs again with both.
+		if (!missingFontGlyphs(font, utf8, size)) return;
+		cgss::detail::ensureGLContext();
 		std::lock_guard<std::mutex> lock(sourcesMutex());
 		const auto it = sources().find(&font);
 		if (it == sources().end() || utf8 == nullptr) return;

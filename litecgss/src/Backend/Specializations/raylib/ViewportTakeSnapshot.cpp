@@ -17,12 +17,14 @@
 #include <raylib.h>
 #include <rlgl.h>
 #include "Common/Profiling.h"
+#include "Views/GLContext.h"
 #include "Backend/ActiveBackend.h"
 #include "LiteCGSS/Graphics/RenderStates.h"
 #include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Views/Viewport.h"
 
 std::unique_ptr<cgss::Texture> cgss::ViewportItem::takeSnapshot() const {
+	cgss::detail::ensureGLContext();
 	CGSS_PROFILE_ZONE("cgss::ViewportItem::takeSnapshot");
 	using Ops = cgss::backend::ActiveBackend::Ops;
 	using cgss::backend::native_of;

@@ -10,10 +10,12 @@
 
 #include <raylib.h>
 #include "Common/Profiling.h"
+#include "Views/GLContext.h"
 #include "LiteCGSS/Graphics/Texture.h"
 #include "LiteCGSS/Views/DisplayWindowSnapshot.h"
 
 std::unique_ptr<cgss::Texture> cgss::detail::backendCaptureScreen() {
+	cgss::detail::ensureGLContext();
 	CGSS_PROFILE_ZONE("cgss::DisplayWindowSnapshot::takeSnapshot");
 	if (!IsWindowReady()) return nullptr;
 	::Image cpuImage = LoadImageFromScreen();

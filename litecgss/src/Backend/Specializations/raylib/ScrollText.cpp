@@ -1,4 +1,5 @@
 #include "Backend/Specializations/raylib/ScrollText.h"
+#include "Views/GLContext.h"
 #include "Common/Profiling.h"
 
 #include <rlgl.h>
@@ -87,6 +88,7 @@ void main() {
 	// calling UnloadShader from a static destructor would race with
 	// context teardown.
 	bool ensureOutlineShader() {
+		cgss::detail::ensureGLContext();
 		auto& s = outlineShaderState();
 		if (s.tried) return s.shader.id != 0;
 		s.tried = true;
@@ -200,6 +202,7 @@ void cgss::ScrollText::ensureGlyphs() {
 }
 
 void cgss::ScrollText::applyFilter() {
+	cgss::detail::ensureGLContext();
 	if (m_font != nullptr && m_font->texture.id != 0) {
 		::SetTextureFilter(m_font->texture,
 		                   m_smooth ? TEXTURE_FILTER_BILINEAR : TEXTURE_FILTER_POINT);
@@ -235,6 +238,7 @@ void cgss::ScrollText::setStyle(std::uint32_t style) {
 }
 
 void cgss::ScrollText::setSmooth(bool smooth) {
+	cgss::detail::ensureGLContext();
 	m_smooth = smooth;
 	if (m_font && m_font->texture.id != 0) {
 		::SetTextureFilter(m_font->texture,
