@@ -26,8 +26,10 @@ class TestBitmapSync < Minitest::Test
     [c.red, c.green, c.blue]
   end
 
+  # Kept: a sprite nothing references is collected by the GC, and disappears
   def sprite_at(bitmap, x, y)
-    Sprite.new(@window).tap { |s| s.bitmap = bitmap; s.set_position(x, y) }
+    (@sprites ||= []) << Sprite.new(@window).tap { |s| s.bitmap = bitmap; s.set_position(x, y) }
+    @sprites.last
   end
 
   def test_edit_reaches_bound_sprites
