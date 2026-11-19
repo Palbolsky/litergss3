@@ -15,6 +15,9 @@ module LiteRGSSTools
     gamedeps_dir: '@LITERGSS_GAMEDEPS_DIR@',
     agent_scripts: '@PROJECT_SOURCE_DIR@/tools/agent',
     reference_dir: '@LITERGSS2_REFERENCE_OUTPUT@',
+    sanitize: '@LITERGSS_SANITIZE@',
+    # Set on a game's process by the tools that start one (cmake/Sanitizers.cmake)
+    sanitizer_env: { @LITERGSS_TOOLS_SANITIZER_ENV_RB@}.freeze,
     tracy: @LITERGSS_TOOLS_TRACY@,
     tracy_capture: '@LITERGSS_TRACY_CAPTURE@',
     tracy_csvexport: '@LITERGSS_TRACY_CSVEXPORT@',

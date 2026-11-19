@@ -46,6 +46,16 @@ else()
 	set(LITERGSS_TOOLS_TRACY false)
 endif()
 
+# The sanitizer runtime environment (cmake/Sanitizers.cmake), for the tools that
+# start a game: a Ruby hash and a shell array
+set(LITERGSS_TOOLS_SANITIZER_ENV_RB "")
+set(LITERGSS_TOOLS_SANITIZER_ENV_SH "")
+foreach(_pair IN LISTS LITERGSS_SANITIZER_ENV)
+	string(REGEX MATCH "^([^=]+)=(.*)$" _ "${_pair}")
+	string(APPEND LITERGSS_TOOLS_SANITIZER_ENV_RB "'${CMAKE_MATCH_1}' => '${CMAKE_MATCH_2}', ")
+	string(APPEND LITERGSS_TOOLS_SANITIZER_ENV_SH "'${_pair}' ")
+endforeach()
+
 configure_file(build_config.rb.in ${CMAKE_BINARY_DIR}/tools/build_config.rb @ONLY)
 configure_file(build_config.sh.in ${CMAKE_BINARY_DIR}/tools/build_config.sh @ONLY)
 

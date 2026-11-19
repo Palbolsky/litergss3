@@ -26,6 +26,9 @@ class TestImageMemory < Minitest::Test
 
   def assert_no_growth(label)
     skip 'needs /proc' unless File.exist?('/proc/self/status')
+    # ASan holds freed memory back (its quarantine, to catch a use after free):
+    # RSS grows without a leak. LeakSanitizer checks leaks there instead.
+    skip 'AddressSanitizer build: LeakSanitizer checks leaks' if ENV['LD_PRELOAD'].to_s.include?('asan')
     3.times { yield } # allocator warm-up
     GC.start
     before = rss_kb

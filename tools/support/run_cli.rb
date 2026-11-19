@@ -116,6 +116,8 @@ module LiteRGSSTools
         'LITECGSS_LOG_DIR' => File.join(run_dir, 'logs'),
         'DISPLAY' => env.display_env
       }
+      # A sanitizer build: its runtime preloaded into Ruby, its reports in stderr.log
+      game_env.merge!(BUILD[:sanitizer_env])
       # An Xvfb has no vertical sync: the game's frame rate caps it instead.
       game_env['LITECGSS_NO_VSYNC'] = '1' if env.display
       if BUILD[:tracy]

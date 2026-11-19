@@ -44,6 +44,26 @@ Profile (Tracy build; Tracy's client and programs built once with `tools/deps/bu
 build/debug-tracy/bin/litergss-run --env a1 && build/debug-tracy/bin/litergss-profile --env a1 --seconds 10
 ```
 
+Check memory and undefined behaviour (`asan` preset: AddressSanitizer + LeakSanitizer + UBSan on the
+engine and the extension; `cmake/Sanitizers.cmake`):
+
+```sh
+cmake --preset asan && cmake --build --preset asan && ctest --preset asan   # the suite, instrumented
+build/asan/bin/envs up a1 && build/asan/bin/litergss-run --env a1           # a game, instrumented
+build/asan/bin/envs stop a1                     # leaks are reported at exit: .run/a1/run-NNNN/stderr.log
+PRESET=asan tools/psdk-demo.sh                  # the same, visible, in the game folder
+```
+
+- Ruby isn't instrumented: the tests and the tools start it with the ASan runtime preloaded and the
+  options of `cmake/Sanitizers.cmake` (why each one is there is written there). A raw `ruby` run
+  needs the same environment: `build/asan/tools/build_config.sh` has it (`LITERGSS_SANITIZER_ENV`).
+- A report fails a test (non-zero exit). In a game run, look for `ERROR: AddressSanitizer`,
+  `ERROR: LeakSanitizer` and `runtime error` in `stderr.log`.
+- `tools/sanitizers/lsan.supp` only holds leaks of Ruby itself (never a LiteCGSS / LiteRGSS frame).
+  A new one goes there with the Ruby function that allocates it.
+- RSS-based checks (`test_image_memory.rb`) skip themselves there: ASan's quarantine holds freed memory.
+- About 2–3x slower: games still run (the PSDK demo at ~57 fps).
+
 - `litergss-agent` with no argument lists the scripts (`tools/agent/*.rb`); add one there rather
   than repeating a long eval. A script's last value is its JSON result; `args` holds its arguments.
 - Each run gets `.run/<env>/run-NNNN/`: `stdout.log`, `stderr.log`, `logs/` (`LiteCGSS.log`,

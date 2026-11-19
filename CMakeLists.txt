@@ -57,6 +57,9 @@ endif()
 
 enable_testing()
 
+# Sanitizer builds (the asan preset): LITERGSS_SANITIZE=address,undefined
+include(Sanitizers)
+
 # Module boundaries (cmake/CheckBoundaries.cmake) are part of the build: a
 # violation fails `cmake --build`, not only a lint run.
 option(LITERGSS_CHECK_BOUNDARIES "Fail the build on LiteCGSS/LiteRGSS boundary violations" ON)
@@ -77,3 +80,6 @@ if(LITERGSS_BUILD_RUBY_EXT)
 		add_subdirectory(tools)
 	endif()
 endif()
+
+# The sanitizer runtime environment on every test (no-op without LITERGSS_SANITIZE)
+litergss_sanitize_tests(${PROJECT_SOURCE_DIR})

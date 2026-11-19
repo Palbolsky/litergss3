@@ -102,4 +102,5 @@ echo "psdk-demo: LiteRGSS3 $EXTENSION (backend $BACKEND_NAME, preset $PRESET_NAM
 cd "$GAME_DIR"
 export GAMEDEPS="$GAMEDEPS_DIR"
 export LITERGSS_TITLE_SUFFIX=" - LiteRGSS3 $BACKEND_NAME ($PRESET_NAME)"
-exec "$RUBY_BIN" Game.rb "${GAME_ARGS[@]}"
+# A sanitizer build (asan preset): its runtime loaded into Ruby first
+exec env "${LITERGSS_SANITIZER_ENV[@]}" "$RUBY_BIN" Game.rb "${GAME_ARGS[@]}"

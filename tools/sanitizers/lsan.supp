@@ -1,0 +1,12 @@
+# LeakSanitizer suppressions for the asan preset (cmake/Sanitizers.cmake).
+#
+# Only what the uninstrumented parts of the process leave behind when it
+# exits; never a LiteCGSS / LiteRGSS frame. A suppression matches when its
+# pattern is found in a frame's function, module or file name.
+
+# Ruby 3.3: the VM's initial allocation, not freed by RUBY_FREE_AT_EXIT
+leak:Init_BareVM
+# Ruby 3.3: the root fiber of a thread still alive at exit (PSDK's threads)
+leak:rb_threadptr_root_fiber_setup
+# Ruby 3.3: the process title buffer
+leak:ruby_init_setproctitle
