@@ -64,6 +64,15 @@ PRESET=asan tools/psdk-demo.sh                  # the same, visible, in the game
 - RSS-based checks (`test_image_memory.rb`) skip themselves there: ASan's quarantine holds freed memory.
 - About 2–3x slower: games still run (the PSDK demo at ~57 fps).
 
+Memory that grows while still referenced (caches, kept objects: LeakSanitizer only sees lost
+memory) — heaptrack, installed separately, on any preset but `asan`:
+
+```sh
+build/debug/bin/litergss-run --env a1 --heaptrack     # records every allocation until the game exits
+build/debug/bin/envs stop a1
+heaptrack_print .run/a1/run-NNNN/heaptrack.zst        # peak, leaked, the biggest allocators; heaptrack_gui for charts
+```
+
 - `litergss-agent` with no argument lists the scripts (`tools/agent/*.rb`); add one there rather
   than repeating a long eval. A script's last value is its JSON result; `args` holds its arguments.
 - Each run gets `.run/<env>/run-NNNN/`: `stdout.log`, `stderr.log`, `logs/` (`LiteCGSS.log`,

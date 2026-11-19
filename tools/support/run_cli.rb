@@ -8,7 +8,7 @@ module LiteRGSSTools
   # litergss-run — start a game in an env, on this build, and wait until it answers.
   class RunCLI
     USAGE = <<~TXT
-      Usage: litergss-run --env NAME [--entry FILE] [--no-build] [--timeout SEC] [--visible] [-- game args...]
+      Usage: litergss-run --env NAME [--entry FILE] [--no-build] [--timeout SEC] [--visible] [--heaptrack] [-- game args...]
 
       Starts the env's game copy on this build's LiteRGSS (#{BUILD[:preset]}, #{BUILD[:backend]}),
       hidden window, agent channel on, engine logs in the run folder; returns
@@ -19,6 +19,9 @@ module LiteRGSSTools
         --visible      show the window (it is hidden by default)
         --dump-frames [N]  write the presented frames to the run's frames/ folder: one in N,
                        or (no N) each time frames/request is created
+        --heaptrack    record every allocation with heaptrack (installed separately) into
+                       the run folder: heaptrack_print / heaptrack_gui <run>/heaptrack.zst
+                       once stopped. Not on a sanitizer build (both replace malloc)
       Stop it with: envs stop NAME. Refuses a release build and the original game folder.
     TXT
 
@@ -32,6 +35,7 @@ module LiteRGSSTools
         o.on('--timeout SEC', Float) { |v| options[:timeout] = v }
         o.on('--visible') { options[:visible] = true }
         o.on('--dump-frames [N]', Integer) { |v| options[:dump_frames] = v || 0 }
+        o.on('--heaptrack') { options[:heaptrack] = true }
       end
       parser.parse!(argv)
       if options[:env].nil?
@@ -48,6 +52,7 @@ module LiteRGSSTools
 
     def run(env, options, game_args)
       check_build!
+      check_heaptrack! if options[:heaptrack]
       raise Error, "no env '#{env.name}' (build/#{BUILD[:preset]}/bin/envs up #{env.name})" unless env.exist?
       raise Error, "#{env.name}: a game already runs (pid #{env.current['pid']}) — envs stop #{env.name}" if env.running?
       env.finish_run!(env.current) if env.current # an earlier run exited on its own
@@ -83,6 +88,15 @@ module LiteRGSSTools
       root = File.realpath(LiteRGSSTools.run_root)
       raise Error, "#{copy} is not under #{root}: refusing to run" unless copy.start_with?("#{root}/")
       raise Error, "#{env.name}: game copy is the original folder: refusing to run" if copy == File.realpath(env.game_source)
+    end
+
+    def check_heaptrack!
+      unless BUILD[:sanitize].to_s.empty?
+        raise Error, "--heaptrack: not on a sanitizer build (#{BUILD[:preset]}): both replace malloc"
+      end
+      @heaptrack = ENV['PATH'].split(File::PATH_SEPARATOR).map { |d| File.join(d, 'heaptrack') }
+                              .find { |f| File.executable?(f) }
+      raise Error, '--heaptrack: no heaptrack on PATH (apt install heaptrack)' unless @heaptrack
     end
 
     def build!
@@ -131,7 +145,9 @@ module LiteRGSSTools
         frames = File.join(run_dir, 'frames')
         game_env['LITECGSS_DUMP_FRAMES'] = options[:dump_frames].positive? ? "#{frames}:every=#{options[:dump_frames]}" : frames
       end
-      pid = Process.spawn(game_env, BUILD[:ruby], options[:entry], *game_args,
+      # Under heaptrack: it starts the game and records until it exits; analysed afterwards
+      wrapper = options[:heaptrack] ? [@heaptrack, '--record-only', '-o', File.join(run_dir, 'heaptrack')] : []
+      pid = Process.spawn(game_env, *wrapper, BUILD[:ruby], options[:entry], *game_args,
                           chdir: env.game_dir, in: File::NULL, pgroup: true,
                           out: [File.join(run_dir, 'stdout.log'), 'w'], err: [File.join(run_dir, 'stderr.log'), 'w'])
       Process.detach(pid)
