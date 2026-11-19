@@ -587,7 +587,10 @@ namespace {
 			cgss::DisplayWindow::AcquireContext();
 		}
 		static_cast<cgss::DisplayWindow*>(window)->draw();
-		if (g_context_follows_gvl) cgss::DisplayWindow::ReleaseContext();
+		if (g_context_follows_gvl) {
+			LITERGSS_PROFILE_ZONE("LiteRGSS::DisplayWindow ReleaseContext");
+			cgss::DisplayWindow::ReleaseContext();
+		}
 		return nullptr;
 	}
 
@@ -599,6 +602,8 @@ namespace {
 			LITERGSS_PROFILE_ZONE("LiteRGSS::Image uploads");
 			image_flush_pending_uploads();
 		}
+		// Includes taking the GVL back: what exceeds the zones inside is the wait for it
+		LITERGSS_PROFILE_ZONE("LiteRGSS::DisplayWindow draw without GVL");
 		rb_thread_call_without_gvl(draw_without_gvl, &window_of(self), nullptr, nullptr);
 	}
 
