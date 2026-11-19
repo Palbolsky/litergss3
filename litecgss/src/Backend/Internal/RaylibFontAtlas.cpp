@@ -55,6 +55,22 @@ namespace cgss::backend::raylib_detail {
 	}
 
 	namespace {
+		// Frees a font's atlas and glyphs. Without a window, the GL context
+		// is gone with the texture: only the CPU side (RaylibBackend's
+		// font_destroy does the same).
+		void releaseFont(::Font& font) {
+			if (font.texture.id == 0 && font.glyphs == nullptr) return;
+			if (IsWindowReady()) {
+				UnloadFont(font);
+			} else {
+				UnloadFontData(font.glyphs, font.glyphCount);
+				RL_FREE(font.recs);
+			}
+			font = ::Font{};
+		}
+	}
+
+	namespace {
 		bool initFontInfo(stbtt_fontinfo& info, const unsigned char* data, int dataSize) {
 			if (data == nullptr || dataSize <= 0) return false;
 			const int offset = stbtt_GetFontOffsetForIndex(data, 0);
@@ -82,6 +98,10 @@ namespace cgss::backend::raylib_detail {
 			int characterSize = 0;
 			std::unordered_set<int> baked;   // in the atlas
 			std::unordered_set<int> missing; // asked for, not in the font
+			// The font rasterized at other sizes (fontAtSize), with the same
+			// glyphs. Heap objects: their address is kept by the texts
+			// drawing them, rebuilt in place when the glyphs grow.
+			std::unordered_map<int, std::unique_ptr<::Font>> sized;
 		};
 		using FontSources = std::unordered_map<const ::Font*, std::unique_ptr<FontSource>>;
 		// Never destroyed: a font held by a static of another file (LiteRGSS's
@@ -174,11 +194,49 @@ namespace cgss::backend::raylib_detail {
 		if (font.texture.id != 0) UnloadFont(font);
 		font = built;
 		source.baked.insert(added.begin(), added.end());
+		// Its other sizes get the glyphs too, in place
+		for (auto& [sizedSize, sizedFont] : source.sized) {
+			::Font grown{};
+			if (!buildAtlas(grown, source.info, sizedSize, codepoints)) continue;
+			releaseFont(*sizedFont);
+			*sizedFont = grown;
+		}
+	}
+
+	const ::Font& fontAtSize(const ::Font& font, int characterSize) {
+		if (characterSize <= 0 || characterSize == font.baseSize) return font;
+		{
+			std::lock_guard<std::mutex> lock(sourcesMutex());
+			const auto it = sources().find(&font);
+			if (it == sources().end()) return font;
+			const auto sized = it->second->sized.find(characterSize);
+			if (sized != it->second->sized.end()) return *sized->second;
+		}
+		// Built in GL: the context first, the sources lock second
+		cgss::detail::ensureGLContext();
+		std::lock_guard<std::mutex> lock(sourcesMutex());
+		const auto it = sources().find(&font);
+		if (it == sources().end()) return font;
+		FontSource& source = *it->second;
+		const auto sized = source.sized.find(characterSize);
+		if (sized != source.sized.end()) return *sized->second;
+		std::vector<int> codepoints(source.baked.begin(), source.baked.end());
+		std::sort(codepoints.begin(), codepoints.end());
+		auto built = std::make_unique<::Font>();
+		if (!buildAtlas(*built, source.info, characterSize, codepoints)) return font;
+		return *source.sized.emplace(characterSize, std::move(built)).first->second;
 	}
 
 	void forgetFontAtlas(const ::Font& font) {
-		std::lock_guard<std::mutex> lock(sourcesMutex());
-		sources().erase(&font);
+		std::unique_ptr<FontSource> source;
+		{
+			std::lock_guard<std::mutex> lock(sourcesMutex());
+			const auto it = sources().find(&font);
+			if (it == sources().end()) return;
+			source = std::move(it->second);
+			sources().erase(it);
+		}
+		for (auto& entry : source->sized) releaseFont(*entry.second);
 	}
 
 	namespace {

@@ -111,7 +111,13 @@ namespace cgss {
 		// The layout, and the glyphs' ink box it yields (outline excluded).
 		// Rebuilt lazily: after a setter, or when the font's atlas got rebuilt
 		// (glyphs on demand by any text sharing the font move the indices).
-		void ensureLayout() const;
+		// Lays out from `font` (atlas()), resolved before g_layoutMutex: a
+		// frame holds the GL context, then that lock; building an atlas
+		// takes the context.
+		void ensureLayout(const ::Font& font) const;
+		// The font's atlas at this text's size, drawn 1:1
+		// (raylib_detail::fontAtSize). m_font set.
+		const ::Font& atlas() const;
 		void invalidateLayout() noexcept { m_layoutDirty = true; }
 		void drawGlyphs(const ::Font& font, int padding, ::Vector2 offset, ::Vector2 origin,
 		                float rotation, std::size_t count, ::Color tint) const;

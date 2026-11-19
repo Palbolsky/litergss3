@@ -203,14 +203,16 @@ void cgss::ScrollText::ensureGlyphs() {
 
 void cgss::ScrollText::applyFilter() {
 	cgss::detail::ensureGLContext();
-	if (m_font != nullptr && m_font->texture.id != 0) {
-		::SetTextureFilter(m_font->texture,
+	if (m_font != nullptr && atlas().texture.id != 0) {
+		::SetTextureFilter(atlas().texture,
 		                   m_smooth ? TEXTURE_FILTER_BILINEAR : TEXTURE_FILTER_POINT);
 	}
 }
 
 void cgss::ScrollText::setCharacterSize(unsigned int size) {
 	m_characterSize = size;
+	// The atlas at that size is another texture
+	if (m_smooth) applyFilter();
 	invalidateLayout();
 }
 
@@ -240,8 +242,8 @@ void cgss::ScrollText::setStyle(std::uint32_t style) {
 void cgss::ScrollText::setSmooth(bool smooth) {
 	cgss::detail::ensureGLContext();
 	m_smooth = smooth;
-	if (m_font && m_font->texture.id != 0) {
-		::SetTextureFilter(m_font->texture,
+	if (m_font && atlas().texture.id != 0) {
+		::SetTextureFilter(atlas().texture,
 		                   smooth ? TEXTURE_FILTER_BILINEAR : TEXTURE_FILTER_POINT);
 	}
 }
@@ -280,21 +282,24 @@ void cgss::ScrollText::setScale(float sx, float sy) {
 	m_sy = sy;
 }
 
-void cgss::ScrollText::ensureLayout() const {
-	const bool atlasChanged = m_font != nullptr
-		&& (m_font->glyphs != m_layoutGlyphs || m_font->glyphCount != m_layoutGlyphCount
-		    || m_font->texture.id != m_layoutTexture);
+const ::Font& cgss::ScrollText::atlas() const {
+	return cgss::backend::raylib_detail::fontAtSize(*m_font, static_cast<int>(m_characterSize));
+}
+
+void cgss::ScrollText::ensureLayout(const ::Font& font) const {
+	const bool atlasChanged = font.glyphs != m_layoutGlyphs || font.glyphCount != m_layoutGlyphCount
+		|| font.texture.id != m_layoutTexture;
 	if (!m_layoutDirty && !atlasChanged) return;
 	m_layoutDirty = false;
 	m_layout.clear();
 	m_inkBounds = cgss::FloatRect{ 0.f, 0.f, 0.f, 0.f };
-	m_layoutGlyphs     = m_font ? m_font->glyphs : nullptr;
-	m_layoutGlyphCount = m_font ? m_font->glyphCount : 0;
-	m_layoutTexture    = m_font ? m_font->texture.id : 0;
-	if (!m_font || m_utf8.empty() || m_font->baseSize <= 0 || m_font->glyphCount <= 0) return;
+	m_layoutGlyphs     = font.glyphs;
+	m_layoutGlyphCount = font.glyphCount;
+	m_layoutTexture    = font.texture.id;
+	if (m_utf8.empty() || font.baseSize <= 0 || font.glyphCount <= 0) return;
 
 	const float fs       = fontSizeF(m_characterSize);
-	const float scale    = fs / static_cast<float>(m_font->baseSize);
+	const float scale    = fs / static_cast<float>(font.baseSize);
 	const float spacing  = spacingFromFactor(m_letterSpacingFactor);
 	const float lineStep = lineStepOf(m_lineHeight, m_lineSpacingFactor);
 
@@ -316,9 +321,9 @@ void cgss::ScrollText::ensureLayout() const {
 		const int cp = ::GetCodepointNext(text, &bytes);
 		if (bytes <= 0) break; // utf8BytesForCodepoints' count stops here too
 		text += bytes;
-		const int index = ::GetGlyphIndex(*m_font, cp); // '?' when the atlas lacks cp
-		const ::GlyphInfo& glyph = m_font->glyphs[index];
-		const ::Rectangle& rec   = m_font->recs[index];
+		const int index = ::GetGlyphIndex(font, cp); // '?' when the atlas lacks cp
+		const ::GlyphInfo& glyph = font.glyphs[index];
+		const ::Rectangle& rec   = font.recs[index];
 		const float advance = static_cast<float>(glyph.advanceX) * scale + spacing;
 
 		if (cp == '\n') {
@@ -355,9 +360,10 @@ void cgss::ScrollText::ensureLayout() const {
 cgss::FloatRect cgss::ScrollText::getLocalBounds() const {
 	if (!m_font || m_utf8.empty() || m_font->baseSize <= 0) return cgss::FloatRect{ 0.f, 0.f, 0.f, 0.f };
 	cgss::FloatRect bounds;
+	const ::Font& font = atlas();
 	{
 		std::lock_guard<std::mutex> lock(g_layoutMutex);
-		ensureLayout();
+		ensureLayout(font);
 		bounds = m_inkBounds;
 	}
 	// The outline expands the ink box.
@@ -400,7 +406,7 @@ void cgss::ScrollText::drawGlyphs(const ::Font& font, int padding, ::Vector2 off
 
 std::uint32_t cgss::ScrollText::getTextWidth(const std::string& utf8) const {
 	if (!m_font || utf8.empty()) return 0;
-	const ::Vector2 size = ::MeasureTextEx(*m_font, utf8.c_str(),
+	const ::Vector2 size = ::MeasureTextEx(atlas(), utf8.c_str(),
 	                                       fontSizeF(m_characterSize),
 	                                       spacingFromFactor(m_letterSpacingFactor));
 	return static_cast<std::uint32_t>(size.x);
@@ -408,12 +414,12 @@ std::uint32_t cgss::ScrollText::getTextWidth(const std::string& utf8) const {
 
 void cgss::ScrollText::draw() const {
 	CGSS_PROFILE_ZONE("cgss::ScrollText::draw");
-	if (!m_font || m_font->texture.id == 0 || m_utf8.empty() || m_numCharsToDraw == 0) {
-		return;
-	}
+	if (!m_font || m_utf8.empty() || m_numCharsToDraw == 0) return;
+	const ::Font& font = atlas();
+	if (font.texture.id == 0) return;
 
 	std::lock_guard<std::mutex> lock(g_layoutMutex);
-	ensureLayout();
+	ensureLayout(font);
 	const std::size_t count = std::min<std::size_t>(m_layout.size(), m_numCharsToDraw);
 	if (count == 0) return;
 
@@ -469,9 +475,9 @@ void cgss::ScrollText::draw() const {
 	// are binary-alpha and drawn 1:1 (Internal/RaylibFontAtlas), so the
 	// integer stamps stay exact under any rlScalef.
 	if (m_drawShadow) {
-		drawGlyphs(*m_font, 0, ::Vector2{ 1.f, 0.f }, origin, rot, count, m_outline);
-		drawGlyphs(*m_font, 0, ::Vector2{ 1.f, 1.f }, origin, rot, count, m_outline);
-		drawGlyphs(*m_font, 0, ::Vector2{ 0.f, 1.f }, origin, rot, count, m_outline);
+		drawGlyphs(font, 0, ::Vector2{ 1.f, 0.f }, origin, rot, count, m_outline);
+		drawGlyphs(font, 0, ::Vector2{ 1.f, 1.f }, origin, rot, count, m_outline);
+		drawGlyphs(font, 0, ::Vector2{ 0.f, 1.f }, origin, rot, count, m_outline);
 	} else if (m_outlineThickness > 0.f) {
 		// Encased outline via fragment shader. Falls back to the legacy
 		// single-stamp +1,+1 if the shader fails to compile (e.g. a Mesa
@@ -481,8 +487,8 @@ void cgss::ScrollText::draw() const {
 		if (ensureOutlineShader()) {
 			const auto& s = outlineShaderState();
 			const ::Vector2 atlasTexel = {
-				1.0f / static_cast<float>(m_font->texture.width),
-				1.0f / static_cast<float>(m_font->texture.height)
+				1.0f / static_cast<float>(font.texture.width),
+				1.0f / static_cast<float>(font.texture.height)
 			};
 			::SetShaderValue(s.shader, s.locAtlasTexel, &atlasTexel, SHADER_UNIFORM_VEC2);
 			::SetShaderValue(s.shader, s.locThickness,  &m_outlineThickness, SHADER_UNIFORM_FLOAT);
@@ -498,19 +504,19 @@ void cgss::ScrollText::draw() const {
 				static_cast<int>(std::ceil(m_outlineThickness)), 1, 4);
 
 			::BeginShaderMode(s.shader);
-			drawGlyphs(*m_font, padding, ::Vector2{ 0.f, 0.f }, origin, rot, count, m_outline);
+			drawGlyphs(font, padding, ::Vector2{ 0.f, 0.f }, origin, rot, count, m_outline);
 			::EndShaderMode();
 		} else {
-			drawGlyphs(*m_font, 0, ::Vector2{ 1.f, 1.f }, origin, rot, count, m_outline);
+			drawGlyphs(font, 0, ::Vector2{ 1.f, 1.f }, origin, rot, count, m_outline);
 		}
 	}
 
 	// Fill pass. Synthetic bold re-stamps at +1px — raylib has no synthetic
 	// bold, and proper bold requires a separately-loaded font variant; this
 	// thickens the stroke as a best-effort fallback.
-	drawGlyphs(*m_font, 0, ::Vector2{ 0.f, 0.f }, origin, rot, count, m_fill);
+	drawGlyphs(font, 0, ::Vector2{ 0.f, 0.f }, origin, rot, count, m_fill);
 	if (drawBold) {
-		drawGlyphs(*m_font, 0, ::Vector2{ 1.f, 0.f }, origin, rot, count, m_fill);
+		drawGlyphs(font, 0, ::Vector2{ 1.f, 0.f }, origin, rot, count, m_fill);
 	}
 
 	// Underline / StrikeThrough — raylib has no underline metrics API; pick
@@ -539,7 +545,7 @@ void cgss::ScrollText::draw() const {
 			const std::string lineCopy(textView.substr(start, end - start));
 			const ::Vector2 extent = lineCopy.empty()
 				? ::Vector2{ 0.f, 0.f }
-				: ::MeasureTextEx(*m_font, lineCopy.c_str(), fs, spacing);
+				: ::MeasureTextEx(font, lineCopy.c_str(), fs, spacing);
 			const float yLineTop = lineStep * static_cast<float>(lineIndex) - m_oy;
 			if (drawUnderlined && extent.x > 0.f) {
 				::DrawRectangleRec(::Rectangle{ left, yLineTop + fs * 0.95f - thickness * 0.5f,

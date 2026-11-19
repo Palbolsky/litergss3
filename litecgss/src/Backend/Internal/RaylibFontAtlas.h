@@ -36,6 +36,16 @@ namespace cgss::backend::raylib_detail {
 	void ensureFontGlyphs(::Font& font, const char* utf8, std::size_t size);
 	void forgetFontAtlas(const ::Font& font);
 
+	// `font` rasterized at `characterSize` (`font` itself at its own size):
+	// glyphs drawn 1:1 at any size, as SFML rasterizes them per size. A
+	// font drawn scaled from its atlas got columns doubled or dropped
+	// (nearest sampling: pixel fonts), or jagged edges. Built on first use
+	// (in GL: takes the context), kept with the font, grown with its glyphs
+	// (ensureFontGlyphs), freed with it (forgetFontAtlas). The reference
+	// stays valid until then. Fonts not loaded through loadFontAtlas: the
+	// font itself.
+	const ::Font& fontAtSize(const ::Font& font, int characterSize);
+
 }
 
 #endif
