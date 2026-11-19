@@ -43,6 +43,51 @@ ImageData::~ImageData()
     unqueue_upload(this);
 }
 
+cgss::Image& ImageData::pixels()
+{
+    if (pixelsReleased) {
+        LITERGSS_PROFILE_ZONE("LiteRGSS::Image pixels read back");
+        cgss::Image back = cachedTexture.copyToImage();
+        // A texture that can't be read back (no storage) still gives an
+        // image of the right size to the script
+        if (back.width() != w || back.height() != h) back = cgss::Image::create(w, h);
+        cpuPixels = std::move(back);
+        pixelsReleased = false;
+    }
+    pixelsUsed = true;
+    return cpuPixels;
+}
+
+void ImageData::setPixels(cgss::Image&& image)
+{
+    cpuPixels = std::move(image);
+    w = cpuPixels.width();
+    h = cpuPixels.height();
+    pixelsReleased = false;
+}
+
+void ImageData::adoptTexture(cgss::Texture&& texture)
+{
+    const auto size = texture.getSize();
+    cpuPixels = cgss::Image{};
+    w = size.x;
+    h = size.y;
+    cachedTexture = std::move(texture);
+    textureValid = true;
+    textureDirty = false;
+    pixelsReleased = true;
+}
+
+void ImageData::releasePixelsIfUnused()
+{
+    if (pixelsUsed || pixelsReleased || !textureValid) return;
+    // A texture padded to a power of two wouldn't read back the same size
+    const auto size = cachedTexture.getSize();
+    if (size.x != w || size.y != h) return;
+    cpuPixels = cgss::Image{};
+    pixelsReleased = true;
+}
+
 // Internal: any operation that mutates `image` calls this. Cheap to call
 // repeatedly — the upload happens once, at the next acquire or before the
 // next frame (whichever comes first). An image never uploaded yet has no
@@ -56,23 +101,24 @@ static void mark_image_dirty(ImageData *img)
     }
 }
 
-static void sync_texture(ImageData *img)
+void sync_texture(ImageData *img)
 {
     LITERGSS_PROFILE_ZONE("LiteRGSS::Image texture upload");
     // Re-upload pixels into the existing GPU texture rather than
     // reallocating — preserves the shared_ptr<native_texture> identity
     // so any Sprite/SpriteMap that already holds the native handle sees
     // the new pixels.
-    img->cachedTexture.update(img->image);
+    img->cachedTexture.update(img->cpuPixels);
     img->textureDirty = false;
 }
 
 cgss::Texture& image_acquire_texture(ImageData *img)
 {
     if (!img->textureValid) {
-        img->cachedTexture = cgss::Texture::create(img->image);
+        img->cachedTexture = cgss::Texture::create(img->cpuPixels);
         img->textureValid = true;
         img->textureDirty = false;
+        img->releasePixelsIfUnused();
     } else if (img->textureDirty) {
         sync_texture(img);
     }
@@ -92,18 +138,11 @@ void image_flush_pending_uploads()
 
 VALUE image_from_texture(cgss::Texture&& texture)
 {
-    cgss::Image pixels = texture.copyToImage();
-    const unsigned int w = pixels.width() > 0 ? pixels.width() : 1;
-    const unsigned int h = pixels.height() > 0 ? pixels.height() : 1;
-    VALUE args[2] = { UINT2NUM(w), UINT2NUM(h) };
+    const auto size = texture.getSize();
+    VALUE args[2] = { UINT2NUM(1), UINT2NUM(1) };
     VALUE result = rb_class_new_instance(2, args, rb_cImage);
-    if (pixels.width() == 0 || pixels.height() == 0) return result;
-
-    auto *img = get_image(result);
-    img->image = std::move(pixels);
-    img->cachedTexture = std::move(texture);
-    img->textureValid = true;
-    img->textureDirty = false;
+    if (size.x == 0 || size.y == 0) return result;
+    get_image(result)->adoptTexture(std::move(texture));
     return result;
 }
 
@@ -117,7 +156,7 @@ VALUE rb_Image_Initialize(int argc, VALUE *argv, VALUE self)
     {
         rb_check_type(arg1, T_STRING);
         const char *filename = StringValueCStr(arg1);
-        img->image = cgss::Image::create(std::string{filename});
+        img->setPixels(cgss::Image::create(std::string{filename}));
         if (!img->valid())
             rb_raise(rb_eRuntimeError, "Failed to load image from file: %s", filename);
     }
@@ -126,7 +165,7 @@ VALUE rb_Image_Initialize(int argc, VALUE *argv, VALUE self)
         rb_check_type(arg1, T_STRING);
         const char *data = RSTRING_PTR(arg1);
         const std::size_t length = static_cast<std::size_t>(RSTRING_LEN(arg1));
-        img->image = cgss::Image::create(data, length);
+        img->setPixels(cgss::Image::create(data, length));
         if (!img->valid())
             rb_raise(rb_eRuntimeError, "Failed to load image from memory");
     }
@@ -138,7 +177,7 @@ VALUE rb_Image_Initialize(int argc, VALUE *argv, VALUE self)
         const int h = NUM2INT(arg2);
         if (w <= 0 || h <= 0)
             rb_raise(rb_eRuntimeError, "Invalid image size (%d x %d)", w, h);
-        img->image = cgss::Image::create(static_cast<unsigned int>(w), static_cast<unsigned int>(h));
+        img->setPixels(cgss::Image::create(static_cast<unsigned int>(w), static_cast<unsigned int>(h)));
     }
 
     return self;
@@ -150,7 +189,8 @@ VALUE rb_Image_InitializeCopy(VALUE self, VALUE other)
     auto *dst = get_image(self);
     auto *src = get_image(other);
     if (src->valid()) {
-        dst->image = src->image;  // cgss::Image copy-assign = deep copy of pixels
+        cgss::Image copy = src->pixels();  // deep copy of the pixels
+        dst->setPixels(std::move(copy));
         // The GPU texture wasn't copied — invalidate so the next acquire
         // uploads from the freshly-copied CPU pixels. (Don't share the
         // src's cached texture: the dst is logically independent and the
@@ -165,9 +205,15 @@ VALUE rb_Image_Dispose(VALUE self)
 {
     auto *img = get_image(self);
     unqueue_upload(img);
-    img->image = cgss::Image{};   // replacing triggers old image's destructor
+    img->setPixels(cgss::Image{});   // the old pixels are freed
     img->disposed = true;
     return self;
+}
+
+// Diagnostics (tests): whether the CPU pixels are held, or only the texture
+static VALUE rb_Image_pixelsResident(VALUE self)
+{
+    return get_image(self)->pixelsResident() ? Qtrue : Qfalse;
 }
 
 VALUE rb_Image_Disposed(VALUE self)
@@ -206,7 +252,7 @@ VALUE rb_Image_getPixel(VALUE self, VALUE x, VALUE y)
     const int px = NUM2INT(x);
     const int py = NUM2INT(y);
     if (px < 0 || py < 0) return Qnil;
-    const auto pixel = img->image.getPixel(static_cast<unsigned int>(px), static_cast<unsigned int>(py));
+    const auto pixel = img->pixels().getPixel(static_cast<unsigned int>(px), static_cast<unsigned int>(py));
     if (!pixel) return Qnil;
     VALUE args[4] = { INT2NUM(pixel->r), INT2NUM(pixel->g), INT2NUM(pixel->b), INT2NUM(pixel->a) };
     return rb_class_new_instance(4, args, rb_cColor);
@@ -219,7 +265,7 @@ VALUE rb_Image_getPixelAlpha(VALUE self, VALUE x, VALUE y)
     const int px = NUM2INT(x);
     const int py = NUM2INT(y);
     if (px < 0 || py < 0) return INT2NUM(0);
-    const auto pixel = img->image.getPixel(static_cast<unsigned int>(px), static_cast<unsigned int>(py));
+    const auto pixel = img->pixels().getPixel(static_cast<unsigned int>(px), static_cast<unsigned int>(py));
     return INT2NUM(pixel ? pixel->a : 0);
 }
 
@@ -231,7 +277,7 @@ VALUE rb_Image_setPixel(VALUE self, VALUE x, VALUE y, VALUE color)
     const int py = NUM2INT(y);
     if (px < 0 || py < 0) return self;
     ColorData *cd = get_color_data(color);
-    img->image.setPixel(static_cast<unsigned int>(px), static_cast<unsigned int>(py),
+    img->pixels().setPixel(static_cast<unsigned int>(px), static_cast<unsigned int>(py),
                         cgss::Color{cd->r, cd->g, cd->b, cd->a});
     mark_image_dirty(img);
     return self;
@@ -242,7 +288,7 @@ VALUE rb_Image_fillRect(VALUE self, VALUE x, VALUE y, VALUE w, VALUE h, VALUE co
     check_disposed(get_image(self));
     auto *img = get_image(self);
     ColorData *cd = get_color_data(color);
-    img->image.fillRect(cgss::Color{cd->r, cd->g, cd->b, cd->a},
+    img->pixels().fillRect(cgss::Color{cd->r, cd->g, cd->b, cd->a},
                         static_cast<unsigned int>(NUM2INT(x)),
                         static_cast<unsigned int>(NUM2INT(y)),
                         static_cast<unsigned int>(NUM2INT(w)),
@@ -255,7 +301,7 @@ VALUE rb_Image_clearRect(VALUE self, VALUE x, VALUE y, VALUE w, VALUE h)
 {
     check_disposed(get_image(self));
     auto *img = get_image(self);
-    img->image.fillRect(cgss::Colors::Transparent,
+    img->pixels().fillRect(cgss::Colors::Transparent,
                         static_cast<unsigned int>(NUM2INT(x)),
                         static_cast<unsigned int>(NUM2INT(y)),
                         static_cast<unsigned int>(NUM2INT(w)),
@@ -289,7 +335,7 @@ VALUE rb_Image_blt(VALUE self, VALUE x, VALUE y, VALUE src_image, VALUE rect)
     if (!src->valid()) return self;
 
     cgss::IntRect src_rect = rect_arg_to_intrect(rect);
-    dst->image.blit(src->image,
+    dst->pixels().blit(src->pixels(),
                     static_cast<unsigned int>(NUM2INT(x)),
                     static_cast<unsigned int>(NUM2INT(y)),
                     src_rect);
@@ -316,10 +362,10 @@ VALUE rb_Image_bltBang(VALUE self, VALUE x, VALUE y, VALUE src_image, VALUE rect
     auto *src = get_image(src_image);
     if (!src->valid()) return self;
 
-    dst->image.fillRect(cgss::Colors::Transparent, 0u, 0u, dst->width(), dst->height());
+    dst->pixels().fillRect(cgss::Colors::Transparent, 0u, 0u, dst->width(), dst->height());
 
     cgss::IntRect src_rect = rect_arg_to_intrect(rect);
-    dst->image.blit(src->image,
+    dst->pixels().blit(src->pixels(),
                     static_cast<unsigned int>(NUM2INT(x)),
                     static_cast<unsigned int>(NUM2INT(y)),
                     src_rect);
@@ -336,7 +382,7 @@ VALUE rb_Image_stretchBlt(VALUE self, VALUE dst_rect, VALUE src_image, VALUE src
 
     cgss::IntRect drect = rect_arg_to_intrect(dst_rect);
     cgss::IntRect srect = rect_arg_to_intrect(src_rect);
-    dst->image.stretchBlit(src->image, drect, srect);
+    dst->pixels().stretchBlit(src->pixels(), drect, srect);
     mark_image_dirty(dst);
     return self;
 }
@@ -352,7 +398,7 @@ VALUE rb_Image_copyToBitmap(VALUE self, VALUE dst)
     if (!src->valid()) return self;
     auto *d = get_image(dst);
     cgss::IntRect r{ 0, 0, static_cast<int>(src->width()), static_cast<int>(src->height()) };
-    d->image.blit(src->image, 0u, 0u, r);
+    d->pixels().blit(src->pixels(), 0u, 0u, r);
     mark_image_dirty(d);
     return self;
 }
@@ -364,7 +410,7 @@ VALUE rb_Image_createMask(VALUE self, VALUE color, VALUE alpha)
     ColorData *cd = get_color_data(color);
     const auto target_alpha = static_cast<unsigned char>(
         cgss::normalize_long(NUM2LONG(alpha), 0, 255));
-    img->image.createMaskFromColor(cgss::Color{cd->r, cd->g, cd->b, cd->a}, target_alpha);
+    img->pixels().createMaskFromColor(cgss::Color{cd->r, cd->g, cd->b, cd->a}, target_alpha);
     mark_image_dirty(img);
     return self;
 }
@@ -379,7 +425,7 @@ VALUE rb_Image_toPNG(VALUE self)
     cgss::ImageMemorySerializer saver{ { nullptr, 0u }, true };
     // write() delegates to the saver's Saver<>::save — which stores the
     // PNG-encoded bytes into the serializer's internal buffer.
-    if (img->image.write(saver) != 0u) return Qnil;
+    if (img->pixels().write(saver) != 0u) return Qnil;
 
     VALUE result = Qnil;
     saver.finalizeMemory([&result](const cgss::MemorySerializerData& mem) {
@@ -408,7 +454,7 @@ VALUE rb_Image_toPNGFile(VALUE self, VALUE filename)
     rb_check_type(filename, T_STRING);
     auto *img = get_image(self);
     cgss::ImageFileSerializer saver{ std::string{StringValueCStr(filename)} };
-    return img->image.write(saver) == 0u ? Qtrue : Qfalse;
+    return img->pixels().write(saver) == 0u ? Qtrue : Qfalse;
 }
 
 void Init_Image()
@@ -437,4 +483,5 @@ void Init_Image()
     rb_define_method(rb_cImage, "create_mask", _rbf rb_Image_createMask, 2);
     rb_define_method(rb_cImage, "to_png", _rbf rb_Image_toPNG, 0);
     rb_define_method(rb_cImage, "to_png_file", _rbf rb_Image_toPNGFile, 1);
+    rb_define_method(rb_cImage, "__pixels_resident?", _rbf rb_Image_pixelsResident, 0);
 }

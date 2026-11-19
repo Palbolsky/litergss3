@@ -458,7 +458,7 @@ VALUE rb_DisplayWindow_setIcon(VALUE self, VALUE arg)
 	if (rb_obj_is_kind_of(arg, rb_cImage) == Qtrue) {
 		auto *img = get_image(arg);
 		if (!img->valid()) return self;
-		win.setIcon(img->image);
+		win.setIcon(img->pixels());
 		return self;
 	}
 	rb_check_type(arg, T_STRING);

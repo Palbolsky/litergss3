@@ -23,9 +23,15 @@ extern VALUE rb_cImage;
 // `image_acquire_texture` call or before the next frame is drawn
 // (`image_flush_pending_uploads`), so drawables already bound to it see
 // the edit like LiteRGSS2's Bitmap#update.
+//
+// The CPU pixels are released once uploaded when the scripts never touched
+// them since the image was created or loaded (a file, a snapshot): its texture
+// alone is drawn, as LiteRGSS2's Bitmap was GPU-only. Big pictures otherwise
+// lived twice (Forêt Éternelle: 278 MB of pixels on Android). Any later CPU
+// access (pixels()) reads them back from the texture once, and keeps them:
+// an image a script edits never pays a read-back per edit.
 struct ImageData
 {
-    cgss::Image image;
     cgss::Texture cachedTexture;
     bool textureValid = false;
     bool textureDirty = false;
@@ -37,9 +43,33 @@ struct ImageData
     ImageData& operator=(const ImageData&) = delete;
     ~ImageData();
 
-    unsigned int width() const { return image.width(); }
-    unsigned int height() const { return image.height(); }
-    bool valid() const { return image.width() > 0 && image.height() > 0; }
+    unsigned int width() const { return w; }
+    unsigned int height() const { return h; }
+    bool valid() const { return w > 0 && h > 0; }
+
+    // The CPU pixels, read back from the texture if they were released. For
+    // reading as for editing: from then on the image keeps them.
+    cgss::Image& pixels();
+    // Replaces the pixels (load, copy, dispose): the image is what they are.
+    void setPixels(cgss::Image&& image);
+    // The image becomes this texture, its pixels left on the GPU (snapshots)
+    void adoptTexture(cgss::Texture&& texture);
+    // Called once the texture holds the pixels: releases them unless a
+    // script used them, or the texture's storage differs (padded).
+    void releasePixelsIfUnused();
+    // Diagnostics: the CPU pixels are held (not released to the texture)
+    bool pixelsResident() const { return !pixelsReleased; }
+
+private:
+    // Use pixels(): released ones are empty here
+    cgss::Image cpuPixels;
+    unsigned int w = 0;
+    unsigned int h = 0;
+    bool pixelsReleased = false;
+    bool pixelsUsed = false;
+
+    friend void sync_texture(ImageData *img);
+    friend cgss::Texture& image_acquire_texture(ImageData *img);
 };
 ImageData *get_image(VALUE self);
 
@@ -53,8 +83,8 @@ cgss::Texture& image_acquire_texture(ImageData *img);
 void image_flush_pending_uploads();
 
 // Wrap a GPU texture (e.g. a viewport / window snapshot) in a new Ruby Image:
-// pixels are read back once for the CPU side, and the texture itself becomes
-// the image's cached GPU copy (no re-upload when it is drawn).
+// the texture is the image (its pixels stay on the GPU until a script reads
+// or edits them).
 VALUE image_from_texture(cgss::Texture&& texture);
 
 #endif
