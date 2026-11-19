@@ -70,6 +70,8 @@ namespace cgss::backend::raylib_detail {
 		// against bad ordering).
 		float                                 g_currentTargetW = 0.f;
 		float                                 g_currentTargetH = 0.f;
+		int                                   g_currentFramebufferW = 0;
+		int                                   g_currentFramebufferH = 0;
 
 		bool viewNeedsScissor(const cgss::backend::raylib::View& v) noexcept {
 			// Scissor only when the viewport is a strict sub-region of the
@@ -413,6 +415,14 @@ namespace cgss::backend::raylib_detail {
 
 	float currentTargetWidth() noexcept  { return g_currentTargetW; }
 	float currentTargetHeight() noexcept { return g_currentTargetH; }
+
+	void setCurrentFramebufferSize(int width, int height) noexcept {
+		g_currentFramebufferW = width;
+		g_currentFramebufferH = height;
+	}
+
+	int currentFramebufferWidth() noexcept  { return g_currentFramebufferW; }
+	int currentFramebufferHeight() noexcept { return g_currentFramebufferH; }
 
 	const cgss::backend::raylib::View& currentView() noexcept {
 		return g_currentView;

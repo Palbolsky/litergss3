@@ -55,6 +55,13 @@ namespace cgss::backend::raylib_detail {
 	void                     setCurrentTargetSize(float width, float height) noexcept;
 	float                    currentTargetWidth() noexcept;
 	float                    currentTargetHeight() noexcept;
+	// The framebuffer the current target draws to, in GL pixels: the
+	// window's render size (GetRenderWidth/Height, which a HiDPI screen
+	// scales from the screen size) or the FBO's. The viewport of a shader
+	// draw (draw_with_render_states) is set in it.
+	void                     setCurrentFramebufferSize(int width, int height) noexcept;
+	int                      currentFramebufferWidth() noexcept;
+	int                      currentFramebufferHeight() noexcept;
 
 	// Frame-boundary signal. Called from window_display so the next frame's
 	// event-queue drain can re-enter refillQueue once (see g_frameRefillDone

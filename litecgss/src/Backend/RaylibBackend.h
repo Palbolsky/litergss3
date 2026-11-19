@@ -1074,14 +1074,20 @@ namespace cgss::backend {
 		// (e.g., scale!=1 windows or per-viewport-shader FBO compositing).
 		static inline void target_set_view(native_render_target& t, const native_view& v) {
 			float tw, th;
+			int fw, fh;
 			if (t.texture.id != 0) {
 				tw = static_cast<float>(t.texture.width);
 				th = static_cast<float>(t.texture.height);
+				fw = t.texture.width;
+				fh = t.texture.height;
 			} else {
 				tw = static_cast<float>(IsWindowReady() ? GetScreenWidth()  : 0);
 				th = static_cast<float>(IsWindowReady() ? GetScreenHeight() : 0);
+				fw = IsWindowReady() ? GetRenderWidth()  : 0;
+				fh = IsWindowReady() ? GetRenderHeight() : 0;
 			}
 			raylib_detail::setCurrentTargetSize(tw, th);
+			raylib_detail::setCurrentFramebufferSize(fw, fh);
 			raylib_detail::setCurrentView(v);
 		}
 		static inline native_view target_get_view(const native_render_target&) {
@@ -1237,17 +1243,77 @@ namespace cgss::backend {
 		// shader / blend modes are global state, so they are set locally and
 		// restored to the defaults afterwards (matching SFML's per-draw render
 		// state semantics).
+		//
+		// A shader sees clip space as SFML gives it: spanning the view's
+		// viewport, not the whole target. SFML sets glViewport to the view's
+		// viewport; this backend places sprites itself in target pixels
+		// (derive_current_view) under raylib's whole-target projection, and
+		// clips with a scissor. Same pixels without a shader, but a vertex
+		// shader working in clip space (PSDK's battle_shadow: its shadow
+		// skewed by 0.2 of the viewport, of the window here) went too far. So
+		// for a shader draw in a viewport smaller than its target, the GL
+		// viewport and the projection cover that viewport only (the vertices
+		// stay where they are), then raylib's are restored.
 		template <class DrawFn>
 		static inline void draw_with_render_states(const native_render_states* rs, DrawFn&& fn) {
 			const bool useShader = rs != nullptr && rs->shader != nullptr && rs->shader->id != 0;
 			if (rs != nullptr) apply_blend(*rs);
+			bool viewportSet = false;
+			::Matrix projection{};
 			if (useShader) {
 				BeginShaderMode(*rs->shader);
 				raylib_detail::bindShaderTextures(rs->shader->id);
+				viewportSet = begin_shader_viewport(projection);
 			}
 			fn();
-			if (useShader) EndShaderMode();
+			if (useShader) {
+				EndShaderMode();
+				if (viewportSet) end_shader_viewport(projection);
+			}
 			if (rs != nullptr) apply_default_blend();
+		}
+
+		// The view's viewport as the GL viewport and projection of a shader
+		// draw (draw_with_render_states). False when the viewport is the
+		// whole target: nothing to change.
+		// @param saved receives the projection to restore
+		static inline bool begin_shader_viewport(::Matrix& saved) {
+			const auto& v = raylib_detail::currentView();
+			if (v.vpX <= 0.f && v.vpY <= 0.f && v.vpW >= 1.f && v.vpH >= 1.f) return false;
+			const float tw = raylib_detail::currentTargetWidth();
+			const float th = raylib_detail::currentTargetHeight();
+			const int fw = raylib_detail::currentFramebufferWidth();
+			const int fh = raylib_detail::currentFramebufferHeight();
+			if (tw <= 0.f || th <= 0.f || fw <= 0 || fh <= 0) return false;
+			// The viewport in target pixels (top-left origin, as the vertices)
+			const float left = v.vpX * tw, top = v.vpY * th;
+			const float right = left + v.vpW * tw, bottom = top + v.vpH * th;
+			// In framebuffer pixels, from the bottom-left as GL counts: the
+			// target's top row is the framebuffer's last, the window's or an
+			// FBO's alike (raylib's projections put y = 0 at the top)
+			const float sx = static_cast<float>(fw) / tw, sy = static_cast<float>(fh) / th;
+			const int x = static_cast<int>(std::lround(left * sx));
+			const int w = static_cast<int>(std::lround(right * sx)) - x;
+			const int yTop = static_cast<int>(std::lround(top * sy));
+			const int h = static_cast<int>(std::lround(bottom * sy)) - yTop;
+			if (w <= 0 || h <= 0) return false;
+			rlDrawRenderBatchActive();
+			saved = rlGetMatrixProjection();
+			rlViewport(x, fh - yTop - h, w, h);
+			// raylib's projection maps the target's pixels to its framebuffer
+			// (the modelview scales screen to render pixels on HiDPI): the
+			// same projection, restricted to the viewport's rectangle
+			rlMatrixMode(RL_PROJECTION);
+			rlLoadIdentity();
+			rlOrtho(left * sx, right * sx, bottom * sy, top * sy, 0.0, 1.0);
+			rlMatrixMode(RL_MODELVIEW);
+			return true;
+		}
+
+		static inline void end_shader_viewport(const ::Matrix& saved) {
+			rlDrawRenderBatchActive();
+			rlViewport(0, 0, raylib_detail::currentFramebufferWidth(), raylib_detail::currentFramebufferHeight());
+			rlSetMatrixProjection(saved);
 		}
 
 		// Used by cgss::ViewportItem::draw to composite the off-screen
