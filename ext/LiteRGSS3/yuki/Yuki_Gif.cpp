@@ -1,14 +1,11 @@
-// Yuki::GifReader — animated GIF decoder, wraps cgss::YukiGif. Lifecycle
-// methods (initialize/width/height/frame/frame_count) are wired. The
-// `update` and `draw` methods take a Bitmap (Image alias) target, but
-// cgss::YukiGif::drawOn/update expect a cgss::Texture — litergss3's Image
-// is cgss::Image (CPU pixels) without a Texture bridge in this pass. Both
-// methods raise NotImplementedError until that bridge lands. PSDK code
-// using GifReader for animation playback won't render until then.
+// Yuki::GifReader - animated GIF decoder, wraps cgss::YukiGif. `update` and
+// `draw` write the frame into a Bitmap's texture (ImageData), which then is
+// the image: its CPU pixels, if held, are read back on a script's next use.
 
 #include "Yuki.h"
 #include "LiteRGSS.h"
 #include "../rbAdapter.h"
+#include "../graphics/Image.h"
 #include <LiteCGSS/Image/YukiGif.h>
 
 VALUE rb_cYukiGifReader = Qnil;
@@ -50,20 +47,38 @@ VALUE rb_Yuki_GifReader_Initialize(int argc, VALUE *argv, VALUE self)
     return self;
 }
 
-VALUE rb_Yuki_GifReader_Draw(VALUE self, VALUE texture)
+// The Bitmap a frame is drawn on: its texture, at least the GIF's size
+// (the frame is written at its top-left, w x h)
+static cgss::Texture& gif_target(YukiGifData *g, VALUE bitmap, ImageData *&img)
 {
-    (void)self; (void)texture;
-    rb_raise(rb_eNotImpError,
-             "Yuki::GifReader#draw requires a cgss::Texture target — "
-             "litergss3's Bitmap (Image) does not yet expose a GPU texture handle.");
+    img = get_image(bitmap);
+    if (img->disposed) rb_raise(rb_eRuntimeError, "Image is disposed");
+    if (img->width() < g->gif.width() || img->height() < g->gif.height()) {
+        rb_raise(rb_eArgError, "Bitmap %ux%u is smaller than the GIF (%ux%u)",
+                 img->width(), img->height(), g->gif.width(), g->gif.height());
+    }
+    return image_acquire_texture(img);
+}
+
+// Draws the current frame on the bitmap
+VALUE rb_Yuki_GifReader_Draw(VALUE self, VALUE bitmap)
+{
+    auto *g = get_gif(self);
+    ImageData *img = nullptr;
+    g->gif.drawOn(gif_target(g, bitmap, img));
+    img->texturePixelsChanged();
     return self;
 }
 
-VALUE rb_Yuki_GifReader_Update(VALUE self, VALUE texture)
+// Advances the animation by the delta counter (GifReader.delta_counter=),
+// drawing the frame on the bitmap when it changes
+VALUE rb_Yuki_GifReader_Update(VALUE self, VALUE bitmap)
 {
-    (void)self; (void)texture;
-    rb_raise(rb_eNotImpError,
-             "Yuki::GifReader#update requires a cgss::Texture target — see draw.");
+    auto *g = get_gif(self);
+    ImageData *img = nullptr;
+    const bool decoded = g->gif.update(gif_target(g, bitmap, img));
+    img->texturePixelsChanged();
+    if (!decoded) rb_raise(rb_cYukiGifError, "Failed to decode GIF frame %lu", g->gif.frame());
     return self;
 }
 

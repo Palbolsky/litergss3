@@ -1751,10 +1751,12 @@ namespace cgss::backend {
 
 		// Update a sub-rectangle of a texture from a raw pixel buffer. The
 		// source buffer layout must be R8G8B8A8 at the given stride; raylib
-		// handles the upload via UpdateTextureRec.
+		// handles the upload via UpdateTextureRec. Size then position, as
+		// SFML's (sf::Texture::update): it took the position first, and
+		// YukiGif's frames (w x h at 0, 0) were written 0x0 at (w, h).
 		static inline void texture_update_pixels(native_texture& t, const std::uint8_t* pixels,
-		                                        unsigned int x, unsigned int y,
-		                                        unsigned int w, unsigned int h) {
+		                                        unsigned int w, unsigned int h,
+		                                        unsigned int x, unsigned int y) {
 			cgss::detail::ensureGLContext();
 			::Rectangle r{ static_cast<float>(x), static_cast<float>(y),
 			               static_cast<float>(w), static_cast<float>(h) };

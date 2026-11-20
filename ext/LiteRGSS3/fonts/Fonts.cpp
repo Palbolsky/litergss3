@@ -82,7 +82,7 @@ VALUE rb_Fonts_load_font(VALUE self, VALUE id, VALUE str)
 cgss::Font& rb_Fonts_get_font(unsigned long id)
 {
     if (g_fontTable.size() <= id || !g_fontTable[id]) {
-        rb_raise(rb_eRGSSError, "Unable to fetch font n°%d.", static_cast<int>(id));
+        rb_raise(rb_eRGSSError, "Unable to fetch font #%d.", static_cast<int>(id));
     }
     return *g_fontTable[id];
 }

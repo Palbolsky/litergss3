@@ -96,7 +96,7 @@ namespace {
 	{
 		auto* window = window_ptr(self);
 		if (window == nullptr) {
-			rb_raise(rb_eRGSSError, "Window not opened — call DisplayWindow.new first");
+			rb_raise(rb_eRGSSError, "Window not opened: call DisplayWindow.new first");
 		}
 		return *window;
 	}

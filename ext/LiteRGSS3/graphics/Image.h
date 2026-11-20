@@ -57,6 +57,10 @@ struct ImageData
     // Called once the texture holds the pixels: releases them unless a
     // script used them, or the texture's storage differs (padded).
     void releasePixelsIfUnused();
+    // The texture was drawn on outside the CPU pixels (a GIF frame): it is
+    // the image now, the pixels (if held) stale; a script reading them reads
+    // the texture back
+    void texturePixelsChanged();
     // Diagnostics: the CPU pixels are held (not released to the texture)
     bool pixelsResident() const { return !pixelsReleased; }
 

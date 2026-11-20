@@ -78,6 +78,14 @@ void ImageData::adoptTexture(cgss::Texture&& texture)
     pixelsReleased = true;
 }
 
+void ImageData::texturePixelsChanged()
+{
+    unqueue_upload(this);
+    textureDirty = false;
+    cpuPixels = cgss::Image{};
+    pixelsReleased = true;
+}
+
 void ImageData::releasePixelsIfUnused()
 {
     if (pixelsUsed || pixelsReleased || !textureValid) return;
