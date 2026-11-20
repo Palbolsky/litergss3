@@ -151,7 +151,10 @@ VALUE rb_Sprite_setBitmap(VALUE self, VALUE val)
         s->has_texture = false;
         if (s->has_sprite) s->sprite->clearTexture();
     };
-    if (NIL_P(val)) {
+    // Anything that is not a Bitmap (e.g. a Symbol passed by mistake) shows
+    // nothing and keeps the value, as LiteRGSS2 does; raising here ended
+    // games that run fine on PC (Lethalmon's crafting menu)
+    if (NIL_P(val) || rb_obj_is_kind_of(val, rb_cImage) != Qtrue) {
         unbind();
         return val;
     }

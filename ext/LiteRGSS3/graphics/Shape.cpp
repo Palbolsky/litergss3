@@ -313,12 +313,10 @@ VALUE rb_Shape_setBitmap(VALUE self, VALUE val)
 {
     auto *s = get_shape(self);
     s->rBitmap = val;
-    if (NIL_P(val)) {
+    // Anything that is not a Bitmap shows no texture, as LiteRGSS2 does
+    if (NIL_P(val) || rb_obj_is_kind_of(val, rb_cImage) != Qtrue) {
         s->shape.setTexture(nullptr);
         return val;
-    }
-    if (rb_obj_is_kind_of(val, rb_cImage) != Qtrue) {
-        rb_raise(rb_eRGSSError, "Shape#bitmap= expects a Bitmap (Image).");
     }
     auto *img = get_image(val);
     if (!img->valid()) {

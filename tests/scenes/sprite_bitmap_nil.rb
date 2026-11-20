@@ -36,6 +36,15 @@ window.update
 gone.dispose
 replaced.bitmap = gone
 
+# Drawn once with a yellow square, then given a Symbol instead of a bitmap
+# (Lethalmon's crafting menu passes :NO_INITIAL_IMAGE): nothing left, no error
+symbolic = LiteRGSS::Sprite.new(viewport)
+symbolic.set_position(40, 168)
+symbolic.bitmap = square.call(LiteRGSS::Color.new(220, 200, 40))
+window.update
+symbolic.bitmap = :NO_INITIAL_IMAGE
+raise 'bitmap= must keep the value given' unless symbolic.bitmap == :NO_INITIAL_IMAGE
+
 # The reference: a blue square that stays
 kept = LiteRGSS::Sprite.new(viewport)
 kept.set_position(220, 88)
