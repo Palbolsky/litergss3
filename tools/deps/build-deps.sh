@@ -108,7 +108,12 @@ if [[ -n "$RAYLIB_PATCHES" ]]; then
 		echo "== raylib: $patch"
 	done < "$RAYLIB_PATCHES/series"
 fi
-RAYLIB_ARGS=(-DBUILD_SHARED_LIBS=OFF -DBUILD_EXAMPLES=OFF)
+# The image decoders LiteRGSS2 (SFML) has and raylib leaves off: games load
+# them, whatever the extension (Lethalmon's intro01.png is a JPEG; stb_image
+# reads the content, but only with the decoder compiled in). config.h
+# #ifndef-guards each flag, so a define wins.
+RAYLIB_FORMATS="-DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_TGA=1 -DSUPPORT_FILEFORMAT_PSD=1 -DSUPPORT_FILEFORMAT_HDR=1 -DSUPPORT_FILEFORMAT_PIC=1"
+RAYLIB_ARGS=(-DBUILD_SHARED_LIBS=OFF -DBUILD_EXAMPLES=OFF "-DCMAKE_C_FLAGS=$RAYLIB_FORMATS")
 if [[ -n "$ABI" && -n "$RAYLIB_PATCHES" ]]; then
 	RAYLIB_ARGS+=(-DPLATFORM=AndroidHosted)
 elif [[ -n "$ABI" ]]; then

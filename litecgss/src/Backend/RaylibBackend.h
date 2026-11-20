@@ -1894,8 +1894,10 @@ namespace cgss::backend {
 		}
 
 		// PNG codec layer for the unified Image/Texture serializers.
-		// raylib's stb-image-based decoder autodetects PNG/JPG/etc. from the
-		// buffer header regardless of the extension hint, so ".png" is fine.
+		// raylib's stb-image-based decoder autodetects the format from the
+		// buffer header regardless of the extension hint, so ".png" is fine,
+		// among the decoders raylib was built with: its packagers turn on
+		// SFML's set (JPG, TGA, PSD, HDR, PIC; tools/deps/build-deps.sh).
 		// Empty-image creation goes via GenImageColor with a transparent fill.
 		static inline bool png_decode_memory(native_image& image, const void* data, std::size_t size) {
 			image_destroy(image);
