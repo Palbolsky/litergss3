@@ -18,9 +18,12 @@
 namespace cgss::backend::raylib_detail {
 
 	namespace {
-		// Characters the atlas holds, when the font has them: ASCII, Latin-1,
-		// Latin Extended-A, and the symbols game texts commonly use. A missing
-		// codepoint is drawn as '?' by raylib.
+		// Characters the atlas starts with, when the font has them: ASCII,
+		// Latin-1, Latin Extended-A, and the symbols game texts commonly use.
+		// A text's characters the font lacks are added later (ensureFontGlyphs)
+		// as the font's own missing glyph (glyph 0), as FreeType draws them for
+		// SFML: raylib's '?' stood in for them ("‹ Initializing… ›" in
+		// PokemonDS, which has no ‹ ›).
 		constexpr int kCodepointRanges[][2] = {
 			{ 0x0020, 0x007E }, // ASCII
 			{ 0x00A0, 0x017F }, // Latin-1 Supplement, Latin Extended-A
@@ -97,7 +100,6 @@ namespace cgss::backend::raylib_detail {
 			stbtt_fontinfo info{};
 			int characterSize = 0;
 			std::unordered_set<int> baked;   // in the atlas
-			std::unordered_set<int> missing; // asked for, not in the font
 			// The font rasterized at other sizes (fontAtSize), with the same
 			// glyphs. Heap objects: their address is kept by the texts
 			// drawing them, rebuilt in place when the glyphs grow.
@@ -154,7 +156,7 @@ namespace cgss::backend::raylib_detail {
 			int bytes = 0;
 			const int cp = GetCodepointNext(p, &bytes);
 			p += bytes > 0 ? bytes : 1;
-			if (cp < 0x20 || source.baked.count(cp) != 0 || source.missing.count(cp) != 0) continue;
+			if (cp < 0x20 || source.baked.count(cp) != 0) continue;
 			return true;
 		}
 		return false;
@@ -178,11 +180,8 @@ namespace cgss::backend::raylib_detail {
 			int bytes = 0;
 			const int cp = GetCodepointNext(p, &bytes);
 			p += bytes > 0 ? bytes : 1;
-			if (cp < 0x20 || source.baked.count(cp) != 0 || source.missing.count(cp) != 0) continue;
-			if (stbtt_FindGlyphIndex(&source.info, cp) == 0) {
-				source.missing.insert(cp);
-				continue;
-			}
+			// Not in the font: stbtt rasterizes it as glyph 0, the font's missing glyph
+			if (cp < 0x20 || source.baked.count(cp) != 0) continue;
 			if (std::find(added.begin(), added.end(), cp) == added.end()) added.push_back(cp);
 		}
 		if (added.empty()) return;
